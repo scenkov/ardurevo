@@ -1,0 +1,10 @@
+Changes to STM32F4 Standard Peripheral Library
+----------------------------------------------
+
+$Id: Changes.txt 3499 2011-12-02 09:51:56Z svn $
+
+1. Imported STM32F4 Standard Peripheral Libary V1.0.0.
+
+2. Changed assert_failed() to assert() in stm32f4xx_conf.h.
+
+3. Changed PLL_M from 25 to (HSE_VALUE/1000000) in system_stm32f4xx.c.
