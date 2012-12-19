@@ -99,10 +99,10 @@ static inline long map(long value, long fromStart, long fromEnd,
 #define sq(x)                   ((x)*(x))
 
 /* undefine stdlib's abs if encountered */
-#ifdef abs
-  #undef abs
-#endif
-#define abs(x) (((x) > 0) ? (x) : -(x))
+//#ifdef abs
+//  #undef abs
+//#endif
+//#define abs(x) (((x) > 0) ? (x) : -(x))
 
 /* Following are duplicate declarations (with Doxygen comments) for
  * some of the math.h functions; this is for the convenience of the

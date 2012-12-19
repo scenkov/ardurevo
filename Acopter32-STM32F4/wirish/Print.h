@@ -23,6 +23,7 @@
 #ifndef _PRINT_H_
 #define _PRINT_H_
 
+#include <stdlib.h>
 #include "hal_types.h"
 
 enum {

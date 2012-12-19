@@ -8,9 +8,9 @@
  *  License as published by the Free Software Foundation; either
  *  version 2.1 of the License, or (at your option) any later version.
  */
-
-#include <AP_Math.h>
+#include <stdlib.h>
 #include <inttypes.h>
+#include <AP_Math.h>
 #include <AP_Common.h>
 #include <AP_Compass.h>
 #include <AP_Airspeed.h>
