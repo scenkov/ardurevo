@@ -1,6 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter32 V2.8.1b_params"
+#define THISFIRMWARE "ArduCopter32 V2.8.1b_accel-git"
+
 /*
  *  ArduCopter Version 2.8
  *  Lead author:	Jason Short
