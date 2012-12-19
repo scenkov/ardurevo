@@ -7,7 +7,7 @@
 #define AC_PID_h
 
 #include <AP_Common.h>
-#include <math.h>		// for fabs()
+#include <arm_math.h>		// for fabs()
 
 /// @class	AC_PID
 /// @brief	Object managing one PID control
@@ -33,7 +33,12 @@ public:
 		_kp  (initial_p),
 		_ki  (initial_i),
 		_kd  (initial_d),
-		_imax(abs(initial_imax))
+		_imax(abs(initial_imax)),
+		_integrator(0.0),
+		_last_input(0.0),
+		_last_derivative(0.0),
+		_output(0.0),
+		_derivative(0)
 	{
 		// no need for explicit load, assuming that the main code uses AP_Param::load_all.
 	}

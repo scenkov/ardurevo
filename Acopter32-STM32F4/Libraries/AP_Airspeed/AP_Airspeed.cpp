@@ -8,9 +8,9 @@
     of the License, or (at your option) any later version.
 */
 
-#include <FastSerial.h>
 #include <AP_Common.h>
 #include <AP_Airspeed.h>
+#include <FastSerial.h>
 #include <LowPassFilter.h>
 
 // table of user settable parameters

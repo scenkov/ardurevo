@@ -3,9 +3,9 @@
 #ifndef __AP_INERTIAL_SENSOR_MPU6000_H__
 #define __AP_INERTIAL_SENSOR_MPU6000_H__
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 #include <wirish.h>
 #include "../AP_PeriodicProcess/AP_PeriodicProcess.h"

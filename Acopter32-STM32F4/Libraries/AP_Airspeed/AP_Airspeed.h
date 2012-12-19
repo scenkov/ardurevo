@@ -15,7 +15,9 @@ public:
 		_offset(0.0),
 		_ratio(0.0),
 		_use(0),
-		_enable(0)
+		_enable(0),
+		_airspeed(0.0),
+		_airspeed_raw(0.0)
 	{
         _source = source;
     }
