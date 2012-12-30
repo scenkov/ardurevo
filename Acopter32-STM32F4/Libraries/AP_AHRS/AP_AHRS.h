@@ -23,12 +23,6 @@ class AP_AHRS
 public:
     // Constructor
     AP_AHRS(AP_InertialSensor *ins, GPS *&gps) :
-		_kp_yaw(0.1),
-		_kp(0.1),
-		gps_gain(0.0),
-		_gps_use(0),
-		_baro_use(0),
-		_wind_max(0),
         _ins(ins),
         _gps(gps),
         _barometer(NULL)
@@ -62,6 +56,9 @@ public:
     AP_InertialSensor*            get_ins() {
 	    return _ins;
     }
+
+    // accelerometer values in the earth frame in m/s/s
+    Vector3f        get_accel_ef(void) { return _accel_ef; }
 
     // Methods
     virtual void update(void) = 0;
@@ -143,10 +140,10 @@ public:
     Vector3f                get_trim() { return _trim; }
 
     // set_trim
-    virtual void            set_trim(Vector3f new_trim) { _trim.set(new_trim); }
+    virtual void            set_trim(Vector3f new_trim) { _trim.set_and_save(new_trim); }
 
     // add_trim - adjust the roll and pitch trim up to a total of 10 degrees
-    virtual void            add_trim(float roll_in_radians, float pitch_in_radians);
+    virtual void            add_trim(float roll_in_radians, float pitch_in_radians, bool save_to_eeprom = true);
 
     // settable parameters
     AP_Float _kp_yaw;
@@ -194,6 +191,9 @@ protected:
     // the limit of the gyro drift claimed by the sensors, in
     // radians/s/s
     float _gyro_drift_limit;
+
+    // accelerometer values in the earth frame in m/s/s
+    Vector3f        _accel_ef;
 
     // acceleration due to gravity in m/s/s
     static const float _gravity = 9.80665;

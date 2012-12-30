@@ -72,7 +72,7 @@ static void set_cmd_with_index(struct Location temp, int i)
 {
 
     i = constrain(i, 0, g.command_total.get());
-    //Serial.printf("set_command: %d with id: %d\n", i, temp.id);
+    //cliSerial->printf("set_command: %d with id: %d\n", i, temp.id);
 
     // store home as 0 altitude!!!
     // Home is always a MAV_CMD_NAV_WAYPOINT (16)
@@ -143,7 +143,7 @@ static void set_next_WP(struct Location *wp)
             prev_WP = current_loc;
     }
 
-    //Serial.printf("set_next_WP #%d, ", command_nav_index);
+    //cliSerial->printf("set_next_WP #%d, ", command_nav_index);
     //print_wp(&prev_WP, command_nav_index -1);
 
     // Load the next_WP slot
@@ -157,11 +157,6 @@ static void set_next_WP(struct Location *wp)
 
     // Save new altitude so we can track it for climb_rate
     set_new_altitude(next_WP.alt);
-
-    // this is used to offset the shrinking longitude as we go towards the poles
-    float rads              = (fabs((float)next_WP.lat)/t7) * 0.0174532925;
-    scaleLongDown           = cos(rads);
-    scaleLongUp             = 1.0f/cos(rads);
 
     // this is handy for the groundstation
     // -----------------------------------
@@ -201,6 +196,11 @@ static void init_home()
 
     if (g.log_bitmask & MASK_LOG_CMD)
         Log_Write_Cmd(0, &home);
+
+    // update navigation scalers.  used to offset the shrinking longitude as we go towards the poles
+    float rads              = (fabs((float)next_WP.lat)/t7) * 0.0174532925;
+    scaleLongDown           = cos(rads);
+    scaleLongUp             = 1.0f/cos(rads);
 
     // Save prev loc this makes the calcs look better before commands are loaded
     prev_WP = home;

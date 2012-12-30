@@ -12,33 +12,49 @@
 
 // parameters for the motor class
 const AP_Param::GroupInfo AP_Motors::var_info[]  = {
-	AP_GROUPINFO("TB_RATIO", 0, AP_Motors,	top_bottom_ratio),  // not used
-    AP_GROUPINFO("TCRV_ENABLE", 1, AP_Motors, _throttle_curve_enabled),
-    AP_GROUPINFO("TCRV_MIDPCT", 2, AP_Motors, _throttle_curve_mid),
-    AP_GROUPINFO("TCRV_MAXPCT", 3, AP_Motors, _throttle_curve_max),
+    // @Param: TB_RATIO
+    // @DisplayName: Top Bottom Ratio
+    // @Description: Not Used.  Will control the speed of the top motors vs bottom motors on frames such as the Octo-Quad and Y6
+    AP_GROUPINFO("TB_RATIO", 0, AP_Motors,  top_bottom_ratio, AP_MOTORS_TOP_BOTTOM_RATIO),      // not used
+
+    // @Param: TCRV_ENABLE
+    // @DisplayName: Thrust Curve Enable
+    // @Description: Controls whether a curve is used to linearize the thrust produced by the motors
+    // @Values: 0:Disabled,1:Enable
+    AP_GROUPINFO("TCRV_ENABLE", 1, AP_Motors, _throttle_curve_enabled, THROTTLE_CURVE_ENABLED),
+
+    // @Param: TCRV_MIDPCT
+    // @DisplayName: Thrust Curve mid-point percentage
+    // @Description: Set the pwm position that produces half the maximum thrust of the motors
+    // @Range: 20 80
+    AP_GROUPINFO("TCRV_MIDPCT", 2, AP_Motors, _throttle_curve_mid, THROTTLE_CURVE_MID_THRUST),
+
+    // @Param: TCRV_MAXPCT
+    // @DisplayName: Thrust Curve max thrust percentage
+    // @Description: Set to the lowest pwm position that produces the maximum thrust of the motors.  Most motors produce maximum thrust below the maximum pwm value that they accept.
+    // @Range: 20 80
+    AP_GROUPINFO("TCRV_MAXPCT", 3, AP_Motors, _throttle_curve_max, THROTTLE_CURVE_MAX_THRUST),
+
     AP_GROUPEND
 };
 
 // Constructor 
 AP_Motors::AP_Motors( uint8_t APM_version, APM_RC_Class* rc_out, RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_throttle, RC_Channel* rc_yaw, uint16_t speed_hz ) :
-	top_bottom_ratio(AP_MOTORS_TOP_BOTTOM_RATIO),
-	_rc(rc_out),
-	_rc_roll(rc_roll),
-	_rc_pitch(rc_pitch),
-	_rc_throttle(rc_throttle),
-	_rc_yaw(rc_yaw),
-	_speed_hz(speed_hz),
-	_armed(false),
-	_auto_armed(false),
-	_frame_orientation(0),
-	_min_throttle(AP_MOTORS_DEFAULT_MIN_THROTTLE),
-	_max_throttle(AP_MOTORS_DEFAULT_MAX_THROTTLE),
-	_throttle_curve_enabled(THROTTLE_CURVE_ENABLED),
-	_throttle_curve_mid(THROTTLE_CURVE_MID_THRUST),
-	_throttle_curve_max(THROTTLE_CURVE_MAX_THRUST)
-	{
-	uint8_t i;
-	
+    _rc(rc_out),
+    _rc_roll(rc_roll),
+    _rc_pitch(rc_pitch),
+    _rc_throttle(rc_throttle),
+    _rc_yaw(rc_yaw),
+    _speed_hz(speed_hz),
+    _armed(false),
+    _auto_armed(false),
+    _frame_orientation(0),
+    _min_throttle(AP_MOTORS_DEFAULT_MIN_THROTTLE),
+    _max_throttle(AP_MOTORS_DEFAULT_MAX_THROTTLE)
+{
+    uint8_t i;
+
+    top_bottom_ratio = AP_MOTORS_TOP_BOTTOM_RATIO;
 
 	// initialise motor map
 	if( APM_version == AP_MOTORS_APM1 ) {

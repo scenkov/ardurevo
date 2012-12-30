@@ -49,14 +49,14 @@ public:
         return _num_motors;
     };
 
-	// motor test
-	virtual void output_test();
- 
- 	// output_min - sends minimum values out to the motors
-	virtual void output_min();
+    // motor test
+    virtual void        output_test();
 
-	// add_motor using just position and prop direction
-	virtual void add_motor(int8_t motor_num, float angle_degrees, int8_t direction, int8_t opposite_motor_num = AP_MOTORS_MATRIX_MOTOR_UNDEFINED, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
+    // output_min - sends minimum values out to the motors
+    virtual void        output_min();
+
+    // add_motor using just position and prop direction
+    virtual void        add_motor(int8_t motor_num, float angle_degrees, int8_t direction, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
 
 	// remove_motor
 	virtual void remove_motor(int8_t motor_num);
@@ -69,17 +69,16 @@ public:
         remove_all_motors();
     };
 
-	// matrix
-	AP_Int8		opposite_motor[AP_MOTORS_MAX_NUM_MOTORS];	// motor number of the opposite motor
-	AP_Int8		test_order[AP_MOTORS_MAX_NUM_MOTORS];		// order of the motors in the test sequence
+    // matrix
+    AP_Int8         test_order[AP_MOTORS_MAX_NUM_MOTORS];               // order of the motors in the test sequence
 
 protected:
 	// output - sends commands to the motors
 	virtual void output_armed();
 	virtual void output_disarmed();
 
-	// add_motor using raw roll, pitch, throttle and yaw factors
-	virtual void add_motor_raw(int8_t motor_num, float roll_fac, float pitch_fac, float yaw_fac, int8_t opposite_motor_num = AP_MOTORS_MATRIX_MOTOR_UNDEFINED, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
+    // add_motor using raw roll, pitch, throttle and yaw factors
+    virtual void        add_motor_raw(int8_t motor_num, float roll_fac, float pitch_fac, float yaw_fac, int8_t testing_order = AP_MOTORS_MATRIX_ORDER_UNDEFINED);
 
 	int8_t	_num_motors;	// not a very useful variable as you really need to check the motor_enabled array to see which motors are enabled
 	float	_roll_factor[AP_MOTORS_MAX_NUM_MOTORS];		// each motors contribution to roll

@@ -14,7 +14,7 @@ cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_GPS_Auto.cpp
 cppSRCS_$(d) += AP_GPS_HIL.cpp
 cppSRCS_$(d) += AP_GPS_IMU.cpp
-cppSRCS_$(d) += AP_GPS_MTK16.cpp
+cppSRCS_$(d) += AP_GPS_MTK19.cpp
 cppSRCS_$(d) += AP_GPS_UBLOX.cpp
 cppSRCS_$(d) += GPS.cpp
 

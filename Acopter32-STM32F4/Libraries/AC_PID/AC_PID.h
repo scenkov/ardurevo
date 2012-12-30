@@ -28,19 +28,16 @@ public:
 	    const float &initial_p = 0.0,
 	    const float &initial_i = 0.0,
 	    const float &initial_d = 0.0,
-	    const int16_t &initial_imax = 0.0) :
-
-		_kp  (initial_p),
-		_ki  (initial_i),
-		_kd  (initial_d),
-		_imax(abs(initial_imax)),
-		_integrator(0.0),
-		_last_input(0.0),
-		_last_derivative(0.0),
-		_output(0.0),
-		_derivative(0)
+	    const int16_t &initial_imax = 0.0)
 	{
-		// no need for explicit load, assuming that the main code uses AP_Param::load_all.
+        _kp = initial_p;
+        _ki = initial_i;
+        _kd = initial_d;
+        _imax = abs(initial_imax);
+		_integrator = 0.0;
+		_last_input = 0.0;
+		// derivative is invalid on startup
+		_last_derivative = NAN;
 	}
 
 	/// Iterate the PID, return the new control value
@@ -61,6 +58,7 @@ public:
 	int32_t get_p(int32_t error);
 	int32_t get_i(int32_t error, float dt);
 	int32_t get_d(int32_t error, float dt);
+	int32_t 		get_leaky_i(int32_t error, float dt, float leak_rate);
 
 
 	/// Reset the PID integrator
@@ -86,18 +84,38 @@ public:
 		_kp = p; _ki = i; _kd = d; _imax = abs(imaxval);
 	}
 
-	float	kP() const				{ return _kp.get(); }
-	float	kI() const 				{ return _ki.get(); }
-	float	kD() const 				{ return _kd.get(); }
-	int16_t	imax() const			{ return _imax.get(); }
+    float        kP() const {
+        return _kp.get();
+    }
+    float        kI() const {
+        return _ki.get();
+    }
+    float        kD() const {
+        return _kd.get();
+    }
+    int16_t        imax() const {
+        return _imax.get();
+    }
 
-	void	kP(const float v)		{ _kp.set(v); }
-	void	kI(const float v)		{ _ki.set(v); }
-	void	kD(const float v)		{ _kd.set(v); }
-	void	imax(const int16_t v)	{ _imax.set(abs(v)); }
+    void        kP(const float v)               {
+        _kp.set(v);
+    }
+    void        kI(const float v)               {
+        _ki.set(v);
+    }
+    void        kD(const float v)               {
+        _kd.set(v);
+    }
+    void        imax(const int16_t v)   {
+        _imax.set(abs(v));
+    }
 
-	float	get_integrator() const	{ return _integrator; }
-	void	set_integrator(float i)	{ _integrator = i; }
+    float        get_integrator() const {
+        return _integrator;
+    }
+    void        set_integrator(float i) {
+        _integrator = i;
+    }
 
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -110,8 +128,6 @@ private:
 	float				_integrator;		///< integrator value
 	int32_t				_last_input;		///< last input for derivative
 	float				_last_derivative; 	///< last derivative for low-pass filter
-	float				_output;
-	float				_derivative;
 
 	/// Low pass filter cut frequency for derivative calculation.
 	///

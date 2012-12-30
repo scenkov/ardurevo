@@ -100,6 +100,13 @@ void set_land_complete(bool b)
 // ---------------------------------------------
 
 void set_alt_change(uint8_t flag){
+
+    // if no change, exit immediately
+    if( alt_change_flag == flag ) {
+        return;
+    }
+
+    // update flag
 	alt_change_flag = flag;
 
 	if(flag == REACHED_ALT){
@@ -135,6 +142,6 @@ void set_gps_healthy(bool b)
 
 void dump_state()
 {
-    Serial.printf("st: %u\n",ap.value);
-	//Serial.printf("%u\n", *(uint16_t*)&ap);
+    cliSerial->printf("st: %u\n",ap.value);
+	//cliSerial->printf("%u\n", *(uint16_t*)&ap);
 }

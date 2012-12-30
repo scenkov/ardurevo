@@ -19,8 +19,7 @@ public:
     /// @param name     Optional name for the group.
     ///
     RC_Channel_aux(uint8_t ch_out) :
-        RC_Channel(ch_out),
-        function(0)
+        RC_Channel(ch_out)
     {
     }
 
@@ -42,12 +41,18 @@ public:
         k_mount2_tilt   = 13,           ///< mount2 pitch (tilt)
         k_mount2_roll   = 14,           ///< mount2 roll
         k_mount2_open   = 15,           ///< mount2 open (deploy) / close (retract)
+		k_dspoiler1     = 16,           ///< differential spoiler 1 (left wing)
+		k_dspoiler2     = 17,           ///< differential spoiler 2 (right wing)
+        k_aileron_with_input    = 18,            ///< aileron, with rc input
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Aux_servo_function_t;
 
     AP_Int8         function;           ///< see Aux_servo_function_t enum
 
     void            output_ch(unsigned char ch_nr);
+
+	// set radio_out for a function channel
+	static void set_radio(Aux_servo_function_t function, int16_t value);
 
 	// set and save the trim for a function channel to radio_in
 	static void set_radio_trim(Aux_servo_function_t function);
@@ -58,8 +63,11 @@ public:
 	// set radio_out to radio_max
 	static void set_radio_to_max(Aux_servo_function_t function);
 
+	// set radio_out to radio_trim
+	static void set_radio_to_trim(Aux_servo_function_t function);
+
 	// copy radio_in to radio_out
-	static void copy_radio_in_out(Aux_servo_function_t function);
+	static void copy_radio_in_out(Aux_servo_function_t function, bool do_input_output=false);
 
 	// set servo_out
 	static void set_servo_out(Aux_servo_function_t function, int16_t value);

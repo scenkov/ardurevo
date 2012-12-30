@@ -11,18 +11,18 @@
 static int8_t   process_logs(uint8_t argc, const Menu::arg *argv);      // in Log.pde
 static int8_t   setup_mode(uint8_t argc, const Menu::arg *argv);        // in setup.pde
 static int8_t   test_mode(uint8_t argc, const Menu::arg *argv);         // in test.cpp
+static int8_t   reboot_board(uint8_t argc, const Menu::arg *argv);
 
 // This is the help function
 // PSTR is an AVR macro to read strings from flash memory
 // printf_P is a version of print_f that reads from flash memory
 static int8_t   main_menu_help(uint8_t argc, const Menu::arg *argv)
 {
-    Serial.printf_P(PSTR("Commands:\n"
+    cliSerial->printf_P(PSTR("Commands:\n"
                          "  logs\n"
                          "  setup\n"
                          "  test\n"
-                         "\n"
-                         "Move the slide switch and reset to FLY.\n"
+                         "  reboot\n"
                          "\n"));
     return(0);
 }
@@ -34,16 +34,26 @@ const struct Menu::command main_menu_commands[] = {
     {"logs",                process_logs},
     {"setup",               setup_mode},
     {"test",                test_mode},
+    {"reboot",              reboot_board},
     {"help",                main_menu_help},
 };
 
 // Create the top-level menu object.
 MENU(main_menu, THISFIRMWARE, main_menu_commands);
 
-// the user wants the CLI. It never exits
-static void run_cli(void)
+static int8_t reboot_board(uint8_t argc, const Menu::arg *argv)
 {
-    Serial.use_tx_fifo(false);
+    //reboot_apm();
+    return 0;
+}
+
+// the user wants the CLI. It never exits
+static void run_cli(FastSerial *port)
+{
+    cliSerial = port;
+    Menu::set_port(port);
+    port->use_tx_fifo(false);
+
     while (1) {
         main_menu.run();
     }
@@ -59,17 +69,13 @@ static void init_ardupilot()
     // The console port buffers are defined to be sufficiently large to support
     // the MAVLink protocol efficiently
     //
-	    // load parameters from EEPROM
-    
-	
-	
-	Serial.begin(SERIAL_CLI_BAUD, 128, 256);
-	
+    cliSerial->begin(SERIAL_CLI_BAUD, 128, 256);
+
 	Serial.println("Seriale CONSOLE");
     // GPS serial port.
     //
 
-    Serial.printf_P(PSTR("\n\nInit " THISFIRMWARE
+    cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
                          "\n\nFree RAM: %u\n"),
                     freeRAM());
 	
@@ -236,9 +242,7 @@ SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
     // GPS Initialization
     g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);
 
-
 Serial.println("compass init");
-
     if(g.compass_enabled)
         init_compass();
 
@@ -267,8 +271,8 @@ Serial.println("Fine init");
     //
     if (check_startup_for_CLI()) {
         digitalWrite(A_LED_PIN, LED_ON);                        // turn on setup-mode LED
-        Serial.printf_P(PSTR("\nCLI:\n\n"));
-        run_cli();
+        cliSerial->printf_P(PSTR("\nCLI:\n\n"));
+        run_cli(cliSerial);
     }
 #else
     Serial.printf_P(PSTR("\nPress ENTER 3 times for CLI\n\n"));
@@ -285,6 +289,11 @@ Serial.println("Gps Check live END");
 #if CONFIG_SONAR == ENABLED
     init_sonar();
 #endif
+
+#if FRAME_CONIG == HELI_FRAME
+// initialise controller filters
+init_rate_controllers();
+#endif // HELI_FRAME
 
     // initialize commands
     // -------------------
@@ -308,7 +317,7 @@ Serial.println("Gps Check live END");
 ///////////////////////////////////////////////////////////////////////////////
 // Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
 ////////////////////////////////////////////////////////////////////////////////
-#ifdef AP_LIMITS
+#if AP_LIMITS == ENABLED
 
     // AP_Limits modules are stored as a _linked list_. That allows us to define an infinite number of modules
     // and also to allocate no space until we actually need to.
@@ -338,8 +347,8 @@ Serial.println("Gps Check live END");
 
 #endif
 
-    Serial.print_P(PSTR("\nReady to FLY "));
-    Serial.use_tx_fifo(true);
+    cliSerial->print_P(PSTR("\nReady to FLY "));
+    cliSerial->use_tx_fifo(true);
 }
 
 
@@ -435,7 +444,7 @@ static void set_mode(byte mode)
     	ap.manual_attitude = true;
         set_yaw_mode(YAW_HOLD);
         set_roll_pitch_mode(ROLL_PITCH_STABLE);
-        set_throttle_mode(THROTTLE_MANUAL_TILT_COMPENSATED);
+        set_throttle_mode(STABILIZE_THROTTLE);
         break;
 
     case ALT_HOLD:
@@ -444,7 +453,6 @@ static void set_mode(byte mode)
         set_yaw_mode(ALT_HOLD_YAW);
         set_roll_pitch_mode(ALT_HOLD_RP);
         set_throttle_mode(ALT_HOLD_THR);
-        force_new_altitude(max(current_loc.alt, 100));
         break;
 
     case AUTO:
@@ -487,7 +495,7 @@ static void set_mode(byte mode)
     	ap.manual_throttle = true;
     	ap.manual_attitude = false;
         set_yaw_mode(YAW_HOLD);
-        set_roll_pitch_mode(ROLL_PITCH_AUTO);
+        set_roll_pitch_mode(LOITER_RP);
         set_throttle_mode(THROTTLE_MANUAL);
         set_next_WP(&current_loc);
         break;
@@ -495,10 +503,10 @@ static void set_mode(byte mode)
     case GUIDED:
     	ap.manual_throttle = false;
     	ap.manual_attitude = false;
-        set_yaw_mode(YAW_LOOK_AT_NEXT_WP);
-        set_roll_pitch_mode(ROLL_PITCH_AUTO);
-        set_throttle_mode(THROTTLE_AUTO);
-        next_WP         = current_loc;
+        set_yaw_mode(GUIDED_YAW);
+        set_roll_pitch_mode(GUIDED_RP);
+        set_throttle_mode(GUIDED_THR);
+        next_WP = current_loc;
         set_next_WP(&guided_WP);
         break;
 
@@ -630,9 +638,9 @@ static void check_usb_mux(void)
     // the user has switched to/from the telemetry port
     ap_system.usb_connected = usb_check;
     if (ap_system.usb_connected) {
-        Serial.begin(SERIAL0_BAUD);
+        cliSerial->begin(SERIAL0_BAUD);
     } else {
-        Serial.begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
+        cliSerial->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 }
 #endif
@@ -676,46 +684,46 @@ print_flight_mode(uint8_t mode)
 {
     switch (mode) {
     case STABILIZE:
-        Serial.print_P(PSTR("STABILIZE"));
+        cliSerial->print_P(PSTR("STABILIZE"));
         break;
     case ACRO:
-        Serial.print_P(PSTR("ACRO"));
+        cliSerial->print_P(PSTR("ACRO"));
         break;
     case ALT_HOLD:
-        Serial.print_P(PSTR("ALT_HOLD"));
+        cliSerial->print_P(PSTR("ALT_HOLD"));
         break;
     case AUTO:
-        Serial.print_P(PSTR("AUTO"));
+        cliSerial->print_P(PSTR("AUTO"));
         break;
     case GUIDED:
-        Serial.print_P(PSTR("GUIDED"));
+        cliSerial->print_P(PSTR("GUIDED"));
         break;
     case LOITER:
-        Serial.print_P(PSTR("LOITER"));
+        cliSerial->print_P(PSTR("LOITER"));
         break;
     case RTL:
-        Serial.print_P(PSTR("RTL"));
+        cliSerial->print_P(PSTR("RTL"));
         break;
     case CIRCLE:
-        Serial.print_P(PSTR("CIRCLE"));
+        cliSerial->print_P(PSTR("CIRCLE"));
         break;
     case POSITION:
-        Serial.print_P(PSTR("POSITION"));
+        cliSerial->print_P(PSTR("POSITION"));
         break;
     case LAND:
-        Serial.print_P(PSTR("LAND"));
+        cliSerial->print_P(PSTR("LAND"));
         break;
     case OF_LOITER:
-        Serial.print_P(PSTR("OF_LOITER"));
+        cliSerial->print_P(PSTR("OF_LOITER"));
         break;
     case TOY_M:
-        Serial.print_P(PSTR("TOY_M"));
+        cliSerial->print_P(PSTR("TOY_M"));
         break;
     case TOY_A:
-        Serial.print_P(PSTR("TOY_A"));
+        cliSerial->print_P(PSTR("TOY_A"));
         break;
     default:
-        Serial.print_P(PSTR("---"));
+        cliSerial->print_P(PSTR("---"));
         break;
     }
 }

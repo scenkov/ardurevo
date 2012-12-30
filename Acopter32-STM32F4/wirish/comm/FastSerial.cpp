@@ -47,44 +47,27 @@ FastSerial::FastSerial()
 {
 }
 
+uint8_t FastSerial::_serialInitialized = 0;
+
+// Constructor /////////////////////////////////////////////////////////////////
+
 FastSerial::FastSerial(usart_dev *usart_device,
                        uint8 tx_pin,
                        uint8 rx_pin) {
     this->usart_device = usart_device;
     this->tx_pin = tx_pin;
     this->rx_pin = rx_pin;
+	
+	//setInitialized((uint8_t)usart_device);
+	begin(57600);
 }
 
-void FastSerial::init(usart_dev *usart_device,
-                       uint8 tx_pin,
-                       uint8 rx_pin)
+// Public Methods //////////////////////////////////////////////////////////////
+
+void FastSerial::begin(long baud, unsigned int rxSpace, unsigned int txSpace)
 {
-	this->usart_device = usart_device;
-	this->tx_pin = tx_pin;
-	this->rx_pin = rx_pin;
+	begin(baud);
 }
-
-void FastSerial::configure(uint8 port)
-{
-	if (port == 0)
-	{
-		this->init(FSUSART0, FSTXPIN0, FSRXPIN0);
-	}
-	else if (port == 1)
-	{
-		this->init(FSUSART1, FSTXPIN1, FSRXPIN1);
-	}
-	else if (port == 2)
-	{
-		this->init(FSUSART2, FSTXPIN2, FSRXPIN2);
-	}
-	else if (port == 3)
-	{
-		this->init(FSUSART3, FSTXPIN3, FSRXPIN3);
-	}
-}
-
-#define disable_timer_if_necessary(dev, ch) ((void)0)
 
 void FastSerial::begin(long baud) {
 	begin(baud, DEFAULT_TX_TIMEOUT);
@@ -123,6 +106,39 @@ void FastSerial::begin(long baud, uint32_t tx_timeout) {
     usart_setup(this->usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, tx_timeout);
     usart_enable(this->usart_device);
 }
+
+void FastSerial::init(usart_dev *usart_device,
+                       uint8 tx_pin,
+                       uint8 rx_pin)
+{
+	this->usart_device = usart_device;
+	this->tx_pin = tx_pin;
+	this->rx_pin = rx_pin;
+}
+
+void FastSerial::configure(uint8 port)
+{
+	if (port == 0)
+	{
+		this->init(FSUSART0, FSTXPIN0, FSRXPIN0);
+	}
+	else if (port == 1)
+	{
+		this->init(FSUSART1, FSTXPIN1, FSRXPIN1);
+	}
+	else if (port == 2)
+	{
+		this->init(FSUSART2, FSTXPIN2, FSRXPIN2);
+	}
+	else if (port == 3)
+	{
+		this->init(FSUSART3, FSTXPIN3, FSRXPIN3);
+	}
+}
+
+#define disable_timer_if_necessary(dev, ch) ((void)0)
+
+
 
 void FastSerial::end(void) {
     usart_disable(this->usart_device);
@@ -204,7 +220,4 @@ void FastSerial::write(uint8_t ch) {
     usart_putc(this->usart_device, ch);
 }
 
-void FastSerial::begin(long baud, unsigned int rxSpace, unsigned int txSpace)
-{
-	begin(baud);
-}
+

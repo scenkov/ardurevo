@@ -3,6 +3,7 @@
 // 10 = 1 second
 #define ARM_DELAY 20
 #define DISARM_DELAY 20
+#define AUTO_TRIM_DELAY 100
 
 
 // called at 10hz
@@ -36,56 +37,58 @@ static void arm_motors()
 
     // full right
     if (tmp > 4000) {
-        if (arming_counter == ARM_DELAY) {
-            if(motors.armed() == false) {
-                // arm the motors and configure for flight
 
+        // increase the arming counter to a maximum of 1 beyond the auto trim counter
+        if( arming_counter <= AUTO_TRIM_DELAY ) {
+            arming_counter++;
+        }
+
+        // arm the motors and configure for flight
+        if (arming_counter == ARM_DELAY && !motors.armed()) {
 ////////////////////////////////////////////////////////////////////////////////
 // Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
 ////////////////////////////////////////////////////////////////////////////////
-#ifdef AP_LIMITS
-                if (limits.enabled() && limits.required()) {
-                    gcs_send_text_P(SEVERITY_LOW, PSTR("Limits - Running pre-arm checks"));
+#if AP_LIMITS == ENABLED
+            if (limits.enabled() && limits.required()) {
+                gcs_send_text_P(SEVERITY_LOW, PSTR("Limits - Running pre-arm checks"));
 
-                    // check only pre-arm required modules
-                    if (limits.check_required()) {
-                        gcs_send_text_P(SEVERITY_LOW, PSTR("ARMING PREVENTED - Limit Breached"));
-                        limits.set_state(LIMITS_TRIGGERED);
-                        gcs_send_message(MSG_LIMITS_STATUS);
+                // check only pre-arm required modules
+                if (limits.check_required()) {
+                    gcs_send_text_P(SEVERITY_LOW, PSTR("ARMING PREVENTED - Limit Breached"));
+                    limits.set_state(LIMITS_TRIGGERED);
+                    gcs_send_message(MSG_LIMITS_STATUS);
 
-                        arming_counter++;                                 // restart timer by cycling
-                    }else{
-                        init_arm_motors();
-                    }
+                    arming_counter++;                                 // restart timer by cycling
                 }else{
                     init_arm_motors();
                 }
-
-#else  // without AP_LIMITS, just arm motors
+            }else{
                 init_arm_motors();
+            }
+#else  // without AP_LIMITS, just arm motors
+            init_arm_motors();
 #endif //AP_LIMITS_ENABLED
-
-            }
-            // keep going up
-            arming_counter++;
-        } else{
-            arming_counter++;
         }
 
-        // full left
+        // arm the motors and configure for flight
+        if (arming_counter == AUTO_TRIM_DELAY && motors.armed()) {
+            auto_trim_counter = 250;
+        }
+
+    // full left
     }else if (tmp < -4000) {
-        if (arming_counter == DISARM_DELAY) {
-            if(motors.armed()) {
-                // arm the motors and configure for flight
-                init_disarm_motors();
-            }
-            // keep going up
-            arming_counter++;
-        }else{
+
+        // increase the counter to a maximum of 1 beyond the disarm delay
+        if( arming_counter <= DISARM_DELAY ) {
             arming_counter++;
         }
 
-        // Yaw is centered
+        // disarm the motors
+        if (arming_counter == DISARM_DELAY && motors.armed()) {
+            init_disarm_motors();
+        }
+
+    // Yaw is centered so reset arming counter
     }else{
         arming_counter = 0;
     }
@@ -111,7 +114,7 @@ static void init_arm_motors()
     // we don't want writes to the serial port to cause us to pause
     // mid-flight, so set the serial ports non-blocking once we arm
     // the motors
-    Serial.set_blocking_writes(false);
+    cliSerial->set_blocking_writes(false);
     if (gcs3.initialised) {
         Serial3.set_blocking_writes(false);
     }
@@ -210,8 +213,8 @@ static void init_disarm_motors()
 static void
 set_servos_4()
 {
-#if FRAME_CONFIG != HELI_FRAME
-    // temp fix for bad attitude
+#if FRAME_CONFIG == TRI_FRAME
+    // To-Do: implement improved stability patch for tri so that we do not need to limit throttle input to motors
     g.rc_3.servo_out = min(g.rc_3.servo_out, 800);
 #endif
     motors.output();

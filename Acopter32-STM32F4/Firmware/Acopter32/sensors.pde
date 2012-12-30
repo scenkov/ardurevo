@@ -42,7 +42,7 @@ static void init_compass()
     compass.set_orientation(MAG_ORIENTATION);                                                   // set compass's orientation on aircraft
     if (!compass.init() || !compass.read()) {
         // make sure we don't pass a broken compass to DCM
-        Serial.println_P(PSTR("COMPASS INIT ERROR"));
+        cliSerial->println_P(PSTR("COMPASS INIT ERROR"));
         return;
     }
     ahrs.set_compass(&compass);
@@ -56,7 +56,7 @@ static void init_optflow()
 #if OPTFLOW == ENABLED
 	if( optflow.init(false) == false ) {
         g.optflow_enabled = false;
-        Serial.print_P(PSTR("\nFailed to Init OptFlow "));
+        cliSerial->print_P(PSTR("\nFailed to Init OptFlow "));
     }
     // suspend timer while we set-up SPI communication
     //timer_scheduler.suspend_timer();

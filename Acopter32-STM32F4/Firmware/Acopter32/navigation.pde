@@ -201,6 +201,36 @@ static void run_navigation_contollers()
         update_nav_wp();
         break;
 
+#if    LOITER_REPOSITIONING == ENABLED   // Robert Lefebvre 16/12/2012
+    // switch passthrough to LOITER
+    case LOITER:
+    case POSITION:
+        // This feature allows us to reposition the quad when the user lets
+        // go of the sticks
+
+        if((abs(g.rc_2.control_in) + abs(g.rc_1.control_in)) > 100) {
+            ap.loiter_override = true;
+        }
+
+        // Allow the user to take control temporarily,
+        if(ap.loiter_override){
+            
+            // reset LOITER to current position
+            next_WP.lat += LOITER_REPOSITION_RATE * dTnav * ((sin_yaw_y * g.rc_1.control_in) + (cos_yaw_x * g.rc_2.control_in))/4500.0;
+            next_WP.lng += LOITER_REPOSITION_RATE * dTnav * ((sin_yaw_y * g.rc_2.control_in) + (cos_yaw_x * g.rc_1.control_in))/4500.0;
+
+            if((abs(g.rc_2.control_in) + abs(g.rc_1.control_in)) < 100) {
+                next_WP.lat = current_loc.lat;
+                next_WP.lng = current_loc.lng;
+                ap.loiter_override  = false;
+            }
+        }
+        wp_control = LOITER_MODE;
+        // calculates the desired Roll and Pitch
+        update_nav_wp();
+        break;  
+#else   // LOITER_REPOSITIONING        
+        
     // switch passthrough to LOITER
     case LOITER:
     case POSITION:
@@ -233,6 +263,7 @@ static void run_navigation_contollers()
         // calculates the desired Roll and Pitch
         update_nav_wp();
         break;
+#endif // LOITER_REPOSITIONING
 
     case LAND:
         verify_land();
@@ -259,8 +290,83 @@ static void run_navigation_contollers()
         if(home_distance > SUPER_SIMPLE_RADIUS) {        // 10m from home
             // we reset the angular offset to be a vector from home to the quad
             initial_simple_bearing = wrap_360(home_bearing+18000);
-            //Serial.printf("ISB: %d\n", initial_simple_bearing);
         }
+    }
+}
+
+// update_nav_wp - high level calculation of nav_lat and nav_lon based on wp_control
+// called after gps read from run_navigation_controller
+static void update_nav_wp()
+{
+    int16_t loiter_delta;
+    int16_t speed;
+
+    switch( wp_control ) {
+        case LOITER_MODE:
+            // calc error to target
+            calc_location_error(&next_WP);
+
+            // use error as the desired rate towards the target
+            calc_loiter(long_error, lat_error);
+            break;
+
+        case CIRCLE_MODE:
+            // check if we have missed the WP
+            loiter_delta = (wp_bearing - old_wp_bearing)/100;
+
+            // reset the old value
+            old_wp_bearing = wp_bearing;
+
+            // wrap values
+            if (loiter_delta > 180) loiter_delta -= 360;
+            if (loiter_delta < -180) loiter_delta += 360;
+
+            // sum the angle around the WP
+            loiter_sum += loiter_delta;
+
+            circle_angle += (circle_rate * dTnav);
+            //1 degree = 0.0174532925 radians
+
+            // wrap
+            if (circle_angle > 6.28318531)
+                circle_angle -= 6.28318531;
+
+            next_WP.lng = circle_WP.lng + (g.circle_radius * 100 * cos(1.57 - circle_angle) * scaleLongUp);
+            next_WP.lat = circle_WP.lat + (g.circle_radius * 100 * sin(1.57 - circle_angle));
+
+            // use error as the desired rate towards the target
+            // nav_lon, nav_lat is calculated
+
+            if(wp_distance > 400) {
+                calc_nav_rate(get_desired_speed(g.waypoint_speed_max));
+            }else{
+                // calc the lat and long error to the target
+                calc_location_error(&next_WP);
+
+                calc_loiter(long_error, lat_error);
+            }
+            break;
+
+        case WP_MODE:
+            // calc error to target
+            calc_location_error(&next_WP);
+
+            speed = get_desired_speed(g.waypoint_speed_max);
+            // use error as the desired rate towards the target
+            calc_nav_rate(speed);
+            break;
+
+        case NO_NAV_MODE:
+            // clear out our nav so we can do things like land straight down
+            // or change Loiter position
+
+            // We bring copy over our Iterms for wind control, but we don't navigate
+            nav_lon = g.pid_loiter_rate_lon.get_integrator();
+            nav_lat = g.pid_loiter_rate_lon.get_integrator();
+
+            nav_lon                 = constrain(nav_lon, -2000, 2000);                              // 20 degrees
+            nav_lat                 = constrain(nav_lat, -2000, 2000);                              // 20 degrees
+            break;
     }
 }
 
@@ -274,6 +380,9 @@ static bool check_missed_wp()
 
 #define NAV_ERR_MAX 600
 #define NAV_RATE_ERR_MAX 250
+
+#if    LOITER_REPOSITIONING == ENABLED   // Robert Lefebvre 16/12/2012
+
 static void calc_loiter(int16_t x_error, int16_t y_error)
 {
     int32_t p,i,d;                                              // used to capture pid values for logging
@@ -285,8 +394,87 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-	if( g.log_bitmask & MASK_LOG_PID && motors.armed()) {//(g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
-        Log_Write_PID(CH6_LOITER_KP, x_error, x_target_speed, 0, 0, lon_speed, tuning_value);
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+        Log_Write_PID(CH6_LOITER_KP, x_error, x_target_speed, 0, 0, x_target_speed, tuning_value);
+    }
+#endif
+
+    // calculate rate error
+    x_rate_error    = x_target_speed - lon_speed;                           // calc the speed error
+
+    p                               = g.pid_loiter_rate_lon.get_p(x_rate_error);
+    i                               = g.pid_loiter_rate_lon.get_i(x_rate_error, dTnav);
+    d                               = g.pid_loiter_rate_lon.get_d(x_rate_error, dTnav);
+    d                               = constrain(d, -2000, 2000);
+
+    // get rid of noise
+    if(abs(lon_speed) < 50) {
+        d = 0;
+    }
+
+    output                  = p + i + d;
+    nav_lon                 = constrain(output, -32000, 32000); // constraint to remove chance of overflow when adding int32_t to int16_t
+
+#if LOGGING_ENABLED == ENABLED
+    // log output if PID logging is on and we are tuning the yaw
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
+        Log_Write_PID(CH6_LOITER_RATE_KP, x_rate_error, p, i, d, nav_lon, tuning_value);
+    }
+#endif
+
+    // North / South
+    y_target_speed  = g.pi_loiter_lat.get_p(y_error);                           // calculate desired speed from lat error
+
+#if LOGGING_ENABLED == ENABLED
+    // log output if PID logging is on and we are tuning the yaw
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+        Log_Write_PID(CH6_LOITER_KP+100, y_error, y_target_speed, 0, 0, y_target_speed, tuning_value);
+    }
+#endif
+
+    // calculate rate error
+    y_rate_error    = y_target_speed - lat_speed;                          // calc the speed error
+
+    p                               = g.pid_loiter_rate_lat.get_p(y_rate_error);
+    i                               = g.pid_loiter_rate_lat.get_i(y_rate_error, dTnav);
+    d                               = g.pid_loiter_rate_lat.get_d(y_rate_error, dTnav);
+    d                               = constrain(d, -2000, 2000);
+
+    // get rid of noise
+    if(abs(lat_speed) < 50) {
+        d = 0;
+    }
+
+    output                  = p + i + d;
+    nav_lat                 = constrain(output, -32000, 32000); // constraint to remove chance of overflow when adding int32_t to int16_t
+
+#if LOGGING_ENABLED == ENABLED
+    // log output if PID logging is on and we are tuning the yaw
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
+        Log_Write_PID(CH6_LOITER_RATE_KP+100, y_rate_error, p, i, d, nav_lat, tuning_value);
+    }
+#endif
+
+    // copy over I term to Nav_Rate
+    g.pid_nav_lon.set_integrator(g.pid_loiter_rate_lon.get_integrator());
+    g.pid_nav_lat.set_integrator(g.pid_loiter_rate_lat.get_integrator());
+}
+
+#else   // LOITER_REPOSITIONING   
+
+static void calc_loiter(int16_t x_error, int16_t y_error)
+{
+    int32_t p,i,d;                                              // used to capture pid values for logging
+    int32_t output;
+    int32_t x_target_speed, y_target_speed;
+
+    // East / West
+    x_target_speed  = g.pi_loiter_lon.get_p(x_error);                           // calculate desired speed from lon error
+
+#if LOGGING_ENABLED == ENABLED
+    // log output if PID logging is on and we are tuning the yaw
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+        Log_Write_PID(CH6_LOITER_KP, x_error, x_target_speed, 0, 0, x_target_speed, tuning_value);
     }
 #endif
 
@@ -350,6 +538,8 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
     g.pid_nav_lon.set_integrator(g.pid_loiter_rate_lon.get_integrator());
     g.pid_nav_lat.set_integrator(g.pid_loiter_rate_lat.get_integrator());
 }
+
+#endif   // LOITER_REPOSITIONING   
 
 static void calc_nav_rate(int16_t max_speed)
 {
@@ -460,25 +650,6 @@ static void update_crosstrack(void)
     }
 }
 
-static int32_t get_altitude_error()
-{
-    // Next_WP alt is our target alt
-    // It changes based on climb rate
-    // until it reaches the target_altitude
-
-#if INERTIAL_NAV_Z == ENABLED
-    // use inertial nav for altitude error
-    return next_WP.alt - inertial_nav._position.z;
-#else
-    return next_WP.alt - current_loc.alt;
-#endif
-}
-
-static void clear_new_altitude()
-{
-    set_alt_change(REACHED_ALT);
-}
-
 static void force_new_altitude(int32_t new_alt)
 {
     next_WP.alt     = new_alt;
@@ -487,6 +658,12 @@ static void force_new_altitude(int32_t new_alt)
 
 static void set_new_altitude(int32_t new_alt)
 {
+    // if no change exit immediately
+    if(new_alt == next_WP.alt) {
+        return;
+    }
+
+    // update new target altitude
     next_WP.alt     = new_alt;
 
     if(next_WP.alt > (current_loc.alt + 80)) {

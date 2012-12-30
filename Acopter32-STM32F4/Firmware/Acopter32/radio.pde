@@ -108,14 +108,14 @@ int type;
             // send miinimum throttle out to ESC
             motors.output_min();
             // display message on console
-            Serial.printf_P(PSTR("Entering ESC Calibration: please restart APM.\n"));
+            cliSerial->printf_P(PSTR("Entering ESC Calibration: please restart APM.\n"));
             // block until we restart
             while(1) {
                 delay(200);
                 dancing_light();
             }
         }else{
-            Serial.printf_P(PSTR("ESC Calibration active: passing throttle through to ESCs.\n"));
+            cliSerial->printf_P(PSTR("ESC Calibration active: passing throttle through to ESCs.\n"));
             // clear esc flag
             g.esc_calibrate.set_and_save(0);
             // block until we restart
@@ -172,13 +172,13 @@ static void set_throttle_and_failsafe(uint16_t throttle_pwm)
     static int8_t failsafe_counter = 0;
 
     // if failsafe not enabled pass through throttle and exit
-    if(g.throttle_fs_enabled == 0) {
+    if(g.failsafe_throttle == FS_THR_DISABLED) {
         g.rc_3.set_pwm(throttle_pwm);
         return;
     }
 
     //check for low throttle value
-    if (throttle_pwm < (uint16_t)g.throttle_fs_value) {
+    if (throttle_pwm < (uint16_t)g.failsafe_throttle_value) {
 
         // if we are already in failsafe or motors not armed pass through throttle and exit
         if (ap.failsafe || !motors.armed()) {

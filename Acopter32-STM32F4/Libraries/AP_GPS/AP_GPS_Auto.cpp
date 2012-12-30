@@ -67,7 +67,7 @@ AP_GPS_Auto::read(void)
 	if (NULL != (gps = _detect())) {
 		// configure the detected GPS
 		gps->init(_nav_setting);
-		serPort->println_P(PSTR("Found!\n"));
+		serPort->println_P(PSTR("OK"));
 		*_gps = gps;
 		return true;
     }
@@ -89,21 +89,21 @@ AP_GPS_Auto::_detect(void)
 	while (_port->available() > 0) {
 		uint8_t data = _port->read();
 		if (AP_GPS_UBLOX::_detect(data)) {
-			serPort->print_P(PSTR("GPS UBLOX "));
+			serPort->print_P(PSTR(" ublox "));
 			return new AP_GPS_UBLOX(_port, serPort);
 			//return new AP_GPS_UBLOX(_port);
 		}
-		if (AP_GPS_MTK16::_detect(data)) {
-			serPort->print_P(PSTR("GPS MTK16 "));
-			return new AP_GPS_MTK16(_port, serPort);
-			//return new AP_GPS_MTK16(_port);
+		if (AP_GPS_MTK19::_detect(data)) {
+			serPort->print_P(PSTR(" MTK19 "));
+			return new AP_GPS_MTK19(_port, serPort);
 		}
 		/*
 		if (AP_GPS_MTK::_detect(data)) {
-			Serial.print_P(PSTR(" MTK "));
-			return new AP_GPS_MTK(_port);
+			serPort->.print_P(PSTR(" MTK "));
+			return new AP_GPS_MTK(_port, serPort);
 		}
-
+		*/
+/*
 //#if !defined( __AVR_ATmega1280__ )
 		// save a bit of code space on a 1280
 		if (AP_GPS_SIRF::_detect(data)) {

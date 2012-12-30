@@ -16,7 +16,15 @@
 #define _AP_COMMON_H
 
 #include <wirish.h>
-
+/*
+// prog_char_t is used as a wrapper type for prog_char, which is
+// a character stored in flash. By using this wrapper type we can
+// auto-detect at compile time if a call to a string function is using
+// a flash-stored string or not
+typedef struct {
+    char c;
+} prog_char_t;
+*/
 #include <stdint.h>
 #include "c++.h" // c++ additions
 

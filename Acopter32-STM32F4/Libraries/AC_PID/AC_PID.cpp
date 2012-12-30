@@ -7,11 +7,23 @@
 #include "AC_PID.h"
 
 const AP_Param::GroupInfo AC_PID::var_info[]  = {
-	AP_GROUPINFO("P",    0, AC_PID, _kp),
-	AP_GROUPINFO("I",    1, AC_PID, _ki),
-	AP_GROUPINFO("D",    2, AC_PID, _kd),
-	AP_GROUPINFO("IMAX", 3, AC_PID, _imax),
-	AP_GROUPEND
+    // @Param: P
+    // @DisplayName: PID Proportional Gain
+    // @Description: P Gain which produces an output value that is proportional to the current error value
+    AP_GROUPINFO("P",    0, AC_PID, _kp, 0),
+    // @Param: I
+    // @DisplayName: PID Integral Gain
+    // @Description: I Gain which produces an output that is proportional to both the magnitude and the duration of the error
+    AP_GROUPINFO("I",    1, AC_PID, _ki, 0),
+    // @Param: D
+    // @DisplayName: PID Derivative Gain
+    // @Description: D Gain which produces an output that is proportional to the rate of change of the error
+    AP_GROUPINFO("D",    2, AC_PID, _kd, 0),
+    // @Param: IMAX
+    // @DisplayName: PID Integral Maximum
+    // @Description: The maximum/minimum value that the I term can output
+    AP_GROUPINFO("IMAX", 3, AC_PID, _imax, 0),
+    AP_GROUPEND
 };
 
 int32_t AC_PID::get_p(int32_t error)
@@ -33,6 +45,25 @@ int32_t AC_PID::get_i(int32_t error, float dt)
 	return 0;
 }
 
+// This is an integrator which tends to decay to zero naturally
+// if the error is zero.
+
+int32_t AC_PID::get_leaky_i(int32_t error, float dt, float leak_rate)
+{
+	if(((_ki < 0.0) || (_ki > 0.0)) && ((dt < 0.0) || (dt > 0.0))){
+		_integrator -= (float)_integrator * leak_rate;
+		_integrator += ((float)error * _ki) * dt;
+		if (_integrator < -_imax) {
+			_integrator = -_imax;
+		} else if (_integrator > _imax) {
+			_integrator = _imax;
+		}
+
+		return (int32_t)(_integrator);
+	}
+	return 0;
+}
+
 int32_t AC_PID::get_d(int32_t input, float dt)
 {
 	if (((_kd < 0.0) || (_kd > 0.0)) && ((dt < 0.0) || (dt > 0.0))) {
@@ -44,7 +75,8 @@ int32_t AC_PID::get_d(int32_t input, float dt)
 			derivative = 0;
 			_last_derivative = 0;
 		} else {
-		_derivative = (float)(input - _last_input) / dt;
+			// calculate instantaneous derivative
+		derivative = (float)(input - _last_input) / dt;
 		}
 
 		// discrete low pass filter, cuts out the
@@ -57,7 +89,7 @@ int32_t AC_PID::get_d(int32_t input, float dt)
         _last_derivative    = derivative;
 
 		// add in derivative component
-		return (int32_t)(_kd * 0.1 * _derivative);
+		return (int32_t)(_kd * 0.1 * derivative);
 	}
 	return 0;
 }

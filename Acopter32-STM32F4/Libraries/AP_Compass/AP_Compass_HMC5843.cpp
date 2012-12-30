@@ -279,6 +279,7 @@ bool AP_Compass_HMC5843::read()
 	  }
 	  if (!re_initialise()) {
 		 _retry_time = millis() + 1000;
+		 _I2Cx->setSpeed(false);
 		 return false;
 	  }
    }

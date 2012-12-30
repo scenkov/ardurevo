@@ -3,6 +3,7 @@
 /********************************************************************************/
 // Command Event Handlers
 /********************************************************************************/
+// process_nav_command - main switch statement to initiate the next nav command in the command_nav_queue
 static void process_nav_command()
 {
     switch(command_nav_queue.id) {
@@ -136,6 +137,8 @@ static void process_now_command()
 // Verify command Handlers
 /********************************************************************************/
 
+// verify_must - switch statement to ensure the active navigation command is progressing
+// returns true once the active navigation command completes successfully
 static bool verify_must()
 {
     switch(command_nav_queue.id) {
@@ -179,6 +182,8 @@ static bool verify_must()
     }
 }
 
+// verify_may - switch statement to ensure the active conditional command is progressing
+// returns true once the active conditional command completes successfully
 static bool verify_may()
 {
     switch(command_cond_queue.id) {
@@ -214,34 +219,28 @@ static bool verify_may()
 static void do_RTL(void)
 {
     // set rtl state
-    rtl_state = RTL_STATE_RETURNING_HOME;
+    rtl_state = RTL_STATE_INITIAL_CLIMB;
 
     // set roll, pitch and yaw modes
     set_roll_pitch_mode(RTL_RP);
-    set_yaw_mode(YAW_HOLD);
+    set_yaw_mode(YAW_HOLD);     // first stage of RTL is the initial climb so just hold current yaw
     set_throttle_mode(RTL_THR);
 
     // set navigation mode
-    wp_control = WP_MODE;
+    wp_control = LOITER_MODE;
 
-    // so we know where we are navigating from
+    // initial climb starts at current location
     next_WP = current_loc;
-
-    // Set navigation target to home
-    set_next_WP(&home);
 
     // override altitude to RTL altitude
     set_new_altitude(get_RTL_alt());
-
-    // output control mode to the ground station
-    // -----------------------------------------
-    gcs_send_message(MSG_HEARTBEAT);
 }
 
 /********************************************************************************/
 //	Nav (Must) commands
 /********************************************************************************/
 
+// do_takeoff - initiate takeoff navigation command
 static void do_takeoff()
 {
     wp_control = LOITER_MODE;
@@ -259,6 +258,7 @@ static void do_takeoff()
     set_next_WP(&temp);
 }
 
+// do_nav_wp - initiate move to next waypoint
 static void do_nav_wp()
 {
     wp_control = WP_MODE;
@@ -277,22 +277,28 @@ static void do_nav_wp()
     if((next_WP.options & WP_OPTION_ALT_REQUIRED) == false) {
         wp_verify_byte |= NAV_ALTITUDE;
     }
+
+    // reset control of yaw to default
+    if( g.yaw_override_behaviour == YAW_OVERRIDE_BEHAVIOUR_AT_NEXT_WAYPOINT ) {
+        set_yaw_mode(AUTO_YAW);
+    }
 }
 
+// do_land - initiate landing procedure
 static void do_land()
 {
-    wp_control = LOITER_MODE;
-    set_throttle_mode(THROTTLE_LAND);
-
     // hold at our current location
     set_next_WP(&current_loc);
+    wp_control = LOITER_MODE;
+
+    set_throttle_mode(THROTTLE_LAND);
 }
 
 static void do_loiter_unlimited()
 {
     wp_control = LOITER_MODE;
 
-    //Serial.println("dloi ");
+    //cliSerial->println("dloi ");
     if(command_nav_queue.lat == 0) {
         set_next_WP(&current_loc);
         wp_control = LOITER_MODE;
@@ -302,6 +308,7 @@ static void do_loiter_unlimited()
     }
 }
 
+// do_loiter_turns - initiate moving in a circle
 static void do_loiter_turns()
 {
     wp_control = CIRCLE_MODE;
@@ -327,6 +334,7 @@ static void do_loiter_turns()
     circle_angle *= RADX100;
 }
 
+// do_loiter_time - initiate loitering at a point for a given time period
 static void do_loiter_time()
 {
     if(command_nav_queue.lat == 0) {
@@ -345,6 +353,7 @@ static void do_loiter_time()
 //	Verify Nav (Must) commands
 /********************************************************************************/
 
+// verify_takeoff - check if we have completed the takeoff
 static bool verify_takeoff()
 {
     // wait until we are ready!
@@ -362,6 +371,7 @@ static bool verify_land()
     return ap.land_complete;
 }
 
+// verify_nav_wp - check if we have reached the next way point
 static bool verify_nav_wp()
 {
     // Altitude checking
@@ -403,7 +413,7 @@ static bool verify_nav_wp()
 
     if(wp_verify_byte >= 7) {
         //if(wp_verify_byte & NAV_LOCATION){
-        gcs_send_text_fmt("Reached Command #%i",command_nav_index);
+        gcs_send_text_fmt(PSTR("Reached Command #%i"),command_nav_index);
         wp_verify_byte = 0;
         copter_leds_nav_blink = 15;             // Cause the CopterLEDs to blink three times to indicate waypoint reached
         return true;
@@ -421,6 +431,7 @@ static bool verify_loiter_unlimited()
     return false;
 }
 
+// verify_loiter_time - check if we have loitered long enough
 static bool verify_loiter_time()
 {
     if(wp_control == LOITER_MODE) {
@@ -437,9 +448,10 @@ static bool verify_loiter_time()
     return false;
 }
 
+// verify_loiter_turns - check if we have circled the point enough
 static bool verify_loiter_turns()
 {
-    //Serial.printf("loiter_sum: %d \n", loiter_sum);
+    //cliSerial->printf("loiter_sum: %d \n", loiter_sum);
     // have we rotated around the center enough times?
     // -----------------------------------------------
     if(abs(loiter_sum) > loiter_total) {
@@ -461,6 +473,26 @@ static bool verify_RTL()
 
     switch( rtl_state ) {
 
+        case RTL_STATE_INITIAL_CLIMB:
+            // rely on verify_altitude function to update alt_change_flag when we've reached the target
+            if(alt_change_flag == REACHED_ALT) {
+                // Set navigation target to home
+                set_next_WP(&home);
+
+                // override target altitude to RTL altitude
+                set_new_altitude(get_RTL_alt());
+
+                // set navigation mode
+                wp_control = WP_MODE;
+
+                // set yaw mode
+                set_yaw_mode(RTL_YAW);
+
+                // advance to next rtl state
+                rtl_state = RTL_STATE_RETURNING_HOME;
+            }
+            break;
+
         case RTL_STATE_RETURNING_HOME:
             // if we've reached home initiate loiter
             if (wp_distance <= g.waypoint_radius * 100 || check_missed_wp()) {
@@ -479,7 +511,7 @@ static bool verify_RTL()
             // check if we've loitered long enough
             if( millis() - rtl_loiter_start_time > (uint32_t)g.rtl_loiter_time.get() ) {
                 // initiate landing or descent
-                if(g.rtl_alt_final == 0) {
+                if(g.rtl_alt_final == 0 || ap.failsafe) {
                     // land
                     do_land();
                     // override landing location (do_land defaults to current location)
@@ -533,10 +565,10 @@ static bool verify_RTL()
 
 static void do_wait_delay()
 {
-    //Serial.print("dwd ");
+    //cliSerial->print("dwd ");
     condition_start = millis();
     condition_value = command_cond_queue.lat * 1000;     // convert to milliseconds
-    //Serial.println(condition_value,DEC);
+    //cliSerial->println(condition_value,DEC);
 }
 
 static void do_change_alt()
@@ -587,19 +619,19 @@ static void do_yaw()
 
 static bool verify_wait_delay()
 {
-    //Serial.print("vwd");
+    //cliSerial->print("vwd");
     if ((unsigned)(millis() - condition_start) > (unsigned)condition_value) {
-        //Serial.println("y");
+        //cliSerial->println("y");
         condition_value = 0;
         return true;
     }
-    //Serial.println("n");
+    //cliSerial->println("n");
     return false;
 }
 
 static bool verify_change_alt()
 {
-    //Serial.printf("change_alt, ca:%d, na:%d\n", (int)current_loc.alt, (int)next_WP.alt);
+    //cliSerial->printf("change_alt, ca:%d, na:%d\n", (int)current_loc.alt, (int)next_WP.alt);
     if ((int32_t)condition_start < next_WP.alt) {
         // we are going higer
         if(current_loc.alt > next_WP.alt) {
@@ -616,7 +648,7 @@ static bool verify_change_alt()
 
 static bool verify_within_distance()
 {
-    //Serial.printf("cond dist :%d\n", (int)condition_value);
+    //cliSerial->printf("cond dist :%d\n", (int)condition_value);
     if (wp_distance < condition_value) {
         condition_value = 0;
         return true;
@@ -624,6 +656,7 @@ static bool verify_within_distance()
     return false;
 }
 
+// verify_yaw - return true if we have reached the desired heading
 static bool verify_yaw()
 {
     if( labs(wrap_180(ahrs.yaw_sensor-yaw_look_at_heading)) <= 200 ) {
@@ -673,28 +706,6 @@ static void do_change_speed()
     g.waypoint_speed_max = command_cond_queue.p1 * 100;
 }
 
-// do_target_yaw - initialise yaw mode based on requested yaw target
-static void do_target_yaw()
-{
-    switch( command_cond_queue.p1 ) {
-        case MAV_ROI_NONE:
-            set_yaw_mode(YAW_HOLD);
-            break;
-        case MAV_ROI_WPNEXT:
-            set_yaw_mode(YAW_LOOK_AT_NEXT_WP);
-            break;
-        case MAV_ROI_LOCATION:
-            yaw_look_at_WP = command_cond_queue;
-            set_yaw_mode(YAW_LOOK_AT_LOCATION);
-            break;
-    }
-}
-
-static void do_loiter_at_location()
-{
-    next_WP = current_loc;
-}
-
 static void do_jump()
 {
     // Used to track the state of the jump command in Mission scripting
@@ -702,27 +713,27 @@ static void do_jump()
     // when in use, it contains the current remaining jumps
     static int8_t jump = -10;                                                                   // used to track loops in jump command
 
-    //Serial.printf("do Jump: %d\n", jump);
+    //cliSerial->printf("do Jump: %d\n", jump);
 
     if(jump == -10) {
-        //Serial.printf("Fresh Jump\n");
+        //cliSerial->printf("Fresh Jump\n");
         // we use a locally stored index for jump
         jump = command_cond_queue.lat;
     }
-    //Serial.printf("Jumps left: %d\n",jump);
+    //cliSerial->printf("Jumps left: %d\n",jump);
 
     if(jump > 0) {
-        //Serial.printf("Do Jump to %d\n",command_cond_queue.p1);
+        //cliSerial->printf("Do Jump to %d\n",command_cond_queue.p1);
         jump--;
         change_command(command_cond_queue.p1);
 
     } else if (jump == 0) {
-        //Serial.printf("Did last jump\n");
+        //cliSerial->printf("Did last jump\n");
         // we're done, move along
         jump = -11;
 
     } else if (jump == -1) {
-        //Serial.printf("jumpForever\n");
+        //cliSerial->printf("jumpForever\n");
         // repeat forever
         change_command(command_cond_queue.p1);
     }

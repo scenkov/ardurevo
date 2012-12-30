@@ -24,7 +24,8 @@
 class Loop
 {
 public:
-    Loop() : _fptr(), _data(), _period(), _subLoops(), _timeStamp(), _load(), _dt() {};
+    Loop() : _fptr(), _data(), _period(), _subLoops(), _timeStamp(), _load(), _dt() {
+    };
     Loop(float frequency, void (*fptr)(void *) = NULL, void * data = NULL);
     void update();
     Vector<Loop *> & subLoops() {

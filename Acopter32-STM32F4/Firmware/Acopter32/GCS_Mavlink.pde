@@ -16,7 +16,31 @@ static bool mavlink_active;
 #define CHECK_PAYLOAD_SIZE(id) if (payload_space < MAVLINK_MSG_ID_ ## id ## _LEN) return false
 
 // prototype this for use inside the GCS class
-static void gcs_send_text_fmt(const prog_char *fmt, ...);
+static void gcs_send_text_fmt(const prog_char_t *fmt, ...);
+
+// gcs_check - throttles communication with ground station.
+// should be called regularly
+// returns true if it has sent a message to the ground station
+static bool gcs_check()
+{
+    static uint32_t last_1hz, last_50hz;
+    bool sent_message = false;
+
+    uint32_t tnow = millis();
+    if (tnow - last_1hz > 1000) {
+        last_1hz = tnow;
+        gcs_send_message(MSG_HEARTBEAT);
+        sent_message = true;
+    }
+    if (tnow - last_50hz > 20 && !sent_message) {
+        last_50hz = tnow;
+        gcs_update();
+        gcs_data_stream_send();
+        sent_message = true;
+    }
+
+    return sent_message;
+}
 
 /*
  *  !!NOTE!!
@@ -732,15 +756,15 @@ void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char
 }
 
 const AP_Param::GroupInfo GCS_MAVLINK::var_info[]  = {
-    AP_GROUPINFO("RAW_SENS", 0, GCS_MAVLINK, streamRateRawSensors),
-	AP_GROUPINFO("EXT_STAT", 1, GCS_MAVLINK, streamRateExtendedStatus),
-    AP_GROUPINFO("RC_CHAN",  2, GCS_MAVLINK, streamRateRCChannels),
-	AP_GROUPINFO("RAW_CTRL", 3, GCS_MAVLINK, streamRateRawController),
-	AP_GROUPINFO("POSITION", 4, GCS_MAVLINK, streamRatePosition),
-	AP_GROUPINFO("EXTRA1",   5, GCS_MAVLINK, streamRateExtra1),
-	AP_GROUPINFO("EXTRA2",   6, GCS_MAVLINK, streamRateExtra2),
-	AP_GROUPINFO("EXTRA3",   7, GCS_MAVLINK, streamRateExtra3),
-	AP_GROUPINFO("PARAMS",   8, GCS_MAVLINK, streamRateParams),
+    AP_GROUPINFO("RAW_SENS", 0, GCS_MAVLINK, streamRateRawSensors,      0),
+    AP_GROUPINFO("EXT_STAT", 1, GCS_MAVLINK, streamRateExtendedStatus,  0),
+    AP_GROUPINFO("RC_CHAN",  2, GCS_MAVLINK, streamRateRCChannels,      0),
+    AP_GROUPINFO("RAW_CTRL", 3, GCS_MAVLINK, streamRateRawController,   0),
+    AP_GROUPINFO("POSITION", 4, GCS_MAVLINK, streamRatePosition,        0),
+    AP_GROUPINFO("EXTRA1",   5, GCS_MAVLINK, streamRateExtra1,          0),
+    AP_GROUPINFO("EXTRA2",   6, GCS_MAVLINK, streamRateExtra2,          0),
+    AP_GROUPINFO("EXTRA3",   7, GCS_MAVLINK, streamRateExtra3,          0),
+    AP_GROUPINFO("PARAMS",   8, GCS_MAVLINK, streamRateParams,          0),
     AP_GROUPEND
 };
 
@@ -790,7 +814,7 @@ GCS_MAVLINK::update(void)
                 crlf_count = 0;
             }
             if (crlf_count == 3) {
-                run_cli();
+                run_cli(_port);
             }
         }
 #endif
@@ -885,7 +909,7 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_RAW_IMU1);
         send_message(MSG_RAW_IMU2);
         send_message(MSG_RAW_IMU3);
-        //Serial.printf("mav1 %d\n", (int)streamRateRawSensors.get());
+        //cliSerial->printf("mav1 %d\n", (int)streamRateRawSensors.get());
     }
 
     if (stream_trigger(STREAM_EXTENDED_STATUS)) {
@@ -913,24 +937,24 @@ GCS_MAVLINK::data_stream_send(void)
 
     if (stream_trigger(STREAM_RAW_CONTROLLER)) {
         send_message(MSG_SERVO_OUT);
-        //Serial.printf("mav4 %d\n", (int)streamRateRawController.get());
+        //cliSerial->printf("mav4 %d\n", (int)streamRateRawController.get());
     }
 
     if (stream_trigger(STREAM_RC_CHANNELS)) {
         send_message(MSG_RADIO_OUT);
         send_message(MSG_RADIO_IN);
-        //Serial.printf("mav5 %d\n", (int)streamRateRCChannels.get());
+        //cliSerial->printf("mav5 %d\n", (int)streamRateRCChannels.get());
     }
 
     if (stream_trigger(STREAM_EXTRA1)) {
         send_message(MSG_ATTITUDE);
         send_message(MSG_SIMSTATE);
-        //Serial.printf("mav6 %d\n", (int)streamRateExtra1.get());
+        //cliSerial->printf("mav6 %d\n", (int)streamRateExtra1.get());
     }
 
     if (stream_trigger(STREAM_EXTRA2)) {
         send_message(MSG_VFR_HUD);
-        //Serial.printf("mav7 %d\n", (int)streamRateExtra2.get());
+        //cliSerial->printf("mav7 %d\n", (int)streamRateExtra2.get());
     }
 
     if (stream_trigger(STREAM_EXTRA3)) {
@@ -1083,7 +1107,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (packet.param1 == 1 ||
                 packet.param2 == 1 ||
                 packet.param3 == 1) {
-                ins.init_accel(mavlink_delay, flash_leds);
+                ins.init_accel(mavlink_delay, flash_leds);  // level accelerometer values
+                ahrs.set_trim(Vector3f(0,0,0));             // clear out saved trim
             }
             if (packet.param4 == 1) {
                 trim_radio();
@@ -1361,16 +1386,20 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         mavlink_param_request_read_t packet;
         mavlink_msg_param_request_read_decode(msg, &packet);
         if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-        if (packet.param_index != -1) {
-            gcs_send_text_P(SEVERITY_LOW, PSTR("Param by index not supported"));
-            break;
-        }
-
         enum ap_var_type p_type;
-        AP_Param *vp = AP_Param::find(packet.param_id, &p_type);
-        if (vp == NULL) {
-                gcs_send_text_fmt("Unknown parameter %s", packet.param_id);
-            break;
+        AP_Param *vp;
+        if (packet.param_index != -1) {
+            vp = AP_Param::find_by_index(packet.param_index, &p_type);
+            if (vp == NULL) {
+                //gcs_send_text_fmt(PSTR("Unknown parameter index %d"), packet.param_index);
+                break;
+            }
+        } else {
+            vp = AP_Param::find(packet.param_id, &p_type);
+            if (vp == NULL) {
+               // gcs_send_text_fmt(PSTR("Unknown parameter %.16s"), packet.param_id);
+                break;
+            }
         }
         char param_name[AP_MAX_NAME_SIZE];
         vp->copy_name(param_name, sizeof(param_name), true);
@@ -1608,7 +1637,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (!waypoint_receiving) break;
 
 
-            //Serial.printf("req: %d, seq: %d, total: %d\n", waypoint_request_i,packet.seq, g.command_total.get());
+            //cliSerial->printf("req: %d, seq: %d, total: %d\n", waypoint_request_i,packet.seq, g.command_total.get());
 
             // check if this is the requested waypoint
             if (packet.seq != waypoint_request_i)
@@ -1832,8 +1861,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         // TODO: check scaling for temp/absPress
         float temp = 70;
         float absPress = 1;
-        //      Serial.printf_P(PSTR("accel:\t%d\t%d\t%d\n"), packet.xacc, packet.yacc, packet.zacc);
-        //      Serial.printf_P(PSTR("gyro:\t%d\t%d\t%d\n"), packet.xgyro, packet.ygyro, packet.zgyro);
+        //      cliSerial->printf_P(PSTR("accel:\t%d\t%d\t%d\n"), packet.xacc, packet.yacc, packet.zacc);
+        //      cliSerial->printf_P(PSTR("gyro:\t%d\t%d\t%d\n"), packet.xgyro, packet.ygyro, packet.zgyro);
 
         // rad/sec
         Vector3f gyros;
@@ -1925,7 +1954,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         break;
     }
 
-#ifdef AP_LIMITS
+#if AP_LIMITS == ENABLED
 
     // receive an AP_Limits fence point from GCS and store in EEPROM
     // receive a fence point from GCS and store in EEPROM
@@ -2040,7 +2069,6 @@ GCS_MAVLINK::queued_waypoint_send()
 static void mavlink_delay(unsigned long t)
 {
     uint32_t tstart;
-    static uint32_t last_1hz, last_50hz, last_5s;
 
     if (in_mavlink_delay) {
         // this should never happen, but let's not tempt fate by
@@ -2053,22 +2081,11 @@ static void mavlink_delay(unsigned long t)
 
     tstart = millis();
     do {
-        uint32_t tnow = millis();
-        if (tnow - last_1hz > 1000) {
-            last_1hz = tnow;
-            gcs_send_message(MSG_HEARTBEAT);
-            gcs_send_message(MSG_EXTENDED_STATUS1);
+        if( !gcs_check() ) {
+            // delay 0.1 millisecond if the gcs_check didn't do anything
+            // the while below will extend this time
+            delayMicroseconds(100);
         }
-        if (tnow - last_50hz > 20) {
-            last_50hz = tnow;
-            gcs_update();
-            gcs_data_stream_send();
-        }
-        if (tnow - last_5s > 5000) {
-            last_5s = tnow;
-            gcs_send_text_P(SEVERITY_LOW, PSTR("Initialising APM..."));
-        }
-        delay(1);
 #if USB_MUX_PIN > 0
         check_usb_mux();
 #endif
@@ -2131,7 +2148,7 @@ static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
  *  only one fits in the queue, so if you send more than one before the
  *  last one gets into the serial buffer then the old one will be lost
  */
-static void gcs_send_text_fmt(const prog_char *fmt, ...)
+static void gcs_send_text_fmt(const prog_char_t *fmt, ...)
 {
     char fmtstr[40];
     va_list arg_list;

@@ -16,6 +16,7 @@
 // statics
 char Menu::_inbuf[MENU_COMMANDLINE_MAX];
 Menu::arg Menu::_argv[MENU_ARGS_MAX + 1];
+FastSerial *Menu::_port;
 
 // constructor
 Menu::Menu(const prog_char *prompt, const Menu::command *commands, uint8_t entries,FastSerial * serial,  preprompt ppfunc) :

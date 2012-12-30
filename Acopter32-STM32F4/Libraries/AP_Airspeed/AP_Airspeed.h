@@ -10,15 +10,8 @@
 class AP_Airspeed
 {
 public:
-	// constructor
-	AP_Airspeed(AP_AnalogSource *source):
-		_offset(0.0),
-		_ratio(0.0),
-		_use(0),
-		_enable(0),
-		_airspeed(0.0),
-		_airspeed_raw(0.0)
-	{
+    // constructor
+    AP_Airspeed(AP_AnalogSource *source) {
         _source = source;
     }
 

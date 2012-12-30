@@ -127,6 +127,7 @@ public:
 	virtual int peek(void);
     virtual void flush(void);
     virtual void write(uint8_t c);
+    using BetterStream::write;
     virtual void use_tx_fifo(bool enable);
     virtual void use_timeout(uint8_t enable);
     virtual void set_timeout(uint32_t timeout);
@@ -137,7 +138,20 @@ public:
 	//kept for compatibility:
 	virtual void begin(long baud, unsigned int rxSpace, unsigned int txSpace);
 	virtual long getPortLic(void);
-    using BetterStream::write;
+	/// Tell if the serial port has been initialized
+	static bool getInitialized(uint8_t port) {
+		return (1<<port) & _serialInitialized;
+	}
+
+private:
+
+	/// Bit mask for initialized ports
+	static uint8_t _serialInitialized;
+
+	/// Set if the serial port has been initialized
+	static void setInitialized(uint8_t port) {
+		_serialInitialized |= (1<<port);
+	}
 };
 
 //TEO 20110505

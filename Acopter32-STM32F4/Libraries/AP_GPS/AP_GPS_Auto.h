@@ -21,7 +21,6 @@ public:
     /// @param	ptr		Pointer to a GPS * that will be fixed up by ::init
     ///					when the GPS type has been detected.
     ///
-    //AP_GPS_Auto(FastSerial *s, GPS **gps);
     AP_GPS_Auto(FastSerial *s, GPS **gps, FastSerial *ser_port);
 
     /// Dummy init routine, does nothing

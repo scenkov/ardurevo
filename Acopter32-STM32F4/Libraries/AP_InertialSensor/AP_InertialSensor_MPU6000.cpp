@@ -283,7 +283,7 @@ bool AP_InertialSensor_MPU6000::update( void )
     _accel.x = accel_scale.x * _accel_data_sign[0] * sum[_accel_data_index[0]] * count_scale * MPU6000_ACCEL_SCALE_1G;
     _accel.y = accel_scale.y * _accel_data_sign[1] * sum[_accel_data_index[1]] * count_scale * MPU6000_ACCEL_SCALE_1G;
     _accel.z = accel_scale.z * _accel_data_sign[2] * sum[_accel_data_index[2]] * count_scale * MPU6000_ACCEL_SCALE_1G;
-    _accel -= accel_offset;
+    _accel -= _accel_offset;
 
 	_temp    = _temp_to_celsius((uint16_t)(sum[_temp_data_index] * count_scale));
 
@@ -367,11 +367,10 @@ uint8_t AP_InertialSensor_MPU6000::register_read( uint8_t reg )
 
 void AP_InertialSensor_MPU6000::register_write(uint8_t reg, uint8_t val)
 {
-  uint8_t dump;
-  digitalWrite(_cs_pin, LOW);
-  dump = _SPIx->transfer(reg);
-  dump = _SPIx->transfer(val);
-  digitalWrite(_cs_pin, HIGH);
+    digitalWrite(_cs_pin, LOW);
+    _SPIx->transfer(reg);
+    _SPIx->transfer(val);
+    digitalWrite(_cs_pin, HIGH);
 }
 
 // MPU6000 new data interrupt on INT6
@@ -612,13 +611,12 @@ void AP_InertialSensor_MPU6000::set_dmp_accel_offsets(int16_t offsetX, int16_t o
 //    at a time into the MPUREG_MEM_R_W register
 void AP_InertialSensor_MPU6000::dmp_register_write(uint8_t bank, uint8_t address, uint8_t num_bytes, uint8_t data[])
 {
-  uint8_t dump;
-  register_write(MPUREG_BANK_SEL,bank);
-  register_write(MPUREG_MEM_START_ADDR,address);
-  digitalWrite(_cs_pin, LOW);
-  dump = _SPIx->transfer(MPUREG_MEM_R_W);
+    register_write(MPUREG_BANK_SEL,bank);
+    register_write(MPUREG_MEM_START_ADDR,address);
+    digitalWrite(_cs_pin, LOW);
+    _SPIx->transfer(MPUREG_MEM_R_W);
   for (uint8_t i=0; i<num_bytes; i++) {
-	  dump = _SPIx->transfer(data[i]);
+        _SPIx->transfer(data[i]);
   }
   digitalWrite(_cs_pin, HIGH);
 }
@@ -627,94 +625,95 @@ void AP_InertialSensor_MPU6000::dmp_register_write(uint8_t bank, uint8_t address
 // this should be called after hardware_init if you wish to enable the dmp
 void AP_InertialSensor_MPU6000::dmp_init()
 {
-  uint8_t regs[4];	// for writing to dmp
+    uint8_t regs[4];    // for writing to dmp
 
-  // ensure we only initialise once
-  if( _dmp_initialised ) {
-	return;
-  }
+    // ensure we only initialise once
+    if( _dmp_initialised ) {
+        return;
+    }
 
-  // load initial values into DMP memory
-  dmp_load_mem();
+    // load initial values into DMP memory
+    dmp_load_mem();
 
-  dmp_set_gyro_calibration();
-  dmp_set_accel_calibration();
-  dmp_apply_endian_accel();
-  dmp_set_mpu_sensors();
-  dmp_set_bias_none();
-  dmp_set_fifo_interrupt();
-  dmp_send_quaternion();                        // By default we only send the quaternion to the FIFO (18 bytes packet size)
-  dmp_set_fifo_rate(MPU6000_200HZ);   			// 200Hz DMP output rate
+    dmp_set_gyro_calibration();
+    dmp_set_accel_calibration();
+    dmp_apply_endian_accel();
+    dmp_set_mpu_sensors();
+    dmp_set_bias_none();
+    dmp_set_fifo_interrupt();
+    dmp_send_quaternion();                      // By default we only send the quaternion to the FIFO (18 bytes packet size)
+    dmp_set_fifo_rate(MPU6000_200HZ);                   // 200Hz DMP output rate
 
     register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN | BIT_DMP_INT_EN ); // configure interrupts to fire only when new data arrives from DMP (in fifo buffer)
 
-  // Randy: no idea what this does
-  register_write(MPUREG_DMP_CFG_1, 0x03);		//MPUREG_DMP_CFG_1, 0x03
-  register_write(MPUREG_DMP_CFG_2, 0x00);		//MPUREG_DMP_CFG_2, 0x00
+    // Randy: no idea what this does
+    register_write(MPUREG_DMP_CFG_1, 0x03);             //MPUREG_DMP_CFG_1, 0x03
+    register_write(MPUREG_DMP_CFG_2, 0x00);             //MPUREG_DMP_CFG_2, 0x00
 
-  //inv_state_change_fifo
-  regs[0] = 0xFF;
-  regs[1] = 0xFF;
-  dmp_register_write(0x01, 0xB2, 0x02, regs);	// D_1_178
+    //inv_state_change_fifo
+    regs[0] = 0xFF;
+    regs[1] = 0xFF;
+    dmp_register_write(0x01, 0xB2, 0x02, regs); // D_1_178
 
-  // ?? FIFO ??
-  regs[0] = 0x09;
-  regs[1] = 0x23;
-  regs[2] = 0xA1;
-  regs[3] = 0x35;
-  dmp_register_write(0x01, 0x90, 0x04, regs);	// D_1_144
+    // ?? FIFO ??
+    regs[0] = 0x09;
+    regs[1] = 0x23;
+    regs[2] = 0xA1;
+    regs[3] = 0x35;
+    dmp_register_write(0x01, 0x90, 0x04, regs); // D_1_144
 
-  //register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_FIFO_RESET);		//MPUREG_USER_CTRL, BIT_FIFO_RST
-  FIFO_reset();
+    //register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_FIFO_RESET);		//MPUREG_USER_CTRL, BIT_FIFO_RST
+    FIFO_reset();
 
-  FIFO_ready();
+    FIFO_ready();
 
-  //register_write(MPUREG_USER_CTRL, 0x00);		// MPUREG_USER_CTRL, 0.  TO-DO: is all this setting of USER_CTRL really necessary?
+    //register_write(MPUREG_USER_CTRL, 0x00);		// MPUREG_USER_CTRL, 0.  TO-DO: is all this setting of USER_CTRL really necessary?
 
-  register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_FIFO_RESET);		//MPUREG_USER_CTRL, BIT_FIFO_RST.  TO-DO: replace this call with FIFO_reset()?
-  register_write(MPUREG_USER_CTRL, 0x00);		// MPUREG_USER_CTRL: 0
-  register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_DMP_EN | BIT_USER_CTRL_FIFO_EN | BIT_USER_CTRL_DMP_RESET);
+    register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_FIFO_RESET);         //MPUREG_USER_CTRL, BIT_FIFO_RST.  TO-DO: replace this call with FIFO_reset()?
+    register_write(MPUREG_USER_CTRL, 0x00);             // MPUREG_USER_CTRL: 0
+    register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_DMP_EN | BIT_USER_CTRL_FIFO_EN | BIT_USER_CTRL_DMP_RESET);
 
-  // Set the gain of the accel in the sensor fusion
-  dmp_set_sensor_fusion_accel_gain(DEFAULT_ACCEL_FUSION_GAIN);   // default value
+    // Set the gain of the accel in the sensor fusion
+    dmp_set_sensor_fusion_accel_gain(DEFAULT_ACCEL_FUSION_GAIN); // default value
 
-  // dmp initialisation complete
-  _dmp_initialised = true;
+    // dmp initialisation complete
+    _dmp_initialised = true;
+
 }
 
 // dmp_reset - reset dmp (required for changes in gains or offsets to take effect)
 void AP_InertialSensor_MPU6000::dmp_reset()
 {
-	//uint8_t tmp = register_read(MPUREG_USER_CTRL);
-	//tmp |= BIT_USER_CTRL_DMP_RESET;
-	//register_write(MPUREG_USER_CTRL,tmp);
-	register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_FIFO_RESET);		//MPUREG_USER_CTRL, BIT_FIFO_RST.  TO-DO: replace this call with FIFO_reset()?
-	register_write(MPUREG_USER_CTRL, 0x00);		// MPUREG_USER_CTRL: 0
-	register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_DMP_EN | BIT_USER_CTRL_FIFO_EN | BIT_USER_CTRL_DMP_RESET);
+    //uint8_t tmp = register_read(MPUREG_USER_CTRL);
+    //tmp |= BIT_USER_CTRL_DMP_RESET;
+    //register_write(MPUREG_USER_CTRL,tmp);
+    register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_FIFO_RESET);                 //MPUREG_USER_CTRL, BIT_FIFO_RST.  TO-DO: replace this call with FIFO_reset()?
+    register_write(MPUREG_USER_CTRL, 0x00);             // MPUREG_USER_CTRL: 0
+    register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_DMP_EN | BIT_USER_CTRL_FIFO_EN | BIT_USER_CTRL_DMP_RESET);
 }
 
 // New data packet in FIFO?
 bool AP_InertialSensor_MPU6000::FIFO_ready()
 {
-	_fifoCountH = register_read(MPUREG_FIFO_COUNTH);
-	_fifoCountL = register_read(MPUREG_FIFO_COUNTL);
-	if(_fifoCountL == FIFO_PACKET_SIZE){
-		return 1;
-	}
-	else{
-		//We should not reach this point or maybe we have more than one packet (we should manage this!)
-		FIFO_reset();
-		return 0;
-	}
+    _fifoCountH = register_read(MPUREG_FIFO_COUNTH);
+    _fifoCountL = register_read(MPUREG_FIFO_COUNTL);
+    if(_fifoCountL == FIFO_PACKET_SIZE) {
+        return 1;
+    }
+    else{
+        //We should not reach this point or maybe we have more than one packet (we should manage this!)
+        FIFO_reset();
+        return 0;
+    }
 }
 
 // FIFO_reset - reset/clear FIFO buffer used to capture attitude information from DMP
 void AP_InertialSensor_MPU6000::FIFO_reset()
 {
-	uint8_t temp;
-	temp = register_read(MPUREG_USER_CTRL);
-	temp = temp | BIT_USER_CTRL_FIFO_RESET;		// FIFO RESET BIT
-	register_write(MPUREG_USER_CTRL, temp);
+    uint8_t temp;
+    temp = register_read(MPUREG_USER_CTRL);
+    temp = temp | BIT_USER_CTRL_FIFO_RESET;             // FIFO RESET BIT
+    register_write(MPUREG_USER_CTRL, temp);
 	_new_data = 0;								// clear new data flag
 }
 
@@ -722,182 +721,181 @@ void AP_InertialSensor_MPU6000::FIFO_reset()
 // TO-DO: interpret results instead of just dumping into a buffer
 void AP_InertialSensor_MPU6000::FIFO_getPacket()
 {
-	uint8_t dump;
-	uint8_t i;
-	int16_t q_long[4];
-	uint8_t addr = MPUREG_FIFO_R_W | 0x80;	// Set most significant bit to indicate a read
+    uint8_t i;
+    int16_t q_long[4];
+    uint8_t addr = MPUREG_FIFO_R_W | 0x80;      // Set most significant bit to indicate a read
     uint8_t received_packet[DMP_FIFO_BUFFER_SIZE];    // FIFO packet buffer
 	digitalWrite(_cs_pin, LOW);				// enable the device
-	dump = _SPIx->transfer(addr);				// send address we want to read from
-	for(i = 0; i < _fifoCountL; i++){
+	_SPIx->transfer(addr);				// send address we want to read from
+    for(i = 0; i < _fifoCountL; i++) {
 		received_packet[i] = _SPIx->transfer(0);	// request value
-	}
+    }
 	digitalWrite(_cs_pin, HIGH);				// disable device
 
-	// we are using 16 bits resolution
-	q_long[0] = (int16_t) ((((uint16_t) received_packet[0]) << 8) + ((uint16_t) received_packet[1]));
-	q_long[1] = (int16_t) ((((uint16_t) received_packet[4]) << 8) + ((uint16_t) received_packet[5]));
-	q_long[2] = (int16_t) ((((uint16_t) received_packet[8]) << 8) + ((uint16_t) received_packet[9]));
-	q_long[3] = (int16_t) ((((uint16_t) received_packet[12]) << 8) + ((uint16_t) received_packet[13]));
-	// Take care of sign
-	for (i = 0; i < 4; i++ ){
-		if(q_long[i] > 32767){
-			q_long[i] -= 65536;
-		}
-	}
-	quaternion.q1 = ((float)q_long[0]) / 16384.0f;   // convert from fixed point to float
-	quaternion.q2 = ((float)q_long[2]) / 16384.0f;   // convert from fixed point to float
-	quaternion.q3 = ((float)q_long[1]) / 16384.0f;   // convert from fixed point to float
-	quaternion.q4 = ((float)-q_long[3]) / 16384.0f;   // convert from fixed point to float
+    // we are using 16 bits resolution
+    q_long[0] = (int16_t) ((((uint16_t) received_packet[0]) << 8) + ((uint16_t) received_packet[1]));
+    q_long[1] = (int16_t) ((((uint16_t) received_packet[4]) << 8) + ((uint16_t) received_packet[5]));
+    q_long[2] = (int16_t) ((((uint16_t) received_packet[8]) << 8) + ((uint16_t) received_packet[9]));
+    q_long[3] = (int16_t) ((((uint16_t) received_packet[12]) << 8) + ((uint16_t) received_packet[13]));
+    // Take care of sign
+    for (i = 0; i < 4; i++ ) {
+        if(q_long[i] > 32767) {
+            q_long[i] -= 65536;
+        }
+    }
+    quaternion.q1 = ((float)q_long[0]) / 16384.0f;       // convert from fixed point to float
+    quaternion.q2 = ((float)q_long[2]) / 16384.0f;       // convert from fixed point to float
+    quaternion.q3 = ((float)q_long[1]) / 16384.0f;       // convert from fixed point to float
+    quaternion.q4 = ((float)-q_long[3]) / 16384.0f;       // convert from fixed point to float
 }
 
 // dmp_set_gyro_calibration - apply default gyro calibration FS=2000dps and default orientation
 void AP_InertialSensor_MPU6000::dmp_set_gyro_calibration()
 {
-	uint8_t regs[4];
-	regs[0]=0x4C;
-	regs[1]=0xCD;
-	regs[2]=0x6C;
-	dmp_register_write(0x03, 0x7B, 0x03, regs);		//FCFG_1 inv_set_gyro_calibration
-	regs[0]=0x36;
-	regs[1]=0x56;
-	regs[2]=0x76;
-	dmp_register_write(0x03, 0xAB, 0x03, regs);		//FCFG_3 inv_set_gyro_calibration
-	regs[0]=0x02;
-	regs[1]=0xCB;
-	regs[2]=0x47;
-	regs[3]=0xA2;
-	dmp_register_write(0x00, 0x68, 0x04, regs);		//D_0_104 inv_set_gyro_calibration
-	regs[0]=0x00;
-	regs[1]=0x05;
-	regs[2]=0x8B;
-	regs[3]=0xC1;
-	dmp_register_write(0x02, 0x18, 0x04, regs);		//D_0_24 inv_set_gyro_calibration
+    uint8_t regs[4];
+    regs[0]=0x4C;
+    regs[1]=0xCD;
+    regs[2]=0x6C;
+    dmp_register_write(0x03, 0x7B, 0x03, regs);                 //FCFG_1 inv_set_gyro_calibration
+    regs[0]=0x36;
+    regs[1]=0x56;
+    regs[2]=0x76;
+    dmp_register_write(0x03, 0xAB, 0x03, regs);                 //FCFG_3 inv_set_gyro_calibration
+    regs[0]=0x02;
+    regs[1]=0xCB;
+    regs[2]=0x47;
+    regs[3]=0xA2;
+    dmp_register_write(0x00, 0x68, 0x04, regs);                 //D_0_104 inv_set_gyro_calibration
+    regs[0]=0x00;
+    regs[1]=0x05;
+    regs[2]=0x8B;
+    regs[3]=0xC1;
+    dmp_register_write(0x02, 0x18, 0x04, regs);                 //D_0_24 inv_set_gyro_calibration
 }
 
 // dmp_set_accel_calibration - apply default accel calibration scale=8g and default orientation
 void AP_InertialSensor_MPU6000::dmp_set_accel_calibration()
 {
-	uint8_t regs[6];
-	regs[0]=0x00;
-	regs[1]=0x00;
-	regs[2]=0x00;
-	regs[3]=0x00;
-	dmp_register_write(0x01, 0x0C, 0x04, regs);		//D_1_152 inv_set_accel_calibration
-	regs[0]=0x0C;
-	regs[1]=0xC9;
-	regs[2]=0x2C;
-	regs[3]=0x97;
-	regs[4]=0x97;
-	regs[5]=0x97;
-	dmp_register_write(0x03, 0x7F, 0x06, regs);		//FCFG_2 inv_set_accel_calibration
-	regs[0]=0x26;
-	regs[1]=0x46;
-	regs[2]=0x66;
-	dmp_register_write(0x03, 0x89, 0x03, regs);		//FCFG_7 inv_set_accel_calibration
-	// accel range, 0x20,0x00 => 2g, 0x10,0x00=>4g    regs= (1073741824/accel_scale*65536)
-	//regs[0]=0x20;	// 2g
-	regs[0]=0x08;		// 8g
-	regs[1]=0x00;
-	dmp_register_write(0x00, 0x6C, 0x02, regs);		//D_0_108 inv_set_accel_calibration
+    uint8_t regs[6];
+    regs[0]=0x00;
+    regs[1]=0x00;
+    regs[2]=0x00;
+    regs[3]=0x00;
+    dmp_register_write(0x01, 0x0C, 0x04, regs);                 //D_1_152 inv_set_accel_calibration
+    regs[0]=0x0C;
+    regs[1]=0xC9;
+    regs[2]=0x2C;
+    regs[3]=0x97;
+    regs[4]=0x97;
+    regs[5]=0x97;
+    dmp_register_write(0x03, 0x7F, 0x06, regs);                 //FCFG_2 inv_set_accel_calibration
+    regs[0]=0x26;
+    regs[1]=0x46;
+    regs[2]=0x66;
+    dmp_register_write(0x03, 0x89, 0x03, regs);                 //FCFG_7 inv_set_accel_calibration
+    // accel range, 0x20,0x00 => 2g, 0x10,0x00=>4g    regs= (1073741824/accel_scale*65536)
+    //regs[0]=0x20;	// 2g
+    regs[0]=0x08;               // 8g
+    regs[1]=0x00;
+    dmp_register_write(0x00, 0x6C, 0x02, regs);                 //D_0_108 inv_set_accel_calibration
 }
 
 // dmp_apply_endian_accel - set byte order of accelerometer values?
 void AP_InertialSensor_MPU6000::dmp_apply_endian_accel()
 {
-	uint8_t regs[4];
-	regs[0]=0x00;
-	regs[1]=0x00;
-	regs[2]=0x40;
-	regs[3]=0x00;
-	dmp_register_write(0x01, 0xEC, 0x04, regs);   //D_1_236 inv_apply_endian_accel
+    uint8_t regs[4];
+    regs[0]=0x00;
+    regs[1]=0x00;
+    regs[2]=0x40;
+    regs[3]=0x00;
+    dmp_register_write(0x01, 0xEC, 0x04, regs);       //D_1_236 inv_apply_endian_accel
 }
 
 // dmp_set_mpu_sensors - to configure for SIX_AXIS output
 void AP_InertialSensor_MPU6000::dmp_set_mpu_sensors()
 {
-	uint8_t regs[6];
-	regs[0]=0x0C;
-	regs[1]=0xC9;
-	regs[2]=0x2C;
-	regs[3]=0x97;
-	regs[4]=0x97;
-	regs[5]=0x97;
-	dmp_register_write(0x03, 0x7F, 0x06, regs);   //FCFG_2  inv_set_mpu_sensors(INV_SIX_AXIS_GYRO_ACCEL);
+    uint8_t regs[6];
+    regs[0]=0x0C;
+    regs[1]=0xC9;
+    regs[2]=0x2C;
+    regs[3]=0x97;
+    regs[4]=0x97;
+    regs[5]=0x97;
+    dmp_register_write(0x03, 0x7F, 0x06, regs);       //FCFG_2  inv_set_mpu_sensors(INV_SIX_AXIS_GYRO_ACCEL);
 }
 
 // dmp_set_bias_from_no_motion - turn on bias from no motion
 void AP_InertialSensor_MPU6000::dmp_set_bias_from_no_motion()
 {
-	uint8_t regs[4];
-	regs[0]=0x0D;
-	regs[1]=0x35;
-	regs[2]=0x5D;
-	dmp_register_write(0x04, 0x02, 0x03, regs);   //CFG_MOTION_BIAS inv_turn_on_bias_from_no_motion
-	regs[0]=0x87;
-	regs[1]=0x2D;
-	regs[2]=0x35;
-	regs[3]=0x3D;
-	dmp_register_write(0x04, 0x09, 0x04, regs);   //FCFG_5 inv_set_bias_update( INV_BIAS_FROM_NO_MOTION );
+    uint8_t regs[4];
+    regs[0]=0x0D;
+    regs[1]=0x35;
+    regs[2]=0x5D;
+    dmp_register_write(0x04, 0x02, 0x03, regs);       //CFG_MOTION_BIAS inv_turn_on_bias_from_no_motion
+    regs[0]=0x87;
+    regs[1]=0x2D;
+    regs[2]=0x35;
+    regs[3]=0x3D;
+    dmp_register_write(0x04, 0x09, 0x04, regs);       //FCFG_5 inv_set_bias_update( INV_BIAS_FROM_NO_MOTION );
 }
 
 // dmp_set_bias_none - turn off internal bias correction (we will use this and we handle the gyro bias correction externally)
 void AP_InertialSensor_MPU6000::dmp_set_bias_none()
 {
-	uint8_t regs[4];
-	regs[0]=0x98;
-	regs[1]=0x98;
-	regs[2]=0x98;
-	dmp_register_write(0x04, 0x02, 0x03, regs);   //CFG_MOTION_BIAS inv_turn_off_bias_from_no_motion
-	regs[0]=0x87;
-	regs[1]=0x2D;
-	regs[2]=0x35;
-	regs[3]=0x3D;
-	dmp_register_write(0x04, 0x09, 0x04, regs);   //FCFG_5 inv_set_bias_update( INV_BIAS_FROM_NO_MOTION );
+    uint8_t regs[4];
+    regs[0]=0x98;
+    regs[1]=0x98;
+    regs[2]=0x98;
+    dmp_register_write(0x04, 0x02, 0x03, regs);       //CFG_MOTION_BIAS inv_turn_off_bias_from_no_motion
+    regs[0]=0x87;
+    regs[1]=0x2D;
+    regs[2]=0x35;
+    regs[3]=0x3D;
+    dmp_register_write(0x04, 0x09, 0x04, regs);       //FCFG_5 inv_set_bias_update( INV_BIAS_FROM_NO_MOTION );
 }
 
 // dmp_set_fifo_interrupt
 void AP_InertialSensor_MPU6000::dmp_set_fifo_interrupt()
 {
-	uint8_t regs[1];
-	regs[0]=0xFE;
-	dmp_register_write(0x07, 0x86, 0x01, regs);   //CFG_6 inv_set_fifo_interupt
+    uint8_t regs[1];
+    regs[0]=0xFE;
+    dmp_register_write(0x07, 0x86, 0x01, regs);       //CFG_6 inv_set_fifo_interupt
 }
 
 // dmp_send_quaternion - send quaternion data to FIFO
 void AP_InertialSensor_MPU6000::dmp_send_quaternion()
 {
-	uint8_t regs[5];
-	regs[0]=0xF1;
-	regs[1]=0x20;
-	regs[2]=0x28;
-	regs[3]=0x30;
-	regs[4]=0x38;
-	dmp_register_write(0x07, 0x41, 0x05, regs);   //CFG_8 inv_send_quaternion
-	regs[0]=0x30;
-	dmp_register_write(0x07, 0x7E, 0x01, regs);   //CFG_16 inv_set_footer
+    uint8_t regs[5];
+    regs[0]=0xF1;
+    regs[1]=0x20;
+    regs[2]=0x28;
+    regs[3]=0x30;
+    regs[4]=0x38;
+    dmp_register_write(0x07, 0x41, 0x05, regs);       //CFG_8 inv_send_quaternion
+    regs[0]=0x30;
+    dmp_register_write(0x07, 0x7E, 0x01, regs);       //CFG_16 inv_set_footer
 }
 
 // dmp_send_gyro - send gyro data to FIFO
 void AP_InertialSensor_MPU6000::dmp_send_gyro()
 {
-	uint8_t regs[4];
-	regs[0]=0xF1;
-	regs[1]=0x28;
-	regs[2]=0x30;
-	regs[3]=0x38;
-	dmp_register_write(0x07, 0x47, 0x04, regs);   //CFG_9 inv_send_gyro
+    uint8_t regs[4];
+    regs[0]=0xF1;
+    regs[1]=0x28;
+    regs[2]=0x30;
+    regs[3]=0x38;
+    dmp_register_write(0x07, 0x47, 0x04, regs);       //CFG_9 inv_send_gyro
 }
 
 // dmp_send_accel - send accel data to FIFO
 void AP_InertialSensor_MPU6000::dmp_send_accel()
 {
-	uint8_t regs[54];
-	regs[0]=0xF1;
-	regs[1]=0x28;
-	regs[2]=0x30;
-	regs[3]=0x38;
-	dmp_register_write(0x07, 0x6C, 0x04, regs);   //CFG_12 inv_send_accel
+    uint8_t regs[54];
+    regs[0]=0xF1;
+    regs[1]=0x28;
+    regs[2]=0x30;
+    regs[3]=0x38;
+    dmp_register_write(0x07, 0x6C, 0x04, regs);       //CFG_12 inv_send_accel
 }
 
 // This functions defines the rate at wich attitude data is send to FIFO
@@ -905,10 +903,10 @@ void AP_InertialSensor_MPU6000::dmp_send_accel()
 // rate constant definitions in MPU6000.h
 void AP_InertialSensor_MPU6000::dmp_set_fifo_rate(uint8_t rate)
 {
-	uint8_t regs[2];
-	regs[0]=0x00;
-	regs[1]=rate;
-	dmp_register_write(0x02, 0x16, 0x02, regs);		//D_0_22 inv_set_fifo_rate
+    uint8_t regs[2];
+    regs[0]=0x00;
+    regs[1]=rate;
+    dmp_register_write(0x02, 0x16, 0x02, regs);                 //D_0_22 inv_set_fifo_rate
 }
 
 // This function defines the weight of the accel on the sensor fusion
@@ -916,33 +914,31 @@ void AP_InertialSensor_MPU6000::dmp_set_fifo_rate(uint8_t rate)
 // The official invensense name is inv_key_0_96 (??)
 void AP_InertialSensor_MPU6000::dmp_set_sensor_fusion_accel_gain(uint8_t gain)
 {
-	uint8_t dump;
 	//inv_key_0_96
 	register_write(MPUREG_BANK_SEL,0x00);
 	register_write(MPUREG_MEM_START_ADDR, 0x60);
 	digitalWrite(_cs_pin, LOW);
-	dump = _SPIx->transfer(MPUREG_MEM_R_W);
-	dump = _SPIx->transfer(0x00);
-	dump = _SPIx->transfer(gain);  // Original : 0x80    To test: 0x40,  0x20 (too less)
-	dump = _SPIx->transfer(0x00);
-	dump = _SPIx->transfer(0x00);
+	_SPIx->transfer(MPUREG_MEM_R_W);
+	_SPIx->transfer(0x00);
+	_SPIx->transfer(gain);  // Original : 0x80    To test: 0x40,  0x20 (too less)
+	_SPIx->transfer(0x00);
+	_SPIx->transfer(0x00);
 	digitalWrite(_cs_pin, HIGH);
 }
 
 // Load initial memory values into DMP memory banks
 void AP_InertialSensor_MPU6000::dmp_load_mem()
 {
-	uint8_t dump;
 	for(int i = 0; i < 7; i++) {
 		register_write(MPUREG_BANK_SEL,i);      //MPUREG_BANK_SEL
 		for(uint8_t j = 0; j < 16; j++){
 			uint8_t start_addy = j * 0x10;
 			register_write(MPUREG_MEM_START_ADDR,start_addy);
 			digitalWrite(_cs_pin, LOW);
-			dump = _SPIx->transfer(MPUREG_MEM_R_W);
+			_SPIx->transfer(MPUREG_MEM_R_W);
 			for(int k = 0; k < 16; k++){
 				uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[i][j][k]));
-				dump = _SPIx->transfer((uint8_t) byteToSend);
+				_SPIx->transfer((uint8_t) byteToSend);
 			}
 			digitalWrite(_cs_pin, HIGH);
 		}
@@ -953,20 +949,20 @@ void AP_InertialSensor_MPU6000::dmp_load_mem()
 		uint8_t start_addy = j * 0x10;
 		register_write(MPUREG_MEM_START_ADDR,start_addy);
 		digitalWrite(_cs_pin, LOW);
-		dump = _SPIx->transfer(MPUREG_MEM_R_W);
+		_SPIx->transfer(MPUREG_MEM_R_W);
 		for(int k = 0; k < 16; k++){
 			uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[7][j][k]));
-			dump = _SPIx->transfer((uint8_t) byteToSend);
+			_SPIx->transfer((uint8_t) byteToSend);
 		}
 		digitalWrite(_cs_pin, HIGH);
 	}
 
 	register_write(MPUREG_MEM_START_ADDR,0x80);
 	digitalWrite(_cs_pin, LOW);
-	dump = _SPIx->transfer(MPUREG_MEM_R_W);
+	_SPIx->transfer(MPUREG_MEM_R_W);
 	for(int k = 0; k < 9; k++){
 		uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[7][8][k]));
-		dump = _SPIx->transfer((uint8_t) byteToSend);
+		_SPIx->transfer((uint8_t) byteToSend);
 	}
 	digitalWrite(_cs_pin, HIGH);
 }
@@ -974,102 +970,102 @@ void AP_InertialSensor_MPU6000::dmp_load_mem()
 // ========= DMP MEMORY ================================
 
 const uint8_t dmpMem[8][16][16] = {
-  {
     {
+        {
             0xFB, 0x00, 0x00, 0x3E, 0x00, 0x0B, 0x00, 0x36, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x65, 0x00, 0x54, 0xFF, 0xEF, 0x00, 0x00, 0xFA, 0x80, 0x00, 0x0B, 0x12, 0x82, 0x00, 0x01
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x28, 0x00, 0x00, 0xFF, 0xFF, 0x45, 0x81, 0xFF, 0xFF, 0xFA, 0x72, 0x00, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0x03, 0xE8, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x7F, 0xFF, 0xFF, 0xFE, 0x80, 0x01
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x3E, 0x03, 0x30, 0x40, 0x00, 0x00, 0x00, 0x02, 0xCA, 0xE3, 0x09, 0x3E, 0x80, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x41, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x2A, 0x00, 0x00, 0x16, 0x55, 0x00, 0x00, 0x21, 0x82
         }
-    ,
-    {
+        ,
+        {
             0xFD, 0x87, 0x26, 0x50, 0xFD, 0x80, 0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00, 0x05, 0x80, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x6F, 0x00, 0x02, 0x65, 0x32, 0x00, 0x00, 0x5E, 0xC0
         }
-    ,
-    {
+        ,
+        {
             0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0xFB, 0x8C, 0x6F, 0x5D, 0xFD, 0x5D, 0x08, 0xD9, 0x00, 0x7C, 0x73, 0x3B, 0x00, 0x6C, 0x12, 0xCC
         }
-    ,
-    {
+        ,
+        {
             0x32, 0x00, 0x13, 0x9D, 0x32, 0x00, 0xD0, 0xD6, 0x32, 0x00, 0x08, 0x00, 0x40, 0x00, 0x01, 0xF4
         }
+        ,
+        {
+            0xFF, 0xE6, 0x80, 0x79, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xD6, 0x00, 0x00, 0x27, 0x10
+        }
+    }
     ,
     {
-            0xFF, 0xE6, 0x80, 0x79, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xD0, 0xD6, 0x00, 0x00, 0x27, 0x10
-  }
-    }
-  ,
-  {
-    {
+        {
             0xFB, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0xFA, 0x36, 0xFF, 0xBC, 0x30, 0x8E, 0x00, 0x05, 0xFB, 0xF0, 0xFF, 0xD9, 0x5B, 0xC8
         }
-    ,
-    {
+        ,
+        {
             0xFF, 0xD0, 0x9A, 0xBE, 0x00, 0x00, 0x10, 0xA9, 0xFF, 0xF4, 0x1E, 0xB2, 0x00, 0xCE, 0xBB, 0xF7
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0x02, 0x00, 0x02, 0x02, 0x00, 0x00, 0x0C
         }
-    ,
-    {
+        ,
+        {
             0xFF, 0xC2, 0x80, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0xCF, 0x80, 0x00, 0x40, 0x00, 0x00, 0x00
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x14
         }
-    ,
-    {
+        ,
+        {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         }
         ,

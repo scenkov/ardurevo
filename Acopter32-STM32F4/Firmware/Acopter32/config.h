@@ -48,7 +48,7 @@
 #define FRAME_ORIENTATION X_FRAME
 
 // MODEL OF GPS
-#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK16
+#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_UBLOX
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_NONE
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
@@ -414,8 +414,8 @@
 #endif
 
 // Battery failsafe
-#ifndef BATTERY_FAILSAFE
- # define BATTERY_FAILSAFE              DISABLED
+#ifndef FS_BATTERY
+ # define FS_BATTERY              DISABLED
 #endif
 
 
@@ -424,14 +424,14 @@
 // INPUT_VOLTAGE
 //
 #ifndef INPUT_VOLTAGE
-# define INPUT_VOLTAGE			5.0
+ # define INPUT_VOLTAGE                  5.0
 #endif
 
 
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
-# define MAGNETOMETER			ENABLED
+ # define MAGNETOMETER                   ENABLED
 #endif
 #ifndef MAG_ORIENTATION
 
@@ -535,22 +535,17 @@
 
 
 //////////////////////////////////////////////////////////////////////////////
-// THROTTLE_FAILSAFE
-// THROTTLE_FS_VALUE
-// THROTTLE_FAILSAFE_ACTION
+// Throttle Failsafe
 //
-#ifndef THROTTLE_FAILSAFE
- # define THROTTLE_FAILSAFE                      DISABLED
-#endif
-#ifndef THROTTE_FS_VALUE
- # define THROTTLE_FS_VALUE                      975
+// possible values for FS_THR parameter
+#define FS_THR_DISABLED                    0
+#define FS_THR_ENABLED_ALWAYS_RTL          1
+#define FS_THR_ENABLED_CONTINUE_MISSION    2
+
+#ifndef FS_THR_VALUE_DEFAULT
+ # define FS_THR_VALUE_DEFAULT             975
 #endif
 
-#define THROTTLE_FAILSAFE_ACTION_ALWAYS_RTL         1
-#define THROTTLE_FAILSAFE_ACTION_CONTINUE_MISSION   2
-#ifndef THROTTLE_FAILSAFE_ACTION
- # define THROTTLE_FAILSAFE_ACTION                  THROTTLE_FAILSAFE_ACTION_CONTINUE_MISSION
-#endif
 
 #ifndef MINIMUM_THROTTLE
  # define MINIMUM_THROTTLE       130
@@ -564,7 +559,7 @@
 #endif
 
 #ifndef LAND_SPEED
- # define LAND_SPEED    30          // the descent speed for the final stage of landing in cm/s
+ # define LAND_SPEED    50          // the descent speed for the final stage of landing in cm/s
 #endif
 
 
@@ -624,6 +619,11 @@
 #define EARTH_FRAME     0
 #define BODY_FRAME      1
 
+// Stabilize Mode
+#ifndef STABILIZE_THROTTLE
+ # define STABILIZE_THROTTLE		THROTTLE_MANUAL_TILT_COMPENSATED
+#endif
+
 // Alt Hold Mode
 #ifndef ALT_HOLD_YAW
  # define ALT_HOLD_YAW           	YAW_HOLD
@@ -648,6 +648,19 @@
 
 #ifndef AUTO_THR
  # define AUTO_THR                  THROTTLE_AUTO
+#endif
+
+// Guided Mode
+#ifndef GUIDED_YAW
+ # define GUIDED_YAW                YAW_LOOK_AT_NEXT_WP
+#endif
+
+#ifndef GUIDED_RP
+ # define GUIDED_RP                 ROLL_PITCH_AUTO
+#endif
+
+#ifndef GUIDED_THR
+ # define GUIDED_THR                THROTTLE_AUTO
 #endif
 
 // CIRCLE Mode
@@ -678,6 +691,10 @@
 
 
 // RTL Mode
+#ifndef RTL_YAW
+ # define RTL_YAW                   YAW_LOOK_AT_NEXT_WP
+#endif
+
 #ifndef RTL_RP
  # define RTL_RP                    ROLL_PITCH_AUTO
 #endif
@@ -756,11 +773,6 @@
  # define AXIS_LOCK_ENABLED      ENABLED
 #endif
 
-#ifndef AXIS_LOCK_P
- # define AXIS_LOCK_P            .02
-#endif
-
-
 // Good for smaller payload motors.
 #ifndef STABILIZE_ROLL_P
  # define STABILIZE_ROLL_P          4.5
@@ -811,10 +823,10 @@
  # define RATE_ROLL_P        0.145
 #endif
 #ifndef RATE_ROLL_I
- # define RATE_ROLL_I        		0.010
+ # define RATE_ROLL_I        		0.100
 #endif
 #ifndef RATE_ROLL_D
- # define RATE_ROLL_D        0.03
+ # define RATE_ROLL_D        0.035
 #endif
 #ifndef RATE_ROLL_IMAX
  # define RATE_ROLL_IMAX         	5.0                    // degrees
@@ -824,10 +836,10 @@
  # define RATE_PITCH_P       0.145
 #endif
 #ifndef RATE_PITCH_I
- # define RATE_PITCH_I       		0.010
+ # define RATE_PITCH_I       		0.100
 #endif
 #ifndef RATE_PITCH_D
- # define RATE_PITCH_D       0.03
+ # define RATE_PITCH_D       0.035
 #endif
 #ifndef RATE_PITCH_IMAX
  # define RATE_PITCH_IMAX        	5.0                    // degrees
@@ -844,15 +856,6 @@
 #endif
 #ifndef RATE_YAW_IMAX
  # define RATE_YAW_IMAX            	8.0          // degrees
-#endif
-
-
-#ifndef STABILIZE_D
- # define STABILIZE_D 		0.0
-#endif
-
-#ifndef STABILIZE_D_SCHEDULE
- # define STABILIZE_D_SCHEDULE 		0.0
 #endif
 
 
@@ -880,6 +883,10 @@
  #define ACRO_BALANCE_PITCH			200
 #endif
 
+#ifndef ACRO_TRAINER_ENABLED
+ #define ACRO_TRAINER_ENABLED       ENABLED
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // Loiter control gains
 //
@@ -892,6 +899,10 @@
 #ifndef LOITER_IMAX
  # define LOITER_IMAX          		30             // degrees
 #endif
+#ifndef LOITER_REPOSITION_RATE
+ # define LOITER_REPOSITION_RATE   500.0            // cm/s
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Loiter Navigation control gains
@@ -926,12 +937,13 @@
 #endif
 
 #ifndef AUTO_SLEW_RATE
- # define AUTO_SLEW_RATE         	30                     // degrees
+ # define AUTO_SLEW_RATE         	30                     // degrees/sec
 #endif
 
 #ifndef AUTO_YAW_SLEW_RATE
  # define AUTO_YAW_SLEW_RATE        60                     // degrees/sec
 #endif
+
 
 #ifndef WAYPOINT_SPEED_MAX
  # define WAYPOINT_SPEED_MAX        500                    // 6m/s error = 13mph
@@ -955,7 +967,7 @@
 #endif
 
 #ifndef ALT_HOLD_P
- # define ALT_HOLD_P            0.5
+ # define ALT_HOLD_P            1.0
 #endif
 #ifndef ALT_HOLD_I
  # define ALT_HOLD_I            0.0
@@ -966,17 +978,19 @@
 
 // RATE control
 #ifndef THROTTLE_P
- # define THROTTLE_P            1.2
+ # define THROTTLE_P            1.0
 #endif
 #ifndef THROTTLE_I
  # define THROTTLE_I            0.0
 #endif
 #ifndef THROTTLE_D
- # define THROTTLE_D            0.0
+ # define THROTTLE_D            0.2
 #endif
+
 #ifndef THROTTLE_IMAX
  # define THROTTLE_IMAX         300
 #endif
+
 
 // minimum and maximum climb rates while in alt hold mode
 #ifndef ALTHOLD_MAX_CLIMB_RATE
@@ -992,10 +1006,10 @@
 
 // Throttle Accel control
 #ifndef THROTTLE_ACCEL_P
- # define THROTTLE_ACCEL_P 0.6
+ # define THROTTLE_ACCEL_P  0.75
 #endif
 #ifndef THROTTLE_ACCEL_I
- # define THROTTLE_ACCEL_I 1
+ # define THROTTLE_ACCEL_I  1.50
 #endif
 #ifndef THROTTLE_ACCEL_D
  # define THROTTLE_ACCEL_D 0.0
@@ -1125,19 +1139,12 @@
  # define WP_RADIUS_DEFAULT      2
 #endif
 
-#ifndef LOITER_RADIUS
- # define LOITER_RADIUS 10              // meters for circle mode
+#ifndef CIRCLE_RADIUS
+ # define CIRCLE_RADIUS 10              // meters for circle mode
 #endif
 
 #ifndef USE_CURRENT_ALT
  # define USE_CURRENT_ALT FALSE
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// RC override
-//
-#ifndef ALLOW_RC_OVERRIDE
- # define ALLOW_RC_OVERRIDE DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////

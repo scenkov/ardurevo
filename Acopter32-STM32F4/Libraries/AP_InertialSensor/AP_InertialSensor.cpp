@@ -16,39 +16,40 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @DisplayName: IMU Product ID
     // @Description: Which type of IMU is installed (read-only)
     // @User: Standard
-    AP_GROUPINFO("PRODUCT_ID",  0, AP_InertialSensor, _product_id),
+    AP_GROUPINFO("PRODUCT_ID",  0, AP_InertialSensor, _product_id,   0),
 
     // @Param: ACCSCAL
     // @DisplayName: Acceleration Scaling
     // @Description: Calibration scaling of x/y/z acceleration axes. This is setup using the acceleration calibration
     // @User: Advanced
-    AP_GROUPINFO("ACCSCAL",     1, AP_InertialSensor, _accel_scale),
+    AP_GROUPINFO("ACCSCAL",     1, AP_InertialSensor, _accel_scale,  0),
 
     // @Param: ACCOFFS
     // @DisplayName: Acceleration Offsets
     // @Description: Calibration offsets of x/y/z acceleration axes. This is setup using the acceleration calibration or level operations
     // @Units: m/s/s
     // @User: Advanced
-    AP_GROUPINFO("ACCOFFS",     2, AP_InertialSensor, _accel_offset),
+    AP_GROUPINFO("ACCOFFS",     2, AP_InertialSensor, _accel_offset, 0),
 
     // @Param: GYROFFS
     // @DisplayName: Gyro offsets
     // @Description: Calibration offsets of x/y/z gyroscope axes. This is setup on each boot during gyro calibrations
     // @Units: rad/s
     // @User: Advanced
-    AP_GROUPINFO("GYROFFS",     3, AP_InertialSensor, _gyro_offset),
+    AP_GROUPINFO("GYROFFS",     3, AP_InertialSensor, _gyro_offset,  0),
+
     // @Param: MPU6K_FILTER
     // @DisplayName: MPU6000 filter frequency
     // @Description: Filter frequency to ask the MPU6000 to apply to samples. This can be set to a lower value to try to cope with very high vibration levels in aircraft. The default value on ArduPlane and APMrover2 is 20Hz. The default value on ArduCopter is 42Hz. This option takes effect on the next reboot or gyro initialisation
     // @Units: Hz
     // @Values: 0:Default,5:5Hz,10:10Hz,20:20Hz,42:42Hz,98:98Hz
     // @User: Advanced
-    AP_GROUPINFO("MPU6K_FILTER", 4, AP_InertialSensor, _mpu6000_filter),
+    AP_GROUPINFO("MPU6K_FILTER", 4, AP_InertialSensor, _mpu6000_filter,  0),
+
     AP_GROUPEND
 };
 
-AP_InertialSensor::AP_InertialSensor():
-		_product_id(0)
+AP_InertialSensor::AP_InertialSensor()
 {
 }
 
@@ -58,7 +59,7 @@ AP_InertialSensor::init( Start_style style,
                          void (*delay_cb)(unsigned long t),
                          void (*flash_leds_cb)(bool on),
                          AP_PeriodicProcess *  scheduler, 
-						 FastSerial * serial)
+                         FastSerial * serial)
 {
 	_serial = serial;
     _product_id = _init_sensor(scheduler, sample_rate);
@@ -331,6 +332,7 @@ bool AP_InertialSensor::calibrate_accel(void (*delay_cb)(unsigned long t), void 
             case 4:
                 msg = "nose up";
                 break;
+            default:    // default added to avoid compiler warning
             case 5:
                 msg = "on it's back";
                 break;

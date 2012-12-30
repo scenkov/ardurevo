@@ -20,25 +20,25 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
     // @DisplayName: Airspeed enable
     // @Description: enable airspeed sensor
     // @Values: 0:Disable,1:Enable
-    AP_GROUPINFO("ENABLE",    0, AP_Airspeed, _enable),
+    AP_GROUPINFO("ENABLE",    0, AP_Airspeed, _enable, 1),
 
     // @Param: USE
     // @DisplayName: Airspeed use
     // @Description: use airspeed for flight control
     // @Values: 1:Use,0:Don't Use
-    AP_GROUPINFO("USE",    1, AP_Airspeed, _use),
+    AP_GROUPINFO("USE",    1, AP_Airspeed, _use, 0),
 
     // @Param: OFFSET
     // @DisplayName: Airspeed offset
     // @Description: Airspeed calibration offset
     // @Increment: 0.1
-    AP_GROUPINFO("OFFSET", 2, AP_Airspeed, _offset),
+    AP_GROUPINFO("OFFSET", 2, AP_Airspeed, _offset, 0),
 
     // @Param: RATIO
     // @DisplayName: Airspeed ratio
     // @Description: Airspeed calibration ratio
     // @Increment: 0.1
-    AP_GROUPINFO("RATIO",  3, AP_Airspeed, _ratio),
+    AP_GROUPINFO("RATIO",  3, AP_Airspeed, _ratio, 1.9936),
 
     AP_GROUPEND
 };
@@ -47,19 +47,19 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
 // the get_airspeed() interface can be used
 void AP_Airspeed::calibrate(void (*callback)(unsigned long t))
 {
-	float sum = 0;
-	uint8_t c;
-	if (!_enable) {
-		return;
-	}
-	_source->read();
-	for (c = 0; c < 10; c++) {
-		callback(100);
-		sum += _source->read();
-	}
-	_airspeed_raw = sum/c;
-	_offset.set_and_save(_airspeed_raw);
-	_airspeed = 0;
+    float sum = 0;
+    uint8_t c;
+    if (!_enable) {
+        return;
+    }
+    _source->read();
+    for (c = 0; c < 10; c++) {
+        callback(100);
+        sum += _source->read();
+    }
+    _airspeed_raw = sum/c;
+    _offset.set_and_save(_airspeed_raw);
+    _airspeed = 0;
 }
 
 // read the airspeed sensor
