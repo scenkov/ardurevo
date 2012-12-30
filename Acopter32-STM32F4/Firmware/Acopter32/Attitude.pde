@@ -755,7 +755,7 @@ static int16_t get_angle_boost(int16_t throttle)
 
     temp = constrain(temp, .5, 1.0);
     temp = constrain(9000-max(labs(roll_axis),labs(pitch_axis)), 0, 3000) / (3000 * temp);
-    throttle_out = constrain((int)((float)(throttle-g.throttle_min) * temp + g.throttle_min), (int)(g.throttle_min), 1000);
+    throttle_out = constrain((float)(throttle-g.throttle_min) * temp + g.throttle_min, g.throttle_min, 1000);
     //Serial.printf("Thin:%4.2f  sincos:%4.2f  temp:%4.2f  roll_axis:%4.2f  Out:%4.2f   \n", 1.0*throttle, 1.0*cos_pitch_x * cos_roll_x, 1.0*temp, 1.0*roll_axis, 1.0*constrain((float)value * temp, 0, 1000));
 
     // to allow logging of angle boost
@@ -808,13 +808,11 @@ get_throttle_accel(int16_t z_target_accel)
     int16_t output;
     float z_accel_meas;
 
-    Vector3f accel = ins.get_accel();
-
     // Calculate Earth Frame Z acceleration
-    z_accel_meas = ahrs.get_accel_ef().z;
+    z_accel_meas = -(ahrs.get_accel_ef().z + gravity) * 100;
 
-    // calculate accel error and Filter with fc = 1 Hz
-    z_accel_error = z_accel_error + 0.11164 * (constrain(z_target_accel + z_accel_meas, -32000, 32000) - z_accel_error);
+    // calculate accel error and Filter with fc = 2 Hz
+    z_accel_error = z_accel_error + 0.11164 * (constrain(z_target_accel - z_accel_meas, -32000, 32000) - z_accel_error);
 
     // separately calculate p, i, d values for logging
     p = g.pid_throttle_accel.get_p(z_accel_error);
@@ -828,7 +826,7 @@ get_throttle_accel(int16_t z_target_accel)
 
     //
     // limit the rate
-    output =  constrain(p+i+d+g.throttle_cruise, (int)g.throttle_min, (int)g.throttle_max);
+    output =  constrain(p+i+d+g.throttle_cruise, g.throttle_min, g.throttle_max);
 
 #if LOGGING_ENABLED == ENABLED
     static int8_t log_counter = 0;                                      // used to slow down logging of PID values to dataflash
@@ -867,10 +865,10 @@ static int16_t get_pilot_desired_climb_rate(int16_t throttle_control)
     // check throttle is above, below or in the deadband
     if (throttle_control < THROTTLE_IN_DEADBAND_BOTTOM) {
         // below the deadband
-        desired_rate = (int32_t)VELOCITY_MAX_Z * (throttle_control-THROTTLE_IN_DEADBAND_BOTTOM) / (THROTTLE_IN_MIDDLE - THROTTLE_IN_DEADBAND);
+        desired_rate = (int32_t)g.pilot_velocity_z_max * (throttle_control-THROTTLE_IN_DEADBAND_BOTTOM) / (THROTTLE_IN_MIDDLE - THROTTLE_IN_DEADBAND);
     }else if (throttle_control > THROTTLE_IN_DEADBAND_TOP) {
         // above the deadband
-        desired_rate = (int32_t)VELOCITY_MAX_Z * (throttle_control-THROTTLE_IN_DEADBAND_TOP) / (THROTTLE_IN_MIDDLE - THROTTLE_IN_DEADBAND);
+        desired_rate = (int32_t)g.pilot_velocity_z_max * (throttle_control-THROTTLE_IN_DEADBAND_TOP) / (THROTTLE_IN_MIDDLE - THROTTLE_IN_DEADBAND);
     }else{
         // must be in the deadband
         desired_rate = 0;
@@ -941,11 +939,7 @@ get_throttle_rate(int16_t z_target_speed)
     int16_t output;     // the target acceleration if the accel based throttle is enabled, otherwise the output to be sent to the motors
 
     // calculate rate error and filter with cut off frequency of 2 Hz
-#if INERTIAL_NAV_Z == ENABLED
-    z_rate_error    = z_rate_error + 0.20085 * ((z_target_speed - inertial_nav.get_velocity_z()) - z_rate_error);
-#else
     z_rate_error    = z_rate_error + 0.20085 * ((z_target_speed - climb_rate) - z_rate_error);
-#endif
 
     // separately calculate p, i, d values for logging
     p = g.pid_throttle.get_p(z_rate_error);
@@ -964,9 +958,9 @@ get_throttle_rate(int16_t z_target_speed)
 #if LOGGING_ENABLED == ENABLED
     static uint8_t log_counter = 0;                                      // used to slow down logging of PID values to dataflash
     // log output if PID loggins is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID && g.radio_tuning == CH6_THROTTLE_KP ) {
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_THROTTLE_KP || g.radio_tuning == CH6_THROTTLE_KI || g.radio_tuning == CH6_THROTTLE_KD) ) {
         log_counter++;
-        if( log_counter >= 25 ) {               // (update rate / desired output rate) = (50hz / 10hz) = 5hz
+        if( log_counter >= 10 ) {               // (update rate / desired output rate) = (50hz / 10hz) = 5hz
             log_counter = 0;
             Log_Write_PID(CH6_THROTTLE_KP, z_rate_error, p, i, d, output, tuning_value);
         }
@@ -986,6 +980,37 @@ get_throttle_rate(int16_t z_target_speed)
     if( z_target_speed == 0 ) {
         update_throttle_cruise(g.rc_3.servo_out);
     }
+}
+
+// get_throttle_althold - hold at the desired altitude in cm
+// updates accel based throttle controller targets
+// Note: max_climb_rate is an optional parameter to allow reuse of this function by landing controller
+static void
+get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate)
+{
+    int32_t altitude_error;
+    int16_t desired_rate;
+    int32_t linear_distance;      // the distace we swap between linear and sqrt.
+
+    // calculate altitude error
+    altitude_error    = target_alt - current_loc.alt;
+
+    linear_distance = 250/(2*g.pi_alt_hold.kP()*g.pi_alt_hold.kP());
+
+    if( altitude_error > 2*linear_distance ) {
+        desired_rate = sqrt(2*250*(altitude_error-linear_distance));
+    }else if( altitude_error < -2*linear_distance ) {
+        desired_rate = -sqrt(2*250*(-altitude_error-linear_distance));
+    }else{
+        desired_rate = g.pi_alt_hold.get_p(altitude_error);
+    }
+
+    desired_rate = constrain(desired_rate, min_climb_rate, max_climb_rate);
+
+    // call rate based throttle controller which will update accel based throttle controller targets
+    get_throttle_rate(desired_rate);
+
+    // TO-DO: enabled PID logging for this controller
 }
 
 // get_throttle_rate_stabilized - rate controller with additional 'stabilizer'
@@ -1012,40 +1037,7 @@ get_throttle_rate_stabilized(int16_t target_rate)
 
     set_new_altitude(target_alt);
 
-    get_throttle_althold(target_alt, ALTHOLD_MAX_CLIMB_RATE);
-}
-
-// get_throttle_althold - hold at the desired altitude in cm
-// updates accel based throttle controller targets
-// Note: max_climb_rate is an optional parameter to allow reuse of this function by landing controller
-static void
-get_throttle_althold(int32_t target_alt, int16_t max_climb_rate)
-{
-    int32_t altitude_error;
-    int16_t desired_rate;
-    int32_t linear_distance;      // the distace we swap between linear and sqrt.
-
-    // calculate altitude error
-#if INERTIAL_NAV_Z == ENABLED
-    altitude_error    = target_alt - inertial_nav.get_altitude();
-#else
-    altitude_error    = target_alt - current_loc.alt;
-#endif
-
-    linear_distance = 250/(2*g.pi_alt_hold.kP()*g.pi_alt_hold.kP());
-
-    if( altitude_error < linear_distance ) {
-        desired_rate = g.pi_alt_hold.get_p(altitude_error);
-    }else{
-        desired_rate = sqrt(2*250*(altitude_error-linear_distance));
-    }
-
-    desired_rate = constrain(desired_rate, ALTHOLD_MIN_CLIMB_RATE, max_climb_rate);
-
-    // call rate based throttle controller which will update accel based throttle controller targets
-    get_throttle_rate(desired_rate);
-
-    // TO-DO: enabled PID logging for this controller
+    get_throttle_althold(target_alt, -g.pilot_velocity_z_max-250, g.pilot_velocity_z_max+250);   // 250 is added to give head room to alt hold controller
 }
 
 // get_throttle_land - high level landing logic
@@ -1058,16 +1050,12 @@ get_throttle_land()
 {
     // if we are above 10m perform regular alt hold descent
     if (current_loc.alt >= LAND_START_ALT) {
-        get_throttle_althold(LAND_START_ALT, -abs(g.land_speed));
+        get_throttle_althold(LAND_START_ALT, g.auto_velocity_z_min, -abs(g.land_speed));
     }else{
         get_throttle_rate_stabilized(-abs(g.land_speed));
 
         // detect whether we have landed by watching for minimum throttle and now movement
-#if INERTIAL_NAV_Z == ENABLED
-        if (abs(inertial_nav.get_velocity_z()) < 20 && (g.rc_3.servo_out <= get_angle_boost(g.throttle_min) || g.pid_throttle_accel.get_integrator() <= -150)) {
-#else
         if (abs(climb_rate) < 20 && (g.rc_3.servo_out <= get_angle_boost(g.throttle_min) || g.pid_throttle_accel.get_integrator() <= -150)) {
-#endif
             if( land_detector < LAND_DETECTOR_TRIGGER ) {
                 land_detector++;
             }else{

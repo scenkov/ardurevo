@@ -118,11 +118,8 @@ static void calc_velocity_and_position(){
     lat_speed  = (float)(g_gps->latitude  - last_gps_latitude)  * tmp;
 
     // calculate position from gps + expected travel during gps_lag
-    //current_loc.lng = xLeadFilter.get_position(g_gps->longitude, lon_speed, g_gps->get_lag());
-    //current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  lat_speed, g_gps->get_lag());
-    
-    current_loc.lng = g_gps->longitude;
-    current_loc.lat = g_gps->latitude;
+    current_loc.lng = xLeadFilter.get_position(g_gps->longitude, lon_speed, g_gps->get_lag());
+    current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  lat_speed, g_gps->get_lag());
 #endif
 
     // store gps lat and lon values for next iteration
@@ -182,12 +179,8 @@ static void run_navigation_contollers()
         break;
 
     case GUIDED:
-        wp_control = WP_MODE;
-        // check if we are close to point > loiter
-        wp_verify_byte = 0;
-        verify_nav_wp();
-
-        if (wp_control != WP_MODE) {
+        // switch to loiter once we've reached the target location and altitude
+        if(verify_nav_wp()) {
             set_mode(LOITER);
         }
         update_nav_wp();
@@ -496,18 +489,18 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-	if( g.log_bitmask & MASK_LOG_PID &&  motors.armed()) { // (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
         Log_Write_PID(CH6_LOITER_RATE_KP, x_rate_error, p, i, d, nav_lon, tuning_value);
     }
 #endif
 
-	// North / South
-	y_target_speed 	= g.pi_loiter_lat.get_p(y_error);			// calculate desired speed from lat error
+    // North / South
+    y_target_speed  = g.pi_loiter_lat.get_p(y_error);                           // calculate desired speed from lat error
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-	if( g.log_bitmask & MASK_LOG_PID && motors.armed()) { //(g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
-        Log_Write_PID(CH6_LOITER_KP+100, y_error, y_target_speed, 0, 0, lat_speed, tuning_value);
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+        Log_Write_PID(CH6_LOITER_KP+100, y_error, y_target_speed, 0, 0, y_target_speed, tuning_value);
     }
 #endif
 
@@ -529,7 +522,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID &&  motors.armed()) { //(g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
+    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
         Log_Write_PID(CH6_LOITER_RATE_KP+100, y_rate_error, p, i, d, nav_lat, tuning_value);
     }
 #endif
@@ -593,7 +586,6 @@ static void calc_nav_rate(int16_t max_speed)
 // We use the DCM's matrix to precalculate these trig values at 50hz
 static void calc_nav_pitch_roll()
 {
-    //Serial.printf("ys %ld, cx %1.4f, _cx %1.4f | sy %1.4f, _sy %1.4f\n", dcm.yaw_sensor, cos_yaw_x, _cos_yaw_x, sin_yaw_y, _sin_yaw_y);
     // rotate the vector
     auto_roll       = (float)nav_lon * sin_yaw_y - (float)nav_lat * cos_yaw_x;
     auto_pitch      = (float)nav_lon * cos_yaw_x + (float)nav_lat * sin_yaw_y;
@@ -619,8 +611,9 @@ static int16_t get_desired_speed(int16_t max_speed)
     	 	int32_t temp 	= 2 * 100 * (int32_t)(wp_distance - g.waypoint_radius * 100);
     	 	int32_t s_min 	= WAYPOINT_SPEED_MIN;
     	 	temp 			+= s_min * s_min;
+            if( temp < 0 ) temp = 0;                // check to ensure we don't try to take the sqrt of a negative number
     		max_speed 		= sqrt((float)temp);
-            max_speed 		= min(max_speed, (int16_t)(g.waypoint_speed_max));
+            max_speed 		= min(max_speed, g.waypoint_speed_max);
         }
     }
 

@@ -17,7 +17,7 @@ public:
     // The increment will prevent old parameters from being used incorrectly
     // by newer code.
     //
-    static const uint16_t        k_format_version = 121;
+    static const uint16_t        k_format_version = 120;
 
     // The parameter software_type is set up solely for ground station use
     // and identifies the software type (eg ArduPilotMega versus
@@ -52,6 +52,7 @@ public:
         //
         k_param_format_version = 0,
         k_param_software_type,
+        k_param_ins_old,                        // *** Deprecated, remove with next eeprom number change
         k_param_ins,                            // libraries/AP_InertialSensor variables
 
         // simulation
@@ -72,7 +73,8 @@ public:
         k_param_rssi_pin,
         k_param_throttle_accel_enabled,
         k_param_yaw_override_behaviour,
-        k_param_acro_trainer_enabled,   // 27
+        k_param_acro_trainer_enabled,
+        k_param_pilot_velocity_z_max,   // 28
 
         // 65: AP_Limits Library
         k_param_limits = 65,
@@ -210,7 +212,9 @@ public:
         k_param_waypoint_radius,
         k_param_circle_radius,
         k_param_waypoint_speed_max,
-        k_param_land_speed, // 217
+        k_param_land_speed,
+        k_param_auto_velocity_z_min,
+        k_param_auto_velocity_z_max, // 219
 
         //
         // 220: PI/D Controllers
@@ -297,6 +301,9 @@ public:
     AP_Int16 		crosstrack_min_distance;
     AP_Int32        rtl_loiter_time;
     AP_Int16        land_speed;
+    AP_Int16        auto_velocity_z_min;         // minimum vertical velocity (i.e. maximum descent) the autopilot may request
+    AP_Int16        auto_velocity_z_max;         // maximum vertical velocity the autopilot may request
+    AP_Int16        pilot_velocity_z_max;        // maximum vertical velocity the pilot may request
 
 
     // Throttle
@@ -340,11 +347,6 @@ public:
 	AP_Float		heli_pitch_ff;												// pitch rate feed-forward
 	AP_Float		heli_roll_ff;												// roll rate feed-forward
 	AP_Float		heli_yaw_ff;												// yaw rate feed-forward																			
-#endif
-
-	// Camera
-#if CAMERA == ENABLED
-    AP_Camera		camera;
 #endif
 
     // RC channels

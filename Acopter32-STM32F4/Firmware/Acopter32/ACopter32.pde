@@ -1,9 +1,8 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter32 V2.8.1b_accel-git"
-
+#define THISFIRMWARE "ArduCopter V2.9-rc1"
 /*
- *  ArduCopter Version 2.8
+ *  ArduCopter Version 2.9
  *  Lead author:	Jason Short
  *  Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni
  *  Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier, Robert Lefebvre, Marco Robustini
@@ -857,15 +856,9 @@ AP_InertialNav inertial_nav(&ahrs, &ins, &barometer, &g_gps);
 // Performance monitoring
 ////////////////////////////////////////////////////////////////////////////////
 // Used to manage the rate of performance logging messages
-static int16_t 			perf_mon_counter;
+static int16_t perf_mon_counter;
 // The number of GPS fixes we have had
-static int16_t			gps_fix_count;
-//AP_TimeCheck time_checker_200hz_elapsed(200,50,&Serial);  // for checking how long it takes the 200hz loop to execute (seems to be about 500 micros)
-//AP_TimeCheck time_checker_200hz_entered(3900,50,&Serial);  // for checking how long it takes the 100hz loop to execute (seems to be about 2600 micros)
-//AP_TimeCheck time_checker_50hz_entered(20000,50,&Serial);  // for checking how long it takes the 50hz loop to execute (seems to be from 600 ~ 2400 micros)
-//AP_TimeCheck time_update_GPS_elapsed(500,200,&Serial);  // for checking how long it takes the 50hz loop to execute (seems to be from 600 ~ 2400 micros)
-//AP_TimeCheck time_medium_loop_elapsed(500,200,&Serial);  // for checking how long it takes the 50hz loop to execute (seems to be from 600 ~ 2400 micros)
-//AP_TimeCheck time_one_hz_loop_elapsed(500,500,&Serial);  // for checking how long it takes the 50hz loop to execute (seems to be from 600 ~ 2400 micros)
+static int16_t gps_fix_count;
 
 // System Timers
 // --------------
@@ -950,86 +943,18 @@ AP_Limit_Altitude       altitude_limit(&current_loc);
 ////////////////////////////////////////////////////////////////////////////////
 // function definitions to keep compiler from complaining about undeclared functions
 ////////////////////////////////////////////////////////////////////////////////
-void get_throttle_althold(int32_t target_alt, int16_t max_climb_rate = ALTHOLD_MAX_CLIMB_RATE);
+void get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
 ////////////////////////////////////////////////////////////////////////////////
-										
-void time_checker_print()
-{
-	static uint32_t time_checker_print_loop = 0;
-	uint32_t current_time = millis();
 
-	if( time_checker_print_loop == 0 ) {
-		time_checker_print_loop = current_time;
-	}
-
-	if( (current_time - time_checker_print_loop) >= 15000 ) {
-        time_checker_print_loop = current_time;
-				/*
-		Serial.use_tx_fifo(false);
-        // loop elapsed time checks
-        
-        Serial.printf("\n200hz Entered Time");
-		time_checker_200hz_entered.dump_results();
-		time_checker_200hz_entered.clear();
-		
-		Serial.printf("\n50hz Entered Time");
-		time_checker_50hz_entered.dump_results();
-		time_checker_50hz_entered.clear();
-
-
-        Serial.printf("\n200hz Elapsed Time");
-		time_checker_200hz_elapsed.dump_results();
-		time_checker_200hz_elapsed.clear();
-
-		Serial.printf("\n50hz Elapsed Time");
-		time_checker_50hz_elapsed.dump_results();
-		time_checker_50hz_elapsed.clear();
-		
-		Serial.printf("\nupdate_GPS");
-		time_update_GPS_elapsed.dump_results();
-		time_update_GPS_elapsed.clear();
-		
-		Serial.printf("\nupdate_trig");
-		time_update_trig_elapsed.dump_results();
-		time_update_trig_elapsed.clear();
-			
-		Serial.printf("\nmedium_loop");	
-		time_medium_loop_elapsed.dump_results();
-		time_medium_loop_elapsed.clear();
-
-		Serial.printf("\none_hz_loop");
-		time_one_hz_loop_elapsed.dump_results();
-		time_one_hz_loop_elapsed.clear();
-
-		
-		Serial.use_tx_fifo(true);
-				*/
-	}
-	
-	
-
+void setup() {
+    memcheck_init();
+    init_ardupilot();
 }
-     
-static uint16_t superfastloop_speed = 400; 	//2.5 KHz
-static uint16_t fastloop_speed = 4000; 		//250 Hz
-static uint16_t fifty_HZ_count = 5;
 
-#ifdef INS_VRIMUFULL
-	superfastloop_speed = 1000; 	//1KHz
-	fastloop_speed = 5000; 		//200Hz
-	fifty_HZ_count = 4;
-#endif
-                                                          
-void  setup() {
-    	delay(2000); // Waiting radio Binding
-    	init_ardupilot();
-        
- } 
-                                                             
-void loop() 
+void loop()
 {
 
     uint32_t micr = micros();
@@ -1131,10 +1056,6 @@ void loop()
             // driven, so it can't accumulate readings by itself
             if (g.compass_enabled) {
                 compass.accumulate();
-       		
-			//time_checker_50hz_elapsed.addTime(micros()-fiftyhz_loopTimer);
-		
-			//time_checker_print();
             }
         }
     }
@@ -1197,7 +1118,6 @@ static void fast_loop()
 
 static void medium_loop()
 {
-	//uint32_t timestart = micros();
     // This is the start of the medium (10 Hz) loop pieces
     // -----------------------------------------
     switch(medium_loopCounter) {
@@ -1308,7 +1228,6 @@ static void medium_loop()
         medium_loopCounter = 0;
         break;
     }
-	//time_medium_loop_elapsed.addTime(micros()-timestart);
 }
 
 // stuff that happens at 50 hz
@@ -1322,14 +1241,6 @@ static void fifty_hz_loop()
     // Update the throttle ouput
     // -------------------------
     update_throttle_mode();
-
-    // Read Sonar
-    // ----------
-# if CONFIG_SONAR == ENABLED
-    if(g.sonar_enabled) {
-        sonar_alt = sonar.read();
-    }
-#endif
 
 #if TOY_EDF == ENABLED
     edf_toy();
@@ -1461,8 +1372,6 @@ static void slow_loop()
 // 1Hz loop
 static void super_slow_loop()
 {
-	//uint32_t timer = micros();
-
     Log_Write_Data(DATA_AP_STATE, ap.value);
 
     if (g.log_bitmask & MASK_LOG_CUR && motors.armed())
@@ -1510,7 +1419,7 @@ static void update_optical_flow(void)
         }
     }
 }
-#endif
+#endif  // OPTFLOW == ENABLED
 
 // called at 50hz
 static void update_GPS(void)
@@ -1518,13 +1427,7 @@ static void update_GPS(void)
     // A counter that is used to grab at least 10 reads before commiting the Home location
     static byte ground_start_count  = 10;
 
-//	uint32_t starttime = micros();
-
     g_gps->update();
-
-
-	//time_update_GPS_elapsed.addTime(micros()-starttime);
- 
     update_GPS_light();
 
     set_gps_healthy(g_gps->status() == g_gps->GPS_OK);
@@ -1567,7 +1470,6 @@ static void update_GPS(void)
             }
 
 #if HIL_MODE == HIL_MODE_ATTITUDE                                                               // only execute in HIL mode
-            //update_altitude();
             ap_system.alt_sensor_flag = true;
 #endif
         }
@@ -2070,7 +1972,7 @@ void update_throttle_mode(void)
         }else{
             // To-Do: this should update the global desired altitude variable next_WP.alt
             int32_t desired_alt = get_pilot_desired_direct_alt(g.rc_3.control_in);
-            get_throttle_althold(desired_alt);
+            get_throttle_althold(desired_alt, g.auto_velocity_z_min, g.auto_velocity_z_max);
         }
         break;
 
@@ -2083,10 +1985,8 @@ void update_throttle_mode(void)
     case THROTTLE_AUTO:
         // auto pilot altitude controller with target altitude held in next_WP.alt
         if(motors.auto_armed() == true) {
-            get_throttle_althold(next_WP.alt);
-            // TO-DO: need to somehow set nav_throttle
+            get_throttle_althold(next_WP.alt, g.auto_velocity_z_min, g.auto_velocity_z_max);
         }
-        // TO-DO: what if auto_armed is not true?!  throttle stuck at unknown position?
         break;
 
     case THROTTLE_LAND:
@@ -2147,67 +2047,48 @@ static void update_trig(void){
 
          static void update_altitude()
 {
-    static int16_t old_sonar_alt   = 0;
-    static int32_t old_baro_alt    = 0;
+    int32_t old_baro_alt    = baro_alt;
+    int16_t old_sonar_alt   = sonar_alt;
 
 #if HIL_MODE == HIL_MODE_ATTITUDE
     // we are in the SIM, fake out the baro and Sonar
     int16_t fake_relative_alt = g_gps->altitude - gps_base_alt;
     baro_alt                = fake_relative_alt;
-    sonar_alt               = fake_relative_alt;
-
     baro_rate               = (baro_alt - old_baro_alt) * 5;             // 5hz
-    old_baro_alt            = baro_alt;
-
-#else
-    // This is real life
-
-    // read in Actual Baro Altitude
-    baro_alt                        = read_barometer();
-
-    // calc the vertical accel rate
-
-     // 2.6 way
-     int16_t temp		= (baro_alt - old_baro_alt) * 10;
-     baro_rate          = (temp + baro_rate) >> 1;
-     baro_rate			= constrain(baro_rate, -500, 500);
-     old_baro_alt		= baro_alt;
-
-    // Using Tridge's new clamb rate calc
-    /*
-    int16_t temp                    = barometer.get_climb_rate() * 100;
-    baro_rate                       = (temp + baro_rate) >> 1;
-    baro_rate                       = constrain(baro_rate, -300, 300);
-    */
-
-    // Note: sonar_alt is calculated in a faster loop and filtered with a mode filter
-#endif
-
     if(g.sonar_enabled) {
-        // filter out offset
-        float scale;
-
-        // calc rate of change for Sonar
-#if HIL_MODE == HIL_MODE_ATTITUDE
-        // we are in the SIM, fake outthe Sonar rate
-        sonar_rate              = baro_rate;
+        sonar_alt           = fake_relative_alt;
+        sonar_rate          = baro_rate;
+    }
+    current_loc.alt = baro_alt;
+    climb_rate_actual = baro_rate;
 #else
-        // This is real life
-        // calc the vertical accel rate
-        // positive = going up.
-        sonar_rate              = (sonar_alt - old_sonar_alt) * 10;
-        sonar_rate              = constrain(sonar_rate, -150, 150);
-        old_sonar_alt   = sonar_alt;
-#endif
+    // read in actual baro altitude
+    baro_alt            = read_barometer();
 
+    // calc baro based vertical velocity
+    int16_t temp		= (baro_alt - old_baro_alt) * 10;
+    baro_rate           = (temp + baro_rate) >> 1;
+    baro_rate			= constrain(baro_rate, -500, 500);
+
+    // read in sonar altitude and calculate sonar rate
+    if(g.sonar_enabled) {
+        sonar_alt       = read_sonar();
+        sonar_rate      = (sonar_alt - old_sonar_alt) * 10;
+        sonar_rate      = constrain(sonar_rate, -150, 150);
+    }
+
+    // Note: with inertial nav, alt and rate are pulled from the inav lib at 50hz in update_altitude_est function
+    // so none of the below is required
+# if INERTIAL_NAV_Z != ENABLED
+    // if no sonar set current alt to baro alt
+    if(!g.sonar_enabled) {
+        // NO Sonar case
+        current_loc.alt = baro_alt;
+        climb_rate_actual = baro_rate;
+    }else{
+        // Blend barometer and sonar data together
+        float scale;
         if(baro_alt < 800) {
-#if SONAR_TILT_CORRECTION == 1
-            // correct alt for angle of the sonar
-            float temp = cos_pitch_x * cos_roll_x;
-            temp = max(temp, 0.707);
-            sonar_alt = (float)sonar_alt * temp;
-#endif
-
             scale = (float)(sonar_alt - 400) / 200.0;
             scale = constrain(scale, 0.0, 1.0);
             // solve for a blended altitude
@@ -2220,25 +2101,35 @@ static void update_trig(void){
             // we must be higher than sonar (>800), don't get tricked by bad sonar reads
             current_loc.alt = baro_alt;
             // dont blend, go straight baro
-
             climb_rate_actual       = baro_rate;
         }
-
-    }else{
-        // NO Sonar case
-        current_loc.alt = baro_alt;
-        climb_rate_actual = baro_rate;
     }
+    // climb_rate_error is used to spread the change in climb rate across the next 5 samples
+    climb_rate_error = (climb_rate_actual - climb_rate) / 5;
+# endif // INERTIAL_NAV_Z != ENABLED
+#endif  // HIL_MODE == HIL_MODE_ATTITUDE
 
     // update the target altitude
     verify_altitude();
-
-    // calc error
-    climb_rate_error = (climb_rate_actual - climb_rate) / 5;
 }
 
 static void update_altitude_est()
 {
+#if INERTIAL_NAV_Z == ENABLED
+    // with inertial nav we can update the altitude and climb rate at 50hz
+    current_loc.alt = inertial_nav.get_altitude();
+    climb_rate = inertial_nav.get_velocity_z();
+
+    // update baro and sonar alt and climb rate just for logging purposes
+    // To-Do: remove alt_sensor_flag and move update_altitude to be called from 10hz loop
+    if(ap_system.alt_sensor_flag) {
+        ap_system.alt_sensor_flag = false;
+        update_altitude();
+        if(g.log_bitmask & MASK_LOG_CTUN && motors.armed()) {
+            Log_Write_Control_Tuning();
+        }
+    }
+#else
     if(ap_system.alt_sensor_flag) {
         update_altitude();
         ap_system.alt_sensor_flag = false;
@@ -2252,6 +2143,7 @@ static void update_altitude_est()
         climb_rate += climb_rate_error;
         current_loc.alt += (climb_rate / 50);
     }
+#endif
 }
 
 static void tuning(){

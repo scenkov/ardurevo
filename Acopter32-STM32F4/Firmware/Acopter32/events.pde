@@ -18,33 +18,31 @@ static void failsafe_on_event()
             // if throttle is zero disarm motors
             if (g.rc_3.control_in == 0) {
                 init_disarm_motors();
-            }else if(ap.home_is_set == true) {
+            }else if(ap.home_is_set == true && home_distance >= FS_THR_RTL_MIN_DISTANCE) {
                 set_mode(RTL);
             }else{
-                // We have no GPS so we will land
+                // We have no GPS or are very close to home so we will land
                 set_mode(LAND);
             }
             break;
         case AUTO:
             // failsafe_throttle is 1 do RTL, 2 means continue with the mission
             if (g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_RTL) {
-                // To-Do: check distance from home before initiating RTL
-                set_mode(RTL);
+                if(home_distance >= FS_THR_RTL_MIN_DISTANCE) {
+                    set_mode(RTL);
+                }else{
+                    // We are very close to home so we will land
+                    set_mode(LAND);
+                }
             }
             // if failsafe_throttle is 2 (i.e. FS_THR_ENABLED_CONTINUE_MISSION) no need to do anything
             break;
         default:
-            if(ap.home_is_set == true) {
-                // same as above ^
-                // do_rtl sets the altitude to the current altitude by default
-                // To-Do: check distance from home before initiating RTL
+            if(ap.home_is_set == true && home_distance >= FS_THR_RTL_MIN_DISTANCE) {
                 set_mode(RTL);
             }else{
-                // We have no GPS so we will crash land in alt hold mode
-                // the low throttle will bring us down at the maximum descent speed
-                // To-Do: make LAND a throttle mode so it can operate without GPS
-                set_mode(ALT_HOLD);
-                set_new_altitude(0);
+                // We have no GPS or are very close to home so we will land
+                set_mode(LAND);
             }
             break;
     }
@@ -77,8 +75,12 @@ static void low_battery_event(void)
                 }
                 break;
             case AUTO:
-                // To-Do: check distance to home before initiating RTL?
-                set_mode(RTL);
+                if(ap.home_is_set == true && home_distance >= FS_THR_RTL_MIN_DISTANCE) {
+                    set_mode(RTL);
+                }else{
+                    // We have no GPS or are very close to home so we will land
+                    set_mode(LAND);
+                }
                 break;
             default:
                 set_mode(LAND);
@@ -102,10 +104,6 @@ static void update_events()     // Used for MAV_CMD_DO_REPEAT_SERVO and MAV_CMD_
     if(event_repeat == 0 || (millis() - event_timer) < event_delay)
         return;
 
-    if (event_repeat > 0) {
-        event_repeat--;
-    }
-
     if(event_repeat != 0) {             // event_repeat = -1 means repeat forever
         event_timer = millis();
 
@@ -119,6 +117,9 @@ static void update_events()     // Used for MAV_CMD_DO_REPEAT_SERVO and MAV_CMD_
 
         if  (event_id == RELAY_TOGGLE) {
             relay.toggle();
+        }
+        if (event_repeat > 0) {
+            event_repeat--;
         }
     }
 }
