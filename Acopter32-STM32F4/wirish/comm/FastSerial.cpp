@@ -59,7 +59,7 @@ FastSerial::FastSerial(usart_dev *usart_device,
     this->rx_pin = rx_pin;
 	
 	//setInitialized((uint8_t)usart_device);
-	begin(57600);
+    this->begin(57600);
 }
 
 // Public Methods //////////////////////////////////////////////////////////////

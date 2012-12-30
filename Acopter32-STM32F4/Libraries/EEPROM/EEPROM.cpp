@@ -77,15 +77,15 @@ EEPROMClass EEPROM;
 //static functions - access to utilities to emulate EEPROM
 void eeprom_read_block (void *pointer_ram, const void *pointer_eeprom, size_t n)
 {
-#if EEPROM_TYPE_ENABLE == EEPROM_FLASH
-#elif EEPROM_TYPE_ENABLE == EEPROM_I2C
+    //serPort->println("enter read block");
 	uint8_t * buff = (uint8_t *)pointer_ram;
 	uint16_t addr16 = (uint16_t)(uint32_t)pointer_eeprom;
 	for (uint16_t i = 0; i < (uint16_t)n; i++) 
 	{
 		buff[i] = (uint8_t)EEPROM.read(addr16 + i);
+		//serPort->printf("%u : %u\n", i, buff[i]);
 	}
-#endif
+
 }
 
 void eeprom_write_block (const void *pointer_ram, void *pointer_eeprom, size_t n)

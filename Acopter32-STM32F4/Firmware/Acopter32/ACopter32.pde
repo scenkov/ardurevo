@@ -169,6 +169,9 @@ FastSerialPort2(Serial);        // FTDI/console
 static FastSerial *cliSerial = &Serial;
 
 //Serial.begin(SERIAL_CLI_BAUD, 128, 256);
+HardwareSPI SPIx(2);
+HardwareI2C I2C2x(2);
+
 
 // this sets up the parameter table, and sets the default values. This
 // must be the first AP_Param variable declared to ensure its
@@ -231,9 +234,6 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 #if HIL_MODE == HIL_MODE_DISABLED
 
 // real sensors
-
-HardwareSPI SPIx(2);
-HardwareI2C I2C2x(2);
 
 
 

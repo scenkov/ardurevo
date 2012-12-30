@@ -8,9 +8,11 @@ HardwareI2C::HardwareI2C(uint32_t i2c_num)
     switch (i2c_num) {
     case 1:
         this->i2c_d = _I2C1;
+        this->begin();
         break;
     case 2:
         this->i2c_d = _I2C2;
+        this->begin();
         break;
     default:
         assert_param(0);
