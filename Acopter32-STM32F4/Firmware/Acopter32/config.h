@@ -546,6 +546,9 @@
  # define FS_THR_VALUE_DEFAULT             975
 #endif
 
+#ifndef FS_THR_RTL_MIN_DISTANCE
+ # define FS_THR_RTL_MIN_DISTANCE          1500     // the minimum distance from home in which
+#endif
 
 #ifndef MINIMUM_THROTTLE
  # define MINIMUM_THROTTLE       130
@@ -607,6 +610,11 @@
 
 #ifndef MOUNT2
 # define MOUNT2		DISABLED
+// To save some more space
+ # undef CAMERA
+ # define CAMERA         DISABLED
+ # define AP_LIMITS      DISABLED
+
 #endif
 
 
@@ -820,39 +828,39 @@
  # define MAX_INPUT_PITCH_ANGLE     4500
 #endif
 #ifndef RATE_ROLL_P
- # define RATE_ROLL_P        0.145
+ # define RATE_ROLL_P        		0.150
 #endif
 #ifndef RATE_ROLL_I
  # define RATE_ROLL_I        		0.100
 #endif
 #ifndef RATE_ROLL_D
- # define RATE_ROLL_D        0.035
+ # define RATE_ROLL_D        		0.004
 #endif
 #ifndef RATE_ROLL_IMAX
  # define RATE_ROLL_IMAX         	5.0                    // degrees
 #endif
 
 #ifndef RATE_PITCH_P
- # define RATE_PITCH_P       0.145
+ # define RATE_PITCH_P       		0.150
 #endif
 #ifndef RATE_PITCH_I
  # define RATE_PITCH_I       		0.100
 #endif
 #ifndef RATE_PITCH_D
- # define RATE_PITCH_D       0.035
+ # define RATE_PITCH_D       		0.004
 #endif
 #ifndef RATE_PITCH_IMAX
  # define RATE_PITCH_IMAX        	5.0                    // degrees
 #endif
 
 #ifndef RATE_YAW_P
- # define RATE_YAW_P    		 .2
+ # define RATE_YAW_P              	0.25
 #endif
 #ifndef RATE_YAW_I
  # define RATE_YAW_I              	0.015
 #endif
 #ifndef RATE_YAW_D
- # define RATE_YAW_D    		 0.0
+ # define RATE_YAW_D              	0.000
 #endif
 #ifndef RATE_YAW_IMAX
  # define RATE_YAW_IMAX            	8.0          // degrees
@@ -914,7 +922,7 @@
  # define LOITER_RATE_I          	0.04           // Wind control
 #endif
 #ifndef LOITER_RATE_D
-# define LOITER_RATE_D		1.00		// try 2 or 3 for LOITER_RATE 1
+ # define LOITER_RATE_D          	0.40           // try 2 or 3 for LOITER_RATE 1
 #endif
 #ifndef LOITER_RATE_IMAX
  # define LOITER_RATE_IMAX       	30                     // degrees
@@ -992,16 +1000,18 @@
 #endif
 
 
-// minimum and maximum climb rates while in alt hold mode
-#ifndef ALTHOLD_MAX_CLIMB_RATE
- # define ALTHOLD_MAX_CLIMB_RATE 250
+// default minimum and maximum vertical velocity the autopilot may request
+#ifndef AUTO_VELZ_MIN
+ # define AUTO_VELZ_MIN -125
 #endif
-#ifndef ALTHOLD_MIN_CLIMB_RATE
- # define ALTHOLD_MIN_CLIMB_RATE -ALTHOLD_MAX_CLIMB_RATE
+#ifndef AUTO_VELZ_MAX
+ # define AUTO_VELZ_MAX 125
 #endif
 
-// max allowed acceleration
-#define VELOCITY_MAX_Z      250     // maximum vertical velocity in cm/s
+// default maximum vertical velocity the pilot may request
+#ifndef PILOT_VELZ_MAX
+ # define PILOT_VELZ_MAX    250     // maximum vertical velocity in cm/s
+#endif
 #define ACCELERATION_MAX_Z  750     // maximum veritcal acceleration in cm/s/s
 
 // Throttle Accel control
@@ -1023,7 +1033,7 @@
 // Crosstrack compensation
 //
 #ifndef CROSSTRACK_GAIN
-# define CROSSTRACK_GAIN		0.2
+ # define CROSSTRACK_GAIN       .2
 #endif
 #ifndef CROSSTRACK_MIN_DISTANCE
  # define CROSSTRACK_MIN_DISTANCE       15
@@ -1094,7 +1104,7 @@
  # define LOG_OPTFLOW                   DISABLED
 #endif
 #ifndef LOG_PID
- # define LOG_PID                       ENABLED
+ # define LOG_PID                       DISABLED
 #endif
 #ifndef LOG_ITERM
  # define LOG_ITERM                     ENABLED
@@ -1221,7 +1231,7 @@
  # define INERTIAL_NAV_XY DISABLED
 #endif
 #ifndef INERTIAL_NAV_Z
- # define INERTIAL_NAV_Z ENABLED
+ # define INERTIAL_NAV_Z DISABLED
 #endif
 
 #endif // __ARDUCOPTER_CONFIG_H__

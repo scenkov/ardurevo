@@ -1,6 +1,5 @@
-/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
 #define THISFIRMWARE "ArduCopter V2.9-rc1"
+
 /*
  *  ArduCopter Version 2.9
  *  Lead author:	Jason Short
@@ -143,7 +142,7 @@
 // Note that FastSerial port buffers are allocated at ::begin time,
 // so there is not much of a penalty to defining ports that we don't
 // use.
-//
+
 
 FastSerialPort2(Serial);        // FTDI/console
 
@@ -949,10 +948,20 @@ void get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t ma
 // Top-level logic
 ////////////////////////////////////////////////////////////////////////////////
 
-void setup() {
+      void setup() 
+{
     memcheck_init();
     init_ardupilot();
 }
+static uint16_t superfastloop_speed = 400; 	//2.5 KHz
+static uint16_t fastloop_speed = 4000; 		//250 Hz
+static uint16_t fifty_HZ_count = 5;
+
+#ifdef INS_VRIMUFULL
+	superfastloop_speed = 1000; 	//1KHz
+	fastloop_speed = 5000; 		//200Hz
+	fifty_HZ_count = 4;
+#endif
 
 void loop()
 {
@@ -1118,6 +1127,7 @@ static void fast_loop()
 
 static void medium_loop()
 {
+	//uint32_t timestart = micros();
     // This is the start of the medium (10 Hz) loop pieces
     // -----------------------------------------
     switch(medium_loopCounter) {
