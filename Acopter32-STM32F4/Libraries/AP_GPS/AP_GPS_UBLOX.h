@@ -28,7 +28,6 @@ class AP_GPS_UBLOX : public GPS
 public:
     // Methods
     AP_GPS_UBLOX(Stream *s, FastSerial *ser_port);
-	//AP_GPS_UBLOX(Stream *s);
     virtual void                    init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
     virtual bool                    read();
     static bool _detect(uint8_t );

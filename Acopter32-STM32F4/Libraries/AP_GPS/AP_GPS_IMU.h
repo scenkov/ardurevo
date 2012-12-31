@@ -10,7 +10,6 @@ class AP_GPS_IMU : public GPS {
 public:
 
     // Methods
-    //AP_GPS_IMU(Stream *s, FastSerial *ser_port);
     AP_GPS_IMU(Stream *s);
     virtual void init(enum GPS_Engine_Setting nav_setting);
     virtual bool read(void);
