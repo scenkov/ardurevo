@@ -39,18 +39,10 @@
 // the vector for another driver (e.g. MSPIM on USARTs).
 //
 
-#ifndef _FASTSERIAL_H_
-#define _FASTSERIAL_H_
-
-// disable the stock Arduino serial driver
-#ifdef HardwareSerial_h
-# error Must include FastSerial.h before the Arduino serial driver is defined.
-#endif
-#define HardwareSerial_h
-
+#ifndef _FASTUSB_H_
+#define _FASTUSB_H_
 
 #include "BetterStream.h"
-#include <usart.h>
 #include <usb.h>
 #include <gpio.h>
 #include <wirish.h>
@@ -98,18 +90,16 @@
 
 /// The FastSerial class definition
 ///
-//    static usb_attr_t usb_attr;
-//    static uint8_t usb_connected;
 
-class FastSerial : public BetterStream {
+class FastUSB : public BetterStream {
 private:
     usart_dev *usart_device;
     uint8 tx_pin;
     uint8 rx_pin;
+
 public:
-    uint8 usb;
-    FastSerial();
-    FastSerial(usart_dev *usart_device,
+    FastUSB();
+    FastUSB(usart_dev *usart_device,
                uint8 tx_pin,
                uint8 rx_pin);
 
@@ -163,6 +153,8 @@ public:
 #define FSTXPIN3 	BOARD_UART4_TX_PIN //10
 #define FSRXPIN3 	BOARD_UART4_RX_PIN //11
 
+#define FastUSBPort(_name)    FastUSB _name();
+/*
 ///
 /// Macro defining a FastSerial port instance.
 ///
@@ -176,15 +168,6 @@ public:
 						 FSTXPIN##_num, 	\
 						 FSRXPIN##_num);
 
-	/*
-#define FastSerialPort(_name, _num)   		\
-		FastSerial _name(FSUSART##_num, 	\
-						FSMAXBAUD##_num, 	\
-						FSGPIO##_num, 		\
-						FSTXPIN##_num, 		\
-						FSRXPIN##_num, 		\
-						FSCOMP##_num);
-*/
 
 ///
 /// Compatibility macros for previous FastSerial versions.
@@ -198,13 +181,13 @@ public:
 #define FastSerialPort1(_portName)     FastSerialPort(_portName, 1)
 #define FastSerialPort2(_portName)     FastSerialPort(_portName, 2)
 #define FastSerialPort3(_portName)     FastSerialPort(_portName, 3)		
-
-
+*/
+/*
 #define FastSerialPort_Init0(_portName)     FastSerialPort_Init(_portName, 0)
 #define FastSerialPort_Init1(_portName)     FastSerialPort_Init(_portName, 1)
 #define FastSerialPort_Init2(_portName)     FastSerialPort_Init(_portName, 2)
 #define FastSerialPort_Init3(_portName)     FastSerialPort_Init(_portName, 3)
-
+*/
 
 // TODO: high density device ports
 #endif

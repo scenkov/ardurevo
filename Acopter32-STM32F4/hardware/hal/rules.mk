@@ -21,6 +21,7 @@ cSRCS_$(d)   += timer.c
 cSRCS_$(d)   += usart.c
 cSRCS_$(d)   += adc.c
 cSRCS_$(d)   += stopwatch.c
+cSRCS_$(d)   += usb.c
 
 cppSRCS_$(d) := 
 

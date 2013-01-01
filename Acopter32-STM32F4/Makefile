@@ -22,11 +22,13 @@ BUILD_PATH       := $(SRCROOT)/build
 HARDWARE_PATH    := $(SRCROOT)/hardware
 HAL_PATH         := $(SRCROOT)/hardware/hal
 STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.0.0
+STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
 WIRISH_PATH      := $(SRCROOT)/wirish
 LIBRARIES_PATH   := $(SRCROOT)/Libraries
-FIRMWARE_PATH    := $(SRCROOT)/Firmware/Acopter32
-
+//FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_USB
+//SKETCH          := Test_USB
+FIRMWARE_PATH    := $(SRCROOT)/Firmware/ACopter32
 SKETCH          := ACopter32
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)
 SKETCHSRCS      := $(wildcard $(addprefix $(SRCROOT)/,$(SRCSUFFIXES)))
@@ -60,6 +62,9 @@ GLOBAL_FLAGS    += -DSTM32F4XX
 GLOBAL_FLAGS    += -DUSE_STDPERIPH_DRIVER
 GLOBAL_FLAGS    += -DHSE_VALUE=8000000
 GLOBAL_FLAGS    += -DARM_MATH_CM4
+GLOBAL_FLAGS    += -DUSE_OTG_FS_CORE
+GLOBAL_FLAGS    += -DUSE_USB_OTG_FS
+GLOBAL_FLAGS    += -DUSE_EMBEDDED_PHY
 GLOBAL_FLAGS    += -D__FPU_PRESENT
 GLOBAL_FLAGS    += -D__FPU_USED=1
 # GLOBAL_CFLAGS -----------------------------------------------------------------------------------
@@ -114,6 +119,7 @@ include $(SUPPORT_PATH)/make/build-templates.mk
 # Try to keep LIBMAPLE_MODULES a simply-expanded variable
 # Official libraries:
 LIBRARY_MODULES := $(STM32_PATH)
+LIBRARY_MODULES += $(STM32USB_PATH)
 LIBRARY_MODULES += $(HAL_PATH)
 LIBRARY_MODULES += $(WIRISH_PATH)
 

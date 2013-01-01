@@ -29,6 +29,7 @@
  */
 
 #include "FastSerial.h"
+#include "usb.h"
 #include <usart.h>
 #include <gpio.h>
 
@@ -42,35 +43,82 @@
 //#define RX4 BOARD_UART4_RX_PIN
 //#define TX5 BOARD_UART5_TX_PIN
 //#define RX5 BOARD_UART5_RX_PIN
+static usb_attr_t usb_attr;
+static uint8_t usb_connected;
 
 FastSerial::FastSerial()
 {
 }
 
-uint8_t FastSerial::_serialInitialized = 0;
-
-// Constructor /////////////////////////////////////////////////////////////////
-
 FastSerial::FastSerial(usart_dev *usart_device,
                        uint8 tx_pin,
                        uint8 rx_pin) {
+if (usb==0)
+	{
     this->usart_device = usart_device;
     this->tx_pin = tx_pin;
     this->rx_pin = rx_pin;
+	}
 	
-	//setInitialized((uint8_t)usart_device);
-    this->begin(57600);
 }
 
-// Public Methods //////////////////////////////////////////////////////////////
-
-void FastSerial::begin(long baud, unsigned int rxSpace, unsigned int txSpace)
+void FastSerial::init(usart_dev *usart_device,
+                       uint8 tx_pin,
+                       uint8 rx_pin)
 {
-	begin(baud);
+	this->usart_device = usart_device;
+	this->tx_pin = tx_pin;
+	this->rx_pin = rx_pin;
 }
+
+void FastSerial::configure(uint8 port)
+{
+	usb=0; // Set 0 the use of usb inside FastSerial
+	
+	if (port == 0)
+	{
+		this->init(FSUSART0, FSTXPIN0, FSRXPIN0);
+	}
+	else if (port == 1)
+	{
+		this->init(FSUSART1, FSTXPIN1, FSRXPIN1);
+	}
+	else if (port == 2)
+	{
+		this->init(FSUSART2, FSTXPIN2, FSRXPIN2);
+	}
+	else if (port == 3)
+	{
+		this->init(FSUSART3, FSTXPIN3, FSRXPIN3);
+	}
+	else if (port == 99)
+	{
+		usb=1;
+	}
+}
+
+#define disable_timer_if_necessary(dev, ch) ((void)0)
 
 void FastSerial::begin(long baud) {
+	if (usb == 0)
 	begin(baud, DEFAULT_TX_TIMEOUT);
+	else
+    {
+	//begin(baud, DEFAULT_TX_TIMEOUT);
+
+    usb_open();
+
+    usb_default_attr(&usb_attr);
+	usb_attr.preempt_prio = 1;
+	usb_attr.sub_prio = 3;
+	usb_attr.use_present_pin = 1;
+	usb_attr.present_port = _GPIOD;
+	usb_attr.present_pin = 4;
+
+    usb_ioctl(I_USB_SETATTR, &usb_attr);
+    usb_ioctl(I_USB_CONNECTED, &usb_connected);
+
+    }
 }
 
 void FastSerial::begin(long baud, uint32_t tx_timeout) {
@@ -107,117 +155,150 @@ void FastSerial::begin(long baud, uint32_t tx_timeout) {
     usart_enable(this->usart_device);
 }
 
-void FastSerial::init(usart_dev *usart_device,
-                       uint8 tx_pin,
-                       uint8 rx_pin)
-{
-	this->usart_device = usart_device;
-	this->tx_pin = tx_pin;
-	this->rx_pin = rx_pin;
-}
-
-void FastSerial::configure(uint8 port)
-{
-	if (port == 0)
-	{
-		this->init(FSUSART0, FSTXPIN0, FSRXPIN0);
-	}
-	else if (port == 1)
-	{
-		this->init(FSUSART1, FSTXPIN1, FSRXPIN1);
-	}
-	else if (port == 2)
-	{
-		this->init(FSUSART2, FSTXPIN2, FSRXPIN2);
-	}
-	else if (port == 3)
-	{
-		this->init(FSUSART3, FSTXPIN3, FSRXPIN3);
-	}
-}
-
-#define disable_timer_if_necessary(dev, ch) ((void)0)
-
-
-
 void FastSerial::end(void) {
+ if (usb == 0 )
     usart_disable(this->usart_device);
 }
 
 int FastSerial::available(void) {
-    return usart_data_available(this->usart_device);
+    if (usb == 0)
+	return usart_data_available(this->usart_device);
+	else
+	return usb_data_available();
 }
 
 int FastSerial::txspace(void)
 {
-    return txfifo_freebytes();
+    if (usb == 0)
+	return txfifo_freebytes();
+	else 
+	return 0;
 
 }
 
 void FastSerial::use_tx_fifo(bool enable)
 {
+if (usb == 0)
+	{
 	usart_reset_tx(this->usart_device);
 	usart_use_tx_fifo(this->usart_device, (enable ? 1 : 0));
+	}
 }
 void FastSerial::set_blocking_writes(bool enable)
 {
+if (usb == 0)
+	{
+
 	usart_reset_tx(this->usart_device);
 	usart_use_tx_fifo(this->usart_device, (enable ? 0 : 1));
+	}
 }
 
 void FastSerial::use_timeout(uint8_t enable)
 {
+if (usb == 0)
+	{
+
 	usart_use_timeout(this->usart_device, enable);
+	}
 }
 
 void FastSerial::set_timeout(uint32_t timeout)
 {
-	usart_set_timeout(this->usart_device, timeout);
+if (usb == 0)
+	{
+	usart_set_timeout(usart_device, timeout);
+	}
 }
 
 int FastSerial::read(void) {
+if (usb == 0)
+	{
+	
 	if (available() <= 0)
 		return (-1);
     return usart_getc(this->usart_device);
+	}
+	else
+	{
+	if (usb_data_available() <= 0)
+		return (-1);
+    return usb_getc();
+	}
 }
 
 int FastSerial::peek(void)
 {
+if (usb == 0)
+	{
+
 	if (available() <= 0)
+		return (-1);
+	// pull character from tail
+	return usart_getc(this->usart_device);
+	}
+	else
+	{
+	if (usb_data_available() <= 0)
 		return (-1);
 
 	// pull character from tail
-	return usart_getc(this->usart_device);
+	return usb_getc();
+}
+
 }
 
 // return time elasped from last uart interrupt
 // that functionality is good for sincronize the use of serial resource and buffer
 long FastSerial::getPortLic(void){
 long ret=0;
-if (this->usart_device->USARTx == USART1) ret =  uart1_lic_millis;
-if (this->usart_device->USARTx == USART2) ret =  uart2_lic_millis;
-if (this->usart_device->USARTx == USART3) ret =  uart3_lic_millis;
-if (this->usart_device->USARTx == UART4)  ret =  uart4_lic_millis;
-if (this->usart_device->USARTx == UART5)  ret =  uart5_lic_millis;
-
+if (usb == 0)
+	{
+	if (this->usart_device->USARTx == USART1) ret =  uart1_lic_millis;
+	if (this->usart_device->USARTx == USART2) ret =  uart2_lic_millis;
+	if (this->usart_device->USARTx == USART3) ret =  uart3_lic_millis;
+	if (this->usart_device->USARTx == UART4)  ret =  uart4_lic_millis;
+	if (this->usart_device->USARTx == UART5)  ret =  uart5_lic_millis;
+	}
 return(ret);
 }
 
 void FastSerial::flush(void) {
+if (usb == 0)
+	{
     usart_reset_rx(this->usart_device);
     usart_reset_tx(this->usart_device);
+	}
+else
+{
+    //rb_reset(rxfifo); // reset the rxfifo on usb.
+	usb_reset_rx();
+    usb_reset_tx();
+}
 }
 uint32_t FastSerial::txfifo_nbytes(void)
 {
+if (usb == 0)
 	return usart_txfifo_nbytes(this->usart_device);
+	else
+	return(0);
 }
 uint32_t FastSerial::txfifo_freebytes(void)
 {
+if (usb == 0)
 	return usart_txfifo_freebytes(this->usart_device);
+	else
+	return(1);
 }
 
 void FastSerial::write(uint8_t ch) {
-    usart_putc(this->usart_device, ch);
+    if (usb == 0)
+	usart_putc(this->usart_device, ch);
+	else
+	usb_putc(ch);
 }
 
-
+void FastSerial::begin(long baud, unsigned int rxSpace, unsigned int txSpace)
+{
+	begin(baud);
+}
