@@ -50,6 +50,10 @@ FastSerial::FastSerial()
 {
 }
 
+uint8_t FastSerial::_serialInitialized = 0;
+
+// Constructor /////////////////////////////////////////////////////////////////
+
 FastSerial::FastSerial(usart_dev *usart_device,
                        uint8 tx_pin,
                        uint8 rx_pin) {
@@ -58,8 +62,11 @@ if (usb==0)
     this->usart_device = usart_device;
     this->tx_pin = tx_pin;
     this->rx_pin = rx_pin;
-	}
 	
+	//setInitialized((uint8_t)usart_device);
+    this->begin(57600);
+}
+
 }
 
 void FastSerial::init(usart_dev *usart_device,
@@ -96,6 +103,7 @@ void FastSerial::configure(uint8 port)
 		usb=1;
 	}
 }
+
 
 #define disable_timer_if_necessary(dev, ch) ((void)0)
 
@@ -302,3 +310,4 @@ void FastSerial::begin(long baud, unsigned int rxSpace, unsigned int txSpace)
 {
 	begin(baud);
 }
+
