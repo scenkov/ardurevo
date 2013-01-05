@@ -11,6 +11,8 @@
 #include "../STM32_USB_Driver/usbd_req.h"
 #include "../STM32_USB_Driver/usbd_core.h"
 
+//#define USB_DEBUG
+
 typedef uint8_t U8;
 typedef uint32_t U32;
 typedef uint16_t U16;
@@ -165,68 +167,91 @@ U8 * USBD_USR_LangIDStrDescriptor(U8 speed, U16 *length)
 /* return the product string descriptor */
 U8 * USBD_USR_ProductStrDescriptor(U8 speed, U16 *length)
 {
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "desc\n");
+#endif
 	if (usb_attr && usb_attr->description)
 		USBD_GetString ((U8 *)usb_attr->description, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_PRODUCT_FS_STRING, USBD_StrDesc, length);
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "desc ok\n");
-  return USBD_StrDesc;
+#endif
+
+return USBD_StrDesc;
 }
 
 /* return the manufacturer string descriptor */
 U8 * USBD_USR_ManufacturerStrDescriptor(U8 speed, U16 *length)
 {
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "manu\n");
+#endif
 	if (usb_attr && usb_attr->manufacturer)
 		USBD_GetString ((U8 *)usb_attr->manufacturer, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "manu ok\n");
-  return USBD_StrDesc;
+#endif
+return USBD_StrDesc;
 }
 
 /* return the serial number string descriptor */
 U8 *  USBD_USR_SerialStrDescriptor(U8 speed, U16 *length)
 {
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "serial\n");
+#endif
 	if (usb_attr && usb_attr->serial_number)
 		USBD_GetString ((U8 *)usb_attr->serial_number, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_SERIALNUMBER_FS_STRING, USBD_StrDesc, length);
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "serial ok\n");
-  return USBD_StrDesc;
+#endif
+return USBD_StrDesc;
 }
 
 /* return the configuration string descriptor */
 U8 * USBD_USR_ConfigStrDescriptor(U8 speed , U16 *length)
 {
-	usart_putstr(_USART1, "configuration\n");
-	if (usb_attr && usb_attr->configuration)
+#ifdef USB_DEBUG
+    usart_putstr(_USART1, "configuration\n");
+#endif
+    if (usb_attr && usb_attr->configuration)
 		USBD_GetString ((U8 *)usb_attr->configuration, USBD_StrDesc, length);
 	else	
 		USBD_GetString ((U8 *)USBD_CONFIGURATION_FS_STRING, USBD_StrDesc, length); 
-	usart_putstr(_USART1, "configuration ok\n");
-  return USBD_StrDesc;  
+#ifdef USB_DEBUG
+    usart_putstr(_USART1, "configuration ok\n");
+#endif
+    return USBD_StrDesc;
 }
 
 
 /* return the interface string descriptor */
 U8 * USBD_USR_InterfaceStrDescriptor( U8 speed , U16 *length)
 {
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "interface\n");
+#endif
 	if (usb_attr && usb_attr->interface)
 		USBD_GetString ((U8 *)usb_attr->interface, USBD_StrDesc, length);
 	else	
 		USBD_GetString ((U8 *)USBD_INTERFACE_FS_STRING, USBD_StrDesc, length);
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "interface ok\n");
-  return USBD_StrDesc;  
+#endif
+return USBD_StrDesc;
 }
 
 void USBD_USR_Init(void)
 {  
-	usart_putstr(_USART1, "USBD_USR_Init(void)\n");
-		usb_connected = 0;
+#ifdef USB_DEBUG
+    usart_putstr(_USART1, "USBD_USR_Init(void)\n");
+#endif
+    usb_connected = 0;
 }
 
 void USBD_USR_DeviceReset(uint8_t speed )
@@ -240,18 +265,24 @@ void USBD_USR_DeviceReset(uint8_t speed )
 		 default:
 			 break;
 	 }
+#ifdef USB_DEBUG
 	 usart_putstr(_USART1, "USBD_USR_DeviceReset\n");
+#endif
 }
 
 void USBD_USR_DeviceConfigured (void)
 {
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "USBD_USR_DeviceConfigured\n");
+#endif
 	usb_connected = 1;
 }
 
 void USBD_USR_DeviceSuspended(void)
 {
+#ifdef USB_DEBUG
 	usart_putstr(_USART1, "USBD_USR_DeviceSuspended\n");
+#endif
 	usb_connected = 0;
 }
 
@@ -684,8 +715,8 @@ int usb_write(uint8_t *buf, unsigned int nbytes)
 		
 	sent = 0;
 
-	char *str = (char *)buf;
-	usart_putstr(_USART1, str);
+	//char *str = (char *)buf;
+	//usart_putstr(_USART1, str);
 	// blocking mode
 	while(tosend)
 	{					

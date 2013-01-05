@@ -3,6 +3,7 @@
 	<name>ACopter32-STM32F4</name>
 	<comment></comment>
 	<projects>
+		<project>vbrain</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
