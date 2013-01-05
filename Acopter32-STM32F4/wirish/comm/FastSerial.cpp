@@ -180,7 +180,7 @@ int FastSerial::txspace(void)
     if (usb == 0)
 	return txfifo_freebytes();
 	else 
-	return 0;
+	return 256;
 
 }
 
@@ -220,19 +220,18 @@ if (usb == 0)
 }
 
 int FastSerial::read(void) {
-if (usb == 0)
-	{
-	
+    if (usb == 0)
+    {
 	if (available() <= 0)
-		return (-1);
-    return usart_getc(this->usart_device);
-	}
-	else
-	{
+	    return (-1);
+	return usart_getc(this->usart_device);
+    }
+    else
+    {
 	if (usb_data_available() <= 0)
-		return (-1);
-    return usb_getc();
-	}
+	    return (-1);
+	return usb_getc();
+    }
 }
 
 int FastSerial::peek(void)
@@ -289,14 +288,14 @@ uint32_t FastSerial::txfifo_nbytes(void)
 if (usb == 0)
 	return usart_txfifo_nbytes(this->usart_device);
 	else
-	return(0);
+	return(256);
 }
 uint32_t FastSerial::txfifo_freebytes(void)
 {
 if (usb == 0)
 	return usart_txfifo_freebytes(this->usart_device);
 	else
-	return(1);
+	return(256);
 }
 
 void FastSerial::write(uint8_t ch) {
