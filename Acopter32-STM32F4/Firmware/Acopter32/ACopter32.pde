@@ -144,7 +144,9 @@
 // use.
 
 
-FastSerialPort2(Serial);        // FTDI/console
+//FastSerialPort2(Serial);        // FTDI/console
+
+FastSerial Serial;
 
 #if CONFIG_APM_HARDWARE == MP32V1F1
     FastSerialPort1(Serial3);       // Telemetry port

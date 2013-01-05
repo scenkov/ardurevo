@@ -50,7 +50,7 @@ FastSerial::FastSerial()
 {
 }
 
-uint8_t FastSerial::_serialInitialized = 0;
+//uint8_t FastSerial::_serialInitialized = 0;
 
 // Constructor /////////////////////////////////////////////////////////////////
 
