@@ -111,9 +111,9 @@
 #include <AP_Mount.h>           // Camera/Antenna mount
 #include <AP_Airspeed.h>        // needed for AHRS build
 #include <AP_InertialNav.h>     // ArduPilot Mega inertial navigation library
-#include <ThirdOrderCompFilter.h>   // Complementary filter for combining barometer altitude with accelerometers
+//#include <ThirdOrderCompFilter.h>   // Complementary filter for combining barometer altitude with accelerometers
 #include <memcheck.h>
-#include <AP_TimeCheck.h>		// loop time checker library
+//#include <AP_TimeCheck.h>		// loop time checker library
 
 // Configuration
 #include "defines.h"
@@ -259,7 +259,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
     AP_Compass_HMC5843      compass(&I2C2x,cliSerial);
 #endif
 
-#ifdef OPTFLOW_ENABLED
+ #if OPTFLOW == ENABLED
 	AP_OpticalFlow_ADNS3080 optflow(OPTFLOW_CS_PIN);
 #else
       // AP_OpticalFlow optflow;
@@ -296,12 +296,6 @@ AP_InertialSensor_MPU6000 ins( CONFIG_MPU6000_CHIP_SELECT_PIN, &SPIx,cliSerial )
 #else
 AP_InertialSensor_VRIMU ins( CONFIG_MPU6000_CHIP_SELECT_PIN, &SPIx,cliSerial );
 #endif
-
-
-
-// we don't want to use gps for yaw correction on ArduCopter, so pass
-// a NULL GPS object pointer
-static GPS         *g_gps_null;
 
  #if DMP_ENABLED == ENABLED
 AP_AHRS_MPU6000  ahrs(&ins, g_gps);               // only works with APM2
@@ -499,6 +493,8 @@ MOTOR_CLASS motors(CONFIG_APM_HARDWARE, &APM_RC, &g.rc_1, &g.rc_2, &g.rc_3, &g.r
 static Vector3f omega;
 // This is used to hold radio tuning values for in-flight CH6 tuning
 float tuning_value;
+// used to limit the rate that the pid controller output is logged so that it doesn't negatively affect performance
+static uint8_t pid_log_counter;
 
 ////////////////////////////////////////////////////////////////////////////////
 // LED output
@@ -688,6 +684,7 @@ static int16_t climb_rate_error;
 static int16_t climb_rate;
 // The altitude as reported by Sonar in cm – Values are 20 to 700 generally.
 static int16_t sonar_alt;
+static bool sonar_alt_ok;   // true if we can trust the altitude from the sonar
 // The climb_rate as reported by sonar in cm/s
 static int16_t sonar_rate;
 // The altitude as reported by Baro in cm – Values can be quite high
@@ -907,8 +904,17 @@ static bool				new_radio_frame;
 // Used to exit the roll and pitch auto trim function
 static uint8_t auto_trim_counter;
 
-// Reference to the AP relay object - APM1 only
-AP_Relay relay;
+// Reference to the relay object (APM1 -> PORTL 2) (APM2 -> PORTB 7)
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+  AP_Relay_APM2 relay;
+#else
+  AP_Relay_APM1 relay;
+#endif
+
+//Reference to the camera object (it uses the relay object inside it)
+#if CAMERA == ENABLED
+  AP_Camera camera(&relay);
+#endif
 
 #if CLI_ENABLED == ENABLED
     static int8_t   setup_show (uint8_t argc, const Menu::arg *argv);
@@ -928,9 +934,6 @@ AP_Mount camera_mount(&current_loc, g_gps, &ahrs, 0);
 AP_Mount camera_mount2(&current_loc, g_gps, &ahrs, 1);
 #endif
 
-#if CAMERA == ENABLED
-//pinMode(camtrig, OUTPUT);			// these are free pins PE3(5), PH3(15), PH6(18), PB4(23), PB5(24), PL1(36), PL3(38), PA6(72), PA7(71), PK0(89), PK1(88), PK2(87), PK3(86), PK4(83), PK5(84), PK6(83), PK7(82)
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
@@ -1280,7 +1283,7 @@ static void fifty_hz_loop()
 #endif
 
 #if CAMERA == ENABLED
-    g.camera.trigger_pic_cleanup();
+    camera.trigger_pic_cleanup();
 #endif
 
 # if HIL_MODE == HIL_MODE_DISABLED
@@ -1415,7 +1418,7 @@ static void super_slow_loop()
 static void update_optical_flow(void)
 {
     static uint32_t last_of_update = 0;
-    static int log_counter = 0;
+    static uint8_t of_log_counter = 0;
 
     // if new data has arrived, process it
     if( optflow.last_update != last_of_update ) {
@@ -1423,9 +1426,9 @@ static void update_optical_flow(void)
         optflow.update_position(ahrs.roll, ahrs.pitch, cos_yaw_x, sin_yaw_y, current_loc.alt);      // updates internal lon and lat with estimation based on optical flow
 
         // write to log at 5hz
-        log_counter++;
-        if( log_counter >= 4 ) {
-            log_counter = 0;
+        of_log_counter++;
+        if( of_log_counter >= 4 ) {
+            of_log_counter = 0;
             if (g.log_bitmask & MASK_LOG_OPTFLOW) {
                 Log_Write_Optflow();
             }
@@ -1819,16 +1822,21 @@ bool set_throttle_mode( uint8_t new_throttle_mode )
         case THROTTLE_MANUAL:
         case THROTTLE_MANUAL_TILT_COMPENSATED:
             throttle_accel_deactivate();                // this controller does not use accel based throttle controller
+            altitude_error = 0;                         // clear altitude error reported to GCS
             throttle_initialised = true;
             break;
 
         case THROTTLE_ACCELERATION:                     // pilot inputs the desired acceleration
             if( g.throttle_accel_enabled ) {            // this throttle mode requires use of the accel based throttle controller
+                altitude_error = 0;                     // clear altitude error reported to GCS
                 throttle_initialised = true;
             }
             break;
 
         case THROTTLE_RATE:
+            altitude_error = 0;                         // clear altitude error reported to GCS
+            throttle_initialised = true;
+            break;
         case THROTTLE_STABILIZED_RATE:
         case THROTTLE_DIRECT_ALT:
             throttle_initialised = true;
@@ -1848,6 +1856,17 @@ bool set_throttle_mode( uint8_t new_throttle_mode )
             land_detector = 0;          // A counter that goes up if our climb rate stalls out.
             set_new_altitude(0);        // Set a new target altitude
             throttle_initialised = true;
+            break;
+
+        case THROTTLE_SURFACE_TRACKING:
+            if( g.sonar_enabled ) {
+                set_new_altitude(current_loc.alt);          // by default hold the current altitude
+                if ( throttle_mode < THROTTLE_HOLD ) {      // reset the alt hold I terms if previous throttle mode was manual
+                    reset_throttle_I();
+                }
+                throttle_initialised = true;
+            }
+            // To-Do: handle the case where the sonar is not enabled
             break;
 
         default:
@@ -1886,7 +1905,7 @@ void update_throttle_mode(void)
     }
 
 #if FRAME_CONFIG == HELI_FRAME
-	if (roll_pitch_mode == ROLL_PITCH_STABLE){
+	if (control_mode == STABILIZE){
 		motors.stab_throttle = true;
 	} else {
 		motors.stab_throttle = false;
@@ -1971,6 +1990,7 @@ void update_throttle_mode(void)
         if(g.rc_3.control_in <= 0){
             set_throttle_out(0, false);
             throttle_accel_deactivate();    // do not allow the accel based throttle to override our command
+            altitude_error = 0;             // clear altitude error reported to GCS - normally underlying alt hold controller updates altitude error reported to GCS
         }else{
             pilot_climb_rate = get_pilot_desired_climb_rate(g.rc_3.control_in);
             get_throttle_rate_stabilized(pilot_climb_rate);
@@ -1982,8 +2002,8 @@ void update_throttle_mode(void)
         if(g.rc_3.control_in <= 0){
             set_throttle_out(0, false);
             throttle_accel_deactivate();    // do not allow the accel based throttle to override our command
+            altitude_error = 0;             // clear altitude error reported to GCS - normally underlying alt hold controller updates altitude error reported to GCS
         }else{
-            // To-Do: this should update the global desired altitude variable next_WP.alt
             int32_t desired_alt = get_pilot_desired_direct_alt(g.rc_3.control_in);
             get_throttle_althold(desired_alt, g.auto_velocity_z_min, g.auto_velocity_z_max);
         }
@@ -2005,6 +2025,18 @@ void update_throttle_mode(void)
     case THROTTLE_LAND:
         // landing throttle controller
         get_throttle_land();
+        break;
+
+    case THROTTLE_SURFACE_TRACKING:
+        // surface tracking with sonar or other rangefinder plus pilot input of climb rate
+        pilot_climb_rate = get_pilot_desired_climb_rate(g.rc_3.control_in);
+        if( sonar_alt_ok ) {
+            // if sonar is ok, use surface tracking
+            get_throttle_surface_tracking(pilot_climb_rate);
+        }else{
+            // if no sonar fall back stabilize rate controller
+            get_throttle_rate_stabilized(pilot_climb_rate);
+        }
         break;
     }
 }
@@ -2058,7 +2090,7 @@ static void update_trig(void){
 
 // updated at 10hz
 
-         static void update_altitude()
+static void update_altitude()
 {
     int32_t old_baro_alt    = baro_alt;
     int16_t old_sonar_alt   = sonar_alt;
@@ -2150,7 +2182,6 @@ static void update_altitude_est()
         if(g.log_bitmask & MASK_LOG_CTUN && motors.armed()) {
             Log_Write_Control_Tuning();
         }
-
     }else{
         // simple dithering of climb rate
         climb_rate += climb_rate_error;

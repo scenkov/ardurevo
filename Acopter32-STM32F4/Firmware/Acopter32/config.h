@@ -557,10 +557,6 @@
  # define MAXIMUM_THROTTLE       1000
 #endif
 
-#ifndef RTL_LOITER_TIME
- # define RTL_LOITER_TIME 5000       // Time (in milliseconds) to loiter above home before begining final descent
-#endif
-
 #ifndef LAND_SPEED
  # define LAND_SPEED    50          // the descent speed for the final stage of landing in cm/s
 #endif
@@ -729,7 +725,11 @@
 #endif
 
 #ifndef RTL_ALT_MAX
- # define RTL_ALT_MAX               8000    // Max height to return to home in cm
+ # define RTL_ALT_MAX               8000    // Max height to return to home in cm (i.e 80m)
+#endif
+
+#ifndef RTL_LOITER_TIME
+ # define RTL_LOITER_TIME           5000    // Time (in milliseconds) to loiter above home before begining final descent
 #endif
 
 
@@ -775,7 +775,6 @@
 #ifndef ACRO_P
  # define ACRO_P                 4.5
 #endif
-
 
 #ifndef AXIS_LOCK_ENABLED
  # define AXIS_LOCK_ENABLED      ENABLED
@@ -975,7 +974,7 @@
 #endif
 
 #ifndef ALT_HOLD_P
- # define ALT_HOLD_P            1.0
+ # define ALT_HOLD_P            2.0
 #endif
 #ifndef ALT_HOLD_I
  # define ALT_HOLD_I            0.0
@@ -986,7 +985,7 @@
 
 // RATE control
 #ifndef THROTTLE_P
- # define THROTTLE_P            1.0
+ # define THROTTLE_P            6.0
 #endif
 #ifndef THROTTLE_I
  # define THROTTLE_I            0.0
@@ -1231,7 +1230,7 @@
  # define INERTIAL_NAV_XY DISABLED
 #endif
 #ifndef INERTIAL_NAV_Z
- # define INERTIAL_NAV_Z DISABLED
+ # define INERTIAL_NAV_Z ENABLED
 #endif
 
 #endif // __ARDUCOPTER_CONFIG_H__

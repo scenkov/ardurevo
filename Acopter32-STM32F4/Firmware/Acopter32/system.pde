@@ -291,7 +291,7 @@ cliSerial->println("Fine init");
         run_cli(cliSerial);
     }
 #else
-    cliSerial->printf_P(PSTR("\nPress ENTER 3 times for CLI\n\n"));
+    cliSerial->printf_P(PSTR("\nPress ENTER 3 times to start interactive setup\n"));
 #endif // CLI_ENABLED
     cliSerial->println("Gps Check live END");
 

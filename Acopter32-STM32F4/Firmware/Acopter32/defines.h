@@ -42,6 +42,7 @@
 #define THROTTLE_HOLD                       6   // alt hold plus pilot input of climb rate
 #define THROTTLE_AUTO                       7   // auto pilot altitude controller with target altitude held in next_WP.alt
 #define THROTTLE_LAND                       8   // landing throttle controller
+#define THROTTLE_SURFACE_TRACKING           9   // ground tracking with sonar or other rangefinder
 
 
 // active altitude sensor
@@ -109,9 +110,8 @@
 #define GPS_PROTOCOL_IMU        3
 #define GPS_PROTOCOL_MTK        4
 #define GPS_PROTOCOL_HIL        5
-#define GPS_PROTOCOL_MTK16      6
-#define GPS_PROTOCOL_MTK19      7
-#define GPS_PROTOCOL_AUTO       8
+#define GPS_PROTOCOL_MTK19      6
+#define GPS_PROTOCOL_AUTO       7
 
 #define CH_ROLL CH_1
 #define CH_PITCH CH_2
@@ -264,7 +264,6 @@ enum ap_message {
     MSG_RAW_IMU1,
     MSG_RAW_IMU2,
     MSG_RAW_IMU3,
-    MSG_GPS_STATUS,
     MSG_GPS_RAW,
     MSG_SERVO_OUT,
     MSG_NEXT_WAYPOINT,
@@ -305,6 +304,7 @@ enum gcs_severity {
 #define LOG_DMP_MSG                     0x10
 #define LOG_INAV_MSG                    0x11
 #define LOG_CAMERA_MSG                  0x12
+#define LOG_ERROR_MSG                   0x13
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
 
@@ -337,9 +337,6 @@ enum gcs_severity {
 #define DATA_INIT_SIMPLE_BEARING        9
 #define DATA_ARMED                      10
 #define DATA_DISARMED                   11
-#define DATA_FAILSAFE_ON                12
-#define DATA_FAILSAFE_OFF               13
-#define DATA_LOW_BATTERY                14
 #define DATA_AUTO_ARMED                 15
 #define DATA_TAKEOFF                    16
 #define DATA_DID_REACH_ALT              17
@@ -456,6 +453,22 @@ enum gcs_severity {
 
 #define AP_BARO_BMP085    1
 #define AP_BARO_MS5611    2
+
+// Error message sub systems and error codes
+#define ERROR_SUBSYSTEM_MAIN                1
+#define ERROR_SUBSYSTEM_RADIO               2
+#define ERROR_SUBSYSTEM_COMPASS             3
+#define ERROR_SUBSYSTEM_OPTFLOW             4
+#define ERROR_SUBSYSTEM_FAILSAFE            5
+// general error codes
+#define ERROR_CODE_ERROR_RESOLVED           0
+#define ERROR_CODE_FAILED_TO_INITIALISE     1
+// subsystem specific error codes -- radio
+#define ERROR_CODE_RADIO_LATE_FRAME         2
+// subsystem specific error codes -- failsafe
+#define ERROR_CODE_FAILSAFE_THROTTLE  2
+#define ERROR_CODE_FAILSAFE_BATTERY   3
+#define ERROR_CODE_FAILSAFE_WATCHDOG  4
 
 #define  MP32NAVYSENSOR  1
 #define  MP32NAVY2012    2

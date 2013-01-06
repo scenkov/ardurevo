@@ -32,7 +32,7 @@ static struct Location get_cmd_with_index(int i)
     }else{
         // we can load a command, we don't process it yet
         // read WP position
-        int32_t mem = (WP_START_BYTE) + (i * WP_SIZE);
+        uintptr_t mem = (WP_START_BYTE) + (i * WP_SIZE);
 
         temp.id = eeprom_read_byte((uint8_t*)mem);
 
@@ -81,7 +81,7 @@ static void set_cmd_with_index(struct Location temp, int i)
         temp.id = MAV_CMD_NAV_WAYPOINT;
     }
 
-    uint32_t mem = WP_START_BYTE + (i * WP_SIZE);
+    uintptr_t mem = WP_START_BYTE + (i * WP_SIZE);
 
     eeprom_write_byte((uint8_t *)   mem, temp.id);
 
@@ -190,8 +190,6 @@ static void init_home()
 #if INERTIAL_NAV_XY == ENABLED
     // set inertial nav's home position
     inertial_nav.set_current_position(g_gps->longitude, g_gps->latitude);
-    inertial_nav.set_altitude(home.alt);
-    inertial_nav.set_velocity_z(0);
 #endif
 
     if (g.log_bitmask & MASK_LOG_CMD)

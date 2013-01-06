@@ -43,11 +43,11 @@ public:
     float           get_climb_rate(void);
 
     // the ground values are only valid after calibration
-    float get_ground_temperature(void) { 
-        return _ground_temperature; 
+    float           get_ground_temperature(void) {
+        return _ground_temperature.get();
     }
-    float get_ground_pressure(void) {
-        return _ground_pressure; 
+    float           get_ground_pressure(void) {
+        return _ground_pressure.get();
     }
 
     // get last time sample was taken
@@ -60,8 +60,8 @@ protected:
     uint8_t                             _pressure_samples;
 
 private:
-    float    _ground_temperature;
-    float    _ground_pressure;
+    AP_Float                            _ground_temperature;
+    AP_Float                            _ground_pressure;
     float                               _altitude;
     uint32_t                            _last_altitude_t;
     DerivativeFilterFloat_Size7         _climb_rate_filter;

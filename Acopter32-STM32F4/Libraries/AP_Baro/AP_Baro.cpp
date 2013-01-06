@@ -12,6 +12,24 @@
 #include <AP_Common.h>
 #include <AP_Baro.h>
 
+// table of user settable parameters
+const AP_Param::GroupInfo AP_Baro::var_info[] = {
+    // NOTE: Index numbers 0 and 1 were for the old integer
+    // ground temperature and pressure
+
+    // @Param: ABS_PRESS
+    // @DisplayName: Absolute Pressure
+    // @Description: calibrated ground pressure
+    // @Increment: 1
+    AP_GROUPINFO("ABS_PRESS", 2, AP_Baro, _ground_pressure, 0),
+
+    // @Param: ABS_PRESS
+    // @DisplayName: ground temperature
+    // @Description: calibrated ground temperature
+    // @Increment: 1
+    AP_GROUPINFO("TEMP", 3, AP_Baro, _ground_temperature, 0),
+    AP_GROUPEND
+};
 
 // calibrate the barometer. This must be called at least once before
 // the altitude() or climb_rate() interfaces can be used
@@ -22,38 +40,37 @@ void AP_Baro::calibrate(void (*callback)(unsigned long t))
 
 	while ((int)ground_pressure == 0 || !healthy) {
 		update();
-		read(); // Get initial data from absolute pressure sensor
-		ground_pressure 	= get_pressure();
-		ground_temperature 	= get_temperature();
+        read();         // Get initial data from absolute pressure sensor
+        ground_pressure         = get_pressure();
+        ground_temperature      = get_temperature();
 		delay(10);
-	}
+    }
     // let the barometer settle for a full second after startup
     // the MS5611 reads quite a long way off for the first second,
-    // leading to about 1m of error if we don't wait    
-	for (uint16_t i = 0; i < 20; i++) {
-		do {
-			update();
-			read();
-		} while (!healthy);
-		ground_pressure 	= get_pressure();
-		ground_temperature 	= get_temperature();
-		callback(100);
+    // leading to about 1m of error if we don't wait
+    for (uint16_t i = 0; i < 10; i++) {
+        do {
+            read();
+        } while (!healthy);
+        ground_pressure         = get_pressure();
+        ground_temperature      = get_temperature();
+        callback(100);
     }
 
-    // now average over 10 values for the ground pressure and
-    // temperature settings    
+    // now average over 5 values for the ground pressure and
+    // temperature settings
 	for (uint16_t i = 0; i < 10; i++) {
-		do {
+        do {
 			update();
-			read();
-		} while (!healthy);
-		ground_pressure		= ground_pressure * 0.8     + get_pressure() * 0.2;
-		ground_temperature	= ground_temperature * 0.8  + get_temperature() * 0.2;
+            read();
+        } while (!healthy);
+        ground_pressure         = ground_pressure * 0.8     + get_pressure() * 0.2;
+        ground_temperature      = ground_temperature * 0.8  + get_temperature() * 0.2;
 		delay(100);
-	}
+    }
 
-	_ground_pressure = ground_pressure;
-	_ground_temperature = ground_temperature / 10.0f;
+    _ground_pressure.set_and_save(ground_pressure);
+    _ground_temperature.set_and_save(ground_temperature / 10.0f);
 }
 
 // return current altitude estimate relative to time that calibrate()
@@ -61,7 +78,7 @@ void AP_Baro::calibrate(void (*callback)(unsigned long t))
 // note that this relies on read() being called regularly to get new data
 float AP_Baro::get_altitude(void)
 {
-	float scaling, temp;
+    float scaling, temp;
 
     if (_last_altitude_t == _last_update) {
         // no new information
@@ -71,9 +88,9 @@ float AP_Baro::get_altitude(void)
     // this has no filtering of the pressure values, use a separate
     // filter if you want a smoothed value. The AHRS driver wants
     // unsmoothed values
-	scaling 				= (float)_ground_pressure / (float)get_pressure();
-	temp 					= ((float)_ground_temperature) + 273.15f;
-	_altitude = log(scaling) * temp * 29.271267f;
+    scaling                                 = (float)_ground_pressure / (float)get_pressure();
+    temp                                    = ((float)_ground_temperature) + 273.15f;
+    _altitude = log(scaling) * temp * 29.271267f;
 
     _last_altitude_t = _last_update;
 
@@ -92,3 +109,4 @@ float AP_Baro::get_climb_rate(void)
     // to produce somewhat reasonable results on real hardware
     return _climb_rate_filter.slope() * 1.0e3;
 }
+

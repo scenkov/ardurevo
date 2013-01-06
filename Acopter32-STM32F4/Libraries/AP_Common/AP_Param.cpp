@@ -26,7 +26,7 @@ FastSerialPort2(serext);
 
 HardwareI2C I2C2_ext(2);
 
-#define ENABLE_FASTSERIAL_DEBUG
+//#define ENABLE_FASTSERIAL_DEBUG
 
 #ifdef ENABLE_FASTSERIAL_DEBUG
  # define serialDebug(fmt, args ...)  do {serext.printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); delay(0); } while(0)

@@ -81,11 +81,10 @@ AP_Baro_MS5611::AP_Baro_MS5611(uint8_t cs_pin, HardwareSPI *spi_dev, FastSerial 
 
 uint8_t AP_Baro_MS5611::_spi_read(uint8_t reg)
 {
-  uint8_t dump;
   uint8_t return_value;
   uint8_t addr = reg; // | 0x80; // Set most significant bit
   digitalWrite(_cs_pin, LOW);
-  dump = _SPIx->transfer(addr);
+  _SPIx->transfer(addr);
   return_value = _SPIx->transfer(0);
   digitalWrite(_cs_pin, HIGH);
   return return_value;
@@ -93,11 +92,11 @@ uint8_t AP_Baro_MS5611::_spi_read(uint8_t reg)
 
 uint16_t AP_Baro_MS5611::_spi_read_16bits(uint8_t reg)
 {
-  uint8_t dump, byteH, byteL;
+  uint8_t byteH, byteL;
   uint16_t return_value;
   uint8_t addr = reg; // | 0x80; // Set most significant bit
   digitalWrite(_cs_pin, LOW);
-  dump = _SPIx->transfer(addr);
+  _SPIx->transfer(addr);
   byteH = _SPIx->transfer(0);
   byteL = _SPIx->transfer(0);
   digitalWrite(_cs_pin, HIGH);
@@ -107,11 +106,11 @@ uint16_t AP_Baro_MS5611::_spi_read_16bits(uint8_t reg)
 
 uint32_t AP_Baro_MS5611::_spi_read_adc()
 {
-  uint8_t dump,byteH,byteM,byteL;
+  uint8_t byteH,byteM,byteL;
   uint32_t return_value;
   uint8_t addr = 0x00;
   digitalWrite(_cs_pin, LOW);
-  dump = _SPIx->transfer(addr);
+  _SPIx->transfer(addr);
   byteH = _SPIx->transfer(0);
   byteM = _SPIx->transfer(0);
   byteL = _SPIx->transfer(0);
@@ -123,9 +122,8 @@ uint32_t AP_Baro_MS5611::_spi_read_adc()
 
 void AP_Baro_MS5611::_spi_write(uint8_t reg)
 {
-  uint8_t dump;
   digitalWrite(_cs_pin, LOW);
-  dump = _SPIx->transfer(reg);
+  _SPIx->transfer(reg);
   digitalWrite(_cs_pin, HIGH);
 }
 

@@ -106,7 +106,7 @@ setup_show(uint8_t argc, const Menu::arg *argv)
     report_gyro();
  #endif
 
-    //AP_Param::show_all();
+    AP_Param::show_all();
 
     return(0);
 }
@@ -989,7 +989,7 @@ static void zero_eeprom(void)
 
     cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 
-    for (int16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
+    for (uintptr_t i = 0; i < EEPROM_MAX_ADDR; i++) {
         eeprom_write_byte((uint8_t *) i, b);
     }
 

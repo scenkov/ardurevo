@@ -283,7 +283,7 @@ bool AP_InertialSensor_MPU6000::update( void )
     _accel.x = accel_scale.x * _accel_data_sign[0] * sum[_accel_data_index[0]] * count_scale * MPU6000_ACCEL_SCALE_1G;
     _accel.y = accel_scale.y * _accel_data_sign[1] * sum[_accel_data_index[1]] * count_scale * MPU6000_ACCEL_SCALE_1G;
     _accel.z = accel_scale.z * _accel_data_sign[2] * sum[_accel_data_index[2]] * count_scale * MPU6000_ACCEL_SCALE_1G;
-    _accel -= _accel_offset;
+    _accel -= accel_offset;
 
 	_temp    = _temp_to_celsius((uint16_t)(sum[_temp_data_index] * count_scale));
 
@@ -351,13 +351,12 @@ void AP_InertialSensor_MPU6000::read()
 
 uint8_t AP_InertialSensor_MPU6000::register_read( uint8_t reg )
 {
-  uint8_t dump;
   uint8_t return_value;
   uint8_t addr = reg | 0x80; // Set most significant bit
 
   digitalWrite(_cs_pin, LOW);
 
-  dump = _SPIx->transfer(addr);
+  _SPIx->transfer(addr);
   return_value = _SPIx->transfer(0);
 
   digitalWrite(_cs_pin, HIGH);
@@ -376,7 +375,7 @@ void AP_InertialSensor_MPU6000::register_write(uint8_t reg, uint8_t val)
 // MPU6000 new data interrupt on INT6
 void AP_InertialSensor_MPU6000::data_interrupt(void)
 {
-    // tell the timer routine that there is data to be read
+    // record time that data was available
     _last_sample_time_micros = micros();
     _new_data = 1;
 }
