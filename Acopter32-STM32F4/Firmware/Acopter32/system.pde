@@ -70,15 +70,24 @@ static void init_ardupilot()
     // the MAVLink protocol efficiently
     //
     /* begin testing the USB*/
-    cliSerial->configure(99);
-    cliSerial->begin(115200, 128, 256);
+    SerialUSB.configure(99);
+    SerialUSB.begin(115200, 128, 256);
     //cliSerial->use_tx_fifo(false);
     /* end testing the USB*/
 
+    Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
-    //cliSerial->begin(SERIAL_CLI_BAUD, 128, 256);
-
+    if(SerialUSB.usb_present == 1 ){
+	Serial.println("USB is present!");
+	Serial.println("Seriale USB");
+	cliSerial->flush();
+        cliSerial = &SerialUSB;
+    }else{
+	Serial.println("USB is NOT present!");
 	Serial.println("Seriale CONSOLE");
+    }
+
+
     // GPS serial port.
     //
 
@@ -115,7 +124,7 @@ static void init_ardupilot()
  I2C2x.begin();
 	
 //#if EEPROM_TYPE_ENABLE == EEPROM_I2C
-	EEPROM.init(&I2C2x,&Serial);
+	EEPROM.init(&I2C2x,cliSerial);
 //#endif
 
 #if COPTER_LEDS == ENABLED
@@ -135,10 +144,10 @@ static void init_ardupilot()
 
 #endif
 
-	load_parameters();
+    load_parameters();
 
     // init the GCS
-    gcs0.init(&Serial);
+    gcs0.init(cliSerial);
 
 #if GPS_PROTOCOL != GPS_PROTOCOL_IMU
 
@@ -225,7 +234,7 @@ SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
      *  setup the 'main loop is dead' check. Note that this relies on
      *  the RC library being initialised.
      */
-          Serial.println("Timer scheduler");
+	    cliSerial->println("Timer scheduler");
 		pScheduler->init( &isr_registry );
         }
           //TEO 2012_02_01 test timer
@@ -239,7 +248,7 @@ SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
 	adc.Init(pScheduler);       // APM ADC library initialization
  #endif // CONFIG_ADC
 
-	Serial.println("barometer init");
+	cliSerial->println("barometer init");
 	barometer.init(pScheduler);
 
 #endif // HIL_MODE
@@ -249,7 +258,7 @@ SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
     // GPS Initialization
     g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);
 
-Serial.println("compass init");
+    cliSerial->println("compass init");
     if(g.compass_enabled)
         init_compass();
 
@@ -267,7 +276,7 @@ Serial.println("compass init");
 #ifdef USERHOOK_INIT
     USERHOOK_INIT
 #endif
-Serial.println("Fine init");
+cliSerial->println("Fine init");
 
 #if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
     // If the switch is in 'menu' mode, run the main menu.
@@ -282,9 +291,9 @@ Serial.println("Fine init");
         run_cli(cliSerial);
     }
 #else
-    Serial.printf_P(PSTR("\nPress ENTER 3 times for CLI\n\n"));
+    cliSerial->printf_P(PSTR("\nPress ENTER 3 times for CLI\n\n"));
 #endif // CLI_ENABLED
-Serial.println("Gps Check live END");
+    cliSerial->println("Gps Check live END");
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
@@ -370,7 +379,7 @@ static void startup_ground(void)
     // -----------------------------
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,
-             mavlink_delay, flash_leds, pScheduler, &Serial);
+             mavlink_delay, flash_leds, pScheduler, cliSerial);
  #if CLI_ENABLED == ENABLED
     report_ins();
  #endif

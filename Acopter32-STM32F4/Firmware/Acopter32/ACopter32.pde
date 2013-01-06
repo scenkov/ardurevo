@@ -144,12 +144,13 @@
 // use.
 
 
-//FastSerialPort2(Serial);        // FTDI/console
+FastSerialPort2(Serial);        // FTDI/console
+FastSerial SerialUSB;        // USB
 
-FastSerial Serial;
+//FastSerial Serial;
 
 #if CONFIG_APM_HARDWARE == MP32V1F1
-    FastSerialPort1(Serial3);       // Telemetry port
+	FastSerialPort1(Serial3);       // Telemetry port
 	FastSerialPort3(Serial1);       // GPS port
 
 #endif
@@ -204,7 +205,7 @@ static void update_events(void);
 // Dataflash
 ////////////////////////////////////////////////////////////////////////////////
 HardwareSPI	SPI(1);
-DataFlash_MP32  DataFlash(&SPI,&Serial);
+DataFlash_MP32  DataFlash(&SPI,cliSerial);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -250,12 +251,12 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 		# if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
 			AP_Baro_BMP085 barometer(true);
 		# else
-			AP_Baro_BMP085 barometer(&I2C2x,&Serial);
+			AP_Baro_BMP085 barometer(&I2C2x,cliSerial);
 		# endif
 	#elif CONFIG_BARO == AP_BARO_MS5611
-		AP_Baro_MS5611 barometer(94,&SPI,&Serial);
+		AP_Baro_MS5611 barometer(94,&SPI,cliSerial);
 	#endif
-    AP_Compass_HMC5843      compass(&I2C2x,&Serial);
+    AP_Compass_HMC5843      compass(&I2C2x,cliSerial);
 #endif
 
 #ifdef OPTFLOW_ENABLED
@@ -266,7 +267,7 @@ static AP_Int8                *flight_modes = &g.flight_mode1;
 
 // real GPS selection
  #if   GPS_PROTOCOL == GPS_PROTOCOL_AUTO
-AP_GPS_Auto     g_gps_driver(&Serial1, &g_gps, &Serial);
+AP_GPS_Auto     g_gps_driver(&Serial1, &g_gps, cliSerial);
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_NMEA
 AP_GPS_NMEA     g_gps_driver(&Serial1);
@@ -275,13 +276,13 @@ AP_GPS_NMEA     g_gps_driver(&Serial1);
 AP_GPS_SIRF     g_gps_driver(&Serial1);
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_UBLOX
-AP_GPS_UBLOX    g_gps_driver(&Serial1, &Serial);
+AP_GPS_UBLOX    g_gps_driver(&Serial1, cliSerial);
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_MTK
 AP_GPS_MTK      g_gps_driver(&Serial1);
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_MTK19
-AP_GPS_MTK19    g_gps_driver(&Serial1, &Serial);
+AP_GPS_MTK19    g_gps_driver(&Serial1, cliSerial);
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_NONE
 AP_GPS_None     g_gps_driver(NULL);
@@ -291,9 +292,9 @@ AP_GPS_None     g_gps_driver(NULL);
  #endif // GPS PROTOCOL
 
 #if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
-AP_InertialSensor_MPU6000 ins( CONFIG_MPU6000_CHIP_SELECT_PIN, &SPIx,&Serial );
+AP_InertialSensor_MPU6000 ins( CONFIG_MPU6000_CHIP_SELECT_PIN, &SPIx,cliSerial );
 #else
-AP_InertialSensor_VRIMU ins( CONFIG_MPU6000_CHIP_SELECT_PIN, &SPIx,&Serial );
+AP_InertialSensor_VRIMU ins( CONFIG_MPU6000_CHIP_SELECT_PIN, &SPIx,cliSerial );
 #endif
 
 

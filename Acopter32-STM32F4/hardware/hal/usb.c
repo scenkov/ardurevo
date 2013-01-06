@@ -294,11 +294,13 @@ void USBD_USR_DeviceResumed(void)
 
 void USBD_USR_DeviceConnected (void)
 {
+    usb_connected = 1;
 }
 
 
 void USBD_USR_DeviceDisconnected (void)
 {
+    usb_connected = 0;
 }
 
 /*------------------------- usb_default_attr -------------------------------*/

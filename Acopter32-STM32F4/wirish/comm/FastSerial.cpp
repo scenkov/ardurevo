@@ -57,17 +57,14 @@ FastSerial::FastSerial()
 FastSerial::FastSerial(usart_dev *usart_device,
                        uint8 tx_pin,
                        uint8 rx_pin) {
-if (usb==0)
-	{
+    if(usb == 0){
     this->usart_device = usart_device;
     this->tx_pin = tx_pin;
     this->rx_pin = rx_pin;
-	
-	//setInitialized((uint8_t)usart_device);
     this->begin(57600);
+    }
 }
 
-}
 
 void FastSerial::init(usart_dev *usart_device,
                        uint8 tx_pin,
@@ -125,6 +122,7 @@ void FastSerial::begin(long baud) {
 
     usb_ioctl(I_USB_SETATTR, &usb_attr);
     usb_ioctl(I_USB_CONNECTED, &usb_connected);
+    usb_present = usb_connected;
 
     }
 }

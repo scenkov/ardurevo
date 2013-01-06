@@ -781,7 +781,7 @@ void
 GCS_MAVLINK::init(FastSerial * port)
 {
     GCS_Class::init(port);
-    if (port == &Serial) {
+    if (port == cliSerial) {
         mavlink_comm_0_port = port;
         chan = MAVLINK_COMM_0;
     }else{

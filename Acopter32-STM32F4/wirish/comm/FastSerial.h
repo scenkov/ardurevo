@@ -56,6 +56,7 @@
 #include <wirish.h>
 
 #define DEFAULT_TX_TIMEOUT 10000 // 10 ms
+#define _USB99 99
 
 /// @file	FastSerial.h
 /// @brief	An enhanced version of the Arduino HardwareSerial class
@@ -107,7 +108,9 @@ private:
     uint8 tx_pin;
     uint8 rx_pin;
 public:
-    uint8 usb;
+    uint8_t usb;
+    uint8_t usb_present;
+
     FastSerial();
     FastSerial(usart_dev *usart_device,
                uint8 tx_pin,
@@ -163,6 +166,7 @@ public:
 #define FSTXPIN3 	BOARD_UART4_TX_PIN //10
 #define FSRXPIN3 	BOARD_UART4_RX_PIN //11
 
+
 ///
 /// Macro defining a FastSerial port instance.
 ///
@@ -197,7 +201,7 @@ public:
 #define FastSerialPort0(_portName)     FastSerialPort(_portName, 0)
 #define FastSerialPort1(_portName)     FastSerialPort(_portName, 1)
 #define FastSerialPort2(_portName)     FastSerialPort(_portName, 2)
-#define FastSerialPort3(_portName)     FastSerialPort(_portName, 3)		
+#define FastSerialPort3(_portName)     FastSerialPort(_portName, 3)
 
 
 #define FastSerialPort_Init0(_portName)     FastSerialPort_Init(_portName, 0)
