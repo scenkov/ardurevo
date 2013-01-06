@@ -1,4 +1,4 @@
-#define THISFIRMWARE "ArduCopter V2.9-rc1"
+#define THISFIRMWARE "ArduCopter V2.9-rc2"
 
 /*
  *  ArduCopter Version 2.9
