@@ -982,14 +982,14 @@ void loop()
         superfast_loop();
     }
 
-	uint32_t timer	= micros();
+    uint32_t timer	= micros();
 	
 	// We want this to execute fast
 	// ----------------------------
     
     if ((timer - fast_loopTimer) >= fastloop_speed && (ins.num_samples_available() >= 1)) {
 	
-	AP_PERFMON_REGISTER
+	//AP_PERFMON_REGISTER
     	//time_checker_200hz_entered.addTime(timer - fast_loopTimer);
         #if DEBUG_FAST_LOOP == ENABLED
         Log_Write_Data(DATA_FAST_LOOP, (int32_t)(timer - fast_loopTimer));
@@ -1449,6 +1449,7 @@ static void update_optical_flow(void)
 // called at 50hz
 static void update_GPS(void)
 {
+    AP_PERFMON_REGISTER
     // A counter that is used to grab at least 10 reads before commiting the Home location
     static byte ground_start_count  = 10;
 
