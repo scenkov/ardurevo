@@ -141,6 +141,7 @@ public:
     virtual uint32_t txfifo_nbytes(void);
     virtual uint32_t txfifo_freebytes(void);
     virtual void set_blocking_writes(bool enable);
+    virtual uint8_t get_blocking_writes(void);
 	
 	//kept for compatibility:
 	virtual void begin(long baud, unsigned int rxSpace, unsigned int txSpace);

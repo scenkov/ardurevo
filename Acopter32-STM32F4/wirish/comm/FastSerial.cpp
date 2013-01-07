@@ -200,6 +200,18 @@ if (usb == 0)
 	}
 }
 
+uint8_t FastSerial::get_blocking_writes(void)
+{
+if (usb == 0)
+	{
+	uint8_t blocking;
+	blocking = (this->usart_device->usetxrb ? 0 : 1);
+	return blocking;
+	} else {
+	    return 0;
+	}
+}
+
 void FastSerial::use_timeout(uint8_t enable)
 {
 if (usb == 0)
