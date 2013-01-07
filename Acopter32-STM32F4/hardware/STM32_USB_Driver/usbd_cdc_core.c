@@ -630,7 +630,18 @@ static uint8_t  usbd_cdc_DataIn (void *pdev, uint8_t epnum)
   {
     if (APP_Rx_length == 0) 
     {
-      USB_Tx_State = 0;
+//      USB_Tx_State = 0;
+      if (((USB_OTG_CORE_HANDLE*)pdev)->dev.in_ep[epnum].xfer_len != CDC_DATA_IN_PACKET_SIZE)
+      {
+        USB_Tx_State = 0;
+        return USBD_OK;
+      }
+      /* Transmit zero sized packet in case the last one has maximum allowed size. Otherwise
+       * the recipient may expect more data coming soon and not return buffered data to app.
+       * See section 5.8.3 Bulk Transfer Packet Size Constraints
+       * of the USB Specification document.
+       */
+      USB_Tx_length = 0;
     }
     else 
     {
