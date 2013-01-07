@@ -988,8 +988,11 @@ void loop()
 	// ----------------------------
     
     if ((timer - fast_loopTimer) >= fastloop_speed && (ins.num_samples_available() >= 1)) {
-	
-	//AP_PERFMON_REGISTER
+/*
+#ifdef PERFMON_ENABLE
+    AP_PERFMON_REGISTER
+#endif
+*/
     	//time_checker_200hz_entered.addTime(timer - fast_loopTimer);
         #if DEBUG_FAST_LOOP == ENABLED
         Log_Write_Data(DATA_FAST_LOOP, (int32_t)(timer - fast_loopTimer));
@@ -1086,7 +1089,9 @@ static void superfast_loop()
 // Main loop - 100hz
 static void fast_loop()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
     // run low level rate controllers that only require IMU data
     run_rate_controllers();
 
@@ -1136,7 +1141,10 @@ static void fast_loop()
 
 static void medium_loop()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
+
 	//uint32_t timestart = micros();
     // This is the start of the medium (10 Hz) loop pieces
     // -----------------------------------------
@@ -1254,7 +1262,9 @@ static void medium_loop()
 // ---------------------------
 static void fifty_hz_loop()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
     // read altitude sensors or estimate altitude
     // ------------------------------------------
     update_altitude_est();
@@ -1307,7 +1317,9 @@ static void fifty_hz_loop()
 
 static void slow_loop()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
 
 #if AP_LIMITS == ENABLED
 
@@ -1394,7 +1406,9 @@ static void slow_loop()
 // 1Hz loop
 static void super_slow_loop()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
     Log_Write_Data(DATA_AP_STATE, ap.value);
 
     if (g.log_bitmask & MASK_LOG_CUR && motors.armed())
@@ -1418,8 +1432,10 @@ static void super_slow_loop()
 #ifdef USERHOOK_SUPERSLOWLOOP
     USERHOOK_SUPERSLOWLOOP
 #endif 
-
+#ifdef PERFMON_ENABLE
     AP_PerfMon::DisplayAndClear(10);
+#endif
+
 }
 
 // called at 100hz but data from sensor only arrives at 20 Hz
@@ -1449,7 +1465,9 @@ static void update_optical_flow(void)
 // called at 50hz
 static void update_GPS(void)
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
     // A counter that is used to grab at least 10 reads before commiting the Home location
     static byte ground_start_count  = 10;
 

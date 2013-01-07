@@ -47,7 +47,7 @@
 
 // Inertia based contollers
 //#define INERTIAL_NAV_XY ENABLED
-#define INERTIAL_NAV_Z ENABLED
+//#define INERTIAL_NAV_Z ENABLED
 
 //#define MOTORS_JD880
 //#define MOTORS_JD850
@@ -68,6 +68,7 @@
 #define USERHOOK_VARIABLES "UserVariables.h"
 
 //#define LOGGING_ENABLED		DISABLED
+//define PERFMON_ENABLE
 
 #define LOITER_REPOSITIONING    DISABLED                          // Experimental Do Not Use
 // #define LOITER_RP               ROLL_PITCH_LOITER_PR

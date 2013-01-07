@@ -3,7 +3,9 @@
 // update_navigation - checks for new GPS updates and invokes navigation routines
 static void update_navigation()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
     static uint32_t nav_last_gps_update = 0;    // the system time of the last gps update
     static uint32_t nav_last_gps_time = 0;      // the time according to the gps
     bool pos_updated = false;

@@ -23,7 +23,9 @@ static void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 // returns true if it has sent a message to the ground station
 static bool gcs_check()
 {
+#ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
+#endif
     static uint32_t last_1hz, last_50hz;
     bool sent_message = false;
 
