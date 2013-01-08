@@ -17,14 +17,14 @@
 char Menu::_inbuf[MENU_COMMANDLINE_MAX];
 Menu::arg Menu::_argv[MENU_ARGS_MAX + 1];
 FastSerial *Menu::_port;
+FastSerialPort2(SerMenu);
 
 // constructor
-Menu::Menu(const prog_char *prompt, const Menu::command *commands, uint8_t entries,FastSerial * serial,  preprompt ppfunc) :
+Menu::Menu(const prog_char *prompt, const Menu::command *commands, uint8_t entries, preprompt ppfunc) :
     _prompt(prompt),
     _commands(commands),
     _entries(entries),
-    _ppfunc(ppfunc),
-    _serial(serial)
+    _ppfunc(ppfunc)
 {
 }
 
@@ -38,6 +38,11 @@ Menu::run(void)
     int c;
     char                *s;
 
+	if (_port == NULL) {
+		// default to main serial port
+		_port = &SerMenu;
+	}
+
     // loop performing commands
     for (;; ) {
 
@@ -47,32 +52,32 @@ Menu::run(void)
 
         // loop reading characters from the input
         len = 0;
-        _serial->printf("%s] ", _prompt);
+        _port->printf("%s] ", _prompt);
         for (;; ) {
-            c =  _serial->read();
+            c =  _port->read();
             if (-1 == c)
                 continue;
             // carriage return -> process command
             if ('\r' == c) {
                 _inbuf[len] = '\0';
-                _serial->write('\r');
-                _serial->write('\n');
+                _port->write('\r');
+                _port->write('\n');
                 break;
             }
             // backspace
             if ('\b' == c) {
                 if (len > 0) {
                     len--;
-                    _serial->write('\b');
-                    _serial->write(' ');
-                    _serial->write('\b');
+                    _port->write('\b');
+                    _port->write(' ');
+                    _port->write('\b');
                     continue;
                 }
             }
             // printable character
             if (isprint(c) && (len < (MENU_COMMANDLINE_MAX - 1))) {
                 _inbuf[len++] = c;
-                _serial->write((char)c);
+                _port->write((char)c);
                 continue;
             }
         }
@@ -129,7 +134,7 @@ Menu::run(void)
 
         if (cmd_found==false)
         {
-            _serial->println("Invalid command, type 'help'");
+            _port->println("Invalid command, type 'help'");
         }
 
     }
@@ -141,9 +146,11 @@ Menu::_help(void)
 {
     int i;
 
-    _serial->println("Commands:");
-    for (i = 0; i < _entries; i++)
-        _serial->printf("  %s\n", _commands[i].command);
+    _port->println("Commands:");
+    for (i = 0; i < _entries; i++) {
+		delay(10);
+        _port->printf("  %s\n", _commands[i].command);
+	}
 }
 
 // run the n'th command in the menu

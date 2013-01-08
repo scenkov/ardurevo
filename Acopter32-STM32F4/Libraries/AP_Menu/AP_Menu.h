@@ -100,7 +100,7 @@ public:
     /// @param commands		An array of ::command structures in program memory (PROGMEM).
     /// @param entries		The number of entries in the menu.
     ///
-    Menu(const char *prompt, const struct command *commands, uint8_t entries, FastSerial * serial, preprompt ppfunc = 0);
+    Menu(const char *prompt, const struct command *commands, uint8_t entries, preprompt ppfunc = 0);
 
     /// menu runner
     void				run(void);
@@ -127,7 +127,6 @@ private:
 
 	// port to run on
     static FastSerial       *_port;
-    FastSerial * _serial; /// serial port for user interaction
 };
 
 /// Macros used to define a menu.
@@ -140,26 +139,14 @@ private:
 ///
 /// The MENU2 macro supports the optional pre-prompt printing function.
 ///
-#define USE_EXTERN_SERIAL
-#ifdef USE_EXTERN_SERIAL
 
 #define MENU(name, prompt, commands)							\
 	static const char __menu_name__ ##name[] = prompt;	\
-	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]), &Serial)
+	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]))
 
 #define MENU2(name, prompt, commands, preprompt)				\
 	static const char __menu_name__ ##name[] = prompt;	\
-	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]), &Serial, preprompt)
+	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]), preprompt)
 
-#else
-
-#define MENU(name, prompt, commands, serial)							\
-	static const char __menu_name__ ##name[] = prompt;	\
-	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]), serial)
-
-#define MENU2(name, prompt, commands, serial, preprompt)				\
-	static const char __menu_name__ ##name[] = prompt;	\
-	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]), serial, preprompt)
-#endif
 
 #endif // __AP_COMMON_MENU_H__
