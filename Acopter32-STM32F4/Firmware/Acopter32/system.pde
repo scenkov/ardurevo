@@ -43,7 +43,7 @@ MENU(main_menu, THISFIRMWARE, main_menu_commands);
 
 static int8_t reboot_board(uint8_t argc, const Menu::arg *argv)
 {
-    //reboot_apm();
+    reboot_apm();
     return 0;
 }
 
@@ -52,7 +52,7 @@ static void run_cli(FastSerial *port)
 {
     cliSerial = port;
     Menu::set_port(port);
-    port->use_tx_fifo(false);
+    port->set_blocking_writes(true);
 
     while (1) {
         main_menu.run();
@@ -63,29 +63,38 @@ static void run_cli(FastSerial *port)
 
 static void init_ardupilot()
 {
+SerialUSB.configure(99);
+SerialUSB.begin(115200, 128, 256);
+Serial.begin(SERIAL_CLI_BAUD, 128, 256);
+
+#if USB_MUX_PIN > 0
+    // on the APM2 board we have a mux thet switches UART0 between
+    // USB and the board header. If the right ArduPPM firmware is
+    // installed we can detect if USB is connected using the
+    // USB_MUX_PIN
+    //pinMode(USB_MUX_PIN, INPUT);
+
+    ap_system.usb_connected = SerialUSB.usb_present;
+    if (!ap_system.usb_connected) {
+        // USB is not connected, this means UART0 may be a Xbee, with
+        // its darned bricking problem. We can't write to it for at
+        // least one second after powering up. Simplest solution for
+        // now is to delay for 1 second. Something more elegant may be
+        // added later
+        delay(1000);
+    } else {
+        cliSerial->flush();
+        cliSerial = &SerialUSB;
+	cliSerial->begin(115200,256,256);
+    }
+    
+#endif
 
     // Console serial port
     //
     // The console port buffers are defined to be sufficiently large to support
     // the MAVLink protocol efficiently
     //
-    /* begin testing the USB*/
-    SerialUSB.configure(99);
-    SerialUSB.begin(115200, 128, 256);
-    //cliSerial->use_tx_fifo(false);
-    /* end testing the USB*/
-
-    Serial.begin(SERIAL_CLI_BAUD, 128, 256);
-
-    if(SerialUSB.usb_present == 1 ){
-	Serial.println("USB is present!");
-	Serial.println("Seriale USB");
-	cliSerial->flush();
-        cliSerial = &SerialUSB;
-    }else{
-	Serial.println("USB is NOT present!");
-	Serial.println("Seriale CONSOLE");
-    }
 
 
     // GPS serial port.
@@ -95,6 +104,17 @@ static void init_ardupilot()
                          "\n\nFree RAM: %u\n"),
                     freeRAM());
 	
+
+    //
+    // Initialize Wire and SPI libraries
+    //
+#ifndef DESKTOP_BUILD
+    I2C2x.begin();
+
+
+#endif
+    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
+    EEPROM.init(&I2C2x,cliSerial);
 
 
     //
@@ -117,21 +137,35 @@ static void init_ardupilot()
     pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
     digitalWrite(C_LED_PIN, LED_OFF);
 
-	pinMode(BATTERY_PIN_1,INPUT_ANALOG);
+    pinMode(BATTERY_PIN_1,INPUT_ANALOG);
+
+#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+  // Set Port B, pin 7 as output for an external relay (A9 Enclosure's label)
+  pinMode(RELAY_APM2_PIN, OUTPUT);
+#else
+  // Set Port L, pin 2 as output for the onboard relay
+  //pinMode(RELAY_APM1_PIN, OUTPUT);
+#endif
+
+#if SLIDE_SWITCH_PIN > 0
+    pinMode(SLIDE_SWITCH_PIN, INPUT);           // To enter interactive mode
+#endif
+#if CONFIG_PUSHBUTTON == ENABLED
+    pinMode(PUSHBUTTON_PIN, INPUT);                     // unused
+#endif
+	
 	
 
 	
- I2C2x.begin();
+
 	
-//#if EEPROM_TYPE_ENABLE == EEPROM_I2C
-	EEPROM.init(&I2C2x,cliSerial);
-//#endif
+
 
 #if COPTER_LEDS == ENABLED
-	pinMode(PIEZO_PIN, OUTPUT);
+    pinMode(PIEZO_PIN, OUTPUT);
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
     pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
+    pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
     //pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
@@ -144,6 +178,8 @@ static void init_ardupilot()
 
 #endif
 
+
+    // load parameters from EEPROM
     load_parameters();
 
     // init the GCS
@@ -185,7 +221,6 @@ static void init_ardupilot()
 
 	
 
-SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
 
 
 #if LOGGING_ENABLED == ENABLED
@@ -647,7 +682,7 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
 #if USB_MUX_PIN > 0
 static void check_usb_mux(void)
 {
-    bool usb_check = !digitalRead(USB_MUX_PIN);
+    bool usb_check = SerialUSB.usb_present;
     if (usb_check == ap_system.usb_connected) {
         return;
     }
@@ -655,9 +690,9 @@ static void check_usb_mux(void)
     // the user has switched to/from the telemetry port
     ap_system.usb_connected = usb_check;
     if (ap_system.usb_connected) {
-        cliSerial->begin(SERIAL0_BAUD);
+        cliSerial->begin(115200,256,256);
     } else {
-        cliSerial->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
+        cliSerial->begin(map_baudrate(g.serial_cli_baud, SERIAL_CLI_BAUD), 256, 256);
     }
 }
 #endif
@@ -695,6 +730,24 @@ unsigned long freeRAM() {
 	//stackptr = (uint8_t *)(SP); // save value of stack pointer
 	return stackptr - heapptr;
 }
+
+/*
+  force a software reset of the APM
+ */
+static void reboot_apm(void)
+{
+    cliSerial->printf_P(PSTR("REBOOTING\n"));
+    delay(100); // let serial flush
+    // see http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1250663814/
+    // for the method
+#if CONFIG_APM_HARDWARE == VRBRAINF4
+	NVIC_SystemReset();
+#endif
+    while (1);
+}
+
+//
+// print_flight_mode - prints flight mode to serial port.
 //
 static void
 print_flight_mode(uint8_t mode)

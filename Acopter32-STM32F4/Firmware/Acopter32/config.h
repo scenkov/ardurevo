@@ -188,29 +188,39 @@
 ////////////////////////////////////////////////////////
 // LED and IO Pins
 //
+
 #if CONFIG_APM_HARDWARE == VRBRAINF4
 
- # define A_LED_PIN 19//37			//36 = B,	37 = A,	35 = C
- # define B_LED_PIN 20//36
- # define C_LED_PIN 21//35
- # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      1
+ # define A_LED_PIN        19//37			//36 = B,	37 = A,	35 = C
+ # define B_LED_PIN        20//36
+ # define C_LED_PIN        21//35
+ # define LED_ON           HIGH
+ # define LED_OFF          LOW
+ # define SLIDE_SWITCH_PIN (-1)
+ # define PUSHBUTTON_PIN   (-1)
+ # define USB_MUX_PIN      1
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define OPTFLOW_CS_PIN   (-1)
  # define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
  # define BATTERY_CURR_PIN      1      // Battery current on A1
+ # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      1
 #else
  # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
  # define B_LED_PIN 74//36
  # define C_LED_PIN 71//35
- # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      0
+ # define LED_ON           HIGH
+ # define LED_OFF          LOW
+ # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
+ # define PUSHBUTTON_PIN 41
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define USB_MUX_PIN      (-1)
+ # define OPTFLOW_CS_PIN   (-1)
  # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
  # define BATTERY_CURR_PIN      0      // Battery current on A1
+ # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      0
 #endif
-
-# define LED_ON           HIGH
-# define LED_OFF          LOW
-#define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
-#define PUSHBUTTON_PIN 41
 
 ////////////////////////////////////////////////////////////////////////////////
 // CopterLEDs
@@ -222,16 +232,11 @@
 
 #define COPTER_LED_ON           HIGH
 #define COPTER_LED_OFF          LOW
-// motor LEDs
-//#define FR_LED 69  // Mega PE4 pin, OUT7
-//#define RE_LED 71  // Mega PE5 pin, OUT6
-//#define RI_LED 74  // Mega PH4 pin, OUT5
-//#define LE_LED 69  // Mega PH5 pin, OUT4
-#if CONFIG_APM_HARDWARE == VRBRAINF4
 
-// COPTER LEDs
-#define COPTER_LED_1 65  	// Motor LED
-#define COPTER_LED_2 102  	// Motor LED
+#if CONFIG_APM_HARDWARE == VRBRAINF4
+#define COPTER_LED_1 65  	// Motor or Aux LED
+#define COPTER_LED_2 68  	// Motor LED or Beeper
+#define COPTER_LED_3 102  	// Motor or GPS LED
 #else
 // COPTER LEDs
 #define COPTER_LED_1 83  	// Motor LED
