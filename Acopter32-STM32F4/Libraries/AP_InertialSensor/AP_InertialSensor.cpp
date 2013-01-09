@@ -294,7 +294,7 @@ AP_InertialSensor::_init_accel(void (*delay_cb)(unsigned long t), void (*flash_l
 // blog post describing the method: http://chionophilous.wordpress.com/2011/10/24/accelerometer-calibration-iv-1-implementing-gauss-newton-on-an-atmega/
 // original sketch available at http://rolfeschmidt.com/mathtools/skimetrics/adxl_gn_calibration.pde
 bool AP_InertialSensor::calibrate_accel(void (*delay_cb)(unsigned long t), void (*flash_leds_cb)(bool on), 
-                                        void (*send_msg)(const prog_char *, ...),
+                                        void (*send_msg)(const prog_char_t *, ...),
                                         void (*wait_key)(void))
 {
     Vector3f samples[6];
@@ -313,31 +313,31 @@ bool AP_InertialSensor::calibrate_accel(void (*delay_cb)(unsigned long t), void 
 
     // capture data from 6 positions
     for (int8_t i=0; i<6; i++) {
-        const prog_char *msg;
+        const prog_char_t *msg;
 
         // display message to user
         switch ( i ) {
             case 0:
-                msg = "level";
+                msg = PSTR("level");
                 break;
             case 1:
-                msg = "on it's left side";
+                msg = PSTR("on it's left side");
                 break;
             case 2:
-                msg = "on it's right side";
+                msg = PSTR("on it's right side");
                 break;
             case 3:
-                msg = "nose down";
+                msg = PSTR("nose down");
                 break;
             case 4:
-                msg = "nose up";
+                msg = PSTR("nose up");
                 break;
             default:    // default added to avoid compiler warning
             case 5:
-                msg = "on it's back";
+                msg = PSTR("on it's back");
                 break;
         }
-        send_msg("USER: Place APM %s and press any key.\n", msg);
+        send_msg(PSTR("Place APM %s and press any key.\n"), msg);
 
         wait_key();
 
@@ -360,7 +360,7 @@ bool AP_InertialSensor::calibrate_accel(void (*delay_cb)(unsigned long t), void 
 
     // run the calibration routine
     if( _calibrate_accel(samples, new_offsets, new_scaling) ) {
-        send_msg("Calibration successful\n");
+        send_msg(PSTR("Calibration successful\n"));
 
         // set and save calibration
         _accel_offset.set(new_offsets);
@@ -369,7 +369,7 @@ bool AP_InertialSensor::calibrate_accel(void (*delay_cb)(unsigned long t), void 
         return true;
     }
 
-    send_msg("Calibration failed (%.1f %.1f %.1f %.1f %.1f %.1f)\n",
+    send_msg(PSTR("Calibration failed (%.1f %.1f %.1f %.1f %.1f %.1f)\n"),
              new_offsets.x, new_offsets.y, new_offsets.z,
              new_scaling.x, new_scaling.y, new_scaling.z);
     // restore original scaling and offsets

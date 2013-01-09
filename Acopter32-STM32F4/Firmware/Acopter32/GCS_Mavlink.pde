@@ -627,14 +627,15 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_statustext(chan);
         break;
 
-#if AP_LIMITS == ENABLED
+
 
     case MSG_LIMITS_STATUS:
+#if AP_LIMITS == ENABLED
         CHECK_PAYLOAD_SIZE(LIMITS_STATUS);
         send_limits_status(chan);
+#endif
         break;
 
-#endif
 
     case MSG_AHRS:
         CHECK_PAYLOAD_SIZE(AHRS);

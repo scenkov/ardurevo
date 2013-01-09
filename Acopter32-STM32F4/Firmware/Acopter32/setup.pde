@@ -260,11 +260,11 @@ setup_accel(uint8_t argc, const Menu::arg *argv)
   handle full accelerometer calibration via user dialog
  */
 
-static void setup_printf_P(const prog_char *fmt, ...)
+static void setup_printf_P(const prog_char_t *fmt, ...)
 {
     va_list arg_list;
     va_start(arg_list, fmt);
-    cliSerial->vprintf_P(fmt, arg_list);
+    cliSerial->printf_P(fmt, arg_list);
     va_end(arg_list);
 }
 

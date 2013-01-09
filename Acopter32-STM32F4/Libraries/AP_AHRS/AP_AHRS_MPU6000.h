@@ -20,18 +20,17 @@ class AP_AHRS_MPU6000 : public AP_AHRS
 {
 public:
     // Constructors
-    AP_AHRS_MPU6000(AP_InertialSensor_MPU6000 *mpu6000, GPS *&gps) : AP_AHRS(mpu6000, gps), _mpu6000(mpu6000)
+    AP_AHRS_MPU6000(AP_InertialSensor_MPU6000 *mpu6000, GPS *&gps) : 
+        AP_AHRS(mpu6000, gps),
+        // ki and ki_yaw are experimentally derived from the simulator
+        _ki(0.0087),
+        _ki_yaw(0.01),
+        _mpu6000(mpu6000),
+        // dmp related variable initialisation
+        _compass_bias_time(0),
+        _gyro_bias_from_gravity_gain(0.008)
     {
         _dcm_matrix.identity();
-
-        // these are experimentally derived from the simulator
-        // with large drift levels
-        _ki = 0.0087;
-        _ki_yaw = 0.01;
-
-        // dmp related variable initialisation
-        _gyro_bias_from_gravity_gain = 0.008;
-        _compass_bias_time = 0;
     }
 
     // initialisation routine to start MPU6000's dmp
@@ -63,7 +62,9 @@ public:
     float           get_error_yaw(void);
 
     // set_as_secondary - avoid running some steps twice (imu updates) if this is a secondary ahrs
-    void            set_as_secondary(bool secondary) { _secondary_ahrs = secondary; }
+    void            set_as_secondary(bool secondary) { 
+	_secondary_ahrs = secondary; 
+	}
 
 private:
     float _ki;

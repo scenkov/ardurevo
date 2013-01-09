@@ -26,7 +26,6 @@ public:
         void            print_P(const prog_char_t *);
         void            println_P(const prog_char_t *);
         void            _printf_P(const prog_char *, ...);
-                        __attribute__ ((format(__printf__, 2, 3)));
 
 
         void            printf(const char *, ...)

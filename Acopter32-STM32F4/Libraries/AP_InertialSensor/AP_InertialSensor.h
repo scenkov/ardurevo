@@ -66,7 +66,7 @@ public:
     // perform accelerometer calibration including providing user instructions and feedback
     virtual bool        calibrate_accel(void (*delay_cb)(unsigned long t),
                                         void (*flash_leds_cb)(bool on),
-                                        void (*send_msg)(const prog_char *, ...),
+                                        void (*send_msg)(const prog_char_t *, ...),
                                         void (*wait_key)(void));
 
     /// Perform cold-start initialisation for just the gyros.
