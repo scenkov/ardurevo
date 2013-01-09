@@ -27,7 +27,8 @@ typedef uint16_t U16;
 #define USBD_PID                        0x5740
 #define USBD_LANGID_STRING              0x409
 
-#define USB_RXFIFO_SIZE 64
+#define USB_RXFIFO_SIZE 256
+#define USB_TXFIFO_SIZE 256
 
 extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
 extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
@@ -36,10 +37,19 @@ __ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 
 static usb_attr_t *usb_attr;
 static U8 usb_connected;
+
 static const U16 rxfifo_size = USB_RXFIFO_SIZE;
+static const U16 txfifo_size = USB_TXFIFO_SIZE;
+
 static ring_buffer _rxfifo;
+static ring_buffer _txfifo;
+
 static ring_buffer *rxfifo = &_rxfifo;                /* Rx FIFO */
+static ring_buffer *txfifo = &_txfifo;                /* Rx FIFO */
+
 static uint8_t rx_buf[USB_RXFIFO_SIZE];
+static uint8_t tx_buf[USB_TXFIFO_SIZE];
+
 static U8 preempt_prio, sub_prio;
 static U8 usb_ready;
 
@@ -289,6 +299,7 @@ void USBD_USR_DeviceSuspended(void)
 
 void USBD_USR_DeviceResumed(void)
 {
+    usb_connected = 1;
 }
 
 
@@ -482,6 +493,7 @@ void USB_OTG_BSP_EnableInterrupt(USB_OTG_CORE_HANDLE *pdev)
 static U16 VCP_Init(void)
 {
 	rb_init(rxfifo, rxfifo_size, rx_buf);
+	rb_init(txfifo, txfifo_size, tx_buf);
 	return USBD_OK;
 }
 
@@ -717,6 +729,11 @@ int usb_write(uint8_t *buf, unsigned int nbytes)
 		
 	sent = 0;
 
+	//if (!txfifo)
+	//    {
+	//	return 0;
+	//    }
+
 	//char *str = (char *)buf;
 	//usart_putstr(_USART1, str);
 	// blocking mode
@@ -774,6 +791,7 @@ void usb_reset_rx()
 void usb_reset_tx()
 {
 	APP_Rx_ptr_in = 0;
+	rb_reset(txfifo);
 }
 
 void usb_putc(uint8_t byte)
