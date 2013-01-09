@@ -36,7 +36,7 @@ static int8_t   select_logs(uint8_t argc,               const Menu::arg *argv);
 // and stores them in Flash memory, not RAM.
 // User enters the string in the console to call the functions on the right.
 // See class Menu in AP_Coommon for implementation details
-const struct Menu::command log_menu_commands[] = {
+const struct Menu::command log_menu_commands[] PROGMEM = {
     {"dump",        dump_log},
     {"erase",       erase_logs},
     {"enable",      select_logs},

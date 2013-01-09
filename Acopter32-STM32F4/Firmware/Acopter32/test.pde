@@ -19,14 +19,14 @@ static int8_t   test_ins(uint8_t argc,                  const Menu::arg *argv);
 //static int8_t	test_stab_d(uint8_t argc,       const Menu::arg *argv);
 static int8_t   test_battery(uint8_t argc,              const Menu::arg *argv);
 //static int8_t	test_toy(uint8_t argc,      const Menu::arg *argv);
-//static int8_t	test_wp_nav(uint8_t argc, 		const Menu::arg *argv);
+static int8_t   test_wp_nav(uint8_t argc,               const Menu::arg *argv);
 //static int8_t	test_reverse(uint8_t argc,      const Menu::arg *argv);
 static int8_t   test_tuning(uint8_t argc,               const Menu::arg *argv);
 static int8_t   test_relay(uint8_t argc,                const Menu::arg *argv);
 static int8_t   test_wp(uint8_t argc,                   const Menu::arg *argv);
 #if HIL_MODE != HIL_MODE_ATTITUDE
 static int8_t   test_baro(uint8_t argc,                 const Menu::arg *argv);
-//static int8_t	test_sonar(uint8_t argc, 		const Menu::arg *argv);
+static int8_t   test_sonar(uint8_t argc,                const Menu::arg *argv);
 #endif
 static int8_t   test_mag(uint8_t argc,                  const Menu::arg *argv);
 static int8_t   test_optflow(uint8_t argc,              const Menu::arg *argv);
@@ -44,7 +44,7 @@ extern void             print_latlon(BetterStream *s, int32_t lat_or_lon);      
 // printf_P is a version of printf that reads from flash memory
 /*static int8_t	help_test(uint8_t argc,             const Menu::arg *argv)
  *  {
- *       Serial.printf_P(PSTR("\n"
+ *       cliSerial->printf_P(PSTR("\n"
  *                                                "Commands:\n"
  *                                                "  radio\n"
  *                                                "  servos\n"
@@ -58,7 +58,7 @@ extern void             print_latlon(BetterStream *s, int32_t lat_or_lon);      
 // and stores them in Flash memory, not RAM.
 // User enters the string in the console to call the functions on the right.
 // See class Menu in AP_Coommon for implementation details
-const struct Menu::command test_menu_commands[] = {
+const struct Menu::command test_menu_commands[] PROGMEM = {
     {"pwm",                 test_radio_pwm},
     {"radio",               test_radio},
 //	{"failsafe",	test_failsafe},
@@ -77,7 +77,7 @@ const struct Menu::command test_menu_commands[] = {
 //	{"toy",			test_toy},
 #if HIL_MODE != HIL_MODE_ATTITUDE
     {"altitude",    test_baro},
-//	{"sonar",		test_sonar},
+    {"sonar",               test_sonar},
 #endif
     {"compass",             test_mag},
     {"optflow",             test_optflow},
@@ -87,7 +87,7 @@ const struct Menu::command test_menu_commands[] = {
 //	{"rawgps",		test_rawgps},
 //	{"mission",		test_mission},
     //{"reverse",		test_reverse},
-	//{"wp",			test_wp_nav},
+    {"nav",                 test_wp_nav},
 };
 
 // A Macro to create the Menu
@@ -96,7 +96,7 @@ MENU(test_menu, "test", test_menu_commands);
 static int8_t
 test_mode(uint8_t argc, const Menu::arg *argv)
 {
-    //Serial.printf_P(PSTR("Test Mode\n\n"));
+    //cliSerial->printf_P(PSTR("Test Mode\n\n"));
     test_menu.run();
     return 0;
 }
@@ -808,9 +808,9 @@ test_baro(uint8_t argc, const Menu::arg *argv)
 
     while(1) {
         delay(100);
-			#if CONFIG_BARO == AP_BARO_MS5611
-				barometer.update();
-			#endif	
+	#if CONFIG_BARO == AP_BARO_MS5611
+	    barometer.update();
+	#endif	
         int32_t alt = read_barometer();                 // calls barometer.read()
 
         int32_t pres = barometer.get_pressure();
@@ -910,15 +910,14 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 /*
  *  test the sonar
  */
-/*
 static int8_t
 test_sonar(uint8_t argc, const Menu::arg *argv)
 {
     if(g.sonar_enabled == false) {
-        Serial.printf_P(PSTR("Sonar disabled\n"));
+        cliSerial->printf_P(PSTR("Sonar disabled\n"));
         return (0);
     }
-
+#if CONFIG_SONAR == ENABLED
     // make sure sonar is initialised
     init_sonar();
 
@@ -926,17 +925,16 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
     while(1) {
         delay(100);
 
-        Serial.printf_P(PSTR("Sonar: %d cm\n"), sonar.read());
-        //Serial.printf_P(PSTR("Sonar, %d, %d\n"), sonar.read(), sonar.raw_value);
+        cliSerial->printf_P(PSTR("Sonar: %d cm\n"), sonar.read());
+        //cliSerial->printf_P(PSTR("Sonar, %d, %d\n"), sonar.read(), sonar.raw_value);
 
-        if(Serial.available() > 0) {
+        if(cliSerial->available() > 0) {
             return (0);
         }
     }
-
+#endif
     return (0);
 }
-*/
 #endif
 
 
@@ -950,7 +948,7 @@ test_optflow(uint8_t argc, const Menu::arg *argv)
 
         while(1) {
             delay(200);
-			optflow.update();
+            optflow.update(millis());
             Log_Write_Optflow();
             cliSerial->printf_P(PSTR("x/dx: %d/%d\t y/dy %d/%d\t squal:%d\n"),
                             optflow.x,
@@ -972,10 +970,10 @@ test_optflow(uint8_t argc, const Menu::arg *argv)
 #else
     print_test_disabled();
     return (0);
-#endif
+#endif      // OPTFLOW == ENABLED
 }
 
-/*
+
 static int8_t
 test_wp_nav(uint8_t argc, const Menu::arg *argv)
 {
@@ -987,10 +985,10 @@ test_wp_nav(uint8_t argc, const Menu::arg *argv)
 
     // got 23506;, should be 22800
     update_navigation();
-    Serial.printf_P(PSTR("bear: %ld\n"), target_bearing);
+    cliSerial->printf_P(PSTR("bear: %ld\n"), wp_bearing);
     return 0;
 }
-*/
+
 /*
  *  test the dataflash is working
  */

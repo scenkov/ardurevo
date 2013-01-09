@@ -13,7 +13,7 @@
 #define GGROUP(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &g.v, {group_info : class::var_info} }
 #define GOBJECT(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &v, {group_info : class::var_info} }
 
-const AP_Param::Info var_info[]  = {
+const AP_Param::Info var_info[] PROGMEM = {
     // @Param: SYSID_SW_MREV
     // @DisplayName: Eeprom format version number
     // @Description: This value is incremented when changes are made to the eeprom format

@@ -61,13 +61,15 @@
 #define LSBFIRST 0
 #define MSBFIRST 1
 
+//#define sei() interrupts()
+//#define cli() noInterrupts()
 #define lowByte(w)                     ((w) & 0xFF)
 #define highByte(w)                    (((w) >> 8) & 0xFF)
 #define bitRead(value, bit)            (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit)             ((value) |= (1UL << (bit)))
 #define bitClear(value, bit)           ((value) &= ~(1UL << (bit)))
-#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : \
-                                                   bitClear(value, bit))
+#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
+#define bit_is_set(value, bit) (((value) & bit) != 0)
 #define bit(b)                         (1UL << (b))
 
 #endif

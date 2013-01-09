@@ -120,6 +120,23 @@ void digitalWrite(uint8 pin, uint8 val) {
     gpio_write_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, val);
 }
 
+uint32 digitalReadFast(uint8 pin) {
+    if (pin >= BOARD_NR_GPIO_PINS) {
+        return 0;
+    }
+
+    return gpio_read_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit) ?
+        HIGH : LOW;
+}
+
+void digitalWriteFast(uint8 pin, uint8 val) {
+    if (pin >= BOARD_NR_GPIO_PINS) {
+        return;
+    }
+
+    gpio_write_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, val);
+}
+
 void togglePin(uint8 pin) {
     if (pin >= BOARD_NR_GPIO_PINS) {
         return;

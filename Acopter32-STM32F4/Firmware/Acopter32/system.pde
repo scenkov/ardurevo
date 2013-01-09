@@ -28,7 +28,7 @@ static int8_t   main_menu_help(uint8_t argc, const Menu::arg *argv)
 }
 
 // Command/function table for the top-level menu.
-const struct Menu::command main_menu_commands[] = {
+const struct Menu::command main_menu_commands[] PROGMEM = {
 //   command		function called
 //   =======        ===============
     {"logs",                process_logs},
@@ -655,7 +655,7 @@ init_simple_bearing()
 static boolean
 check_startup_for_CLI()
 {
-    return (digitalRead(SLIDE_SWITCH_PIN) == 0);
+    return (digitalReadFast(SLIDE_SWITCH_PIN) == 0);
 }
 #endif // CLI_ENABLED
 
@@ -730,6 +730,16 @@ unsigned long freeRAM() {
 	//stackptr = (uint8_t *)(SP); // save value of stack pointer
 	return stackptr - heapptr;
 }
+#ifndef DESKTOP_BUILD
+/*
+ * Read Vcc vs 1.1v internal reference
+ */
+uint16_t board_voltage(void)
+{
+    //static AP_AnalogSource_Arduino vcc(ANALOG_PIN_VCC);
+    return 5;
+}
+#endif
 
 /*
   force a software reset of the APM

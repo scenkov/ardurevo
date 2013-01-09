@@ -40,6 +40,14 @@ static int16_t read_sonar(void)
 #if CONFIG_SONAR == ENABLED
     int16_t temp_alt = sonar.read();
 
+    if(temp_alt >= sonar.min_distance && temp_alt <= sonar.max_distance * 0.70) {
+        if( sonar_alt_health < SONAR_ALT_HEALTH_MAX ) {
+            sonar_alt_health++;
+        }
+    }else{
+        sonar_alt_health = 0;
+    }
+
  #if SONAR_TILT_CORRECTION == 1
     // correct alt for angle of the sonar
     float temp = cos_pitch_x * cos_roll_x;
@@ -62,6 +70,7 @@ static void init_compass()
     if (!compass.init() || !compass.read()) {
         // make sure we don't pass a broken compass to DCM
         cliSerial->println_P(PSTR("COMPASS INIT ERROR"));
+        Log_Write_Error(ERROR_SUBSYSTEM_COMPASS,ERROR_CODE_FAILED_TO_INITIALISE);
         return;
     }
     ahrs.set_compass(&compass);
@@ -73,21 +82,23 @@ static void init_compass()
 static void init_optflow()
 {
 #if OPTFLOW == ENABLED
-	if( optflow.init(false) == false ) {
+    if( optflow.init(false, &timer_scheduler, &spi_semaphore, &spi3_semaphore) == false ) {
         g.optflow_enabled = false;
         cliSerial->print_P(PSTR("\nFailed to Init OptFlow "));
+        Log_Write_Error(ERROR_SUBSYSTEM_OPTFLOW,ERROR_CODE_FAILED_TO_INITIALISE);
+    }else{
+        // suspend timer while we set-up SPI communication
+        timer_scheduler.suspend_timer();
+
+        optflow.set_orientation(OPTFLOW_ORIENTATION);   // set optical flow sensor's orientation on aircraft
+        optflow.set_frame_rate(2000);                   // set minimum update rate (which should lead to maximum low light performance
+        optflow.set_resolution(OPTFLOW_RESOLUTION);     // set optical flow sensor's resolution
+        optflow.set_field_of_view(OPTFLOW_FOV);         // set optical flow sensor's field of view
+
+        // resume timer
+        timer_scheduler.resume_timer();
     }
-    // suspend timer while we set-up SPI communication
-    //timer_scheduler.suspend_timer();
-
-    optflow.set_orientation(OPTFLOW_ORIENTATION);                       // set optical flow sensor's orientation on aircraft
-    optflow.set_frame_rate(2000);                                                       // set minimum update rate (which should lead to maximum low light performance
-    optflow.set_resolution(OPTFLOW_RESOLUTION);                                 // set optical flow sensor's resolution
-    optflow.set_field_of_view(OPTFLOW_FOV);                                     // set optical flow sensor's field of view
-
-    // resume timer
-    //timer_scheduler.resume_timer();
-#endif
+#endif      // OPTFLOW == ENABLED
 }
 
 // read_battery - check battery voltage and current and invoke failsafe if necessary
@@ -95,6 +106,7 @@ static void init_optflow()
 #define BATTERY_FS_COUNTER  100     // 100 iterations at 10hz is 10 seconds
 static void read_battery(void)
 {
+    static uint8_t low_battery_counter = 0;
 
 	if(g.battery_monitoring == 0){
 		battery_voltage1 = 0;

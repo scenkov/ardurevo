@@ -509,15 +509,24 @@ static bool telemetry_delayed(mavlink_channel_t chan)
     if (tnow > (uint8_t)g.telem_delay) {
         return false;
     }
-
-    if (chan == MAVLINK_COMM_0 || chan == MAVLINK_COMM_1) {
+#if USB_MUX_PIN > 0
+    if (chan == MAVLINK_COMM_0 && ap_system.usb_connected) {
+        // this is an APM2 with USB telemetry
+        return false;
+    }
+    // we're either on the 2nd UART, or no USB cable is connected
+    // we need to delay telemetry
+    return true;
+#else
+    if (chan == MAVLINK_COMM_0) {
         // we're on the USB port
         return false;
     }
     // don't send telemetry yet
     return true;
-
+#endif
 }
+
 
 // try to send a message, return false if it won't fit in the serial tx buffer
 static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id, uint16_t packet_drops)
@@ -627,15 +636,14 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_statustext(chan);
         break;
 
-
+#if AP_LIMITS == ENABLED
 
     case MSG_LIMITS_STATUS:
-#if AP_LIMITS == ENABLED
         CHECK_PAYLOAD_SIZE(LIMITS_STATUS);
         send_limits_status(chan);
-#endif
         break;
 
+#endif
 
     case MSG_AHRS:
         CHECK_PAYLOAD_SIZE(AHRS);
@@ -742,7 +750,7 @@ void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char
     }
 }
 
-const AP_Param::GroupInfo GCS_MAVLINK::var_info[]  = {
+const AP_Param::GroupInfo GCS_MAVLINK::var_info[] PROGMEM = {
     AP_GROUPINFO("RAW_SENS", 0, GCS_MAVLINK, streamRateRawSensors,      0),
     AP_GROUPINFO("EXT_STAT", 1, GCS_MAVLINK, streamRateExtendedStatus,  0),
     AP_GROUPINFO("RC_CHAN",  2, GCS_MAVLINK, streamRateRCChannels,      0),
@@ -1115,7 +1123,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
             if (packet.param1 == 1) {
-                //reboot_apm();
+                reboot_apm();
                 result = MAV_RESULT_ACCEPTED;
             }
             break;
@@ -1368,13 +1376,13 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         if (packet.param_index != -1) {
             vp = AP_Param::find_by_index(packet.param_index, &p_type);
             if (vp == NULL) {
-                //gcs_send_text_fmt(PSTR("Unknown parameter index %d"), packet.param_index);
+                gcs_send_text_fmt(PSTR("Unknown parameter index %d"), packet.param_index);
                 break;
             }
         } else {
             vp = AP_Param::find(packet.param_id, &p_type);
             if (vp == NULL) {
-               // gcs_send_text_fmt(PSTR("Unknown parameter %.16s"), packet.param_id);
+                gcs_send_text_fmt(PSTR("Unknown parameter %.16s"), packet.param_id);
                 break;
             }
         }

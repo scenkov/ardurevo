@@ -136,7 +136,28 @@
  # define TOY_MIXER      TOY_LINEAR_MIXER
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////
+// Bulk defines for TradHeli
+#if FRAME_CONFIG == HELI_FRAME
+  # define RC_FAST_SPEED 				125
+  # define RTL_YAW                  	YAW_LOOK_AT_HOME
+  # define TILT_COMPENSATION 			5
+  # define RATE_INTEGRATOR_LEAK_RATE 	0.02
+  # define RATE_ROLL_D    				0
+  # define RATE_PITCH_D       			0
+  # define HELI_PITCH_FF				0
+  # define HELI_ROLL_FF					0
+  # define HELI_YAW_FF					0  
+  # define RC_FAST_SPEED 				125
+  # define STABILIZE_THROTTLE			THROTTLE_MANUAL
+  # define MPU6K_FILTER                 10
+#endif
 
+
+// optical flow doesn't work in SITL yet
+#ifdef DESKTOP_BUILD
+# define OPTFLOW DISABLED
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // IMU Selection
@@ -162,6 +183,9 @@
 #  define CONFIG_MPU6000_CHIP_SELECT_PIN 77 // 53
 # endif
 #endif
+#ifndef MPU6K_FILTER
+ # define MPU6K_FILTER MPU6K_DEFAULT_FILTER
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // ADC Enable - used to eliminate for systems which don't have ADC.
@@ -178,11 +202,7 @@
 // PWM control
 // default RC speed in Hz
 #ifndef RC_FAST_SPEED
- # if FRAME_CONFIG == HELI_FRAME
-  #   define RC_FAST_SPEED 125
- # else
-  #   define RC_FAST_SPEED 490
- # endif
+   #   define RC_FAST_SPEED 490
 #endif
 
 ////////////////////////////////////////////////////////
@@ -303,16 +323,20 @@
 # define CONFIG_SONAR DISABLED
 #endif
 
-//////////////////////////////////////////////////////////////////////////////
-// Channel Config (custom MOT channel mappings)
-//
+#ifndef SONAR_ALT_HEALTH_MAX
+ # define SONAR_ALT_HEALTH_MAX 3            // number of good reads that indicates a healthy sonar
+#endif
 
-#ifndef CONFIG_CHANNELS
- # define CONFIG_CHANNELS CHANNEL_CONFIG_DEFAULT
+#ifndef THR_SURFACE_TRACKING_P
+ # define THR_SURFACE_TRACKING_P 0.2        // gain for controlling how quickly sonar range adjusts target altitude (lower means slower reaction)
+#endif
+
+#ifndef THR_SURFACE_TRACKING_VELZ_MAX
+ # define THR_SURFACE_TRACKING_VELZ_MAX 30  // max speed number of good reads that indicates a healthy sonar
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Acrobatics
+// Channel 7 default option
 //
 
 #ifndef CH7_OPTION
@@ -322,7 +346,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // HIL_MODE                                 OPTIONAL
-	
+
 #ifndef HIL_MODE
  #define HIL_MODE        HIL_MODE_DISABLED
 #endif
@@ -565,7 +589,12 @@
 #ifndef LAND_SPEED
  # define LAND_SPEED    50          // the descent speed for the final stage of landing in cm/s
 #endif
-
+#ifndef LAND_START_ALT
+ # define LAND_START_ALT 1000         // altitude in cm where land controller switches to slow rate of descent
+#endif
+#ifndef LAND_DETECTOR_TRIGGER
+ # define LAND_DETECTOR_TRIGGER 50    // number of 50hz iterations with near zero climb rate and low throttle that triggers landing complete.
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////

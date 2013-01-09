@@ -135,6 +135,28 @@ void digitalWrite(uint8 pin, uint8 value);
 uint32 digitalRead(uint8 pin);
 
 /**
+ * Writes a (digital) value to a pin.  The pin must have its
+ * mode set to OUTPUT or OUTPUT_OPEN_DRAIN.
+ *
+ * @param pin Pin to write to.
+ * @param value Either LOW (write a 0) or HIGH (write a 1).
+ * @see pinMode()
+ */
+void digitalWriteFast(uint8 pin, uint8 value);
+
+/**
+ * Read a digital value from a pin.  The pin must have its mode set to
+ * one of INPUT, INPUT_PULLUP, and INPUT_PULLDOWN.
+ *
+ * @param pin Pin to read from.
+ * @return LOW or HIGH.
+ * @see pinMode()
+ */
+uint32 digitalReadFast(uint8 pin);
+
+
+
+/**
  * Read an analog value from pin.  This function blocks during ADC
  * conversion, and has 12 bits of resolution.  The pin must have its
  * mode set to INPUT_ANALOG.
