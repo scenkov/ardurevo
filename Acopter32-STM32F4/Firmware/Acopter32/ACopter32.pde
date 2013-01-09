@@ -1,7 +1,7 @@
-#define THISFIRMWARE "ArduCopter V2.9-rc2"
+#define THISFIRMWARE "ArduCopter V2.9-ap_hal"
 
 /*
- *  ArduCopter Version 2.9
+ *  ArduCopter Version 2.9 AP_HAL WIP
  *  Lead author:	Jason Short
  *  Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni
  *  Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier, Robert Lefebvre, Marco Robustini
