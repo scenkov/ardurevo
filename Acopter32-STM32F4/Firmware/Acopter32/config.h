@@ -42,10 +42,10 @@
 
 // KIND OF FRAME
 //#define FRAME_CONFIG OCTA_FRAME
-#define FRAME_CONFIG QUAD_FRAME
-//#define FRAME_CONFIG HEXA_FRAME
-//#define FRAME_ORIENTATION PLUS_FRAME
-#define FRAME_ORIENTATION X_FRAME
+//#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG HEXA_FRAME
+#define FRAME_ORIENTATION PLUS_FRAME
+//#define FRAME_ORIENTATION X_FRAME
 
 // MODEL OF GPS
 #define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
@@ -861,33 +861,33 @@
  # define MAX_INPUT_PITCH_ANGLE     4500
 #endif
 #ifndef RATE_ROLL_P
- # define RATE_ROLL_P        		0.150
+ # define RATE_ROLL_P        		0.140
 #endif
 #ifndef RATE_ROLL_I
  # define RATE_ROLL_I        		0.100
 #endif
 #ifndef RATE_ROLL_D
- # define RATE_ROLL_D        		0.004
+ # define RATE_ROLL_D        		0.035
 #endif
 #ifndef RATE_ROLL_IMAX
  # define RATE_ROLL_IMAX         	5.0                    // degrees
 #endif
 
 #ifndef RATE_PITCH_P
- # define RATE_PITCH_P       		0.150
+ # define RATE_PITCH_P       		0.140
 #endif
 #ifndef RATE_PITCH_I
  # define RATE_PITCH_I       		0.100
 #endif
 #ifndef RATE_PITCH_D
- # define RATE_PITCH_D       		0.004
+ # define RATE_PITCH_D       		0.035
 #endif
 #ifndef RATE_PITCH_IMAX
  # define RATE_PITCH_IMAX        	5.0                    // degrees
 #endif
 
 #ifndef RATE_YAW_P
- # define RATE_YAW_P              	0.25
+ # define RATE_YAW_P              	0.20
 #endif
 #ifndef RATE_YAW_I
  # define RATE_YAW_I              	0.015

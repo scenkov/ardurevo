@@ -10,9 +10,9 @@
 
 static FastSerial *serPort;
 
-static const uint32_t baudrates[] = {38400U, 57600U, 9600U, 4800U};
+static const uint32_t baudrates[] PROGMEM = {38400U, 57600U, 9600U, 4800U};
 
-const prog_char AP_GPS_Auto::_mtk_set_binary[]   = MTK_SET_BINARY;
+const prog_char AP_GPS_Auto::_mtk_set_binary[]   PROGMEM = MTK_SET_BINARY;
 //const prog_char AP_GPS_Auto::_sirf_set_binary[]  = SIRF_SET_BINARY;
 
 AP_GPS_Auto::AP_GPS_Auto(FastSerial *s, GPS **gps, FastSerial *ser_port)  :
@@ -81,21 +81,22 @@ GPS *
 AP_GPS_Auto::_detect(void)
 {
 	static uint32_t detect_started_ms = 0;
+	GPS *new_gps = NULL;
 
 	if (detect_started_ms == 0 && _port->available() > 0) {
 		detect_started_ms = millis();
 	}
 
-	while (_port->available() > 0) {
+	while (_port->available() > 0 && new_gps == NULL) {
 		uint8_t data = _port->read();
 		if (AP_GPS_UBLOX::_detect(data)) {
 			serPort->print_P(PSTR(" ublox "));
-			return new AP_GPS_UBLOX(_port, serPort);
+			new_gps = new AP_GPS_UBLOX(_port, serPort);
 			//return new AP_GPS_UBLOX(_port);
 		}
-		if (AP_GPS_MTK19::_detect(data)) {
+		else if (AP_GPS_MTK19::_detect(data)) {
 			serPort->print_P(PSTR(" MTK19 "));
-			return new AP_GPS_MTK19(_port, serPort);
+			new_gps = new AP_GPS_MTK19(_port, serPort);
 		}
 		/*
 		if (AP_GPS_MTK::_detect(data)) {
@@ -123,7 +124,11 @@ AP_GPS_Auto::_detect(void)
 //#endif
 	}
 
-	return NULL;
+	if (new_gps != NULL) {
+		new_gps->init(_nav_setting);
+	}
+
+	return new_gps;
 }
 
 

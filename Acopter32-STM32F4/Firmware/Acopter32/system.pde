@@ -81,6 +81,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         // least one second after powering up. Simplest solution for
         // now is to delay for 1 second. Something more elegant may be
         // added later
+	SerialUSB.end();
         delay(1000);
     } else {
         cliSerial->flush();

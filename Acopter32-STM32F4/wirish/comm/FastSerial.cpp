@@ -105,9 +105,9 @@ void FastSerial::configure(uint8 port)
 #define disable_timer_if_necessary(dev, ch) ((void)0)
 
 void FastSerial::begin(long baud) {
-	if (usb == 0)
+    if (usb == 0)
 	begin(baud, DEFAULT_TX_TIMEOUT);
-	else
+    else
     {
 	//begin(baud, DEFAULT_TX_TIMEOUT);
 
@@ -162,8 +162,11 @@ void FastSerial::begin(long baud, uint32_t tx_timeout) {
 }
 
 void FastSerial::end(void) {
- if (usb == 0 )
-    usart_disable(this->usart_device);
+    if (usb == 0 ) {
+	usart_disable(this->usart_device);
+    } else if (usb == 1) {
+	usb_close();
+    }
 }
 
 int FastSerial::available(void) {
