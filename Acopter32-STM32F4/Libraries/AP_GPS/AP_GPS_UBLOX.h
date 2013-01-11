@@ -8,9 +8,10 @@
 //	License as published by the Free Software Foundation; either
 //	version 2.1 of the License, or (at your option) any later version.
 //
-#ifndef AP_GPS_UBLOX_h
-#define AP_GPS_UBLOX_h
+#ifndef __AP_GPS_UBLOX_H__
+#define __AP_GPS_UBLOX_H__
 
+#include <AP_HAL.h>
 #include "GPS.h"
 
 /*
@@ -27,8 +28,7 @@ class AP_GPS_UBLOX : public GPS
 {
 public:
     // Methods
-    AP_GPS_UBLOX(Stream *s, FastSerial *ser_port);
-    virtual void                    init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
+    virtual void                    init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
     virtual bool                    read();
     static bool _detect(uint8_t );
 
@@ -39,7 +39,7 @@ public:
 
 private:
     // u-blox UBX protocol essentials
-// XXX this is being ignored by the compiler #pragma pack(1)
+	#pragma pack(push,1)
     struct ubx_header {
         uint8_t preamble1;
         uint8_t preamble2;
@@ -124,7 +124,17 @@ private:
         uint32_t speed_accuracy;
         uint32_t heading_accuracy;
     };
-// // #pragma pack(pop)
+    // Receive buffer
+    union {
+        ubx_nav_posllh posllh;
+        ubx_nav_status status;
+        ubx_nav_solution solution;
+        ubx_nav_velned velned;
+        ubx_cfg_nav_settings nav_settings;
+        uint8_t bytes[];
+    } _buffer;
+	#pragma pack(pop)
+
     enum ubs_protocol_bytes {
         PREAMBLE1 = 0xb5,
         PREAMBLE2 = 0x62,
@@ -178,16 +188,6 @@ private:
 
     uint8_t         _disable_counter;
 
-    // Receive buffer
-    union {
-        ubx_nav_posllh posllh;
-        ubx_nav_status status;
-        ubx_nav_solution solution;
-        ubx_nav_velned velned;
-        ubx_cfg_nav_settings nav_settings;
-        uint8_t bytes[];
-    } _buffer;
-
     // Buffer parse & GPS state update
     bool        _parse_gps();
 
@@ -201,4 +201,4 @@ private:
 
 };
 
-#endif
+#endif // __AP_GPS_UBLOX_H__

@@ -1,45 +1,33 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 //
 //  DIYDrones Custom Mediatek GPS driver for ArduPilot and ArduPilotMega.
-//	Code by Michael Smith, Jordi Munoz and Jose Julio, DIYDrones.com
+//	Code by Michael Smith, Jordi Munoz and Jose Julio, Craig Elder, DIYDrones.com
 //
 //	This library is free software; you can redistribute it and / or
 //	modify it under the terms of the GNU Lesser General Public
 //	License as published by the Free Software Foundation; either
 //	version 2.1 of the License, or (at your option) any later version.
 //
-//	GPS configuration : Custom protocol per "DIYDrones Custom Binary Sentence Specification V1.1"
+//	GPS configuration : Custom protocol per "DIYDrones Custom Binary Sentence Specification V1.6, v1.7, v1.8"
 //
-
+#include <AP_HAL.h>
 #include "AP_GPS_MTK16.h"
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <wirish.h>
 
-#define SIZEOF_BUFFER 32
-
-//#define _port Serial4
-#define MAX_RX_TIMEOUT	40 //milliseconds timeout on rx serial buffer
-
-static FastSerial *serPort;
-
-// Constructors ////////////////////////////////////////////////////////////////
-AP_GPS_MTK16::AP_GPS_MTK16(Stream *s, FastSerial *ser_port) : GPS(s)
-{
-	serPort = ser_port;
-}
+extern const AP_HAL::HAL& hal;
 
 // Public Methods //////////////////////////////////////////////////////////////
 void
-AP_GPS_MTK16::init(enum GPS_Engine_Setting nav_setting)
+AP_GPS_MTK16::init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting)
 {
+	_port = s;
     _port->flush();
-	//three times
 
-	_port->print(MTK_SET_BINARY);
+    // initialize serial port for binary protocol use
+    // XXX should assume binary, let GPS_AUTO handle dynamic config?
+    _port->print(MTK_SET_BINARY);
 
-	// set 5Hz update rate
+    // set 5Hz update rate
     _port->print(MTK_OUTPUT_5HZ);
 
     // set SBAS on
@@ -53,14 +41,9 @@ AP_GPS_MTK16::init(enum GPS_Engine_Setting nav_setting)
 
     // set initial epoch code
     _epoch = TIME_OF_DAY;
-
     _time_offset = 0;
-
     _offset_calculated = false;
-
     idleTimeout = 1200;
-
-    _step = 0;
 }
 
 // Process bytes available from the stream
@@ -74,8 +57,6 @@ AP_GPS_MTK16::init(enum GPS_Engine_Setting nav_setting)
 // The lack of a standard header length field makes it impossible to skip
 // unrecognised messages.
 //
-
-
 bool
 AP_GPS_MTK16::read(void)
 {
@@ -103,7 +84,6 @@ restart:
         //
         case 0:
             if(PREAMBLE1 == data)
-
                 _step++;
             break;
         case 1:
@@ -114,7 +94,7 @@ restart:
             _step = 0;
             goto restart;
         case 2:
-			if(SIZEOF_BUFFER == data) { //size of struct (not the same as Arduino)
+            if (sizeof(_buffer) == data) {
                 _step++;
                 _ck_b = _ck_a = data;                           // reset the checksum accumulators
                 _payload_counter = 0;
@@ -129,7 +109,7 @@ restart:
         case 3:
             _buffer.bytes[_payload_counter++] = data;
             _ck_b += (_ck_a += data);
-			if (_payload_counter == SIZEOF_BUFFER)
+            if (_payload_counter == sizeof(_buffer))
                 _step++;
             break;
 
@@ -167,7 +147,7 @@ restart:
             time_utc -= temp*100000;
             time += temp * 60000 + time_utc;
 
-			parsed = true;
+            parsed = true;
 
 #ifdef FAKE_GPS_LOCK_TIME
             if (millis() > FAKE_GPS_LOCK_TIME*1000) {
@@ -178,7 +158,7 @@ restart:
             }
 #endif
 
-            /*	Waiting on clarification of MAVLink protocol!
+            /*    Waiting on clarification of MAVLink protocol!
              *  if(!_offset_calculated && parsed) {
              *                   int32_t tempd1 = date;
              *                   int32_t day    = tempd1/10000;
@@ -203,11 +183,11 @@ restart:
 bool
 AP_GPS_MTK16::_detect(uint8_t data)
 {
-	static uint8_t payload_counter;
-	static uint8_t step;
-	static uint8_t ck_a, ck_b;
+    static uint8_t payload_counter;
+    static uint8_t step;
+    static uint8_t ck_a, ck_b;
 
-	switch (step) {
+    switch (step) {
         case 1:
             if (PREAMBLE2 == data) {
                 step++;
@@ -215,12 +195,12 @@ AP_GPS_MTK16::_detect(uint8_t data)
             }
             step = 0;
         case 0:
-			ck_b = ck_a = payload_counter = 0;
+            ck_b = ck_a = payload_counter = 0;
             if (PREAMBLE1 == data)
                 step++;
-			break;
+            break;
         case 2:
-            if (data == SIZEOF_BUFFER) {
+            if (data == sizeof(struct diyd_mtk_msg)) {
                 step++;
                 ck_b = ck_a = data;
             } else {
@@ -229,26 +209,21 @@ AP_GPS_MTK16::_detect(uint8_t data)
             break;
         case 3:
             ck_b += (ck_a += data);
-            if (++payload_counter == SIZEOF_BUFFER)
+            if (++payload_counter == sizeof(struct diyd_mtk_msg))
                 step++;
             break;
         case 4:
             step++;
             if (ck_a != data) {
-				serPort->printf("wrong ck_a\n");
                 step = 0;
             }
             break;
         case 5:
             step = 0;
             if (ck_b == data) {
-				return true;
+                return true;
             }
-            serPort->printf("wrong ck_b\n");
-			break;
-	}
+            break;
+    }
     return false;
 }
-
-
-

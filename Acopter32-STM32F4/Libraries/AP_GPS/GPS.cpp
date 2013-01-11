@@ -1,20 +1,21 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
-#include <FastSerial.h>
+
+
+#include <AP_Common.h>
+#include <AP_Math.h>
+#include <AP_HAL.h>
+#include "GPS.h"
+
+extern const AP_HAL::HAL& hal;
 
 #define GPS_DEBUGGING 0
 
 #if GPS_DEBUGGING
- #include <FastSerial.h>
- # define Debug(fmt, args ...)  do {serPort->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); delay(0); } while(0)
+ # define Debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(0); } while(0)
 #else
  # define Debug(fmt, args ...)
 #endif
-#include <AP_Common.h>
-#include <AP_Math.h>
-#include "GPS.h"
-#include <wirish.h>
-
 
 void
 GPS::update(void)
@@ -24,15 +25,16 @@ GPS::update(void)
 
     // call the GPS driver to process incoming data
     result = read();
-    tnow = millis();
+
+    tnow = hal.scheduler->millis();
 
     // if we did not get a message, and the idle timer has expired, re-init
     if (!result) {
         if ((tnow - _idleTimer) > idleTimeout) {
-			Debug("gps read timeout %lu %lu", (unsigned long)tnow, (unsigned long)_idleTimer);
+            Debug("gps read timeout %lu %lu", (unsigned long)tnow, (unsigned long)_idleTimer);
             _status = NO_GPS;
 
-            init(_nav_setting);
+            init(_port, _nav_setting);
             // reset the idle timer
             _idleTimer = tnow;
         }
@@ -83,14 +85,13 @@ GPS::setHIL(uint32_t _time, float _latitude, float _longitude, float _altitude,
 void
 GPS::_error(const char *msg)
 {
-	//TEO 20110509: rompe le scatole ed è oslo un debug quindi tolgo
-	//serPort->println(msg);
+    hal.console->println(msg);
 }
 
 ///
 /// write a block of configuration data to a GPS
 ///
-void GPS::_write_progstr_block(Stream *_fs, const prog_char *pstr, uint8_t size)
+void GPS::_write_progstr_block(AP_HAL::UARTDriver *_fs, const prog_char *pstr, uint8_t size)
 {
     while (size--) {
         _fs->write(pgm_read_byte(pstr++));
@@ -113,15 +114,15 @@ struct progstr_queue {
 };
 
 static struct {
-    FastSerial *fs;
+    AP_HAL::UARTDriver *fs;
 	uint8_t queue_size;
 	uint8_t idx, next_idx;
 	struct progstr_queue queue[PROGSTR_QUEUE_SIZE];
 } progstr_state;
 
-void GPS::_send_progstr(Stream *_fs, const prog_char *pstr, uint8_t size)
+void GPS::_send_progstr(AP_HAL::UARTDriver *_fs, const prog_char *pstr, uint8_t size)
 {
-	progstr_state.fs = (FastSerial *)_fs;
+	progstr_state.fs = _fs;
 	struct progstr_queue *q = &progstr_state.queue[progstr_state.next_idx];
 	q->pstr = pstr;
 	q->size = size;
@@ -136,7 +137,7 @@ void GPS::_update_progstr(void)
 {
 	struct progstr_queue *q = &progstr_state.queue[progstr_state.idx];
 	// quick return if nothing to do
-	if (q->size == 0 || (progstr_state.fs->txfifo_nbytes() > 0)) {
+	if (q->size == 0 || progstr_state.fs->tx_pending()) {
 		return;
 	}
 	uint8_t nbytes = q->size - q->ofs;

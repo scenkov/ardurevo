@@ -1,11 +1,9 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
-/// @file	RC_Channel.h
-/// @brief	RC_Channel manager, with EEPROM-backed storage of constants.
+#ifndef __AP_LEADFILTER_H__
+#define __AP_LEADFILTER_H__
 
-#ifndef AP_LeadFilter_h
-#define AP_LeadFilter_h
-
+#include <stdint.h>
 #include <AP_LeadFilter.h>
 
 /// @class	AP_LeadFilter
@@ -23,9 +21,9 @@ public:
     int32_t         get_position(int32_t pos, int16_t vel, float lag_in_seconds = 1.0);
     void            clear() { _last_velocity = 0; }
 
-  private:
-	int16_t		_last_velocity;
+private:
+    int16_t         _last_velocity;
 
 };
 
-#endif
+#endif // __AP_LEADFILTER_H__

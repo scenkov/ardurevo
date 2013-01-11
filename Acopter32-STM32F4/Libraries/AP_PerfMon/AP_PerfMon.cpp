@@ -1,10 +1,8 @@
 
-#include <arm_math.h>
+#include <math.h>
 #include <FastSerial.h>
-//#include "Arduino.h"
+#include "Arduino.h"
 #include "AP_PerfMon.h"
-
-FastSerialPort2(serExt);
 
 // static class variable definitions
 uint8_t AP_PerfMon::nextFuncNum;
@@ -163,13 +161,13 @@ void AP_PerfMon::DisplayResults()
     totalTime = allEndTime - allStartTime;
 
     // ensure serial is blocking
-    blocking_writes = serExt.get_blocking_writes();
-    serExt.set_blocking_writes(true);
-    serExt.printf("\nblocking was:%d\n",(int)blocking_writes);
+    blocking_writes = Serial.get_blocking_writes();
+    Serial.set_blocking_writes(true);
+    Serial.printf_P(PSTR("blocking was:%d\n"),(int)blocking_writes);
 
     // print table of results
-    serExt.printf("\nPerfMon elapsed:%lu(ms)\n",(unsigned long)totalTime/1000);
-    serExt.printf("Fn:\t\t    cpu\t  tot(ms)\t  avg(ms)\t  max(ms)\t  #calls\t    Hz\n");
+    Serial.printf_P(PSTR("\nPerfMon elapsed:%lu(ms)\n"),(unsigned long)totalTime/1000);
+    Serial.printf_P(PSTR("Fn:\t\tcpu\ttot(ms)\tavg(ms)\tmax(ms)\t#calls\tHz\n"));
     for( i=0; i<nextFuncNum; i++ ) {
         j=order[i];
         sumOfTime += time[j];
@@ -183,7 +181,7 @@ void AP_PerfMon::DisplayResults()
 
         hz = numCalls[j]/(totalTime/1000000);
         pct = ((float)time[j] / (float)totalTime) * 100.0;
-        serExt.printf("%-10s\t  %4.2f\t  %lu\t  %4.3f\t  %4.3f\t  %lu\t  %4.1f\n",
+        Serial.printf_P(PSTR("%-10s\t%4.2f\t%lu\t%4.3f\t%4.3f\t%lu\t%4.1f\n"),
             functionNames[j],
             pct,
             (unsigned long)time[j]/1000,
@@ -199,10 +197,10 @@ void AP_PerfMon::DisplayResults()
         unExplainedTime = totalTime - sumOfTime;
     }
     pct = ((float)unExplainedTime / (float)totalTime) * 100.0;
-    serExt.printf("unexpl:\t\t    %4.2f\t  %lu\n",pct,(unsigned long)unExplainedTime/1000);
+    Serial.printf_P(PSTR("unexpl:\t\t%4.2f\t%lu\n"),pct,(unsigned long)unExplainedTime/1000);
 
     // restore to blocking writes if necessary
-    serExt.set_blocking_writes(blocking_writes);
+    Serial.set_blocking_writes(blocking_writes);
 
     // turn back on any time recording
     if( lastCreated != NULL ) {

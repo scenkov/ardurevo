@@ -3,10 +3,18 @@
 /// @file	AC_PID.cpp
 /// @brief	Generic PID algorithm
 
-#include <arm_math.h>
+#include <math.h>
 #include "AC_PID.h"
 
-const AP_Param::GroupInfo AC_PID::var_info[]  = {
+// Examples for _filter:
+// f_cut = 10 Hz -> _filter = 15.9155e-3
+// f_cut = 15 Hz -> _filter = 10.6103e-3
+// f_cut = 20 Hz -> _filter =  7.9577e-3
+// f_cut = 25 Hz -> _filter =  6.3662e-3
+// f_cut = 30 Hz -> _filter =  5.3052e-3
+const float  AC_PID::_filter = 7.9577e-3; // Set to  "1 / ( 2 * PI * f_cut )";
+
+const AP_Param::GroupInfo AC_PID::var_info[] PROGMEM = {
     // @Param: P
     // @DisplayName: PID Proportional Gain
     // @Description: P Gain which produces an output value that is proportional to the current error value
@@ -28,21 +36,21 @@ const AP_Param::GroupInfo AC_PID::var_info[]  = {
 
 int32_t AC_PID::get_p(int32_t error)
 {
-	return (int32_t)((float)error * _kp);
+    return (float)error * _kp;
 }
 
 int32_t AC_PID::get_i(int32_t error, float dt)
 {
-	if(((_ki < 0.0) || (_ki > 0.0)) && ((dt < 0.0) || (dt > 0.0))){
-		_integrator += ((float)error) * _ki * dt;
-		if (_integrator < -_imax) {
-			_integrator = -_imax;
-		} else if (_integrator > _imax) {
-			_integrator = _imax;
-		}
-		return (int32_t)(_integrator);
-	}
-	return 0;
+    if((_ki != 0) && (dt != 0)) {
+        _integrator += ((float)error * _ki) * dt;
+        if (_integrator < -_imax) {
+            _integrator = -_imax;
+        } else if (_integrator > _imax) {
+            _integrator = _imax;
+        }
+        return _integrator;
+    }
+    return 0;
 }
 
 // This is an integrator which tends to decay to zero naturally
@@ -50,7 +58,7 @@ int32_t AC_PID::get_i(int32_t error, float dt)
 
 int32_t AC_PID::get_leaky_i(int32_t error, float dt, float leak_rate)
 {
-	if(((_ki < 0.0) || (_ki > 0.0)) && ((dt < 0.0) || (dt > 0.0))){
+	if((_ki != 0) && (dt != 0)){
 		_integrator -= (float)_integrator * leak_rate;
 		_integrator += ((float)error * _ki) * dt;
 		if (_integrator < -_imax) {
@@ -59,14 +67,14 @@ int32_t AC_PID::get_leaky_i(int32_t error, float dt, float leak_rate)
 			_integrator = _imax;
 		}
 
-		return (int32_t)(_integrator);
+		return _integrator;
 	}
 	return 0;
 }
 
 int32_t AC_PID::get_d(int32_t input, float dt)
 {
-	if (((_kd < 0.0) || (_kd > 0.0)) && ((dt < 0.0) || (dt > 0.0))) {
+    if ((_kd != 0) && (dt != 0)) {
         float derivative;
 		if (isnan(_last_derivative)) {
 			// we've just done a reset, suppress the first derivative
@@ -76,11 +84,11 @@ int32_t AC_PID::get_d(int32_t input, float dt)
 			_last_derivative = 0;
 		} else {
 			// calculate instantaneous derivative
-		derivative = (float)(input - _last_input) / dt;
+			derivative = (input - _last_input) / dt;
 		}
 
-		// discrete low pass filter, cuts out the
-		// high frequency noise that can drive the controller crazy
+        // discrete low pass filter, cuts out the
+        // high frequency noise that can drive the controller crazy
         derivative = _last_derivative +
                       (dt / ( _filter + dt)) * (derivative - _last_derivative);
 
@@ -88,63 +96,22 @@ int32_t AC_PID::get_d(int32_t input, float dt)
         _last_input             = input;
         _last_derivative    = derivative;
 
-		// add in derivative component
-		return (int32_t)(_kd * 0.1 * derivative);
-	}
-	return 0;
+        // add in derivative component
+        return _kd * derivative;
+    }
+    return 0;
 }
 
 int32_t AC_PID::get_pi(int32_t error, float dt)
 {
-	return get_p(error) + get_i(error, dt);
+    return get_p(error) + get_i(error, dt);
 }
 
 
 int32_t AC_PID::get_pid(int32_t error, float dt)
 {
-	return get_p(error) + get_i(error, dt) + get_d(error, dt);
+    return get_p(error) + get_i(error, dt) + get_d(error, dt);
 }
-
-
-
-/*
-int32_t AC_PID::get_pid(int32_t error, float dt)
-{
-	// Compute proportional component
-	_output = error * _kp;
-
-	// Compute derivative component if time has elapsed
-	if ((fabs(_kd) > 0) && (dt > 0)) {
-		_derivative = (error - _last_error) / dt;
-
-		// discrete low pass filter, cuts out the
-		// high frequency noise that can drive the controller crazy
-		_derivative = _last_derivative +
-		        (dt / ( _filter + dt)) * (_derivative - _last_derivative);
-
-		// update state
-		_last_error 		= error;
-		_last_derivative    = _derivative;
-
-		// add in derivative component
-		_output 	+= _kd * _derivative;
-	}
-
-	// Compute integral component if time has elapsed
-	if ((fabs(_ki) > 0) && (dt > 0)) {
-		_integrator 		+= (error * _ki) * dt;
-		if (_integrator < -_imax) {
-			_integrator = -_imax;
-		} else if (_integrator > _imax) {
-			_integrator = _imax;
-		}
-		_output 	+= _integrator;
-	}
-
-	return _output;
-}
-*/
-
 
 void
 AC_PID::reset_I()
@@ -157,18 +124,18 @@ AC_PID::reset_I()
 void
 AC_PID::load_gains()
 {
-	_kp.load();
-	_ki.load();
-	_kd.load();
-	_imax.load();
-    //_imax = abs(_imax);
+    _kp.load();
+    _ki.load();
+    _kd.load();
+    _imax.load();
+    _imax = abs(_imax);
 }
 
 void
 AC_PID::save_gains()
 {
-	_kp.save();
-	_ki.save();
-	_kd.save();
-	_imax.save();
+    _kp.save();
+    _ki.save();
+    _kd.save();
+    _imax.save();
 }

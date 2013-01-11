@@ -1,5 +1,5 @@
-#ifndef AP_RangeFinder_MaxsonarXL_H
-#define AP_RangeFinder_MaxsonarXL_H
+#ifndef __AP_RangeFinder_MaxsonarXL_H__
+#define __AP_RangeFinder_MaxsonarXL_H__
 
 #include "RangeFinder.h"
 
@@ -21,14 +21,22 @@
 #define AP_RANGEFINDER_MAXSONARXLL_MIN_DISTANCE 20
 #define AP_RANGEFINDER_MAXSONARXLL_MAX_DISTANCE 1068
 
+// HRLV-MaxSonar-EZ0 (aka HRLV)
+#define AP_RANGEFINDER_MAXSONARHRLV 3
+#define AP_RANGEFINDER_MAXSONARHRLV_SCALER 0.512
+#define AP_RANGEFINDER_MAXSONARHRLV_MIN_DISTANCE 30
+#define AP_RANGEFINDER_MAXSONARHRLV_MAX_DISTANCE 500
+
 class AP_RangeFinder_MaxsonarXL : public RangeFinder
 {
-  public:
-	AP_RangeFinder_MaxsonarXL(AP_AnalogSource *source, FilterInt16 *filter);
-	int		convert_raw_to_distance(int _raw_value) { return _raw_value * _scaler; }   // read value from analog port and return distance in cm
-	float	calculate_scaler(int sonar_type, float adc_refence_voltage);
+public:
+    AP_RangeFinder_MaxsonarXL(AP_HAL::AnalogSource *source, FilterInt16 *filter);
+    int             convert_raw_to_distance(int _raw_value) {
+        return _raw_value * _scaler;
+    }                                                                                              // read value from analog port and return distance in cm
+    float           calculate_scaler(int sonar_type, float adc_refence_voltage);
 
-  private:
-    float _scaler;  // used to account for different sonar types
+private:
+    float           _scaler; // used to account for different sonar types
 };
 #endif

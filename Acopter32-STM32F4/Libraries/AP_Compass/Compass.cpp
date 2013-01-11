@@ -1,13 +1,60 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+#include <AP_Progmem.h>
 #include "Compass.h"
 
-const AP_Param::GroupInfo Compass::var_info[] = {
+const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // index 0 was used for the old orientation matrix
+
+    // @Param: OFS_X
+    // @DisplayName: Compass offsets on the X axis
+    // @Description: Offset to be added to the compass x-axis values to compensate for metal in the frame
+    // @Range: -400 400
+    // @Increment: 1
+
+    // @Param: OFS_Y
+    // @DisplayName: Compass offsets on the Y axis
+    // @Description: Offset to be added to the compass y-axis values to compensate for metal in the frame
+    // @Range: -400 400
+    // @Increment: 1
+
+    // @Param: OFS_Z
+    // @DisplayName: Compass offsets on the Z axis
+    // @Description: Offset to be added to the compass z-axis values to compensate for metal in the frame
+    // @Range: -400 400
+    // @Increment: 1
     AP_GROUPINFO("OFS",    1, Compass, _offset, 0),
+
+    // @Param: DEC
+    // @DisplayName: Compass declination
+    // @Description: An angle to compensate between the true north and magnetic north
+    // @Range: -3.142 3.142
+    // @Units: Radians
+    // @Increment: 0.01
+    // @User: Standard
     AP_GROUPINFO("DEC",    2, Compass, _declination, 0),
+
+    // @Param: LEARN
+    // @DisplayName: Learn compass offsets automatically
+    // @Description: Enable or disable the automatic learning of compass offsets
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
     AP_GROUPINFO("LEARN",  3, Compass, _learn, 1), // true if learning calibration
+
+    // @Param: USE
+    // @DisplayName: Use compass for yaw
+    // @Description: Enable or disable the use of the compass (instead of the GPS) for determining heading
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
     AP_GROUPINFO("USE",    4, Compass, _use_for_yaw, 1), // true if used for DCM yaw
+
+#if !defined( __AVR_ATmega1280__ )
+    // @Param: AUTODEC
+    // @DisplayName: Auto Declination
+    // @Description: Enable or disable the automatic calculation of the declination based on gps location
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
     AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 1),
+#endif
     AP_GROUPEND
 };
 
@@ -16,10 +63,11 @@ const AP_Param::GroupInfo Compass::var_info[] = {
 // their values.
 //
 Compass::Compass(void) :
-	product_id(AP_COMPASS_TYPE_UNKNOWN),
+    product_id(AP_COMPASS_TYPE_UNKNOWN),
     _orientation(ROTATION_NONE),
     _null_init_done(false)
 {
+    AP_Param::setup_object_defaults(this, var_info);
 }
 
 // Default init method, just returns success.
@@ -59,10 +107,15 @@ Compass::set_initial_location(int32_t latitude, int32_t longitude)
 {
     // if automatic declination is configured, then compute
     // the declination based on the initial GPS fix
+#if !defined( __AVR_ATmega1280__ )
     if (_auto_declination) {
-		// Set the declination based on the lat/lng from GPS
-		_declination.set(radians(AP_Declination::get_declination((float)latitude / 10000000, (float)longitude / 10000000)));
-	}
+        // Set the declination based on the lat/lng from GPS
+        _declination.set(radians(
+                AP_Declination::get_declination(
+                    (float)latitude / 10000000,
+                    (float)longitude / 10000000)));
+    }
+#endif
 }
 
 void
@@ -74,7 +127,7 @@ Compass::set_declination(float radians)
 float
 Compass::get_declination()
 {
-  return _declination.get();
+    return _declination.get();
 }
 
 
@@ -92,9 +145,9 @@ Compass::calculate_heading(float roll, float pitch)
     float heading;
 
     cos_roll = cos(roll);
-	sin_roll = sin(roll);
+    sin_roll = sin(roll);
     cos_pitch = cos(pitch);
-	sin_pitch = sin(pitch);
+    sin_pitch = sin(pitch);
 
     // Tilt compensated magnetic field X component:
     headX = mag_x*cos_pitch + mag_y*sin_roll*sin_pitch + mag_z*cos_roll*sin_pitch;
@@ -125,9 +178,9 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
     float cos_pitch = safe_sqrt(1-(dcm_matrix.c.x*dcm_matrix.c.x));
     float heading;
 
-	// sin(pitch) = - dcm_matrix(3,1)
-	// cos(pitch)*sin(roll) = - dcm_matrix(3,2)
-	// cos(pitch)*cos(roll) = - dcm_matrix(3,3)
+    // sin(pitch) = - dcm_matrix(3,1)
+    // cos(pitch)*sin(roll) = - dcm_matrix(3,2)
+    // cos(pitch)*cos(roll) = - dcm_matrix(3,3)
 
     if (cos_pitch == 0.0) {
         // we are pointing straight up or down so don't update our
@@ -142,7 +195,7 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
     headY = mag_y*dcm_matrix.c.z/cos_pitch - mag_z*dcm_matrix.c.y/cos_pitch;
     // magnetic heading
     // 6/4/11 - added constrain to keep bad values from ruining DCM Yaw - Jason S.
-	heading = constrain(atan2(-headY,headX), -3.15, 3.15);
+    heading = constrain(atan2(-headY,headX), -3.15, 3.15);
 
     // Declination correction (if supplied)
     if( fabs(_declination) > 0.0 )
@@ -159,24 +212,24 @@ Compass::calculate_heading(const Matrix3f &dcm_matrix)
 
 
 /*
-  this offset nulling algorithm is inspired by this paper from Bill Premerlani
-
-  http://gentlenav.googlecode.com/files/MagnetometerOffsetNullingRevisited.pdf
-
-  The base algorithm works well, but is quite sensitive to
-  noise. After long discussions with Bill, the following changes were
-  made:
-
-    1) we keep a history buffer that effectively divides the mag
-       vectors into a set of N streams. The algorithm is run on the
-       streams separately
-
-    2) within each stream we only calculate a change when the mag
-       vector has changed by a significant amount.
-
-  This gives us the property that we learn quickly if there is no
-  noise, but still learn correctly (and slowly) in the face of lots of
-  noise.
+ *  this offset nulling algorithm is inspired by this paper from Bill Premerlani
+ *
+ *  http://gentlenav.googlecode.com/files/MagnetometerOffsetNullingRevisited.pdf
+ *
+ *  The base algorithm works well, but is quite sensitive to
+ *  noise. After long discussions with Bill, the following changes were
+ *  made:
+ *
+ *   1) we keep a history buffer that effectively divides the mag
+ *      vectors into a set of N streams. The algorithm is run on the
+ *      streams separately
+ *
+ *   2) within each stream we only calculate a change when the mag
+ *      vector has changed by a significant amount.
+ *
+ *  This gives us the property that we learn quickly if there is no
+ *  noise, but still learn correctly (and slowly) in the face of lots of
+ *  noise.
  */
 void
 Compass::null_offsets(void)

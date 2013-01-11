@@ -9,17 +9,16 @@
 //	version 2.1 of the License, or (at your option) any later version.
 //
 //
-#ifndef AP_GPS_HIL_h
-#define AP_GPS_HIL_h
+#ifndef __AP_GPS_HIL_H__
+#define __AP_GPS_HIL_H__
 
+#include <AP_HAL.h>
 #include "GPS.h"
 
 class AP_GPS_HIL : public GPS {
 public:
-    //AP_GPS_HIL(Stream *s, FastSerial *ser_port);
-    AP_GPS_HIL(Stream *s);
-    virtual void init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
-    virtual bool read(void);
+    virtual void        init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
+    virtual bool        read(void);
 
     /**
      * Hardware in the loop set function
@@ -31,11 +30,11 @@ public:
      * @param speed_3d - ground speed in meters/second
      * @param altitude - altitude in meters
      */
-    virtual void setHIL(uint32_t time, float latitude, float longitude, float altitude,
-                        float ground_speed, float ground_course, float speed_3d, uint8_t num_sats);
+    virtual void        setHIL(uint32_t time, float latitude, float longitude, float altitude,
+                               float ground_speed, float ground_course, float speed_3d, uint8_t num_sats);
 
 private:
-    bool	_updated;
+    bool        _updated;
 };
 
-#endif	// AP_GPS_HIL_H
+#endif  // __AP_GPS_HIL_H__

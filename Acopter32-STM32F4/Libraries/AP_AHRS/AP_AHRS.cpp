@@ -7,11 +7,11 @@
 	of the License, or (at your option) any later version.
 */
 #include <AP_AHRS.h>
-#include <FastSerial.h>
-
+#include <AP_HAL.h>
+extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters
-const AP_Param::GroupInfo AP_AHRS::var_info[] = {
+const AP_Param::GroupInfo AP_AHRS::var_info[] PROGMEM = {
 	// index 0 and 1 are for old parameters that are no longer used
 
     // @Param: GPS_GAIN
@@ -45,7 +45,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @DisplayName: Maximum wind
     // @Description: This sets the maximum allowable difference between ground speed and airspeed. This allows the plane to cope with a failing airspeed sensor. A value of zero means to use the airspeed as is.
     // @Range: 0 127
-    // QUnits: m/s
+    // @Units: m/s
     // @Increment: 1
     AP_GROUPINFO("WIND_MAX",  6,    AP_AHRS, _wind_max, 0.0),
 
@@ -56,9 +56,21 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BARO_USE",  7,    AP_AHRS, _baro_use, 0),
 
-    // @Param: TRIM
-    // @DisplayName: AHRS Trim
-    // @Description: Compensates for the difference between the control board and the frame
+    // @Param: TRIM_X
+    // @DisplayName: AHRS Trim Roll
+    // @Description: Compensates for the roll angle difference between the control board and the frame
+    // @Units: Radians
+    // @User: Advanced
+
+    // @Param: TRIM_Y
+    // @DisplayName: AHRS Trim Pitch
+    // @Description: Compensates for the pitch angle difference between the control board and the frame
+    // @Units: Radians
+    // @User: Advanced
+
+    // @Param: TRIM_Z
+    // @DisplayName: AHRS Trim Yaw
+    // @Description: Not Used
     // @Units: Radians
     // @User: Advanced
     AP_GROUPINFO("TRIM", 8, AP_AHRS, _trim, 0),

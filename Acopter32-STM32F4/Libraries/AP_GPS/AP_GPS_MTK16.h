@@ -1,31 +1,30 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 //
 //  DIYDrones Custom Mediatek GPS driver for ArduPilot and ArduPilotMega.
-//	Code by Michael Smith, Jordi Munoz and Jose Julio, DIYDrones.com
+//	Code by Michael Smith, Jordi Munoz and Jose Julio, Craig Elder, DIYDrones.com
 //
 //	This library is free software; you can redistribute it and / or
 //	modify it under the terms of the GNU Lesser General Public
 //	License as published by the Free Software Foundation; either
 //	version 2.1 of the License, or (at your option) any later version.
 //
-//	GPS configuration : Custom protocol per "Customize Function Specification, 3D Robotics, v1.6"
+//	GPS configuration : Custom protocol per "Customize Function Specification, 3D Robotics, v1.6, v1.7, v1.8"
 //
-#ifndef AP_GPS_MTK16_h
-#define AP_GPS_MTK16_h
+#ifndef __AP_GPS_MTK16_H__
+#define __AP_GPS_MTK16_H__
 
+#include <AP_HAL.h>
 #include "GPS.h"
 #include "AP_GPS_MTK_Common.h"
 
 class AP_GPS_MTK16 : public GPS {
 public:
-    AP_GPS_MTK16(Stream *s, FastSerial *ser_port);
-    //AP_GPS_MTK16(Stream *s);
-    virtual void        init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
+    virtual void        init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
     virtual bool        read(void);
     static bool _detect(uint8_t );
 
 private:
-// XXX this is being ignored by the compiler #pragma pack(1)
+    #pragma pack(push,1)
     struct diyd_mtk_msg {
         int32_t latitude;
         int32_t longitude;
@@ -34,14 +33,11 @@ private:
         int32_t ground_course;
         uint8_t satellites;
         uint8_t fix_type;
-		uint8_t		rsv1;
-		uint8_t		rsv2;
-		//24 byte
         uint32_t utc_date;
         uint32_t utc_time;
         uint16_t hdop;
     };
-// #pragma pack(pop)
+    #pragma pack(pop)
     enum diyd_mtk_fix_type {
         FIX_NONE = 1,
         FIX_2D = 2,
@@ -71,7 +67,6 @@ private:
         diyd_mtk_msg msg;
         uint8_t bytes[];
     } _buffer;
-	
 };
 
-#endif	// AP_GPS_MTK16_H
+#endif  // __AP_GPS_MTK16_H__

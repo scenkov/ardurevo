@@ -22,14 +22,13 @@
 
 class AP_GPS_MTK19 : public GPS {
 public:
-    AP_GPS_MTK19(Stream *s, FastSerial *ser_port);
-    //AP_GPS_MTK19(Stream *s);
-    virtual void        init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
+    AP_GPS_MTK19();
+    virtual void        init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
     virtual bool        read(void);
     static bool 		_detect(uint8_t );
 
 private:
-// XXX this is being ignored by the compiler #pragma pack(1)
+	#pragma pack(push,1)
     struct diyd_mtk_msg {
         int32_t latitude;
         int32_t longitude;
@@ -42,7 +41,7 @@ private:
         uint32_t utc_time;
         uint16_t hdop;
     };
-// #pragma pack(pop)
+	#pragma pack(pop)
     enum diyd_mtk_fix_type {
         FIX_NONE = 1,
         FIX_2D = 2,
@@ -52,12 +51,9 @@ private:
     };
 
     enum diyd_mtk_protocol_bytes {
-	    PREAMBLE1 = 0xd0,
-        PREAMBLE2 = 0xdd,
 	    PREAMBLE1_V16 = 0xd0,
-        PREAMBLE2_V16 = 0xdd,
         PREAMBLE1_V19 = 0xd1,
-        PREAMBLE2_V19 = 0xdd
+        PREAMBLE2     = 0xdd,
     };
 
     // Packet checksum accumulators
@@ -67,8 +63,7 @@ private:
     // State machine state
     uint8_t         _step;
     uint8_t         _payload_counter;
-	uint8_t			_mtk_type_step1;
-	uint8_t 		_mtk_type_step2;
+	uint8_t			_mtk_revision;
 
     // Time from UNIX Epoch offset
     long            _time_offset;

@@ -15,19 +15,18 @@
 * Usage:	Use in main code to control	mounts attached to	*
 *			vehicle.										*
 *															*
-*Comments:  All angles in degrees * 100, distances in meters*
+* Comments: All angles in degrees * 100, distances in meters*
 *			unless otherwise stated.						*
- ************************************************************/
-#ifndef AP_Mount_H
-#define AP_Mount_H
+************************************************************/
+#ifndef __AP_MOUNT_H__
+#define __AP_MOUNT_H__
 
-#include <FastSerial.h>
 #include <AP_Math.h>
 #include <AP_Common.h>
 #include <AP_GPS.h>
 #include <AP_AHRS.h>
 #include <GCS_MAVLink.h>
-#include <../RC_Channel/RC_Channel_aux.h>
+#include <RC_Channel.h>
 
 class AP_Mount
 {
@@ -64,8 +63,8 @@ public:
 
 private:
 
-	//methods
-	void set_mode(enum MAV_MOUNT_MODE mode);
+    //methods
+    void                            set_mode(enum MAV_MOUNT_MODE mode);
 
     void                            set_retract_angles(float roll, float tilt, float pan); ///< set mount retracted position
     void                            set_neutral_angles(float roll, float tilt, float pan);
@@ -124,4 +123,5 @@ private:
     AP_Vector3f                     _neutral_angles; ///< neutral position for mount, vector.x = roll vector.y = tilt, vector.z=pan
     AP_Vector3f                     _control_angles; ///< GCS controlled position for mount, vector.x = roll vector.y = tilt, vector.z=pan
 };
-#endif
+
+#endif // __AP_MOUNT_H__

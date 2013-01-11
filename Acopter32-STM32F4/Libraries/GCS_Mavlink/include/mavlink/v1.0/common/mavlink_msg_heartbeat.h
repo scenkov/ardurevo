@@ -142,10 +142,7 @@ static inline uint16_t mavlink_msg_heartbeat_encode(uint8_t system_id, uint8_t c
 
 static inline void mavlink_msg_heartbeat_send(mavlink_channel_t chan, uint8_t type, uint8_t autopilot, uint8_t base_mode, uint32_t custom_mode, uint8_t system_status)
 {
-
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-
-
 	char buf[9];
 	_mav_put_uint32_t(buf, 0, custom_mode);
 	_mav_put_uint8_t(buf, 4, type);
@@ -155,10 +152,7 @@ static inline void mavlink_msg_heartbeat_send(mavlink_channel_t chan, uint8_t ty
 	_mav_put_uint8_t(buf, 8, 3);
 
 	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HEARTBEAT, buf, 9, 50);
-
-
 #else
-
 	mavlink_heartbeat_t packet;
 	packet.custom_mode = custom_mode;
 	packet.type = type;
@@ -166,8 +160,8 @@ static inline void mavlink_msg_heartbeat_send(mavlink_channel_t chan, uint8_t ty
 	packet.base_mode = base_mode;
 	packet.system_status = system_status;
 	packet.mavlink_version = 3;
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HEARTBEAT, (const char *)&packet, 9, 50);
 
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HEARTBEAT, (const char *)&packet, 9, 50);
 #endif
 }
 

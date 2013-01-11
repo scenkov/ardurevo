@@ -3,27 +3,26 @@
 #ifndef __AP_INERTIAL_SENSOR_MPU6000_H__
 #define __AP_INERTIAL_SENSOR_MPU6000_H__
 
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
-
-#include <wirish.h>
-#include "../AP_PeriodicProcess/AP_PeriodicProcess.h"
-#include "../AP_Math/AP_Math.h"
+#include <AP_HAL.h>
+#include <AP_Math.h>
+#include <AP_Progmem.h>
 #include "AP_InertialSensor.h"
 
-//#define AP_InertialSensor_MPU6000_DEBUG_ENABLE
-
+#define MPU6000_CS_PIN       53        // APM pin connected to mpu6000's chip select pin
 #define DMP_FIFO_BUFFER_SIZE 72        // DMP FIFO buffer size
 
+// enable debug to see a register dump on startup
+#define MPU6000_DEBUG 0
+
 // DMP memory
-extern const uint8_t dmpMem[8][16][16];
+extern const uint8_t        dmpMem[8][16][16] PROGMEM;
 
 class AP_InertialSensor_MPU6000 : public AP_InertialSensor
 {
 public:
 
-  AP_InertialSensor_MPU6000(uint8_t cs_pin, HardwareSPI *spi_dev, FastSerial *ser_port);
+    AP_InertialSensor_MPU6000();
 
     static void         dmp_init(); // Initialise MPU6000's DMP
     static void         dmp_reset();    // Reset the DMP (required for changes in gains or offsets to take effect)
@@ -33,7 +32,6 @@ public:
     bool                new_data_available();
     float               temperature();
     float               get_gyro_drift_rate();
-  void read();
 
     // push_gyro_offsets_to_dmp - updates gyro offsets in mpu6000 registers
     void                push_gyro_offsets_to_dmp();
@@ -50,16 +48,23 @@ public:
     uint32_t            get_delta_time_micros();
 
 protected:
-    uint16_t                    _init_sensor( AP_PeriodicProcess * scheduler, Sample_rate sample_rate );
+    uint16_t                    _init_sensor( Sample_rate sample_rate );
 
 private:
 
-    static void                 read(uint32_t);
-  static int16_t spi_transfer_16(void);
-    static void                 data_interrupt(void);
-    static uint8_t              register_read( uint8_t reg );
+    static void                 _read_data_from_timerprocess();
+    static void                 _read_data_transaction();
+    static bool                 _data_ready();
+    static void                 _poll_data(uint32_t now);
+    static AP_HAL::DigitalSource *_drdy_pin;
+    static uint8_t              _register_read( uint8_t reg );
+    static bool _register_read_from_timerprocess( uint8_t reg, uint8_t *val );
     static void                 register_write( uint8_t reg, uint8_t val );
+    void                        wait_for_sample();
     void                        hardware_init(Sample_rate sample_rate);
+
+    static AP_HAL::SPIDeviceDriver *_spi;
+    static AP_HAL::Semaphore *_spi_sem;
 
     float                       _temp;
 
@@ -74,12 +79,6 @@ private:
     static const int8_t         _accel_data_sign[3];
 
     static const uint8_t        _temp_data_index;
-
-    static AP_PeriodicProcess*  _scheduler;             // pointer to scheduler so that we can suspend/resume scheduler when we pull data from the MPU6000
-
-
-  static uint8_t _cs_pin;
-  static HardwareSPI *_SPIx;
 
     // ensure we can't initialise twice
     bool                        _initialised;
@@ -114,6 +113,10 @@ public:
     static uint8_t              _fifoCountL;                    // low byte of number of elements in fifo buffer
 
     static bool                 _dmp_initialised;
+
+#if MPU6000_DEBUG
+    void						_dump_registers(void);
+#endif
 };
 
 #endif // __AP_INERTIAL_SENSOR_MPU6000_H__

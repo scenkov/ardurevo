@@ -1,5 +1,7 @@
-#ifndef AP_AHRS_H
-#define AP_AHRS_H
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+
+#ifndef __AP_AHRS_H__
+#define __AP_AHRS_H__
 /*
  *  AHRS (Attitude Heading Reference System) interface for ArduPilot
  *
@@ -8,15 +10,15 @@
  *  License as published by the Free Software Foundation; either
  *  version 2.1 of the License, or (at your option) any later version.
  */
-#include <stdlib.h>
-#include <inttypes.h>
+
 #include <AP_Math.h>
-#include <AP_Common.h>
+#include <inttypes.h>
 #include <AP_Compass.h>
 #include <AP_Airspeed.h>
 #include <AP_GPS.h>
 #include <AP_InertialSensor.h>
 #include <AP_Baro.h>
+#include <AP_Param.h>
 
 class AP_AHRS
 {
@@ -27,6 +29,9 @@ public:
         _gps(gps),
         _barometer(NULL)
     {
+        // load default values from var_info table
+        AP_Param::setup_object_defaults(this, var_info);
+
         // base the ki values by the sensors maximum drift
         // rate. The APM2 has gyros which are much less drift
         // prone than the APM1, so we should have a lower ki,
@@ -36,24 +41,24 @@ public:
     }
 
     // empty init
-    virtual void init( AP_PeriodicProcess * scheduler = NULL ) {
+    virtual void init() {
     };
 
     // Accessors
-    void            set_fly_forward(bool b) {
+    void set_fly_forward(bool b) {
         _fly_forward = b;
     }
-    void            set_compass(Compass *compass) {
+    void set_compass(Compass *compass) {
         _compass = compass;
     }
-    void            set_barometer(AP_Baro *barometer) {
+    void set_barometer(AP_Baro *barometer) {
         _barometer = barometer;
     }
-    void            set_airspeed(AP_Airspeed *airspeed) {
+    void set_airspeed(AP_Airspeed *airspeed) {
         _airspeed = airspeed;
     }
 
-    AP_InertialSensor*            get_ins() {
+    AP_InertialSensor* get_ins() {
 	    return _ins;
     }
 
@@ -169,16 +174,14 @@ protected:
     // time in microseconds of last compass update
     uint32_t _compass_last_update;
 
-    // a vector to capture the difference between the controller and body frames
-    AP_Vector3f         _trim;
-
     // note: we use ref-to-pointer here so that our caller can change the GPS without our noticing
     //       IMU under us without our noticing.
     AP_InertialSensor   *_ins;
     GPS                 *&_gps;
     AP_Baro             *_barometer;
 
-
+    // a vector to capture the difference between the controller and body frames
+    AP_Vector3f         _trim;
 
     // should we raise the gain on the accelerometers for faster
     // convergence, used when disarmed for ArduCopter
@@ -195,13 +198,10 @@ protected:
     // accelerometer values in the earth frame in m/s/s
     Vector3f        _accel_ef;
 
-    // acceleration due to gravity in m/s/s
-    static const float _gravity = 9.80665;
-
 };
 
 #include <AP_AHRS_DCM.h>
 #include <AP_AHRS_MPU6000.h>
 #include <AP_AHRS_HIL.h>
 
-#endif // AP_AHRS_H
+#endif // __AP_AHRS_H__

@@ -9,7 +9,7 @@
 #define PERFMON_FUNCTION_NAME_LENGTH 10
 
 #include <AP_Common.h>
-//#include "wirish.h"
+#include "HardwareSerial.h"
 
 class AP_PerfMon
 {

@@ -1,10 +1,13 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
-#include <APM_RC.h>
 #include "RC_Channel_aux.h"
 
-const AP_Param::GroupInfo RC_Channel_aux::var_info[] = {
-	AP_NESTEDGROUPINFO(RC_Channel, 0),
+#include <AP_Math.h>
+#include <AP_HAL.h>
+extern const AP_HAL::HAL& hal;
+
+const AP_Param::GroupInfo RC_Channel_aux::var_info[] PROGMEM = {
+    AP_NESTEDGROUPINFO(RC_Channel, 0),
 
     // @Param: FUNCTION
     // @DisplayName: Servo out function
@@ -31,7 +34,7 @@ RC_Channel_aux::output_ch(unsigned char ch_nr)
         radio_out = radio_in;
         break;
     }
-    _apm_rc->OutputCh(ch_nr, radio_out);
+    hal.rcout->write(ch_nr, radio_out);
 }
 
 /// Update the _aux_channels array of pointers to rc_x channels
@@ -108,7 +111,7 @@ RC_Channel_aux::set_radio(RC_Channel_aux::Aux_servo_function_t function, int16_t
 {
     for (uint8_t i = 0; i < 7; i++) {
         if (_aux_channels[i] && _aux_channels[i]->function.get() == function) {
-			_aux_channels[i]->radio_out = constrain(value,_aux_channels[i]->radio_min,_aux_channels[i]->radio_max);
+			_aux_channels[i]->radio_out = constrain_int16(value,_aux_channels[i]->radio_min,_aux_channels[i]->radio_max);
             _aux_channels[i]->output();
 		}
     }

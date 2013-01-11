@@ -10,27 +10,27 @@
 /// @brief	A class to apply a mode filter which is basically picking the median value from the last x samples
 ///         the filter size (i.e buffer size) should always be an odd number
 
-#ifndef ModeFilter_h
-#define ModeFilter_h
+#ifndef __MODE_FILTER_H__
+#define __MODE_FILTER_H__
 
 #include <inttypes.h>
-#include <Filter.h>
-#include <FilterWithBuffer.h>
+#include "FilterClass.h"
+#include "FilterWithBuffer.h"
 
 template <class T, uint8_t FILTER_SIZE>
 class ModeFilter : public FilterWithBuffer<T,FILTER_SIZE>
 {
-  public:
-	ModeFilter(uint8_t return_element);
+public:
+    ModeFilter(uint8_t return_element);
 
-	// apply - Add a new raw value to the filter, retrieve the filtered result
-	virtual T	apply(T sample);
+    // apply - Add a new raw value to the filter, retrieve the filtered result
+    virtual T        apply(T sample);
 
-  private:
-	// private methods
-	uint8_t	_return_element;
-	void 	isort(T sample, bool drop_high_sample);
-	bool	drop_high_sample;  // switch to determine whether to drop the highest or lowest sample when new value arrives
+private:
+    // private methods
+    uint8_t         _return_element;
+    void            isort(T sample, bool drop_high_sample);
+    bool            drop_high_sample; // switch to determine whether to drop the highest or lowest sample when new value arrives
 };
 
 // Typedef for convenience
@@ -135,4 +135,4 @@ void ModeFilter<T,FILTER_SIZE>::        isort(T new_sample, bool drop_high)
     }
 }
 
-#endif
+#endif // __MODE_FILTER_H__

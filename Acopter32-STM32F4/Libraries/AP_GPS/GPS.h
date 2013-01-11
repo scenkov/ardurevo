@@ -3,13 +3,13 @@
 /// @file	GPS.h
 /// @brief	Interface definition for the various GPS drivers.
 
-#ifndef GPS_h
-#define GPS_h
+#ifndef __GPS_H__
+#define __GPS_H__
+
+#include <AP_HAL.h>
 
 #include <inttypes.h>
-#include <Stream.h>
-#include <pgmspace.h>
-#include <wirish.h>
+#include <AP_Progmem.h>
 
 /// @class	GPS
 /// @brief	Abstract base class for GPS receiver drivers.
@@ -75,7 +75,7 @@ public:
     ///
     /// @returns			Current GPS time epoch code
     ///
-    GPS_Time_Epoch		epoch(void) {
+    GPS_Time_Epoch              epoch(void) {
         return _epoch;
     }
 
@@ -86,10 +86,10 @@ public:
     ///
     /// Must be implemented by the GPS driver.
     ///
-    virtual void        init(enum GPS_Engine_Setting engine_setting = GPS_ENGINE_NONE) = 0;
+    virtual void        init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting engine_setting = GPS_ENGINE_NONE) = 0;
 
     // Properties
-    uint32_t time;			///< GPS time (milliseconds from epoch)
+    uint32_t time;                      ///< GPS time (milliseconds from epoch)
     uint32_t date;                      ///< GPS date (FORMAT TBD)
     int32_t latitude;                   ///< latitude in degrees * 10,000,000
     int32_t longitude;                  ///< longitude in degrees * 10,000,000
@@ -98,7 +98,7 @@ public:
     int32_t ground_course;      ///< ground course in 100ths of a degree
     int32_t speed_3d;                   ///< 3D speed in cm/sec (not always available)
     int16_t hdop;                       ///< horizontal dilution of precision in cm
-    uint8_t num_sats;		///< Number of visible satelites
+    uint8_t num_sats;           ///< Number of visible satelites
 
     /// Set to true when new data arrives.  A client may set this
     /// to false in order to avoid processing data they have
@@ -110,7 +110,7 @@ public:
     bool valid_read;                    ///< true if we have seen data from the GPS (use ::status instead)
 
     // Debug support
-    bool	print_errors; 	///< deprecated
+    bool print_errors;          ///< deprecated
 
     // HIL support
     virtual void setHIL(uint32_t time, float latitude, float longitude, float altitude,
@@ -151,20 +151,7 @@ public:
 
 
 protected:
-    Stream      *_port;                 ///< port the GPS is attached to
-	
-	//FastSerial *serPort;
-    /// Constructor
-    ///
-    /// @note The stream is expected to be set up and configured for the
-    ///       correct bitrate before ::init is called.
-    ///
-    /// @param	s	Stream connected to the GPS module.
-    ///
-    GPS(Stream *s) : _port(s) {
-    };
-    //GPS(Stream *s, FastSerial *ser_port) : _port(s), serPort(ser_port) {
-    // };
+    AP_HAL::UARTDriver *_port;   ///< port the GPS is attached to
 
     /// read from the GPS stream and update properties
     ///
@@ -206,8 +193,8 @@ protected:
 
     enum GPS_Engine_Setting _nav_setting;
 
-    void _write_progstr_block(Stream *_fs, const prog_char *pstr, uint8_t size);
-    void _send_progstr(Stream *_fs, const prog_char *pstr, uint8_t size);
+    void _write_progstr_block(AP_HAL::UARTDriver *_fs, const prog_char *pstr, uint8_t size);
+    void _send_progstr(AP_HAL::UARTDriver *_fs, const prog_char *pstr, uint8_t size);
     void _update_progstr(void);
 
     // velocities in cm/s if available from the GPS
@@ -269,4 +256,4 @@ GPS::_swapi(const void *bytes)
     return(u.v);
 }
 
-#endif
+#endif // __GPS_H__

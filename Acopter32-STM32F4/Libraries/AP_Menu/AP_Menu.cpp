@@ -4,20 +4,23 @@
 // Simple commandline menu system.
 //
 
-#include <FastSerial.h>
 #include <AP_Common.h>
+#include <AP_Progmem.h>
+#include <AP_HAL.h>
 
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include <stdlib.h>
-#include <pgmspace.h>
+
 #include "AP_Menu.h"
+
+extern const AP_HAL::HAL& hal;
 
 // statics
 char Menu::_inbuf[MENU_COMMANDLINE_MAX];
 Menu::arg Menu::_argv[MENU_ARGS_MAX + 1];
-FastSerial *Menu::_port;
-FastSerialPort2(SerMenu);
+AP_HAL::BetterStream *Menu::_port;
+
 
 // constructor
 Menu::Menu(const prog_char *prompt, const Menu::command *commands, uint8_t entries, preprompt ppfunc) :
@@ -36,15 +39,15 @@ Menu::run(void)
     uint8_t len, i;
     uint8_t argc;
     int c;
-    char                *s;
+    char *s;
 
 	if (_port == NULL) {
 		// default to main serial port
-		_port = &SerMenu;
+		_port = hal.console;
 	}
 
     // loop performing commands
-    for (;; ) {
+    for (;;) {
 
         // run the pre-prompt function, if one is defined
         if ((NULL != _ppfunc) && !_ppfunc())
@@ -52,9 +55,9 @@ Menu::run(void)
 
         // loop reading characters from the input
         len = 0;
-        _port->printf("%s] ", _prompt);
+        _port->printf_P(PSTR("%S] "), FPSTR(_prompt));
         for (;; ) {
-            c =  _port->read();
+            c = _port->read();
             if (-1 == c)
                 continue;
             // carriage return -> process command
@@ -113,7 +116,7 @@ Menu::run(void)
         bool cmd_found = false;
         // look for a command matching the first word (note that it may be empty)
         for (i = 0; i < _entries; i++) {
-            if (!strcasecmp_P(_argv[0].str, (prog_char_t*)_commands[i].command)) {
+            if (!strcasecmp_P(_argv[0].str, _commands[i].command)) {
                 ret = _call(i, argc);
                 cmd_found=true;
                 if (-2 == ret)
@@ -124,17 +127,17 @@ Menu::run(void)
 
         // implicit commands
         if (i == _entries) {
-            if (!strcmp(_argv[0].str, "?") || (!strcasecmp_P(_argv[0].str, (prog_char_t*)"help"))) {
+            if (!strcmp(_argv[0].str, "?") || (!strcasecmp_P(_argv[0].str, PSTR("help")))) {
                 _help();
                 cmd_found=true;
-            } else if (!strcasecmp_P(_argv[0].str, (prog_char_t*)"exit")) {
+            } else if (!strcasecmp_P(_argv[0].str, PSTR("exit"))) {
                 return;
             }
         }
 
         if (cmd_found==false)
         {
-            _port->println("Invalid command, type 'help'");
+            _port->println_P(PSTR("Invalid command, type 'help'"));
         }
 
     }
@@ -146,10 +149,10 @@ Menu::_help(void)
 {
     int i;
 
-    _port->println("Commands:");
+    _port->println_P(PSTR("Commands:"));
     for (i = 0; i < _entries; i++) {
-		delay(10);
-        _port->printf("  %s\n", _commands[i].command);
+		hal.scheduler->delay(10);
+        _port->printf_P(PSTR("  %S\n"), FPSTR(_commands[i].command));
 	}
 }
 
@@ -159,7 +162,6 @@ Menu::_call(uint8_t n, uint8_t argc)
 {
     func fn;
 
-    //fn = (func)pgm_read_pointer(&_commands[n].func);
-    fn = _commands[n].func;
+    fn = (func)pgm_read_pointer(&_commands[n].func);
     return(fn(argc, &_argv[0]));
 }

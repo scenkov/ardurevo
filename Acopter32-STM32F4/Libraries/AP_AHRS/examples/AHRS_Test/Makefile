@@ -1,4 +1,1 @@
-include ../../../AP_Common/Arduino.mk
-
-sitl:
-	make -f ../../../../libraries/Desktop/Desktop.mk
+include ../../../../mk/apm.mk

@@ -1,54 +1,42 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+#include <AP_HAL.h>
 #include "AP_InertialSensor_MPU6000.h"
-#include <HardwareSPI.h>
 
-static FastSerial *serPort;
-
-#ifdef AP_InertialSensor_MPU6000_DEBUG_ENABLE
-#pragma message "*** AP_InertialSensor_MPU6000 Debug Enabled ***"
-#define debug(fmt, args...) do { if (serPort != NULL) { serPort->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__ , ##args); delay(100); } } while(0)
-#else
-#define debug(fmt, args...)
-#endif
-#define notify(fmt, args...) do { if (serPort != NULL) { serPort->printf(fmt, ##args); delay(100); } } while(0)
-/* Inertial Sensors *********************************************/
-#define MPU6000_CS_PIN			77
-#define MPU6000_INT_PIN			99
+extern const AP_HAL::HAL& hal;
 
 // MPU6000 accelerometer scaling
 #define MPU6000_ACCEL_SCALE_1G    (GRAVITY / 4096.0)
 
-
 // MPU 6000 registers
-#define MPUREG_XG_OFFS_TC				0x00
-#define MPUREG_YG_OFFS_TC				0x01
-#define MPUREG_ZG_OFFS_TC				0x02
-#define MPUREG_X_FINE_GAIN				0x03
-#define MPUREG_Y_FINE_GAIN				0x04
-#define MPUREG_Z_FINE_GAIN				0x05
-#define MPUREG_XA_OFFS_H				0x06	// X axis accelerometer offset (high byte)
-#define MPUREG_XA_OFFS_L				0x07	// X axis accelerometer offset (low byte)
-#define MPUREG_YA_OFFS_H				0x08	// Y axis accelerometer offset (high byte)
-#define MPUREG_YA_OFFS_L				0x09	// Y axis accelerometer offset (low byte)
-#define MPUREG_ZA_OFFS_H				0x0A	// Z axis accelerometer offset (high byte)
-#define MPUREG_ZA_OFFS_L				0x0B	// Z axis accelerometer offset (low byte)
-#define MPUREG_PRODUCT_ID 				0x0C	// Product ID Register
-#define MPUREG_XG_OFFS_USRH 			0x13	// X axis gyro offset (high byte)
-#define MPUREG_XG_OFFS_USRL 			0x14	// X axis gyro offset (low byte)
-#define MPUREG_YG_OFFS_USRH 			0x15	// Y axis gyro offset (high byte)
-#define MPUREG_YG_OFFS_USRL 			0x16	// Y axis gyro offset (low byte)
-#define MPUREG_ZG_OFFS_USRH 			0x17	// Z axis gyro offset (high byte)
-#define MPUREG_ZG_OFFS_USRL 			0x18	// Z axis gyro offset (low byte)
-#define MPUREG_SMPLRT_DIV				0x19	// sample rate.  Fsample= 1Khz/(<this value>+1) = 200Hz
+#define MPUREG_XG_OFFS_TC                               0x00
+#define MPUREG_YG_OFFS_TC                               0x01
+#define MPUREG_ZG_OFFS_TC                               0x02
+#define MPUREG_X_FINE_GAIN                              0x03
+#define MPUREG_Y_FINE_GAIN                              0x04
+#define MPUREG_Z_FINE_GAIN                              0x05
+#define MPUREG_XA_OFFS_H                                0x06    // X axis accelerometer offset (high byte)
+#define MPUREG_XA_OFFS_L                                0x07    // X axis accelerometer offset (low byte)
+#define MPUREG_YA_OFFS_H                                0x08    // Y axis accelerometer offset (high byte)
+#define MPUREG_YA_OFFS_L                                0x09    // Y axis accelerometer offset (low byte)
+#define MPUREG_ZA_OFFS_H                                0x0A    // Z axis accelerometer offset (high byte)
+#define MPUREG_ZA_OFFS_L                                0x0B    // Z axis accelerometer offset (low byte)
+#define MPUREG_PRODUCT_ID                               0x0C    // Product ID Register
+#define MPUREG_XG_OFFS_USRH                     0x13    // X axis gyro offset (high byte)
+#define MPUREG_XG_OFFS_USRL                     0x14    // X axis gyro offset (low byte)
+#define MPUREG_YG_OFFS_USRH                     0x15    // Y axis gyro offset (high byte)
+#define MPUREG_YG_OFFS_USRL                     0x16    // Y axis gyro offset (low byte)
+#define MPUREG_ZG_OFFS_USRH                     0x17    // Z axis gyro offset (high byte)
+#define MPUREG_ZG_OFFS_USRL                     0x18    // Z axis gyro offset (low byte)
+#define MPUREG_SMPLRT_DIV                               0x19    // sample rate.  Fsample= 1Khz/(<this value>+1) = 200Hz
 #       define MPUREG_SMPLRT_1000HZ                             0x00
 #       define MPUREG_SMPLRT_500HZ                              0x01
 #       define MPUREG_SMPLRT_250HZ                              0x03
 #       define MPUREG_SMPLRT_200HZ                              0x04
 #       define MPUREG_SMPLRT_100HZ                              0x09
 #       define MPUREG_SMPLRT_50HZ                               0x13
-#define MPUREG_CONFIG						0x1A
-#define MPUREG_GYRO_CONFIG					0x1B
+#define MPUREG_CONFIG                                           0x1A
+#define MPUREG_GYRO_CONFIG                                      0x1B
 // bit definitions for MPUREG_GYRO_CONFIG
 #       define BITS_GYRO_FS_250DPS                              0x00
 #       define BITS_GYRO_FS_500DPS                              0x08
@@ -58,15 +46,16 @@ static FastSerial *serPort;
 #       define BITS_GYRO_ZGYRO_SELFTEST                 0x20
 #       define BITS_GYRO_YGYRO_SELFTEST                 0x40
 #       define BITS_GYRO_XGYRO_SELFTEST                 0x80
-#define MPUREG_ACCEL_CONFIG				0x1C
-#define MPUREG_MOT_THR					0x1F	// detection threshold for Motion interrupt generation.  Motion is detected when the absolute value of any of the accelerometer measurements exceeds this
-#define MPUREG_MOT_DUR					0x20	// duration counter threshold for Motion interrupt generation. The duration counter ticks at 1 kHz, therefore MOT_DUR has a unit of 1 LSB = 1 ms
-#define MPUREG_ZRMOT_THR				0x21	// detection threshold for Zero Motion interrupt generation.
-#define MPUREG_ZRMOT_DUR				0x22	// duration counter threshold for Zero Motion interrupt generation. The duration counter ticks at 16 Hz, therefore ZRMOT_DUR has a unit of 1 LSB = 64 ms.
-#define MPUREG_FIFO_EN					0x23
-#define MPUREG_INT_PIN_CFG				0x37
+#define MPUREG_ACCEL_CONFIG                             0x1C
+#define MPUREG_MOT_THR                                  0x1F    // detection threshold for Motion interrupt generation.  Motion is detected when the absolute value of any of the accelerometer measurements exceeds this
+#define MPUREG_MOT_DUR                                  0x20    // duration counter threshold for Motion interrupt generation. The duration counter ticks at 1 kHz, therefore MOT_DUR has a unit of 1 LSB = 1 ms
+#define MPUREG_ZRMOT_THR                                0x21    // detection threshold for Zero Motion interrupt generation.
+#define MPUREG_ZRMOT_DUR                                0x22    // duration counter threshold for Zero Motion interrupt generation. The duration counter ticks at 16 Hz, therefore ZRMOT_DUR has a unit of 1 LSB = 64 ms.
+#define MPUREG_FIFO_EN                                  0x23
+#define MPUREG_INT_PIN_CFG                              0x37
 #       define BIT_INT_RD_CLEAR                                 0x10    // clear the interrupt when any read occurs
-#define MPUREG_INT_ENABLE				0x38
+#       define BIT_LATCH_INT_EN                                 0x20    // latch data ready pin 
+#define MPUREG_INT_ENABLE                               0x38
 // bit definitions for MPUREG_INT_ENABLE
 #       define BIT_RAW_RDY_EN                                   0x01
 #       define BIT_DMP_INT_EN                                   0x02    // enabling this bit (DMP_INT_EN) also enables RAW_RDY_EN it seems
@@ -76,7 +65,7 @@ static FastSerial *serPort;
 #       define BIT_ZMOT_EN                                              0x20
 #       define BIT_MOT_EN                                               0x40
 #       define BIT_FF_EN                                                0x80
-#define MPUREG_INT_STATUS				0x3A
+#define MPUREG_INT_STATUS                               0x3A
 // bit definitions for MPUREG_INT_STATUS (same bit pattern as above because this register shows what interrupt actually fired)
 #       define BIT_RAW_RDY_INT                                  0x01
 #       define BIT_DMP_INT                                              0x02
@@ -86,31 +75,31 @@ static FastSerial *serPort;
 #       define BIT_ZMOT_INT                                             0x20
 #       define BIT_MOT_INT                                              0x40
 #       define BIT_FF_INT                                               0x80
-#define MPUREG_ACCEL_XOUT_H				0x3B
-#define MPUREG_ACCEL_XOUT_L				0x3C
-#define MPUREG_ACCEL_YOUT_H				0x3D
-#define MPUREG_ACCEL_YOUT_L				0x3E
-#define MPUREG_ACCEL_ZOUT_H				0x3F
-#define MPUREG_ACCEL_ZOUT_L				0x40
-#define MPUREG_TEMP_OUT_H				0x41
-#define MPUREG_TEMP_OUT_L				0x42
-#define MPUREG_GYRO_XOUT_H				0x43
-#define MPUREG_GYRO_XOUT_L				0x44
-#define MPUREG_GYRO_YOUT_H				0x45
-#define MPUREG_GYRO_YOUT_L				0x46
-#define MPUREG_GYRO_ZOUT_H				0x47
-#define MPUREG_GYRO_ZOUT_L				0x48
-#define MPUREG_USER_CTRL				0x6A
+#define MPUREG_ACCEL_XOUT_H                             0x3B
+#define MPUREG_ACCEL_XOUT_L                             0x3C
+#define MPUREG_ACCEL_YOUT_H                             0x3D
+#define MPUREG_ACCEL_YOUT_L                             0x3E
+#define MPUREG_ACCEL_ZOUT_H                             0x3F
+#define MPUREG_ACCEL_ZOUT_L                             0x40
+#define MPUREG_TEMP_OUT_H                               0x41
+#define MPUREG_TEMP_OUT_L                               0x42
+#define MPUREG_GYRO_XOUT_H                              0x43
+#define MPUREG_GYRO_XOUT_L                              0x44
+#define MPUREG_GYRO_YOUT_H                              0x45
+#define MPUREG_GYRO_YOUT_L                              0x46
+#define MPUREG_GYRO_ZOUT_H                              0x47
+#define MPUREG_GYRO_ZOUT_L                              0x48
+#define MPUREG_USER_CTRL                                0x6A
 // bit definitions for MPUREG_USER_CTRL
 #       define BIT_USER_CTRL_SIG_COND_RESET             0x01            // resets signal paths and results registers for all sensors (gyros, accel, temp)
 #       define BIT_USER_CTRL_I2C_MST_RESET              0x02            // reset I2C Master (only applicable if I2C_MST_EN bit is set)
 #       define BIT_USER_CTRL_FIFO_RESET                 0x04            // Reset (i.e. clear) FIFO buffer
 #       define BIT_USER_CTRL_DMP_RESET                  0x08            // Reset DMP
-#       define BIT_USER_CTRL_I2C_IF_DIS                 0x10            // Disable primary I2C interface and enable SPI interface
+#       define BIT_USER_CTRL_I2C_IF_DIS                 0x10            // Disable primary I2C interface and enable hal.spi->interface
 #       define BIT_USER_CTRL_I2C_MST_EN                 0x20            // Enable MPU to act as the I2C Master to external slave sensors
 #       define BIT_USER_CTRL_FIFO_EN                    0x40            // Enable FIFO operations
 #       define BIT_USER_CTRL_DMP_EN                             0x80            // Enable DMP operations
-#define MPUREG_PWR_MGMT_1				0x6B
+#define MPUREG_PWR_MGMT_1                               0x6B
 #       define BIT_PWR_MGMT_1_CLK_INTERNAL              0x00            // clock set to internal 8Mhz oscillator
 #       define BIT_PWR_MGMT_1_CLK_XGYRO                 0x01            // PLL with X axis gyroscope reference
 #       define BIT_PWR_MGMT_1_CLK_YGYRO                 0x02            // PLL with Y axis gyroscope reference
@@ -122,119 +111,124 @@ static FastSerial *serPort;
 #       define BIT_PWR_MGMT_1_CYCLE                             0x20            // put sensor into cycle mode.  cycles between sleep mode and waking up to take a single sample of data from active sensors at a rate determined by LP_WAKE_CTRL
 #       define BIT_PWR_MGMT_1_SLEEP                             0x40            // put sensor into low power sleep mode
 #       define BIT_PWR_MGMT_1_DEVICE_RESET              0x80            // reset entire device
-#define MPUREG_PWR_MGMT_2				0x6C		// allows the user to configure the frequency of wake-ups in Accelerometer Only Low Power Mode
-#define MPUREG_BANK_SEL					0x6D		// DMP bank selection register (used to indirectly access DMP registers)
-#define MPUREG_MEM_START_ADDR			0x6E		// DMP memory start address (used to indirectly write to dmp memory)
-#define MPUREG_MEM_R_W					0x6F		// DMP related register
-#define MPUREG_DMP_CFG_1				0x70		// DMP related register
-#define MPUREG_DMP_CFG_2				0x71		// DMP related register
-#define MPUREG_FIFO_COUNTH				0x72
-#define MPUREG_FIFO_COUNTL				0x73
-#define MPUREG_FIFO_R_W					0x74
-#define MPUREG_WHOAMI					0x75
+#define MPUREG_PWR_MGMT_2                               0x6C            // allows the user to configure the frequency of wake-ups in Accelerometer Only Low Power Mode
+#define MPUREG_BANK_SEL                                 0x6D            // DMP bank selection register (used to indirectly access DMP registers)
+#define MPUREG_MEM_START_ADDR                   0x6E            // DMP memory start address (used to indirectly write to dmp memory)
+#define MPUREG_MEM_R_W                                  0x6F            // DMP related register
+#define MPUREG_DMP_CFG_1                                0x70            // DMP related register
+#define MPUREG_DMP_CFG_2                                0x71            // DMP related register
+#define MPUREG_FIFO_COUNTH                              0x72
+#define MPUREG_FIFO_COUNTL                              0x73
+#define MPUREG_FIFO_R_W                                 0x74
+#define MPUREG_WHOAMI                                   0x75
 
 
 // Configuration bits MPU 3000 and MPU 6000 (not revised)?
-#define BITS_DLPF_CFG_256HZ_NOLPF2		0x00
-#define BITS_DLPF_CFG_188HZ				0x01
-#define BITS_DLPF_CFG_98HZ				0x02
-#define BITS_DLPF_CFG_42HZ				0x03
-#define BITS_DLPF_CFG_20HZ				0x04
-#define BITS_DLPF_CFG_10HZ				0x05
-#define BITS_DLPF_CFG_5HZ				0x06
-#define BITS_DLPF_CFG_2100HZ_NOLPF		0x07
-#define BITS_DLPF_CFG_MASK				0x07
+#define BITS_DLPF_CFG_256HZ_NOLPF2              0x00
+#define BITS_DLPF_CFG_188HZ                             0x01
+#define BITS_DLPF_CFG_98HZ                              0x02
+#define BITS_DLPF_CFG_42HZ                              0x03
+#define BITS_DLPF_CFG_20HZ                              0x04
+#define BITS_DLPF_CFG_10HZ                              0x05
+#define BITS_DLPF_CFG_5HZ                               0x06
+#define BITS_DLPF_CFG_2100HZ_NOLPF              0x07
+#define BITS_DLPF_CFG_MASK                              0x07
 
-											// Product ID Description for MPU6000
-											// high 4 bits 	low 4 bits
-											// Product Name	Product Revision
-#define MPU6000ES_REV_C4 			0x14 	// 0001			0100
-#define MPU6000ES_REV_C5 			0x15 	// 0001			0101
-#define MPU6000ES_REV_D6 			0x16	// 0001			0110
-#define MPU6000ES_REV_D7 			0x17	// 0001			0111
-#define MPU6000ES_REV_D8 			0x18	// 0001			1000	
-#define MPU6000_REV_C4 				0x54	// 0101			0100 
-#define MPU6000_REV_C5 				0x55	// 0101			0101
-#define MPU6000_REV_D6 				0x56	// 0101			0110	
-#define MPU6000_REV_D7 				0x57	// 0101			0111
-#define MPU6000_REV_D8 				0x58	// 0101			1000
-#define MPU6000_REV_D9 				0x59	// 0101			1001
+// Product ID Description for MPU6000
+// high 4 bits  low 4 bits
+// Product Name	Product Revision
+#define MPU6000ES_REV_C4                        0x14    // 0001			0100
+#define MPU6000ES_REV_C5                        0x15    // 0001			0101
+#define MPU6000ES_REV_D6                        0x16    // 0001			0110
+#define MPU6000ES_REV_D7                        0x17    // 0001			0111
+#define MPU6000ES_REV_D8                        0x18    // 0001			1000
+#define MPU6000_REV_C4                          0x54    // 0101			0100
+#define MPU6000_REV_C5                          0x55    // 0101			0101
+#define MPU6000_REV_D6                          0x56    // 0101			0110
+#define MPU6000_REV_D7                          0x57    // 0101			0111
+#define MPU6000_REV_D8                          0x58    // 0101			1000
+#define MPU6000_REV_D9                          0x59    // 0101			1001
 
 // DMP output rate constants
-#define MPU6000_200HZ				0x00    // default value
-#define MPU6000_100HZ				0x01
-#define MPU6000_66HZ				0x02
-#define MPU6000_50HZ				0x03
+#define MPU6000_200HZ                           0x00    // default value
+#define MPU6000_100HZ                           0x01
+#define MPU6000_66HZ                            0x02
+#define MPU6000_50HZ                            0x03
 
 // DMP FIFO constants
-#define FIFO_PACKET_SIZE 18            // Default quaternion FIFO size (4*4) + Footer(2)
-#define GYRO_BIAS_FROM_GRAVITY_RATE 4  // Rate of the gyro bias from gravity correction (200Hz/4) => 50Hz
-#define DEFAULT_ACCEL_FUSION_GAIN	0x80	// Default gain for accel fusion (with gyros)
+// Default quaternion FIFO size (4*4) + Footer(2)
+#define FIFO_PACKET_SIZE 18 
+// Rate of the gyro bias from gravity correction (200Hz/4) => 50Hz
+#define GYRO_BIAS_FROM_GRAVITY_RATE 4
+// Default gain for accel fusion (with gyros)
+#define DEFAULT_ACCEL_FUSION_GAIN       0x80
 
-HardwareSPI *AP_InertialSensor_MPU6000::_SPIx;
-
-uint8_t AP_InertialSensor_MPU6000::_cs_pin;
-
-/* 
-   RS-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
-   gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
-   32.8
-   65.4
+/*
+ *  RM-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
+ *  gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
  */
-
-const float AP_InertialSensor_MPU6000::_gyro_scale = (0.017453292519 / 32.8);
+const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 16.4);
 
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
  */
 const uint8_t AP_InertialSensor_MPU6000::_gyro_data_index[3]  = { 5, 4, 6 };
-const int8_t  AP_InertialSensor_MPU6000::_gyro_data_sign[3]   = { -1, -1, -1 };
+const int8_t AP_InertialSensor_MPU6000::_gyro_data_sign[3]   = { 1, 1, -1 };
 
 const uint8_t AP_InertialSensor_MPU6000::_accel_data_index[3] = { 1, 0, 2 };
-const int8_t  AP_InertialSensor_MPU6000::_accel_data_sign[3]  = { -1, -1, -1 };
+const int8_t AP_InertialSensor_MPU6000::_accel_data_sign[3]  = { 1, 1, -1 };
 
 const uint8_t AP_InertialSensor_MPU6000::_temp_data_index = 3;
 
 int16_t AP_InertialSensor_MPU6000::_mpu6000_product_id = AP_PRODUCT_ID_NONE;
+AP_HAL::DigitalSource *AP_InertialSensor_MPU6000::_drdy_pin = NULL;
 
-static volatile uint8_t _new_data;
-
-// variables to calculate time period over which a group of samples were collected
-static volatile uint32_t _delta_time_micros = 1;   // time period overwhich samples were collected (initialise to non-zero number but will be overwritten on 2nd read in any case)
-static volatile uint32_t _delta_time_start_micros = 0;  // time we start collecting sample (reset on update)
-static volatile uint32_t _last_sample_time_micros = 0;  // time latest sample was collected
+// variables to calculate time period over which a group of samples were
+// collected
+// time period overwhich samples were collected (initialise to non-zero
+// number but will be overwritten on 2nd read in any case)
+static volatile uint32_t _delta_time_micros = 1;
+// time we start collecting sample (reset on update)
+static volatile uint32_t _delta_time_start_micros = 0;
+// time latest sample was collected
+static volatile uint32_t _last_sample_time_micros = 0;
 
 // DMP related static variables
 bool AP_InertialSensor_MPU6000::_dmp_initialised = false;
-uint8_t AP_InertialSensor_MPU6000::_fifoCountH;			// high byte of number of elements in fifo buffer
-uint8_t AP_InertialSensor_MPU6000::_fifoCountL;			// low byte of number of elements in fifo buffer
-Quaternion AP_InertialSensor_MPU6000::quaternion;			// holds the 4 quaternions representing attitude taken directly from the DMP
+// high byte of number of elements in fifo buffer
+uint8_t AP_InertialSensor_MPU6000::_fifoCountH;
+// low byte of number of elements in fifo buffer
+uint8_t AP_InertialSensor_MPU6000::_fifoCountL;
+// holds the 4 quaternions representing attitude taken directly from the DMP
+Quaternion AP_InertialSensor_MPU6000::quaternion;
+
+/* Static SPI device driver */
+AP_HAL::SPIDeviceDriver* AP_InertialSensor_MPU6000::_spi = NULL;
+AP_HAL::Semaphore* AP_InertialSensor_MPU6000::_spi_sem = NULL;
 
 /*
- *  RS-MPU-6000A-00.pdf, page 31, section 4.23 lists LSB sensitivity of
+ *  RM-MPU-6000A-00.pdf, page 31, section 4.23 lists LSB sensitivity of
  *  accel as 4096 LSB/mg at scale factor of +/- 8g (AFS_SEL==2)
  *
  *  See note below about accel scaling of engineering sample MPU6k
  *  variants however
  */
 
-AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000( uint8_t cs_pin, HardwareSPI *spi_dev, FastSerial *ser_port)
+AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000()
 {
-  serPort = ser_port;
-  _cs_pin = cs_pin; /* can't use initializer list,  is static */
-  _temp = 0;
-  _initialised = false;
-  _dmp_initialised = false;
-  _SPIx = spi_dev;
-  //_scheduler = NULL;
+    _temp = 0;
+    _initialised = false;
+    _dmp_initialised = false;
 }
 
-uint16_t AP_InertialSensor_MPU6000::_init_sensor( AP_PeriodicProcess * scheduler, Sample_rate sample_rate )
+uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
 {
     if (_initialised) return _mpu6000_product_id;
     _initialised = true;
+    hal.scheduler->suspend_timer_procs();
     hardware_init(sample_rate);
-	return _mpu6000_product_id;
+    hal.scheduler->resume_timer_procs();
+    return _mpu6000_product_id;
 }
 
 // accumulation in ISR - must be read with interrupts disabled
@@ -246,48 +240,60 @@ static volatile uint16_t _count;
 
 /*================ AP_INERTIALSENSOR PUBLIC INTERFACE ==================== */
 
+void AP_InertialSensor_MPU6000::wait_for_sample()
+{
+    uint32_t tstart = hal.scheduler->micros();
+    while (num_samples_available() == 0) {
+        uint32_t now = hal.scheduler->micros();
+        uint32_t dt = now - tstart;
+        if (dt > 50000) {
+            hal.scheduler->panic(
+                    PSTR("PANIC: AP_InertialSensor_MPU6000::update "
+                        "waited 50ms for data from interrupt"));
+        }
+    }
+}
+
 bool AP_InertialSensor_MPU6000::update( void )
 {
     int32_t sum[7];
     uint16_t count;
     float count_scale;
-    Vector3f gyro_offset = _gyro_offset.get();
     Vector3f accel_scale = _accel_scale.get();
-    Vector3f accel_offset = _accel_offset.get();
 
-	// wait for at least 1 sample
-	if (_count == 0)
-		return false;
+    // wait for at least 1 sample
+    wait_for_sample();
 
-	// disable interrupts for mininum time
-	noInterrupts();
+    // disable timer procs for mininum time
+    hal.scheduler->suspend_timer_procs();
     for (int i=0; i<7; i++) {
         sum[i] = _sum[i];
         _sum[i] = 0;
     }
+
     count = _count;
     _count = 0;
 
     // record sample time
     _delta_time_micros = _last_sample_time_micros - _delta_time_start_micros;
     _delta_time_start_micros = _last_sample_time_micros;
-	interrupts();
+    hal.scheduler->resume_timer_procs();
 
-	count_scale = 1.0 / count;
+    count_scale = 1.0 / count;
 
     _gyro.x = _gyro_scale * _gyro_data_sign[0] * sum[_gyro_data_index[0]] * count_scale;
     _gyro.y = _gyro_scale * _gyro_data_sign[1] * sum[_gyro_data_index[1]] * count_scale;
     _gyro.z = _gyro_scale * _gyro_data_sign[2] * sum[_gyro_data_index[2]] * count_scale;
-    _gyro -= gyro_offset;
+    _gyro -= _gyro_offset;
 
     _accel.x = accel_scale.x * _accel_data_sign[0] * sum[_accel_data_index[0]] * count_scale * MPU6000_ACCEL_SCALE_1G;
     _accel.y = accel_scale.y * _accel_data_sign[1] * sum[_accel_data_index[1]] * count_scale * MPU6000_ACCEL_SCALE_1G;
     _accel.z = accel_scale.z * _accel_data_sign[2] * sum[_accel_data_index[2]] * count_scale * MPU6000_ACCEL_SCALE_1G;
-    _accel -= accel_offset;
+    _accel -= _accel_offset;
 
-	_temp    = _temp_to_celsius((uint16_t)(sum[_temp_data_index] * count_scale));
+    _temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
 
-	return true;
+    return true;
 }
 
 bool AP_InertialSensor_MPU6000::new_data_available( void )
@@ -301,35 +307,74 @@ float AP_InertialSensor_MPU6000::temperature() {
 
 /*================ HARDWARE FUNCTIONS ==================== */
 
-int16_t AP_InertialSensor_MPU6000::spi_transfer_16(void)
+/**
+ * Return true if the MPU6000 has new data available for reading.
+ *
+ * We use the data ready pin if it is available.  Otherwise, read the
+ * status register.
+ */
+bool AP_InertialSensor_MPU6000::_data_ready()
 {
-	uint8_t byte_H, byte_L;
-	byte_H = _SPIx->transfer(0);
-	byte_L = _SPIx->transfer(0);
-	return (((int16_t)byte_H)<<8) | byte_L;
+    if (_drdy_pin) {
+        return _drdy_pin->read() != 0;
+    } else {
+        uint8_t status;
+        bool success = _register_read_from_timerprocess(MPUREG_INT_STATUS,
+                &status);
+        return success && (status & BIT_RAW_RDY_INT) != 0;
+    }
+}
+
+/**
+ * Timer process to poll for new data from the MPU6000.
+ */
+void AP_InertialSensor_MPU6000::_poll_data(uint32_t now)
+{
+    if (_data_ready()) {
+        _read_data_from_timerprocess();
+    }
 }
 
 /*
-  this is called from a timer interrupt to read data from the MPU6000
-  and add it to _sum[]
+ *  this is called from the _poll_data, in the timer process context.
+ *  when the MPU6000 has new sensor data available and add it to _sum[] to
+ *  ensure this is the case, these other devices must perform their spi reads
+ *  after being called by the AP_TimerProcess.
  */
-void AP_InertialSensor_MPU6000::read(uint32_t )
+void AP_InertialSensor_MPU6000::_read_data_from_timerprocess()
 {
-    if (_new_data == 0) {
-        // no new data is ready from the MPU6000
+    static int semfail_ctr = 0;
+    bool got = _spi_sem->take_nonblocking();
+    if (!got) { 
+        semfail_ctr++;
+        if (semfail_ctr > 100) {
+            hal.scheduler->panic(PSTR("PANIC: failed to take SPI semaphore "
+                        "100 times in AP_InertialSensor_MPU6000::"
+                        "_read_data_from_timerprocess"));
+        }
         return;
-    }
-    _new_data = 0;
+    } else {
+        semfail_ctr = 0;
+    }   
 
-    // now read the data
-    digitalWrite(_cs_pin, LOW);
-    byte addr = MPUREG_ACCEL_XOUT_H | 0x80;
-    _SPIx->transfer(addr);
-    for (uint8_t i=0; i<7; i++) {
-        _sum[i] += spi_transfer_16();
-    }
+    _last_sample_time_micros = hal.scheduler->micros();
+    _read_data_transaction();
 
-    digitalWrite(_cs_pin, HIGH);
+    _spi_sem->give();
+}
+
+void AP_InertialSensor_MPU6000::_read_data_transaction() {
+    /* one resister address followed by seven 2-byte registers */
+    uint8_t tx[15];
+    uint8_t rx[15];
+    memset(tx,0,15);
+    tx[0] = MPUREG_ACCEL_XOUT_H | 0x80;
+    _spi->transaction(tx, rx, 15);
+    
+    for (uint8_t i = 0; i < 7; i++) {
+        _sum[i] += ((rx[2*i+1] << 8) | rx[2*i+2]);
+    }   
+    
     _count++;
     if (_count == 0) {
         // rollover - v unlikely
@@ -344,66 +389,83 @@ void AP_InertialSensor_MPU6000::read(uint32_t )
     }
 }
 
-void AP_InertialSensor_MPU6000::read()
+bool AP_InertialSensor_MPU6000::_register_read_from_timerprocess(
+        uint8_t reg , uint8_t *result )
 {
-	AP_InertialSensor_MPU6000::read((uint32_t)micros());
+    if (!_spi_sem->take_nonblocking()) {
+        return false;
+    }
+    *result = _register_read(reg);
+    _spi_sem->give();
+    return true;
 }
 
-uint8_t AP_InertialSensor_MPU6000::register_read( uint8_t reg )
+uint8_t AP_InertialSensor_MPU6000::_register_read( uint8_t reg )
 {
-  uint8_t return_value;
-  uint8_t addr = reg | 0x80; // Set most significant bit
+    uint8_t addr = reg | 0x80; // Set most significant bit
 
-  digitalWrite(_cs_pin, LOW);
+    uint8_t tx[2];
+    uint8_t rx[2];
 
-  _SPIx->transfer(addr);
-  return_value = _SPIx->transfer(0);
+    tx[0] = addr;
+    tx[1] = 0;
+    _spi->transaction(tx, rx, 2);
 
-  digitalWrite(_cs_pin, HIGH);
-
-  return return_value;
+    return rx[1];
 }
 
 void AP_InertialSensor_MPU6000::register_write(uint8_t reg, uint8_t val)
 {
-    digitalWrite(_cs_pin, LOW);
-    _SPIx->transfer(reg);
-    _SPIx->transfer(val);
-    digitalWrite(_cs_pin, HIGH);
-}
+    uint8_t tx[2];
+    uint8_t rx[2];
 
-// MPU6000 new data interrupt on INT6
-void AP_InertialSensor_MPU6000::data_interrupt(void)
-{
-    // record time that data was available
-    _last_sample_time_micros = micros();
-    _new_data = 1;
+    tx[0] = reg;
+    tx[1] = val;
+    _spi->transaction(tx, rx, 2);
 }
 
 void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 {
-	_SPIx->begin(SPI_1_125MHZ   ,MSBFIRST ,0);
+    _spi = hal.spi->device(AP_HAL::SPIDevice_MPU6000);
+    _spi_sem = _spi->get_semaphore();
 
-	// MPU6000 chip select setup
-    pinMode(_cs_pin, OUTPUT);
-    digitalWrite(_cs_pin, HIGH);
-    delay(1);
+    /* Pin 70 defined especially to hook
+       up PE6 to the hal.gpio abstraction.
+       (It is not a valid pin under Arduino.) */
+    _drdy_pin = hal.gpio->channel(70);
 
+reset_chip:
     // Chip reset
-    register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
-    delay(100);
-    // Wake up device and select GyroZ clock (better performance)
-    register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_CLK_ZGYRO);
-    delay(1);
+    uint8_t tries;
+    for (tries = 0; tries<5; tries++) {
+        register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
+        hal.scheduler->delay(100);
 
-	register_write(MPUREG_PWR_MGMT_2, 0x00);	// only used for wake-up in accelerometer only low power mode
-	delay(1);
+        // Wake up device and select GyroZ clock. Note that the
+        // MPU6000 starts up in sleep mode, and it can take some time
+        // for it to come out of sleep
+        register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_CLK_ZGYRO);
+        hal.scheduler->delay(5);
+
+        // check it has woken up
+        if (_register_read(MPUREG_PWR_MGMT_1) == BIT_PWR_MGMT_1_CLK_ZGYRO) {
+            break;
+        }
+    }
+    if (tries == 5) {
+        hal.console->println_P(PSTR("Failed to boot MPU6000 - retrying"));
+        goto reset_chip;
+    }
+
+    register_write(MPUREG_PWR_MGMT_2, 0x00);            // only used for wake-up in accelerometer only low power mode
+    hal.scheduler->delay(1);
 
     // Disable I2C bus (recommended on datasheet)
     register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
-    delay(1);
+    hal.scheduler->delay(1);
 
     uint8_t rate, filter, default_filter;
+    uint8_t msec_per_sample;
 
     // sample rate and filtering
     // to minimise the effects of aliasing we choose a filter
@@ -412,19 +474,18 @@ void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     case RATE_50HZ:
         rate = MPUREG_SMPLRT_50HZ;
         default_filter = BITS_DLPF_CFG_20HZ;
+        msec_per_sample = 20;
         break;
     case RATE_100HZ:
         rate = MPUREG_SMPLRT_100HZ;
         default_filter = BITS_DLPF_CFG_42HZ;
+        msec_per_sample = 10;
         break;
     case RATE_200HZ:
-        rate = MPUREG_SMPLRT_200HZ;
-        default_filter = BITS_DLPF_CFG_98HZ;
-        break;
-    case RATE_1000HZ:
     default:
-        rate = MPUREG_SMPLRT_1000HZ;
-        default_filter = BITS_DLPF_CFG_98HZ;
+        rate = MPUREG_SMPLRT_200HZ;
+        default_filter = BITS_DLPF_CFG_42HZ;
+        msec_per_sample = 5;
         break;
     }
     
@@ -454,47 +515,74 @@ void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 
     // set sample rate
     register_write(MPUREG_SMPLRT_DIV, rate);
-    delay(1);
+    hal.scheduler->delay(1);
 
     // set low pass filter
     register_write(MPUREG_CONFIG, filter);
-    delay(1);
-    register_write(MPUREG_GYRO_CONFIG,BITS_GYRO_FS_1000DPS);  // Gyro scale 2000°/s
-    delay(1);
-	
-	_mpu6000_product_id = register_read(MPUREG_PRODUCT_ID); // read the product ID rev c has 1/2 the sensitivity of rev d
-	//Serial.printf("Product_ID= 0x%x\n", (unsigned) _product_id);
-	
-	if ((_mpu6000_product_id == MPU6000ES_REV_C4) || (_mpu6000_product_id == MPU6000ES_REV_C5) ||
-		(_mpu6000_product_id == MPU6000_REV_C4)   || (_mpu6000_product_id == MPU6000_REV_C5)){
-		// Accel scale 8g (4096 LSB/g)
-		// Rev C has different scaling than rev D
-		register_write(MPUREG_ACCEL_CONFIG,1<<3);
-	} else {
-		// Accel scale 8g (4096 LSB/g)
-		register_write(MPUREG_ACCEL_CONFIG,2<<3);
-	}
-    delay(1);
+    hal.scheduler->delay(1);
 
-    register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);			// configure interrupt to fire when new data arrives
-    delay(1);
-    register_write(MPUREG_INT_PIN_CFG,BIT_INT_RD_CLEAR);  // INT: Clear on any read
-    delay(1);
+    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
+    hal.scheduler->delay(1);
 
-    attachInterrupt(99,data_interrupt,RISING);
-    delay(2);
-	// initialise DMP.  Should we only do this when we know we want to use the DMP for attitude sensing as well?
-	//dmp_init();
+    // read the product ID rev c has 1/2 the sensitivity of rev d
+    _mpu6000_product_id = _register_read(MPUREG_PRODUCT_ID);
+    //Serial.printf("Product_ID= 0x%x\n", (unsigned) _mpu6000_product_id);
 
+    if ((_mpu6000_product_id == MPU6000ES_REV_C4) || (_mpu6000_product_id == MPU6000ES_REV_C5) ||
+        (_mpu6000_product_id == MPU6000_REV_C4)   || (_mpu6000_product_id == MPU6000_REV_C5)) {
+        // Accel scale 8g (4096 LSB/g)
+        // Rev C has different scaling than rev D
+        register_write(MPUREG_ACCEL_CONFIG,1<<3);
+    } else {
+        // Accel scale 8g (4096 LSB/g)
+        register_write(MPUREG_ACCEL_CONFIG,2<<3);
+    }
+    hal.scheduler->delay(1);
 
-    _SPIx->begin(SPI_9MHZ, MSBFIRST, 0);
+    // configure interrupt to fire when new data arrives
+    register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);
+    hal.scheduler->delay(1);
+
+    // clear interrupt on any read, and hold the data ready pin high
+    // until we clear the interrupt
+    register_write(MPUREG_INT_PIN_CFG, BIT_INT_RD_CLEAR | BIT_LATCH_INT_EN);               
+    hal.scheduler->delay(1);
+
+    // wait for enough time that we should get a sample
+    hal.scheduler->delay(msec_per_sample+2);
+
+    if (!_data_ready()) {
+        // we didn't get a sample - run the whole chip setup
+        // again. This sometimes happens after a DTR reset or warm
+        // boot of the board
+        hal.console->println_P(PSTR("MPU6000 startup reset"));
+        goto reset_chip;
+    }
+
+    /* read the first lot of data.
+     * _read_data_transaction requires the spi semaphore to be taken by
+     * its caller. */
+    if (!_spi_sem->take(20)) {
+        hal.scheduler->panic(PSTR("PANIC: could not take _spi_sem to read "
+                    "first MPU6000 sample"));
+        return; /* never reached */
+    }
+    _last_sample_time_micros = hal.scheduler->micros();
+    _read_data_transaction();
+    _spi_sem->give();
+
+    // start the timer process to read samples
+    hal.scheduler->register_timer_process(_poll_data);
+
+#if MPU6000_DEBUG
+    _dump_registers();
+#endif
 }
 
 float AP_InertialSensor_MPU6000::_temp_to_celsius ( uint16_t regval )
 {
-	float temp;
-	temp = ((float)regval / 361.0) + 35.0;
-    return (temp);
+    /* TODO */
+    return 20.0;
 }
 
 // return the MPU6k gyro drift rate in radian/s/s
@@ -511,11 +599,29 @@ uint16_t AP_InertialSensor_MPU6000::num_samples_available()
     return _count;
 }
 
+
+#if MPU6000_DEBUG
+// dump all config registers - used for debug
+void AP_InertialSensor_MPU6000::_dump_registers(void)
+{
+    for (uint8_t reg=25; reg<=108; reg++) {
+        uint8_t v = _register_read(reg);
+        hal.console->printf_P(PSTR("%02x:%02x "), (unsigned)reg, (unsigned)v);
+        if ((reg - 24) % 16 == 0) {
+            hal.console->println();
+        }
+    }
+    hal.console->println();
+}
+#endif
+
+
 // get_delta_time returns the time period in seconds overwhich the sensor data was collected
 uint32_t AP_InertialSensor_MPU6000::get_delta_time_micros() 
 {
     return _delta_time_micros;
 }
+
 // Update gyro offsets with new values.  Offsets provided in as scaled deg/sec values
 void AP_InertialSensor_MPU6000::push_gyro_offsets_to_dmp()
 {
@@ -542,21 +648,21 @@ void AP_InertialSensor_MPU6000::set_dmp_gyro_offsets(int16_t offsetX, int16_t of
 
     if (offsetX != 0) {
         // Read actual value
-        aux_int = (register_read(MPUREG_XG_OFFS_USRH)<<8) | register_read(MPUREG_XG_OFFS_USRL);
+        aux_int = (_register_read(MPUREG_XG_OFFS_USRH)<<8) | _register_read(MPUREG_XG_OFFS_USRL);
         aux_int -= offsetX<<1;           // Adjust to internal units
         // Write to MPU registers
         register_write(MPUREG_XG_OFFS_USRH, (aux_int>>8)&0xFF);
         register_write(MPUREG_XG_OFFS_USRL, aux_int&0xFF);
     }
     if (offsetY != 0) {
-        aux_int = (register_read(MPUREG_YG_OFFS_USRH)<<8) | register_read(MPUREG_YG_OFFS_USRL);
+        aux_int = (_register_read(MPUREG_YG_OFFS_USRH)<<8) | _register_read(MPUREG_YG_OFFS_USRL);
         aux_int -= offsetY<<1;           // Adjust to internal units
         // Write to MPU registers
         register_write(MPUREG_YG_OFFS_USRH, (aux_int>>8)&0xFF);
         register_write(MPUREG_YG_OFFS_USRL, aux_int&0xFF);
     }
     if (offsetZ != 0) {
-        aux_int = (register_read(MPUREG_ZG_OFFS_USRH)<<8) | register_read(MPUREG_ZG_OFFS_USRL);
+        aux_int = (_register_read(MPUREG_ZG_OFFS_USRH)<<8) | _register_read(MPUREG_ZG_OFFS_USRL);
         aux_int -= offsetZ<<1;           // Adjust to internal units
         // Write to MPU registers
         register_write(MPUREG_ZG_OFFS_USRH, (aux_int>>8)&0xFF);
@@ -612,12 +718,13 @@ void AP_InertialSensor_MPU6000::dmp_register_write(uint8_t bank, uint8_t address
 {
     register_write(MPUREG_BANK_SEL,bank);
     register_write(MPUREG_MEM_START_ADDR,address);
-    digitalWrite(_cs_pin, LOW);
-    _SPIx->transfer(MPUREG_MEM_R_W);
-  for (uint8_t i=0; i<num_bytes; i++) {
-        _SPIx->transfer(data[i]);
-  }
-  digitalWrite(_cs_pin, HIGH);
+
+    _spi->cs_assert();
+    _spi->transfer(MPUREG_MEM_R_W);
+    for (uint8_t i=0; i<num_bytes; i++) {
+        _spi->transfer(data[i]);
+    }
+    _spi->cs_release();
 }
 
 // MPU6000 DMP initialization
@@ -694,8 +801,8 @@ void AP_InertialSensor_MPU6000::dmp_reset()
 // New data packet in FIFO?
 bool AP_InertialSensor_MPU6000::FIFO_ready()
 {
-    _fifoCountH = register_read(MPUREG_FIFO_COUNTH);
-    _fifoCountL = register_read(MPUREG_FIFO_COUNTL);
+    _fifoCountH = _register_read(MPUREG_FIFO_COUNTH);
+    _fifoCountL = _register_read(MPUREG_FIFO_COUNTL);
     if(_fifoCountL == FIFO_PACKET_SIZE) {
         return 1;
     }
@@ -710,10 +817,9 @@ bool AP_InertialSensor_MPU6000::FIFO_ready()
 void AP_InertialSensor_MPU6000::FIFO_reset()
 {
     uint8_t temp;
-    temp = register_read(MPUREG_USER_CTRL);
+    temp = _register_read(MPUREG_USER_CTRL);
     temp = temp | BIT_USER_CTRL_FIFO_RESET;             // FIFO RESET BIT
     register_write(MPUREG_USER_CTRL, temp);
-	_new_data = 0;								// clear new data flag
 }
 
 // FIFO_getPacket - read an attitude packet from FIFO buffer
@@ -724,12 +830,12 @@ void AP_InertialSensor_MPU6000::FIFO_getPacket()
     int16_t q_long[4];
     uint8_t addr = MPUREG_FIFO_R_W | 0x80;      // Set most significant bit to indicate a read
     uint8_t received_packet[DMP_FIFO_BUFFER_SIZE];    // FIFO packet buffer
-	digitalWrite(_cs_pin, LOW);				// enable the device
-	_SPIx->transfer(addr);				// send address we want to read from
+    _spi->cs_assert();
+    _spi->transfer(addr);                                 // send address we want to read from
     for(i = 0; i < _fifoCountL; i++) {
-		received_packet[i] = _SPIx->transfer(0);	// request value
+        received_packet[i] = _spi->transfer(0);          // request value
     }
-	digitalWrite(_cs_pin, HIGH);				// disable device
+    _spi->cs_release();
 
     // we are using 16 bits resolution
     q_long[0] = (int16_t) ((((uint16_t) received_packet[0]) << 8) + ((uint16_t) received_packet[1]));
@@ -913,62 +1019,63 @@ void AP_InertialSensor_MPU6000::dmp_set_fifo_rate(uint8_t rate)
 // The official invensense name is inv_key_0_96 (??)
 void AP_InertialSensor_MPU6000::dmp_set_sensor_fusion_accel_gain(uint8_t gain)
 {
-	//inv_key_0_96
-	register_write(MPUREG_BANK_SEL,0x00);
-	register_write(MPUREG_MEM_START_ADDR, 0x60);
-	digitalWrite(_cs_pin, LOW);
-	_SPIx->transfer(MPUREG_MEM_R_W);
-	_SPIx->transfer(0x00);
-	_SPIx->transfer(gain);  // Original : 0x80    To test: 0x40,  0x20 (too less)
-	_SPIx->transfer(0x00);
-	_SPIx->transfer(0x00);
-	digitalWrite(_cs_pin, HIGH);
+    //inv_key_0_96
+    register_write(MPUREG_BANK_SEL,0x00);
+    register_write(MPUREG_MEM_START_ADDR, 0x60);
+    _spi->cs_assert();
+    _spi->transfer(MPUREG_MEM_R_W);
+    _spi->transfer(0x00);
+    _spi->transfer(gain);      // Original : 0x80    To test: 0x40,  0x20 (too less)
+    _spi->transfer(0x00);
+    _spi->transfer(0x00);
+    _spi->cs_release();
 }
 
 // Load initial memory values into DMP memory banks
 void AP_InertialSensor_MPU6000::dmp_load_mem()
 {
-	for(int i = 0; i < 7; i++) {
-		register_write(MPUREG_BANK_SEL,i);      //MPUREG_BANK_SEL
-		for(uint8_t j = 0; j < 16; j++){
-			uint8_t start_addy = j * 0x10;
-			register_write(MPUREG_MEM_START_ADDR,start_addy);
-			digitalWrite(_cs_pin, LOW);
-			_SPIx->transfer(MPUREG_MEM_R_W);
-			for(int k = 0; k < 16; k++){
-				uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[i][j][k]));
-				_SPIx->transfer((uint8_t) byteToSend);
-			}
-			digitalWrite(_cs_pin, HIGH);
-		}
-	}
 
-	register_write(MPUREG_BANK_SEL,7);      //MPUREG_BANK_SEL
-	for(uint8_t j = 0; j < 8; j++){
-		uint8_t start_addy = j * 0x10;
-		register_write(MPUREG_MEM_START_ADDR,start_addy);
-		digitalWrite(_cs_pin, LOW);
-		_SPIx->transfer(MPUREG_MEM_R_W);
-		for(int k = 0; k < 16; k++){
-			uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[7][j][k]));
-			_SPIx->transfer((uint8_t) byteToSend);
-		}
-		digitalWrite(_cs_pin, HIGH);
-	}
+    for(int i = 0; i < 7; i++) {
+        register_write(MPUREG_BANK_SEL,i);              //MPUREG_BANK_SEL
+        for(uint8_t j = 0; j < 16; j++) {
+            uint8_t start_addy = j * 0x10;
+            register_write(MPUREG_MEM_START_ADDR,start_addy);
+            _spi->cs_assert();
+            _spi->transfer(MPUREG_MEM_R_W);
+            for(int k = 0; k < 16; k++) {
+                uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[i][j][k]));
+                _spi->transfer((uint8_t) byteToSend);
+            }
+            _spi->cs_release();
+        }
+    }
 
-	register_write(MPUREG_MEM_START_ADDR,0x80);
-	digitalWrite(_cs_pin, LOW);
-	_SPIx->transfer(MPUREG_MEM_R_W);
-	for(int k = 0; k < 9; k++){
-		uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[7][8][k]));
-		_SPIx->transfer((uint8_t) byteToSend);
-	}
-	digitalWrite(_cs_pin, HIGH);
+    register_write(MPUREG_BANK_SEL,7);          //MPUREG_BANK_SEL
+    for(uint8_t j = 0; j < 8; j++) {
+        uint8_t start_addy = j * 0x10;
+        register_write(MPUREG_MEM_START_ADDR,start_addy);
+        _spi->cs_assert();
+        _spi->transfer(MPUREG_MEM_R_W);
+        for(int k = 0; k < 16; k++) {
+            uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[7][j][k]));
+            _spi->transfer((uint8_t) byteToSend);
+        }
+        _spi->cs_release();
+    }
+
+    register_write(MPUREG_MEM_START_ADDR,0x80);
+    _spi->cs_assert();
+    _spi->transfer(MPUREG_MEM_R_W);
+    for(int k = 0; k < 9; k++) {
+        uint8_t byteToSend = pgm_read_byte((const prog_char *)&(dmpMem[7][8][k]));
+        _spi->transfer((uint8_t) byteToSend);
+    }
+    _spi->cs_release();
 }
 
 // ========= DMP MEMORY ================================
 
-const uint8_t dmpMem[8][16][16] = {
+const uint8_t dmpMem[8][16][16] PROGMEM = {
     {
         {
             0xFB, 0x00, 0x00, 0x3E, 0x00, 0x0B, 0x00, 0x36, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00

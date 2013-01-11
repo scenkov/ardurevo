@@ -1,20 +1,22 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
-    APM_Airspeed.cpp - airspeed (pitot) driver
+ *   APM_Airspeed.cpp - airspeed (pitot) driver
+ *
+ *   This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public License
+ *   as published by the Free Software Foundation; either version 2.1
+ *   of the License, or (at your option) any later version.
+ */
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public License
-    as published by the Free Software Foundation; either version 2.1
-    of the License, or (at your option) any later version.
-*/
-
+#include <AP_Math.h>
 #include <AP_Common.h>
+#include <AP_HAL.h>
 #include <AP_Airspeed.h>
-#include <FastSerial.h>
-#include <LowPassFilter.h>
+
+extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters
-const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
+const AP_Param::GroupInfo AP_Airspeed::var_info[] PROGMEM = {
 
     // @Param: ENABLE
     // @DisplayName: Airspeed enable
@@ -45,17 +47,17 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
 
 // calibrate the airspeed. This must be called at least once before
 // the get_airspeed() interface can be used
-void AP_Airspeed::calibrate(void (*callback)(unsigned long t))
+void AP_Airspeed::calibrate()
 {
     float sum = 0;
     uint8_t c;
     if (!_enable) {
         return;
     }
-    _source->read();
+    _source->read_average();
     for (c = 0; c < 10; c++) {
-        callback(100);
-        sum += _source->read();
+        hal.scheduler->delay(100);
+        sum += _source->read_average();
     }
     _airspeed_raw = sum/c;
     _offset.set_and_save(_airspeed_raw);
@@ -69,7 +71,8 @@ void AP_Airspeed::read(void)
     if (!_enable) {
         return;
     }
-    _airspeed_raw           = _source->read();
-    airspeed_pressure       = max((_airspeed_raw - _offset), 0);
-    _airspeed               = 0.7 * _airspeed + 0.3 * sqrt(airspeed_pressure * _ratio);
+    _airspeed_raw           = _source->read_average();
+    airspeed_pressure       = max(_airspeed_raw - _offset, 0);
+    _airspeed               = 0.7 * _airspeed +
+                              0.3 * sqrt(airspeed_pressure * _ratio);
 }

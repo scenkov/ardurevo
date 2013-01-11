@@ -1,20 +1,20 @@
 /*
-	AP_MotorsOcta.cpp - ArduCopter motors library
-	Code by RandyMackay. DIYDrones.com
-
-	This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-*/
+ *       AP_MotorsOcta.cpp - ArduCopter motors library
+ *       Code by RandyMackay. DIYDrones.com
+ *
+ *       This library is free software; you can redistribute it and/or
+ *   modify it under the terms of the GNU Lesser General Public
+ *   License as published by the Free Software Foundation; either
+ *   version 2.1 of the License, or (at your option) any later version.
+ */
 
 #include "AP_MotorsOcta.h"
 
 // setup_motors - configures the motors for a octa
 void AP_MotorsOcta::setup_motors()
 {
-	// call parent
-	AP_MotorsMatrix::setup_motors();
+    // call parent
+    AP_MotorsMatrix::setup_motors();
 
     // hard coded config for supported frames
     if( _frame_orientation == AP_MOTORS_PLUS_FRAME ) {

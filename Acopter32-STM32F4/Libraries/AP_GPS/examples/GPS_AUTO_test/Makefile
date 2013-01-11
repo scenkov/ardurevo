@@ -1,2 +1,1 @@
-BOARD	=	mega
-include ../../../AP_Common/Arduino.mk
+include ../../../../mk/apm.mk

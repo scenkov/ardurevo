@@ -6,28 +6,25 @@
 /// @author Andrew Tridgell
 ///         Andreas Antonopoulos
 
-#include <AP_Limits.h>
-#include <AP_Limit_Module.h>
+#ifndef __AP_LIMIT_GPSLOCK_H__
+#define __AP_LIMIT_GPSLOCK_H__
 
-#ifndef GPS_h
+#include "AP_Limits.h"
+#include "AP_Limit_Module.h"
+
 #include <GPS.h>
-#endif
 
-#ifndef AP_Limit_GPSLock_H
-#define  AP_Limit_GPSLock_H
-#endif  // AP_Limit_GPSLock_H
-
-class AP_Limit_GPSLock: public AP_Limit_Module {
+class AP_Limit_GPSLock : public AP_Limit_Module {
 
 public:
-	AP_Limit_GPSLock(GPS *&gps);
-	bool init();
-	bool triggered();
+    AP_Limit_GPSLock(GPS *&gps);
+    bool        init();
+    bool        triggered();
 
-	static const struct AP_Param::GroupInfo var_info[];
+    static const struct AP_Param::GroupInfo         var_info[];
 
 protected:
-	GPS			*&_gps;
-
-
+    GPS *&                                          _gps;
 };
+
+#endif // __AP_LIMIT_GPSLOCK_H__

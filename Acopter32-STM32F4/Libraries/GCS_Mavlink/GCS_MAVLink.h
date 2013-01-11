@@ -6,11 +6,19 @@
 #ifndef GCS_MAVLink_h
 #define GCS_MAVLink_h
 
-#include <BetterStream.h>
+#include <AP_HAL.h>
+#include <AP_Param.h>
 
 // we have separate helpers disabled to make it possible
 // to select MAVLink 1.0 in the arduino GUI build
 #define MAVLINK_SEPARATE_HELPERS
+
+#define MAVLINK_SEND_UART_BYTES(chan, buf, len) comm_send_buffer(chan, buf, len)
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#include <util/crc16.h>
+#define HAVE_CRC_ACCUMULATE
+#endif
 
 #include "include/mavlink/v1.0/ardupilotmega/version.h"
 
@@ -23,10 +31,10 @@
 #include "include/mavlink/v1.0/mavlink_types.h"
 
 /// MAVLink stream used for HIL interaction
-extern BetterStream	*mavlink_comm_0_port;
+extern AP_HAL::BetterStream	*mavlink_comm_0_port;
 
 /// MAVLink stream used for ground control communication
-extern BetterStream	*mavlink_comm_1_port;
+extern AP_HAL::BetterStream	*mavlink_comm_1_port;
 
 /// MAVLink system definition
 extern mavlink_system_t mavlink_system;
@@ -49,6 +57,8 @@ static inline void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
 		break;
 	}
 }
+
+void comm_send_buffer(mavlink_channel_t chan, const uint8_t *buf, uint8_t len);
 
 /// Read a byte from the nominated MAVLink channel
 ///
@@ -78,7 +88,7 @@ static inline uint8_t comm_receive_ch(mavlink_channel_t chan)
 /// @returns		Number of bytes available
 static inline uint16_t comm_get_available(mavlink_channel_t chan)
 {
-    uint16_t bytes = 0;
+    int16_t bytes = 0;
     switch(chan) {
 	case MAVLINK_COMM_0:
 		bytes = mavlink_comm_0_port->available();
@@ -89,7 +99,10 @@ static inline uint16_t comm_get_available(mavlink_channel_t chan)
 	default:
 		break;
 	}
-    return bytes;
+	if (bytes == -1) {
+		return 0;
+	}
+    return (uint16_t)bytes;
 }
 
 
@@ -115,6 +128,15 @@ static inline uint16_t comm_get_txspace(mavlink_channel_t chan)
 	}
     return (uint16_t)ret;
 }
+
+#ifdef HAVE_CRC_ACCUMULATE
+// use the AVR C library implementation. This is a bit over twice as
+// fast as the C version
+static inline void crc_accumulate(uint8_t data, uint16_t *crcAccum)
+{
+	*crcAccum = _crc_ccitt_update(*crcAccum, data);
+}
+#endif
 
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 #include "include/mavlink/v1.0/ardupilotmega/mavlink.h"

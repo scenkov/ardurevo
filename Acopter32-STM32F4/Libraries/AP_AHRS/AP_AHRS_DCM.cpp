@@ -14,7 +14,9 @@
  *       of the License, or (at your option) any later version.
  */
 #include <AP_AHRS.h>
-#include <FastSerial.h>
+#include <AP_HAL.h>
+
+extern const AP_HAL::HAL& hal;
 
 // this is the speed in cm/s above which we first get a yaw lock with
 // the GPS
@@ -119,7 +121,6 @@ AP_AHRS_DCM::check_matrix(void)
 {
     if (_dcm_matrix.is_nan()) {
         //Serial.printf("ERROR: DCM matrix NAN\n");
-        SITL_debug("ERROR: DCM matrix NAN\n");
         renorm_blowup_count++;
         reset(true);
         return;
@@ -140,8 +141,6 @@ AP_AHRS_DCM::check_matrix(void)
             // in real trouble. All we can do is reset
             //Serial.printf("ERROR: DCM matrix error. _dcm_matrix.c.x=%f\n",
             //	   _dcm_matrix.c.x);
-            SITL_debug("ERROR: DCM matrix error. _dcm_matrix.c.x=%f\n",
-                       _dcm_matrix.c.x);
             renorm_blowup_count++;
             reset(true);
         }
@@ -189,8 +188,6 @@ AP_AHRS_DCM::renorm(Vector3f const &a, Vector3f &result)
             // correction before we hit the ground!
             //Serial.printf("ERROR: DCM renormalisation error. renorm_val=%f\n",
             //	   renorm_val);
-            SITL_debug("ERROR: DCM renormalisation error. renorm_val=%f\n",
-                       renorm_val);
             renorm_blowup_count++;
             return false;
         }
@@ -431,7 +428,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
         // add in wind estimate
         velocity += _wind;
 
-        last_correction_time = millis();
+        last_correction_time = hal.scheduler->millis();
         _have_gps_lock = false;
 
         // update position delta for get_position()
@@ -488,7 +485,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
     // equation 9: get the corrected acceleration vector in earth frame. Units
     // are m/s/s
     Vector3f GA_e;
-    float v_scale = gps_gain.get()/(_ra_deltat*_gravity);
+    float v_scale = gps_gain.get()/(_ra_deltat*GRAVITY_MSS);
     Vector3f vdelta = (velocity - _last_velocity) * v_scale;
     // limit vertical acceleration correction to 0.5 gravities. The
     // barometer sometimes gives crazy acceleration changes. 
@@ -501,7 +498,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
     }
 
     // calculate the error term in earth frame.
-    Vector3f GA_b = _ra_sum / (_ra_deltat * _gravity);
+    Vector3f GA_b = _ra_sum / (_ra_deltat * GRAVITY_MSS);
     float length = GA_b.length();
     if (length > 1.0) {
         GA_b /= length;
@@ -518,7 +515,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
     float earth_error_Z = error.z;
 
     // equation 10
-    float tilt = sqrt(sq(GA_e.x) + sq(GA_e.y));
+    float tilt = pythagorous2(GA_e.x, GA_e.y);
 
     // equation 11
     float theta = atan2(GA_b.y, GA_b.x);
@@ -609,7 +606,7 @@ void AP_AHRS_DCM::estimate_wind(Vector3f &velocity)
     // See http://gentlenav.googlecode.com/files/WindEstimation.pdf
     Vector3f fuselageDirection = _dcm_matrix.colx();
     Vector3f fuselageDirectionDiff = fuselageDirection - _last_fuse;
-    uint32_t now = millis();
+    uint32_t now = hal.scheduler->millis();
 
     // scrap our data and start over if we're taking too long to get a direction change
     if (now - _last_wind_time > 10000) {
