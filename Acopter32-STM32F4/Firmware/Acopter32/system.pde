@@ -82,7 +82,6 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         // now is to delay for 1 second. Something more elegant may be
         // added later
 	SerialUSB.end();
-        delay(1000);
     } else {
         cliSerial->flush();
         cliSerial = &SerialUSB;
@@ -91,6 +90,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     
 #endif
 
+    delay(5000);
     // Console serial port
     //
     // The console port buffers are defined to be sufficiently large to support

@@ -48,6 +48,7 @@ AP_GPS_UBLOX::init(enum GPS_Engine_Setting nav_setting)
 
     _epoch = TIME_OF_WEEK;
     idleTimeout = 1200;
+    _step = 0;
 
     // configure the GPS for the messages we want
     _configure_gps();
