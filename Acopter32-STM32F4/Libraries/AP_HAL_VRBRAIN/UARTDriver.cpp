@@ -1,7 +1,7 @@
 /*
  * UARTDriver.cpp --- AP_HAL_VRBRAIN UART driver.
  *
- * Copyright (C) 2012, Galois, Inc.
+ * Copyright (C) 2013, Virtualrobotix.com Roberto Navoni , Emile 
  * All Rights Reserved.
  *
  * This software is released under the "BSD3" license.  Read the file

@@ -2,13 +2,13 @@
 /*
  * Scheduler.cpp --- AP_HAL_VRBRAIN scheduler.
  *
- * Copyright (C) 2012, Galois, Inc.
+ * Copyright (C) 2013, Virtualrobotix.com Roberto Navoni , Emile 
  * All Rights Reserved.
  *
  * This software is released under the "BSD3" license.  Read the file
  * "LICENSE" for more information.
  *
- * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
+ * Written by Roberto Navoni  <info@virtualrobotix.com>, 11 January 2013
  */
 
 #include <hwf4/gpio.h>
