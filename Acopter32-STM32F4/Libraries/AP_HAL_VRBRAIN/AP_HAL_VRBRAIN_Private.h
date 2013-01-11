@@ -1,9 +1,9 @@
 
-#ifndef __AP_HAL_SMACCM_PRIVATE_H__
-#define __AP_HAL_SMACCM_PRIVATE_H__
+#ifndef __AP_HAL_VRBRAIN_PRIVATE_H__
+#define __AP_HAL_VRBRAIN_PRIVATE_H__
 
-/* Umbrella header for all private headers of the AP_HAL_SMACCM module.
- * Only import this header from inside AP_HAL_SMACCM
+/* Umbrella header for all private headers of the AP_HAL_VRBRAIN module.
+ * Only import this header from inside AP_HAL_VRBRAIN
  */
 
 #include "UARTDriver.h"
@@ -20,5 +20,5 @@
 #include "Util.h"
 #include "PrivateMember.h"
 
-#endif // __AP_HAL_SMACCM_PRIVATE_H__
+#endif // __AP_HAL_VRBRAIN_PRIVATE_H__
 

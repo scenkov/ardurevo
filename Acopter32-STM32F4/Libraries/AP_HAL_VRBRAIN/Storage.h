@@ -1,6 +1,6 @@
 /* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
- * Storage.h --- AP_HAL_SMACCM storage driver.
+ * Storage.h --- AP_HAL_VRBRAIN storage driver.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -11,15 +11,15 @@
  * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
  */
 
-#ifndef __AP_HAL_SMACCM_STORAGE_H__
-#define __AP_HAL_SMACCM_STORAGE_H__
+#ifndef __AP_HAL_VRBRAIN_STORAGE_H__
+#define __AP_HAL_VRBRAIN_STORAGE_H__
 
-#include <AP_HAL_SMACCM.h>
+#include <AP_HAL_VRBRAIN.h>
 
-class SMACCM::SMACCMStorage : public AP_HAL::Storage
+class VRBRAIN::VRBRAINStorage : public AP_HAL::Storage
 {
 public:
-  SMACCMStorage();
+  VRBRAINStorage();
   void init(void *);
   uint8_t  read_byte(uint16_t loc);
   uint16_t read_word(uint16_t loc);
@@ -32,4 +32,4 @@ public:
   void write_block(uint16_t dst, void* src, size_t n);
 };
 
-#endif // __AP_HAL_SMACCM_STORAGE_H__
+#endif // __AP_HAL_VRBRAIN_STORAGE_H__

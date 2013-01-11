@@ -1,8 +1,8 @@
 
 #include "Util.h"
-using namespace SMACCM;
+using namespace VRBRAIN;
 
-int SMACCMUtil::snprintf(char* str, size_t size, const char *format, ...)
+int VRBRAINUtil::snprintf(char* str, size_t size, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -11,7 +11,7 @@ int SMACCMUtil::snprintf(char* str, size_t size, const char *format, ...)
     return res;
 }
 
-int SMACCMUtil::snprintf_P(char* str, size_t size, const prog_char_t *format, ...)
+int VRBRAINUtil::snprintf_P(char* str, size_t size, const prog_char_t *format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -21,12 +21,12 @@ int SMACCMUtil::snprintf_P(char* str, size_t size, const prog_char_t *format, ..
 }
 
 
-int SMACCMUtil::vsnprintf(char* str, size_t size, const char *format, va_list ap)
+int VRBRAINUtil::vsnprintf(char* str, size_t size, const char *format, va_list ap)
 {
     return 0;
 }
 
-int SMACCMUtil::vsnprintf_P(char* str, size_t size, const prog_char_t *format,
+int VRBRAINUtil::vsnprintf_P(char* str, size_t size, const prog_char_t *format,
             va_list ap)
 {
     return 0;

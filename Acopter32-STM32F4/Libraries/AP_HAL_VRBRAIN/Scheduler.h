@@ -1,6 +1,6 @@
 /* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
- * Scheduler.h --- AP_HAL_SMACCM scheduler.
+ * Scheduler.h --- AP_HAL_VRBRAIN scheduler.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -11,17 +11,17 @@
  * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
  */
 
-#ifndef __AP_HAL_SMACCM_SCHEDULER_H__
-#define __AP_HAL_SMACCM_SCHEDULER_H__
+#ifndef __AP_HAL_VRBRAIN_SCHEDULER_H__
+#define __AP_HAL_VRBRAIN_SCHEDULER_H__
 
-#include <AP_HAL_SMACCM.h>
+#include <AP_HAL_VRBRAIN.h>
 
-#define SMACCM_SCHEDULER_MAX_TIMER_PROCS 4
+#define VRBRAIN_SCHEDULER_MAX_TIMER_PROCS 4
 
-class SMACCM::SMACCMScheduler : public AP_HAL::Scheduler
+class VRBRAIN::VRBRAINScheduler : public AP_HAL::Scheduler
 {
 public:
-  SMACCMScheduler();
+  VRBRAINScheduler();
 
   /**
    * Initialize the scheduler.  This initializes the HWF4 timer
@@ -112,9 +112,9 @@ private:
   AP_HAL::Proc m_delay_cb;      /* delay callback */
   void *m_task;                 /* opaque scheduler task handle */
   void *m_delay_cb_task;        /* opaque delay cb task handle */
-  AP_HAL::TimedProc m_procs[SMACCM_SCHEDULER_MAX_TIMER_PROCS];
+  AP_HAL::TimedProc m_procs[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS];
   AP_HAL::TimedProc m_failsafe_cb;
   uint8_t m_num_procs;          /* number of entries in "m_procs" */
 };
 
-#endif // __AP_HAL_SMACCM_SCHEDULER_H__
+#endif // __AP_HAL_VRBRAIN_SCHEDULER_H__

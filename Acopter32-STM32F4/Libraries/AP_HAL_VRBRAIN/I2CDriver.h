@@ -1,6 +1,6 @@
 /* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
- * I2CDriver.h --- AP_HAL_SMACCM I2C driver.
+ * I2CDriver.h --- AP_HAL_VRBRAIN I2C driver.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -11,13 +11,13 @@
  * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
  */
 
-#ifndef __AP_HAL_SMACCM_I2CDRIVER_H__
-#define __AP_HAL_SMACCM_I2CDRIVER_H__
+#ifndef __AP_HAL_VRBRAIN_I2CDRIVER_H__
+#define __AP_HAL_VRBRAIN_I2CDRIVER_H__
 
-#include <AP_HAL_SMACCM.h>
+#include <AP_HAL_VRBRAIN.h>
 #include "Semaphores.h"
 
-class SMACCM::SMACCMI2CDriver : public AP_HAL::I2CDriver {
+class VRBRAIN::VRBRAINI2CDriver : public AP_HAL::I2CDriver {
 public:
     void begin();
     void end();
@@ -46,7 +46,7 @@ public:
     AP_HAL::Semaphore* get_semaphore();
 
 private:
-    SMACCMSemaphore _semaphore;
+    VRBRAINSemaphore _semaphore;
 };
 
-#endif // __AP_HAL_SMACCM_I2CDRIVER_H__
+#endif // __AP_HAL_VRBRAIN_I2CDRIVER_H__

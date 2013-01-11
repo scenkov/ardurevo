@@ -1,11 +1,11 @@
 
 #include "PrivateMember.h"
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
-SMACCMPrivateMember::SMACCMPrivateMember(uint16_t foo) :
+VRBRAINPrivateMember::VRBRAINPrivateMember(uint16_t foo) :
     _foo(foo)
 {}
 
-void SMACCMPrivateMember::init() {}
+void VRBRAINPrivateMember::init() {}
 

@@ -1,19 +1,19 @@
 
 #include "Semaphores.h"
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
-SMACCMSemaphore::SMACCMSemaphore()
+VRBRAINSemaphore::VRBRAINSemaphore()
   : m_semaphore(NULL)
 {
 }
 
-void SMACCMSemaphore::init()
+void VRBRAINSemaphore::init()
 {
   m_semaphore = xSemaphoreCreateMutex();
 }
 
-bool SMACCMSemaphore::take(uint32_t timeout_ms)
+bool VRBRAINSemaphore::take(uint32_t timeout_ms)
 {
   portTickType delay;
 
@@ -25,12 +25,12 @@ bool SMACCMSemaphore::take(uint32_t timeout_ms)
   return xSemaphoreTake(m_semaphore, delay);
 }
 
-bool SMACCMSemaphore::take_nonblocking()
+bool VRBRAINSemaphore::take_nonblocking()
 {
   return xSemaphoreTake(m_semaphore, 0);
 }
 
-bool SMACCMSemaphore::give()
+bool VRBRAINSemaphore::give()
 {
   return xSemaphoreGive(m_semaphore);
 }

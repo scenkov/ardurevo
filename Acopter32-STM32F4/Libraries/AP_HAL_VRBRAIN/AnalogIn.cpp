@@ -1,35 +1,35 @@
 
 #include "AnalogIn.h"
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
-SMACCMAnalogSource::SMACCMAnalogSource(float v) :
+VRBRAINAnalogSource::VRBRAINAnalogSource(float v) :
     _v(v)
 {}
 
-float SMACCMAnalogSource::read_average() {
+float VRBRAINAnalogSource::read_average() {
     return _v;
 }
 
-float SMACCMAnalogSource::read_latest() {
+float VRBRAINAnalogSource::read_latest() {
     return _v;
 }
 
-void SMACCMAnalogSource::set_pin(uint8_t p)
+void VRBRAINAnalogSource::set_pin(uint8_t p)
 {}
 
 
-SMACCMAnalogIn::SMACCMAnalogIn()
+VRBRAINAnalogIn::VRBRAINAnalogIn()
 {}
 
-void SMACCMAnalogIn::init(void* machtnichts)
+void VRBRAINAnalogIn::init(void* machtnichts)
 {}
 
-AP_HAL::AnalogSource* SMACCMAnalogIn::channel(int16_t n) {
-    return new SMACCMAnalogSource(1.11);
+AP_HAL::AnalogSource* VRBRAINAnalogIn::channel(int16_t n) {
+    return new VRBRAINAnalogSource(1.11);
 }
 
-AP_HAL::AnalogSource* SMACCMAnalogIn::channel(int16_t n, float scale) {
-    return new SMACCMAnalogSource(scale/2);
+AP_HAL::AnalogSource* VRBRAINAnalogIn::channel(int16_t n, float scale) {
+    return new VRBRAINAnalogSource(scale/2);
 }
 

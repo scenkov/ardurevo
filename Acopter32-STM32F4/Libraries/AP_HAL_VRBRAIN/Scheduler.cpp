@@ -1,6 +1,6 @@
 /* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
- * Scheduler.cpp --- AP_HAL_SMACCM scheduler.
+ * Scheduler.cpp --- AP_HAL_VRBRAIN scheduler.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -20,7 +20,7 @@
 
 #include "Scheduler.h"
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
 extern const AP_HAL::HAL& hal;
 
@@ -51,7 +51,7 @@ static xSemaphoreHandle g_atomic;
 /** High-priority thread managing timer procedures. */
 static void scheduler_task(void *arg)
 {
-  SMACCMScheduler *sched = (SMACCMScheduler *)arg;
+  VRBRAINScheduler *sched = (VRBRAINScheduler *)arg;
   portTickType last_wake_time;
   portTickType now;
 
@@ -94,7 +94,7 @@ static xSemaphoreHandle g_delay_event;
  */
 static void delay_cb_task(void *arg)
 {
-  SMACCMScheduler *sched = (SMACCMScheduler *)arg;
+  VRBRAINScheduler *sched = (VRBRAINScheduler *)arg;
   portTickType last_wake_time;
   portTickType now;
 
@@ -131,13 +131,13 @@ static void delay_cb_task(void *arg)
   }
 }
 
-SMACCMScheduler::SMACCMScheduler()
+VRBRAINScheduler::VRBRAINScheduler()
   : m_delay_cb(NULL), m_task(NULL), m_delay_cb_task(NULL),
     m_failsafe_cb(NULL), m_num_procs(0)
 {
 }
 
-void SMACCMScheduler::init(void *arg)
+void VRBRAINScheduler::init(void *arg)
 {
   timer_init();
 
@@ -155,7 +155,7 @@ void SMACCMScheduler::init(void *arg)
               &m_delay_cb_task);
 }
 
-void SMACCMScheduler::delay(uint16_t ms)
+void VRBRAINScheduler::delay(uint16_t ms)
 {
   /* Wake up the delay callback thread. */
   portENTER_CRITICAL();
@@ -171,35 +171,35 @@ void SMACCMScheduler::delay(uint16_t ms)
   portEXIT_CRITICAL();
 }
 
-uint32_t SMACCMScheduler::millis()
+uint32_t VRBRAINScheduler::millis()
 {
   return (uint32_t)(timer_get_ticks() / 1000ULL);
 }
 
 // XXX this is going to wrap every 1.1 hours
-uint32_t SMACCMScheduler::micros()
+uint32_t VRBRAINScheduler::micros()
 {
   return (uint32_t)timer_get_ticks();
 }
 
-void SMACCMScheduler::delay_microseconds(uint16_t us)
+void VRBRAINScheduler::delay_microseconds(uint16_t us)
 {
   timer_usleep(us);
 }
 
-void SMACCMScheduler::register_delay_callback(AP_HAL::Proc k, uint16_t)
+void VRBRAINScheduler::register_delay_callback(AP_HAL::Proc k, uint16_t)
 {
   m_delay_cb = k;
 }
 
-void SMACCMScheduler::register_timer_process(AP_HAL::TimedProc k)
+void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc k)
 {
   for (int i = 0; i < m_num_procs; ++i) {
     if (m_procs[i] == k)
       return;
   }
 
-  if (m_num_procs < SMACCM_SCHEDULER_MAX_TIMER_PROCS) {
+  if (m_num_procs < VRBRAIN_SCHEDULER_MAX_TIMER_PROCS) {
     portENTER_CRITICAL();
     m_procs[m_num_procs] = k;
     ++m_num_procs;
@@ -207,30 +207,30 @@ void SMACCMScheduler::register_timer_process(AP_HAL::TimedProc k)
   }
 }
 
-void SMACCMScheduler::register_timer_failsafe(AP_HAL::TimedProc k, uint32_t)
+void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc k, uint32_t)
 {
   m_failsafe_cb = k;
 }
 
-void SMACCMScheduler::suspend_timer_procs()
+void VRBRAINScheduler::suspend_timer_procs()
 {
   xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
 }
 
-void SMACCMScheduler::resume_timer_procs()
+void VRBRAINScheduler::resume_timer_procs()
 {
   xSemaphoreGiveRecursive(g_atomic);
 }
 
-void SMACCMScheduler::begin_atomic()
+void VRBRAINScheduler::begin_atomic()
 {
 }
 
-void SMACCMScheduler::end_atomic()
+void VRBRAINScheduler::end_atomic()
 {
 }
 
-void SMACCMScheduler::panic(const prog_char_t *errormsg)
+void VRBRAINScheduler::panic(const prog_char_t *errormsg)
 {
   hal.console->println_P(errormsg);
 
@@ -242,13 +242,13 @@ void SMACCMScheduler::panic(const prog_char_t *errormsg)
     ;
 }
 
-void SMACCMScheduler::reboot()
+void VRBRAINScheduler::reboot()
 {
   for(;;)
     ;
 }
 
-void SMACCMScheduler::run_callbacks()
+void VRBRAINScheduler::run_callbacks()
 {
   uint32_t now = micros();
 
@@ -264,13 +264,13 @@ void SMACCMScheduler::run_callbacks()
   }
 }
 
-void SMACCMScheduler::run_failsafe_cb()
+void VRBRAINScheduler::run_failsafe_cb()
 {
   if (m_failsafe_cb)
     m_failsafe_cb(micros());
 }
 
-void SMACCMScheduler::run_delay_cb()
+void VRBRAINScheduler::run_delay_cb()
 {
   if (m_delay_cb)
     m_delay_cb();

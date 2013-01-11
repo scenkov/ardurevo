@@ -1,5 +1,5 @@
 /*
- * Console.cpp --- AP_HAL_SMACCM console driver.
+ * Console.cpp --- AP_HAL_VRBRAIN console driver.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -13,30 +13,30 @@
 
 #include "Console.h"
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
-SMACCMConsoleDriver::SMACCMConsoleDriver(AP_HAL::BetterStream* delegate) :
+VRBRAINConsoleDriver::VRBRAINConsoleDriver(AP_HAL::BetterStream* delegate) :
   _d(delegate), _user_backend(false)
 {
 }
 
-void SMACCMConsoleDriver::init(void *args)
+void VRBRAINConsoleDriver::init(void *args)
 {
 }
 
-void SMACCMConsoleDriver::backend_open()
+void VRBRAINConsoleDriver::backend_open()
 {
   _txbuf.allocate(128);
   _rxbuf.allocate(16);
   _user_backend = true;
 }
 
-void SMACCMConsoleDriver::backend_close()
+void VRBRAINConsoleDriver::backend_close()
 {
   _user_backend = false;
 }
 
-size_t SMACCMConsoleDriver::backend_read(uint8_t *data, size_t len)
+size_t VRBRAINConsoleDriver::backend_read(uint8_t *data, size_t len)
 {
   for (size_t i = 0; i < len; i++) {
     int16_t b = _txbuf.pop();
@@ -50,7 +50,7 @@ size_t SMACCMConsoleDriver::backend_read(uint8_t *data, size_t len)
   return len;
 }
 
-size_t SMACCMConsoleDriver::backend_write(const uint8_t *data, size_t len)
+size_t VRBRAINConsoleDriver::backend_write(const uint8_t *data, size_t len)
 {
    for (size_t i = 0; i < len; i++) {
      bool valid = _rxbuf.push(data[i]);
@@ -62,17 +62,17 @@ size_t SMACCMConsoleDriver::backend_write(const uint8_t *data, size_t len)
    return len;
  }
 
-void SMACCMConsoleDriver::print_P(const prog_char_t *pstr)
+void VRBRAINConsoleDriver::print_P(const prog_char_t *pstr)
 {
   _d->print_P(pstr);
 }
 
-void SMACCMConsoleDriver::println_P(const prog_char_t *pstr)
+void VRBRAINConsoleDriver::println_P(const prog_char_t *pstr)
 {
   _d->println_P(pstr);
 }
 
-void SMACCMConsoleDriver::printf(const char *pstr, ...)
+void VRBRAINConsoleDriver::printf(const char *pstr, ...)
 {
   va_list ap;
   va_start(ap, pstr);
@@ -80,7 +80,7 @@ void SMACCMConsoleDriver::printf(const char *pstr, ...)
   va_end(ap);
 }
 
-void SMACCMConsoleDriver::_printf_P(const prog_char *pstr, ...)
+void VRBRAINConsoleDriver::_printf_P(const prog_char *pstr, ...)
 {
   va_list ap;
   va_start(ap, pstr);
@@ -88,17 +88,17 @@ void SMACCMConsoleDriver::_printf_P(const prog_char *pstr, ...)
   va_end(ap);
 }
 
-void SMACCMConsoleDriver::vprintf(const char *pstr, va_list ap)
+void VRBRAINConsoleDriver::vprintf(const char *pstr, va_list ap)
 {
   _d->vprintf(pstr, ap);
 }
 
-void SMACCMConsoleDriver::vprintf_P(const prog_char *pstr, va_list ap)
+void VRBRAINConsoleDriver::vprintf_P(const prog_char *pstr, va_list ap)
 {
   _d->vprintf(pstr, ap);
 }
 
-int16_t SMACCMConsoleDriver::available()
+int16_t VRBRAINConsoleDriver::available()
 {
   if (_user_backend) {
     return _rxbuf.bytes_used();
@@ -107,7 +107,7 @@ int16_t SMACCMConsoleDriver::available()
   }
 }
 
-int16_t SMACCMConsoleDriver::txspace()
+int16_t VRBRAINConsoleDriver::txspace()
 {
   if (_user_backend) {
     return _txbuf.bytes_free();
@@ -116,7 +116,7 @@ int16_t SMACCMConsoleDriver::txspace()
   }
 }
 
-int16_t SMACCMConsoleDriver::read()
+int16_t VRBRAINConsoleDriver::read()
 {
   if (_user_backend) {
     return _rxbuf.pop();
@@ -125,7 +125,7 @@ int16_t SMACCMConsoleDriver::read()
   }
 }
 
-int16_t SMACCMConsoleDriver::peek()
+int16_t VRBRAINConsoleDriver::peek()
 {
   if (_user_backend) {
     return _rxbuf.peek();
@@ -134,7 +134,7 @@ int16_t SMACCMConsoleDriver::peek()
   }
 }
 
-size_t SMACCMConsoleDriver::write(uint8_t c)
+size_t VRBRAINConsoleDriver::write(uint8_t c)
 {
   if (_user_backend) {
     return (_txbuf.push(c) ? 1 : 0);
@@ -144,11 +144,11 @@ size_t SMACCMConsoleDriver::write(uint8_t c)
 }
 
 /**
- * SMACCMConsoleDriver::Buffer implementation.
+ * VRBRAINConsoleDriver::Buffer implementation.
  * A synchronous nonblocking ring buffer, based on the AVRUARTDriver::Buffer
  */
 
-bool SMACCMConsoleDriver::Buffer::allocate(uint16_t size)
+bool VRBRAINConsoleDriver::Buffer::allocate(uint16_t size)
 {
   _head = 0;
   _tail = 0;
@@ -171,7 +171,7 @@ bool SMACCMConsoleDriver::Buffer::allocate(uint16_t size)
   return (_bytes != NULL);
 }
 
-bool SMACCMConsoleDriver::Buffer::push(uint8_t b)
+bool VRBRAINConsoleDriver::Buffer::push(uint8_t b)
 {
   uint16_t next = (_head + 1) & _mask;
   if ( next == _tail ) {
@@ -182,7 +182,7 @@ bool SMACCMConsoleDriver::Buffer::push(uint8_t b)
   return true;
 }
 
-int16_t SMACCMConsoleDriver::Buffer::pop()
+int16_t VRBRAINConsoleDriver::Buffer::pop()
 {
   if ( _tail == _head ) {
     return -1;
@@ -192,7 +192,7 @@ int16_t SMACCMConsoleDriver::Buffer::pop()
   return (int16_t) b;
 }
 
-int16_t SMACCMConsoleDriver::Buffer::peek()
+int16_t VRBRAINConsoleDriver::Buffer::peek()
 {
   if ( _tail == _head ) {
     return -1;
@@ -201,12 +201,12 @@ int16_t SMACCMConsoleDriver::Buffer::peek()
   return (int16_t) b;
 }
 
-uint16_t SMACCMConsoleDriver::Buffer::bytes_used()
+uint16_t VRBRAINConsoleDriver::Buffer::bytes_used()
 {
   return ((_head - _tail) & _mask);
 }
 
-uint16_t SMACCMConsoleDriver::Buffer::bytes_free()
+uint16_t VRBRAINConsoleDriver::Buffer::bytes_free()
 {
   return ((_mask+1) - ((_head - _tail) & _mask));
 }

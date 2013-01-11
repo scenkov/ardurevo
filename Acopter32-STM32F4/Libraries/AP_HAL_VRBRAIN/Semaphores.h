@@ -1,14 +1,14 @@
 
-#ifndef __AP_HAL_SMACCM_SEMAPHORE_H__
-#define __AP_HAL_SMACCM_SEMAPHORE_H__
+#ifndef __AP_HAL_VRBRAIN_SEMAPHORE_H__
+#define __AP_HAL_VRBRAIN_SEMAPHORE_H__
 
-#include <AP_HAL_SMACCM.h>
+#include <AP_HAL_VRBRAIN.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 
-class SMACCM::SMACCMSemaphore : public AP_HAL::Semaphore {
+class VRBRAIN::VRBRAINSemaphore : public AP_HAL::Semaphore {
 public:
-    SMACCMSemaphore();
+    VRBRAINSemaphore();
 
     void init();
     virtual bool take(uint32_t timeout_ms);
@@ -19,4 +19,4 @@ private:
     xSemaphoreHandle m_semaphore;
 };
 
-#endif // __AP_HAL_SMACCM_SEMAPHORE_H__
+#endif // __AP_HAL_VRBRAIN_SEMAPHORE_H__

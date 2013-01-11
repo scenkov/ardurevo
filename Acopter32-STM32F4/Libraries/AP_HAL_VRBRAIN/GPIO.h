@@ -1,12 +1,12 @@
 
-#ifndef __AP_HAL_SMACCM_GPIO_H__
-#define __AP_HAL_SMACCM_GPIO_H__
+#ifndef __AP_HAL_VRBRAIN_GPIO_H__
+#define __AP_HAL_VRBRAIN_GPIO_H__
 
-#include <AP_HAL_SMACCM.h>
+#include <AP_HAL_VRBRAIN.h>
 
-class SMACCM::SMACCMGPIO : public AP_HAL::GPIO {
+class VRBRAIN::VRBRAINGPIO : public AP_HAL::GPIO {
 public:
-    SMACCMGPIO();
+    VRBRAINGPIO();
     void    init();
     void    pinMode(uint8_t pin, uint8_t output);
     uint8_t read(uint8_t pin);
@@ -21,9 +21,9 @@ public:
 
 };
 
-class SMACCM::SMACCMDigitalSource : public AP_HAL::DigitalSource {
+class VRBRAIN::VRBRAINDigitalSource : public AP_HAL::DigitalSource {
 public:
-    SMACCMDigitalSource(uint8_t v);
+    VRBRAINDigitalSource(uint8_t v);
     void    mode(uint8_t output);
     uint8_t read();
     void    write(uint8_t value); 
@@ -31,4 +31,4 @@ private:
     uint8_t _v;
 };
 
-#endif // __AP_HAL_SMACCM_GPIO_H__
+#endif // __AP_HAL_VRBRAIN_GPIO_H__

@@ -1,5 +1,5 @@
 /*
- * UARTDriver.cpp --- AP_HAL_SMACCM UART driver.
+ * UARTDriver.cpp --- AP_HAL_VRBRAIN UART driver.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -11,17 +11,17 @@
 #include "UARTDriver.h"
 #include <stdio.h>              // for vsnprintf
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
 // XXX the AVR driver enables itself in the constructor.  This seems
 // like a very bad idea, since it will run somewhere in the startup
 // code before our clocks are all set up and such.
-SMACCMUARTDriver::SMACCMUARTDriver(struct usart *dev)
+VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart *dev)
   : m_dev(dev), m_initialized(false), m_blocking(true)
 {
 }
 
-void SMACCMUARTDriver::begin(uint32_t baud)
+void VRBRAINUARTDriver::begin(uint32_t baud)
 {
   usart_init(m_dev, baud);
   usart_enable(m_dev);
@@ -29,46 +29,46 @@ void SMACCMUARTDriver::begin(uint32_t baud)
 }
 
 // XXX buffer sizes ignored
-void SMACCMUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS)
+void VRBRAINUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS)
 {
   begin(baud);
 }
 
 // XXX hwf4 doesn't support de-initializing a USART
-void SMACCMUARTDriver::end()
+void VRBRAINUARTDriver::end()
 {
 }
 
 // XXX hwf4 doesn't support flushing, could be tricky to get the
 // synchronization right.  Would we just force the TX/RX queues to
 // empty?
-void SMACCMUARTDriver::flush()
+void VRBRAINUARTDriver::flush()
 {
 }
 
-bool SMACCMUARTDriver::is_initialized()
+bool VRBRAINUARTDriver::is_initialized()
 {
   return m_initialized;
 }
 
-void SMACCMUARTDriver::set_blocking_writes(bool blocking)
+void VRBRAINUARTDriver::set_blocking_writes(bool blocking)
 {
   m_blocking = blocking;
 }
 
-bool SMACCMUARTDriver::tx_pending()
+bool VRBRAINUARTDriver::tx_pending()
 {
   return usart_is_tx_pending(m_dev);
 }
 
-/* SMACCM implementations of BetterStream virtual methods */
-void SMACCMUARTDriver::print_P(const prog_char_t *pstr)
+/* VRBRAIN implementations of BetterStream virtual methods */
+void VRBRAINUARTDriver::print_P(const prog_char_t *pstr)
 {
   while (*pstr)
     write(*pstr++);
 }
 
-void SMACCMUARTDriver::println_P(const prog_char_t *pstr)
+void VRBRAINUARTDriver::println_P(const prog_char_t *pstr)
 {
   print_P(pstr);
   println();
@@ -76,7 +76,7 @@ void SMACCMUARTDriver::println_P(const prog_char_t *pstr)
 
 // XXX this will be changing, putting this on the stack hurts but
 // allows us to be easily re-entrant
-void SMACCMUARTDriver::printf(const char *fmt, ...)
+void VRBRAINUARTDriver::printf(const char *fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
@@ -84,7 +84,7 @@ void SMACCMUARTDriver::printf(const char *fmt, ...)
   va_end(ap);
 }
 
-void SMACCMUARTDriver::_printf_P(const prog_char *fmt, ...)
+void VRBRAINUARTDriver::_printf_P(const prog_char *fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
@@ -92,32 +92,32 @@ void SMACCMUARTDriver::_printf_P(const prog_char *fmt, ...)
   va_end(ap);
 }
 
-void SMACCMUARTDriver::vprintf(const char *pstr, va_list ap)
+void VRBRAINUARTDriver::vprintf(const char *pstr, va_list ap)
 {
   char buf[128];
   vsnprintf(buf, sizeof(buf), pstr, ap);
   print(buf);
 }
 
-void SMACCMUARTDriver::vprintf_P(const prog_char *pstr, va_list ap)
+void VRBRAINUARTDriver::vprintf_P(const prog_char *pstr, va_list ap)
 {
   vprintf(pstr, ap);
 }
 
-/* SMACCM implementations of Stream virtual methods */
-int16_t SMACCMUARTDriver::available()
+/* VRBRAIN implementations of Stream virtual methods */
+int16_t VRBRAINUARTDriver::available()
 {
   return (int16_t)usart_available(m_dev);
 }
 
-int16_t SMACCMUARTDriver::txspace()
+int16_t VRBRAINUARTDriver::txspace()
 {
   return (int16_t)usart_txspace(m_dev);
 }
 
 // It looks like this should always be a non-blocking read, so return
 // -1 if there is nothing to receive immediately.
-int16_t SMACCMUARTDriver::read()
+int16_t VRBRAINUARTDriver::read()
 {
   uint8_t c;
 
@@ -127,7 +127,7 @@ int16_t SMACCMUARTDriver::read()
   return (int16_t)c;
 }
 
-int16_t SMACCMUARTDriver::peek()
+int16_t VRBRAINUARTDriver::peek()
 {
   uint8_t c;
 
@@ -137,8 +137,8 @@ int16_t SMACCMUARTDriver::peek()
   return (int16_t)c;
 }
 
-/* SMACCM implementations of Print virtual methods */
-size_t SMACCMUARTDriver::write(uint8_t c)
+/* VRBRAIN implementations of Print virtual methods */
+size_t VRBRAINUARTDriver::write(uint8_t c)
 {
   portTickType delay = m_blocking ? portMAX_DELAY : 0;
   return usart_write_timeout(m_dev, delay, &c, 1);

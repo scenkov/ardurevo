@@ -1,5 +1,5 @@
 /*
- * SPIDriver.cpp --- AP_HAL_SMACCM SPI driver.
+ * SPIDriver.cpp --- AP_HAL_VRBRAIN SPI driver.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -12,29 +12,29 @@
 #include <FreeRTOS.h>
 #include <hwf4/spi.h>
 
-using namespace SMACCM;
+using namespace VRBRAIN;
 
 extern const AP_HAL::HAL& hal;
 
 //////////////////////////////////////////////////////////////////////
 // SPI Device Driver
 
-SMACCMSPIDeviceDriver::SMACCMSPIDeviceDriver(spi_bus *bus, spi_device *device)
+VRBRAINSPIDeviceDriver::VRBRAINSPIDeviceDriver(spi_bus *bus, spi_device *device)
   : _bus(bus), _device(device)
 {
 }
 
-void SMACCMSPIDeviceDriver::init()
+void VRBRAINSPIDeviceDriver::init()
 {
   _semaphore.init();
 }
 
-AP_HAL::Semaphore* SMACCMSPIDeviceDriver::get_semaphore()
+AP_HAL::Semaphore* VRBRAINSPIDeviceDriver::get_semaphore()
 {
   return &_semaphore;
 }
 
-void SMACCMSPIDeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t len)
+void VRBRAINSPIDeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t len)
 {
   if (spi_transfer(_bus, _device, 1000, tx, rx, len) < 0) {
     hal.scheduler->panic("PANIC: SPI transaction timeout.");
@@ -42,15 +42,15 @@ void SMACCMSPIDeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t
 }
 
 // XXX these methods are not implemented
-void SMACCMSPIDeviceDriver::cs_assert()
+void VRBRAINSPIDeviceDriver::cs_assert()
 {
 }
 
-void SMACCMSPIDeviceDriver::cs_release()
+void VRBRAINSPIDeviceDriver::cs_release()
 {
 }
 
-uint8_t SMACCMSPIDeviceDriver::transfer (uint8_t data)
+uint8_t VRBRAINSPIDeviceDriver::transfer (uint8_t data)
 {
   return 0;
 }
@@ -74,7 +74,7 @@ static spi_device g_mpu6000_spi_dev = {
   SPI_BIT_ORDER_MSB_FIRST       // bit_order
 };
 
-static SMACCMSPIDeviceDriver g_mpu6000_dev(spi1, &g_mpu6000_spi_dev);
+static VRBRAINSPIDeviceDriver g_mpu6000_dev(spi1, &g_mpu6000_spi_dev);
 
 // SPIDevice_ADNS3080_SPI0 (not present in PX4FMU)
 
@@ -83,12 +83,12 @@ static SMACCMSPIDeviceDriver g_mpu6000_dev(spi1, &g_mpu6000_spi_dev);
 //////////////////////////////////////////////////////////////////////
 // SPI Device Manager
 
-SMACCMSPIDeviceManager::SMACCMSPIDeviceManager()
+VRBRAINSPIDeviceManager::VRBRAINSPIDeviceManager()
 {
 }
 
 // Initialize all SPI busses and devices.
-void SMACCMSPIDeviceManager::init(void *)
+void VRBRAINSPIDeviceManager::init(void *)
 {
   spi_init(spi1);
 
@@ -96,7 +96,7 @@ void SMACCMSPIDeviceManager::init(void *)
   g_mpu6000_dev.init();
 }
 
-AP_HAL::SPIDeviceDriver* SMACCMSPIDeviceManager::device(AP_HAL::SPIDevice dev)
+AP_HAL::SPIDeviceDriver* VRBRAINSPIDeviceManager::device(AP_HAL::SPIDevice dev)
 {
   switch (dev) {
     case AP_HAL::SPIDevice_MPU6000:

@@ -1,5 +1,5 @@
 /*
- * Console.h --- AP_HAL_SMACCM console driver.
+ * Console.h --- AP_HAL_VRBRAIN console driver.
  *
  * Copyright (C) 2012, Galois, Inc.
  * All Rights Reserved.
@@ -8,14 +8,14 @@
  * "LICENSE" for more information.
  */
 
-#ifndef __AP_HAL_SMACCM_CONSOLE_H__
-#define __AP_HAL_SMACCM_CONSOLE_H__
+#ifndef __AP_HAL_VRBRAIN_CONSOLE_H__
+#define __AP_HAL_VRBRAIN_CONSOLE_H__
 
-#include <AP_HAL_SMACCM.h>
+#include <AP_HAL_VRBRAIN.h>
 
-class SMACCM::SMACCMConsoleDriver : public AP_HAL::ConsoleDriver {
+class VRBRAIN::VRBRAINConsoleDriver : public AP_HAL::ConsoleDriver {
 public:
-    SMACCMConsoleDriver(AP_HAL::BetterStream* delegate);
+    VRBRAINConsoleDriver(AP_HAL::BetterStream* delegate);
     void init(void *arg);
     void backend_open();
     void backend_close();
@@ -59,4 +59,4 @@ private:
     bool _user_backend;
 };
 
-#endif // __AP_HAL_SMACCM_CONSOLE_H__
+#endif // __AP_HAL_VRBRAIN_CONSOLE_H__
