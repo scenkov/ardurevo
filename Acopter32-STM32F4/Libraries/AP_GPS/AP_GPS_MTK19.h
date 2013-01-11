@@ -23,7 +23,6 @@
 class AP_GPS_MTK19 : public GPS {
 public:
     AP_GPS_MTK19(Stream *s, FastSerial *ser_port);
-    //AP_GPS_MTK19(Stream *s);
     virtual void        init(enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
     virtual bool        read(void);
     static bool 		_detect(uint8_t );
@@ -54,7 +53,7 @@ private:
     enum diyd_mtk_protocol_bytes {
 	    PREAMBLE1_V16 = 0xd0,
         PREAMBLE1_V19 = 0xd1,
-        PREAMBLE2     = 0xdd,
+        PREAMBLE2     = 0xdd
     };
 
     // Packet checksum accumulators

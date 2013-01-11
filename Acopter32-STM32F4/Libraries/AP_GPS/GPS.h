@@ -161,8 +161,10 @@ protected:
     ///
     /// @param	s	Stream connected to the GPS module.
     ///
-    GPS(Stream *s) : _port(s) {
-    };
+    GPS(Stream *s) :
+        _port(s),
+        _idleTimer(0)
+    {};
     //GPS(Stream *s, FastSerial *ser_port) : _port(s), serPort(ser_port) {
     // };
 

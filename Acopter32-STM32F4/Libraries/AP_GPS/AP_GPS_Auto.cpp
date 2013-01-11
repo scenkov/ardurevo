@@ -10,9 +10,9 @@
 
 static FastSerial *serPort;
 
-static const uint32_t baudrates[] PROGMEM = {38400U, 57600U, 9600U, 4800U};
+static const uint32_t baudrates[] = {38400U, 57600U, 9600U, 4800U};
 
-const prog_char AP_GPS_Auto::_mtk_set_binary[]   PROGMEM = MTK_SET_BINARY;
+const prog_char AP_GPS_Auto::_mtk_set_binary[]   = MTK_SET_BINARY;
 //const prog_char AP_GPS_Auto::_sirf_set_binary[]  = SIRF_SET_BINARY;
 
 AP_GPS_Auto::AP_GPS_Auto(FastSerial *s, GPS **gps, FastSerial *ser_port)  :
@@ -21,6 +21,7 @@ AP_GPS_Auto::AP_GPS_Auto(FastSerial *s, GPS **gps, FastSerial *ser_port)  :
     _gps(gps)
 {
 	serPort = ser_port;
+
 }
 
 // Do nothing at init time - it may be too early to try detecting the GPS
@@ -81,31 +82,28 @@ GPS *
 AP_GPS_Auto::_detect(void)
 {
 	static uint32_t detect_started_ms = 0;
-	GPS *new_gps = NULL;
 
 	if (detect_started_ms == 0 && _port->available() > 0) {
 		detect_started_ms = millis();
 	}
 
-	while (_port->available() > 0 && new_gps == NULL) {
+	while (_port->available() > 0) {
 		uint8_t data = _port->read();
 		if (AP_GPS_UBLOX::_detect(data)) {
 			serPort->print_P(PSTR(" ublox "));
-			new_gps = new AP_GPS_UBLOX(_port, serPort);
-			//return new AP_GPS_UBLOX(_port);
+			return new AP_GPS_UBLOX(_port, serPort);
 		}
-		else if (AP_GPS_MTK19::_detect(data)) {
+		if (AP_GPS_MTK19::_detect(data)) {
 			serPort->print_P(PSTR(" MTK19 "));
-			new_gps = new AP_GPS_MTK19(_port, serPort);
+			return new AP_GPS_MTK19(_port, serPort);
 		}
-		/*
+/*
 		if (AP_GPS_MTK::_detect(data)) {
 			serPort->.print_P(PSTR(" MTK "));
-			return new AP_GPS_MTK(_port, serPort);
+			return new AP_GPS_MTK(_port);
 		}
-		*/
-/*
-//#if !defined( __AVR_ATmega1280__ )
+*/
+#if 0
 		// save a bit of code space on a 1280
 		if (AP_GPS_SIRF::_detect(data)) {
 			Serial.print_P(PSTR(" SIRF "));
@@ -120,15 +118,10 @@ AP_GPS_Auto::_detect(void)
 				return new AP_GPS_NMEA(_port);
 			}
 		}
-		*/
-//#endif
+#endif
 	}
 
-	if (new_gps != NULL) {
-		new_gps->init(_nav_setting);
-	}
-
-	return new_gps;
+	return NULL;
 }
 
 

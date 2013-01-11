@@ -48,10 +48,10 @@
 //#define FRAME_ORIENTATION X_FRAME
 
 // MODEL OF GPS
-#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
+//#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_UBLOX
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_NONE
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
+#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
 
 // Kind of RADIO
 //#define CONFIG_APM_HARDWARE MP32PPMSUM22
@@ -225,6 +225,21 @@
  # define BATTERY_CURR_PIN      1      // Battery current on A1
  # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
  # define CURRENT_PIN_1      1
+#elif CONFIG_APM_HARDWARE == MP32V3F1
+ # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
+ # define B_LED_PIN 74//36
+ # define C_LED_PIN 71//35
+ # define LED_ON           HIGH
+ # define LED_OFF          LOW
+ # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
+ # define PUSHBUTTON_PIN 41
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define USB_MUX_PIN      1
+ # define OPTFLOW_CS_PIN   (-1)
+ # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      0      // Battery current on A1
+ # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      0
 #else
  # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
  # define B_LED_PIN 74//36
@@ -389,17 +404,14 @@
 	//Serial Port for GPS		 MP32V3F1
 	#define SERIAL_GPS_PORT			1
 	#define SERIAL_GPS_BAUD			38400
-#endif
-#if CONFIG_APM_HARDWARE == MP32V1F1
+#elif CONFIG_APM_HARDWARE == MP32V1F1
 	//Serial Port for Telemetry	MP32V1F1
 	#define SERIAL_AUX_PORT			1
 	#define SERIAL_AUX_BAUD			38400
 	//Serial Port for GPS		MP32V1F1
 	#define SERIAL_GPS_PORT			3
 	#define SERIAL_GPS_BAUD			38400
-#endif
-
-#if CONFIG_APM_HARDWARE == MP32V3F1
+#elif CONFIG_APM_HARDWARE == MP32V3F1
 
 	//Serial Port for Telemetry  MP32V3F1
 	#define SERIAL_AUX_PORT			0

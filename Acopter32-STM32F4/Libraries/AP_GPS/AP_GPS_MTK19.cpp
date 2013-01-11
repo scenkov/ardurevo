@@ -58,6 +58,7 @@ AP_GPS_MTK19::init(enum GPS_Engine_Setting nav_setting)
     _time_offset = 0;
     _offset_calculated = false;
     idleTimeout = 1200;
+    _step = 0;
 }
 
 // Process bytes available from the stream

@@ -6,7 +6,8 @@
 
 #if GPS_DEBUGGING
  #include <FastSerial.h>
- # define Debug(fmt, args ...)  do {serPort->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); delay(0); } while(0)
+ FastSerialPort2(serialExt);
+ # define Debug(fmt, args ...)  do {serialExt.printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); delay(0); } while(0)
 #else
  # define Debug(fmt, args ...)
 #endif
