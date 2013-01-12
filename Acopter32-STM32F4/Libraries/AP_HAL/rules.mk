@@ -11,20 +11,7 @@ CFLAGS_$(d) :=
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
-cppSRCS_$(d) += AnalogIn.cpp
-cppSRCS_$(d) += Console.cpp
-cppSRCS_$(d) += GPIO.cpp
-cppSRCS_$(d) += HAL_VRBRAIN_Class.cpp
-cppSRCS_$(d) += I2CDriver.cpp
-cppSRCS_$(d) += PrivateMember.cpp
-cppSRCS_$(d) += RCInput.cpp
-cppSRCS_$(d) += RCOutput.cpp
-cppSRCS_$(d) += Scheduler.cpp
-cppSRCS_$(d) += Semaphores.cpp
-cppSRCS_$(d) += SPIDriver.cpp
-cppSRCS_$(d) += Storage.cpp
-cppSRCS_$(d) += UARTDriver.cpp
-cppSRCS_$(d) += Util.cpp
+#cppSRCS_$(d) += utility/Print.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)
