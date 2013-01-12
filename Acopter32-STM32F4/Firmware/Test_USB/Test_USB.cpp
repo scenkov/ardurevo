@@ -2,10 +2,14 @@
 // Libraries
 #include <FastSerial.h>
 #include "WProgram.h"
+#include "AP_HAL.h"
+#include "AP_HAL_VRBRAIN.h"
 
   void setup()  ;
   void loop() ;
-#line 5 "./Firmware/Test_USB/Test_USB.pde"
+#line 7 "./Firmware/Test_USB/Test_USB.pde"
+const AP_HAL::HAL& hal = AP_HAL_BOARD_VRBRAIN;
+
 FastSerialPort0(Serial);        // FTDI/console
 FastSerial SerialUSB;
 

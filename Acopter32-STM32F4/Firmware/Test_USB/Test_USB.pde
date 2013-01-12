@@ -1,6 +1,10 @@
 // Libraries
 #include <FastSerial.h>
 #include "WProgram.h"
+#include "AP_HAL.h"
+#include "AP_HAL_VRBRAIN.h"
+
+const AP_HAL::HAL& hal = AP_HAL_BOARD_VRBRAIN;
 
 FastSerialPort0(Serial);        // FTDI/console
 FastSerial SerialUSB;
