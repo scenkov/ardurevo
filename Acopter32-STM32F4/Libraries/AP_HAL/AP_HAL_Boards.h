@@ -22,7 +22,7 @@
   board. This prevents us having a mess of ifdefs in every example
   sketch
  */
-
+#define CONFIG_HAL_BOARD HAL_BOARD_VRBRAIN
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 #define AP_HAL_BOARD_DRIVER AP_HAL_AVR_APM1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2

@@ -26,14 +26,21 @@
 #include <stdlib.h>
 #include "hal_types.h"
 
-enum {
-    BYTE = 0,
+
+#define BYT 0
+#define BIN 2
+#define OCT 8
+#define DEC 10
+#define HEX 16
+/*enum
+{
+    BYT  = 0,
     BIN  = 2,
     OCT  = 8,
     DEC  = 10,
     HEX  = 16
 };
-
+*/
 class Print {
 public:
     virtual void write(uint8 ch) = 0;

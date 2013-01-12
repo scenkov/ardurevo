@@ -14,7 +14,7 @@
 #include <AP_HAL_VRBRAIN.h>
 #include "Semaphores.h"
 
-#include <hwf4/spi.h>
+#include <wirish.h>
 
 class VRBRAIN::VRBRAINSPIDeviceDriver : public AP_HAL::SPIDeviceDriver {
 public:

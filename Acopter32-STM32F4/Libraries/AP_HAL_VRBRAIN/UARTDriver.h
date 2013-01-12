@@ -3,7 +3,13 @@
 #define __AP_HAL_VRBRAIN_UARTDRIVER_H__
 
 #include <AP_HAL_VRBRAIN.h>
-#include <hwf4/usart.h>
+#include <usart.h>
+#include <usb.h>
+#include <gpio.h>
+#include <wirish.h>
+
+#define DEFAULT_TX_TIMEOUT 10000 // 10 ms
+#define _USB99 99
 
 class VRBRAIN::VRBRAINUARTDriver : public AP_HAL::UARTDriver
 {

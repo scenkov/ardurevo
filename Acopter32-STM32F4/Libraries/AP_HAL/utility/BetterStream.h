@@ -11,6 +11,7 @@
 #define __AP_HAL_UTILITY_BETTERSTREAM_H__
 
 #include <stdarg.h>
+#include <wirish.h>
 #include "../AP_HAL_Namespace.h"
 #include "Stream.h"
 

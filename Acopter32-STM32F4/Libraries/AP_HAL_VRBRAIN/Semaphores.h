@@ -3,8 +3,8 @@
 #define __AP_HAL_VRBRAIN_SEMAPHORE_H__
 
 #include <AP_HAL_VRBRAIN.h>
-#include <FreeRTOS.h>
-#include <semphr.h>
+//#include <FreeRTOS.h>
+//#include <semphr.h>
 
 class VRBRAIN::VRBRAINSemaphore : public AP_HAL::Semaphore {
 public:
@@ -16,7 +16,7 @@ public:
     virtual bool give();
 
 private:
-    xSemaphoreHandle m_semaphore;
+//    xSemaphoreHandle m_semaphore;
 };
 
 #endif // __AP_HAL_VRBRAIN_SEMAPHORE_H__

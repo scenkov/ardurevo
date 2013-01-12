@@ -9,8 +9,8 @@
  */
 
 #include "SPIDriver.h"
-#include <FreeRTOS.h>
-#include <hwf4/spi.h>
+//#include <FreeRTOS.h>
+#include <wirish.h>
 
 using namespace VRBRAIN;
 
