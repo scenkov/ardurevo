@@ -40,7 +40,7 @@ VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart *dev)
 void VRBRAINUARTDriver::begin(uint32_t baud)
 {
 	if (usb == 0)
-	begin(baud, DEFAULT_TX_TIMEOUT);
+	begin(baud, 10,10);
 	else
 {
 	//begin(baud, DEFAULT_TX_TIMEOUT);
@@ -93,7 +93,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS)
         gpio_set_mode(rxi->gpio_device, rxi->gpio_bit, GPIO_AF_OUTPUT_PP);
 
         usart_init(this->usart_device);
-        usart_setup(this->usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, tx_timeout);
+        usart_setup(this->usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, 10); // era timeout ora l'ho forzato a dieci
         usart_enable(this->usart_device);
 
 }
@@ -124,8 +124,8 @@ void VRBRAINUARTDriver::flush()
 
 }
 
- err --------------------- wip vrbrain ----------------------- eRR
-
+ /*err --------------------- wip vrbrain ----------------------- eRR
+*/
 bool VRBRAINUARTDriver::is_initialized()
 {
   return m_initialized;
@@ -138,14 +138,14 @@ void VRBRAINUARTDriver::set_blocking_writes(bool blocking)
 
 bool VRBRAINUARTDriver::tx_pending()
 {
-  return (0);usart_is_tx_pending(m_dev);
+  return (0);//usart_is_tx_pending(m_dev);
 }
 
 /* VRBRAIN implementations of BetterStream virtual methods */
 void VRBRAINUARTDriver::print_P(const prog_char_t *pstr)
 {
-  while (*pstr)
-    write(*pstr++);
+  //while (*pstr)
+  //  write(*pstr++);
 }
 
 void VRBRAINUARTDriver::println_P(const prog_char_t *pstr)
@@ -187,12 +187,13 @@ void VRBRAINUARTDriver::vprintf_P(const prog_char *pstr, va_list ap)
 /* VRBRAIN implementations of Stream virtual methods */
 int16_t VRBRAINUARTDriver::available()
 {
-  return (int16_t)usart_available(m_dev);
+  //return (int16_t)usart_available(m_dev);
+return(1);
 }
 
 int16_t VRBRAINUARTDriver::txspace()
 {
-  return (int16_t)usart_txspace(m_dev);
+  return (1); // (int16_t)usart_txspace(m_dev);
 }
 
 // It looks like this should always be a non-blocking read, so return
@@ -201,8 +202,8 @@ int16_t VRBRAINUARTDriver::read()
 {
   uint8_t c;
 
-  if (usart_read_timeout(m_dev, 0, &c, 1) == 0)
-    return -1;
+  //if (usart_read_timeout(m_dev, 0, &c, 1) == 0)
+    //return -1;
 
   return (int16_t)c;
 }
@@ -211,8 +212,8 @@ int16_t VRBRAINUARTDriver::peek()
 {
   uint8_t c;
 
-  if (!usart_peek(m_dev, &c))
-    return -1;
+  //if (!usart_peek(m_dev, &c))
+  //  return -1;
 
   return (int16_t)c;
 }
@@ -220,6 +221,6 @@ int16_t VRBRAINUARTDriver::peek()
 /* VRBRAIN implementations of Print virtual methods */
 size_t VRBRAINUARTDriver::write(uint8_t c)
 {
-  portTickType delay = m_blocking ? portMAX_DELAY : 0;
-  return usart_write_timeout(m_dev, delay, &c, 1);
+ // portTickType delay = m_blocking ? portMAX_DELAY : 0;
+  return (1); //usart_write_timeout(m_dev, delay, &c, 1);
 }

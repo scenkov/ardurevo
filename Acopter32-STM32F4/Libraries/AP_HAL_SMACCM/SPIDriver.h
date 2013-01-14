@@ -17,6 +17,10 @@
 #include <hwf4/spi.h>
 
 class SMACCM::SMACCMSPIDeviceDriver : public AP_HAL::SPIDeviceDriver {
+private:
+    SMACCMSemaphore _semaphore;
+    struct spi_bus *_bus;
+    struct spi_device *_device;
 public:
     SMACCMSPIDeviceDriver(spi_bus *bus, spi_device *device);
     void init();
@@ -26,10 +30,7 @@ public:
     void cs_assert();
     void cs_release();
     uint8_t transfer (uint8_t data);
-private:
-    SMACCMSemaphore _semaphore;
-    struct spi_bus *_bus;
-    struct spi_device *_device;
+
 };
 
 class SMACCM::SMACCMSPIDeviceManager : public AP_HAL::SPIDeviceManager {

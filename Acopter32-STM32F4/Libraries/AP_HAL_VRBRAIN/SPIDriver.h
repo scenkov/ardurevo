@@ -17,6 +17,10 @@
 #include <wirish.h>
 
 class VRBRAIN::VRBRAINSPIDeviceDriver : public AP_HAL::SPIDeviceDriver {
+private:
+    VRBRAINSemaphore _semaphore;
+    struct spi_bus *_bus;
+    struct spi_device *_device;
 public:
     VRBRAINSPIDeviceDriver(spi_bus *bus, spi_device *device);
     void init();
@@ -26,10 +30,7 @@ public:
     void cs_assert();
     void cs_release();
     uint8_t transfer (uint8_t data);
-private:
-    VRBRAINSemaphore _semaphore;
-    struct spi_bus *_bus;
-    struct spi_device *_device;
+
 };
 
 class VRBRAIN::VRBRAINSPIDeviceManager : public AP_HAL::SPIDeviceManager {

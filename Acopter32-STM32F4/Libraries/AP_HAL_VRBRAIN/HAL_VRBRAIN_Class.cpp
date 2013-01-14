@@ -7,9 +7,9 @@
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-static VRBRAINUARTDriver uartADriver(usart1);
-static VRBRAINUARTDriver uartBDriver(usart2);
-static VRBRAINUARTDriver uartCDriver(usart3);
+static VRBRAINUARTDriver uartADriver(0);
+static VRBRAINUARTDriver uartBDriver(1);
+static VRBRAINUARTDriver uartCDriver(2);
 
 static VRBRAINI2CDriver  i2cDriver;
 static VRBRAINSPIDeviceManager spiDeviceManager;

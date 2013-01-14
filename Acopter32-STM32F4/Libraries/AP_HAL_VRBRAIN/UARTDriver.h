@@ -13,6 +13,13 @@
 
 class VRBRAIN::VRBRAINUARTDriver : public AP_HAL::UARTDriver
 {
+private:
+    usart_dev *usart_device;
+    uint8 tx_pin;
+    uint8 rx_pin;
+public:
+    uint8_t usb;
+    uint8_t usb_present;
 public:
   VRBRAINUARTDriver(struct usart *dev);
 
@@ -48,5 +55,25 @@ private:
   bool m_initialized;
   bool m_blocking;
 };
+
+
+//TEO 20110505
+//definisco qui i parametri per le varie seriali preconfigurate
+#define FSUSART0 	_USART1
+#define FSTXPIN0 	BOARD_USART1_TX_PIN //9
+#define FSRXPIN0 	BOARD_USART1_RX_PIN //10
+
+#define FSUSART1 	_USART2
+#define FSTXPIN1 	BOARD_USART2_TX_PIN //5
+#define FSRXPIN1 	BOARD_USART2_RX_PIN //6
+
+#define FSUSART2 	_USART3
+#define FSTXPIN2 	BOARD_USART3_TX_PIN //8
+#define FSRXPIN2 	BOARD_USART3_RX_PIN //9
+
+#define FSUSART3 	_UART4
+#define FSTXPIN3 	BOARD_UART4_TX_PIN //10
+#define FSRXPIN3 	BOARD_UART4_RX_PIN //11
+
 
 #endif // __AP_HAL_VRBRAIN_UARTDRIVER_H__

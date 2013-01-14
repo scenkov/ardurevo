@@ -11,12 +11,12 @@
  * Written by Roberto Navoni  <info@virtualrobotix.com>, 11 January 2013
  */
 
-#include <hwf4/gpio.h>
-#include <hwf4/timer.h>
+//#include <hwf4/gpio.h>
+//#include <hwf4/timer.h>
 
-#include <FreeRTOS.h>
-#include <task.h>
-#include <semphr.h>
+//#include <FreeRTOS.h>
+//#include <task.h>
+//#include <semphr.h>
 
 #include "Scheduler.h"
 
@@ -25,63 +25,63 @@ using namespace VRBRAIN;
 extern const AP_HAL::HAL& hal;
 
 /** Rate in milliseconds of timed process execution. (1kHz) */
-#define SCHEDULER_TICKS  (1 / (portTICK_RATE_MS))
+//#define SCHEDULER_TICKS  (1 / (portTICK_RATE_MS))
 
 /** Stack size of the scheduler thread. */
-#define SCHEDULER_STACK_SIZE 256
+//#define SCHEDULER_STACK_SIZE 256
 
 /** Priority of the scheduler timer process task. */
-#define SCHEDULER_PRIORITY (configMAX_PRIORITIES - 1)
+//#define SCHEDULER_PRIORITY (configMAX_PRIORITIES - 1)
 
 /** Rate in milliseconds of the delay callback task. */
-#define DELAY_CB_TICKS (1 / (portTICK_RATE_MS))
+//#define DELAY_CB_TICKS (1 / (portTICK_RATE_MS))
 
 /** Stack size of the delay callback task. */
-#define DELAY_CB_STACK_SIZE 64
+//#define DELAY_CB_STACK_SIZE 64
 
 /** Priority of the delay callback task. */
-#define DELAY_CB_PRIORITY 0
+//#define DELAY_CB_PRIORITY 0
 
 /**
  * Recursive mutex used to block "scheduler_task" during atomic
  * sections.
  */
-static xSemaphoreHandle g_atomic;
+//static xSemaphoreHandle g_atomic;
 
 /** High-priority thread managing timer procedures. */
 static void scheduler_task(void *arg)
 {
   VRBRAINScheduler *sched = (VRBRAINScheduler *)arg;
-  portTickType last_wake_time;
-  portTickType now;
+  //portTickType last_wake_time;
+  //portTickType now;
 
-  vTaskSetApplicationTaskTag(NULL, (pdTASK_HOOK_CODE)3);
-  last_wake_time = xTaskGetTickCount();
+  //vTaskSetApplicationTaskTag(NULL, (pdTASK_HOOK_CODE)3);
+  //last_wake_time = xTaskGetTickCount();
 
-  for (;;) {
+  //for (;;) {
     /* If "vTaskDelayUntil" would return immediately without blocking,
      * call the failsafe callback to notify the client that we've
      * missed our deadline, and reset the wakeup time to the current
      * time. */
-    now = xTaskGetTickCount();
-    if (last_wake_time + SCHEDULER_TICKS <= now) {
-      sched->run_failsafe_cb();
-      last_wake_time = now;
-    } else {
-      vTaskDelayUntil(&last_wake_time, SCHEDULER_TICKS);
+   // now = xTaskGetTickCount();
+    //if (last_wake_time + SCHEDULER_TICKS <= now) {
+    //  sched->run_failsafe_cb();
+    //  last_wake_time = now;
+    //} else {
+    //  vTaskDelayUntil(&last_wake_time, SCHEDULER_TICKS);
 
-      xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
-      sched->run_callbacks();
-      xSemaphoreGiveRecursive(g_atomic);
-    }
-  }
+    //  xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
+    //  sched->run_callbacks();
+    //  xSemaphoreGiveRecursive(g_atomic);
+    //}
+  //}
 }
 
 /** Count of the number of threads in "delay". */
 static uint32_t g_delay_count;
 
 /** Binary semaphore given when a thread enters "delay". */
-static xSemaphoreHandle g_delay_event;
+//static xSemaphoreHandle g_delay_event;
 
 /**
  * Low-priority thread that calls the delay callback every 1ms.
@@ -95,20 +95,20 @@ static xSemaphoreHandle g_delay_event;
 static void delay_cb_task(void *arg)
 {
   VRBRAINScheduler *sched = (VRBRAINScheduler *)arg;
-  portTickType last_wake_time;
-  portTickType now;
+  //portTickType last_wake_time;
+  //portTickType now;
 
-  vTaskSetApplicationTaskTag(NULL, (pdTASK_HOOK_CODE)4);
-  last_wake_time = xTaskGetTickCount();
+  //vTaskSetApplicationTaskTag(NULL, (pdTASK_HOOK_CODE)4);
+  //last_wake_time = xTaskGetTickCount();
 
-  for (;;) {
-    portENTER_CRITICAL();
-    uint32_t delay_count = g_delay_count;
-    portEXIT_CRITICAL();
+  //for (;;) {
+  //  portENTER_CRITICAL();
+  //  uint32_t delay_count = g_delay_count;
+  //  portEXIT_CRITICAL();
 
-    if (delay_count > 0) {
+  //  if (delay_count > 0) {
       /* If some thread is in "delay", call the delay callback. */
-      sched->run_delay_cb();
+  //    sched->run_delay_cb();
 
       /* If "vTaskDelayUntil" would return immediately without
        * blocking, that means we've missed our deadline.  However,
@@ -117,84 +117,87 @@ static void delay_cb_task(void *arg)
        *
        * Without this, the thread runs many times to "catch up" if
        * something takes too long in a higher priority thread. */
-      now = xTaskGetTickCount();
-      if (last_wake_time + DELAY_CB_TICKS <= now) {
-        last_wake_time = now;
-      } else {
-        vTaskDelayUntil(&last_wake_time, DELAY_CB_TICKS);
-      }
-    } else {
+   //   now = xTaskGetTickCount();
+   //   if (last_wake_time + DELAY_CB_TICKS <= now) {
+   //     last_wake_time = now;
+   //   } else {
+   //     vTaskDelayUntil(&last_wake_time, DELAY_CB_TICKS);
+   //   }
+   // } else {
       /* Wait for a thread to enter a delay. */
-      xSemaphoreTake(g_delay_event, portMAX_DELAY);
-      last_wake_time = xTaskGetTickCount();
-    }
-  }
+   //   xSemaphoreTake(g_delay_event, portMAX_DELAY);
+   //   last_wake_time = xTaskGetTickCount();
+   // }
+   // }
 }
 
 VRBRAINScheduler::VRBRAINScheduler()
-  : m_delay_cb(NULL), m_task(NULL), m_delay_cb_task(NULL),
-    m_failsafe_cb(NULL), m_num_procs(0)
+  //: m_delay_cb(NULL), m_task(NULL), m_delay_cb_task(NULL),
+  //  m_failsafe_cb(NULL), m_num_procs(0)
 {
 }
 
 void VRBRAINScheduler::init(void *arg)
 {
-  timer_init();
+  //timer_init();
 
-  g_atomic = xSemaphoreCreateRecursiveMutex();
+  //g_atomic = xSemaphoreCreateRecursiveMutex();
 
-  vSemaphoreCreateBinary(g_delay_event);
-  xSemaphoreTake(g_delay_event, portMAX_DELAY);
+  //vSemaphoreCreateBinary(g_delay_event);
+  //xSemaphoreTake(g_delay_event, portMAX_DELAY);
 
-  xTaskCreate(scheduler_task, (signed char *)"scheduler",
-              SCHEDULER_STACK_SIZE, this, SCHEDULER_PRIORITY,
-              &m_task);
+  //xTaskCreate(scheduler_task, (signed char *)"scheduler",
+  //            SCHEDULER_STACK_SIZE, this, SCHEDULER_PRIORITY,
+  //            &m_task);
 
-  xTaskCreate(delay_cb_task, (signed char *)"delay_cb",
-              DELAY_CB_STACK_SIZE, this, DELAY_CB_PRIORITY,
-              &m_delay_cb_task);
+  //xTaskCreate(delay_cb_task, (signed char *)"delay_cb",
+  //            DELAY_CB_STACK_SIZE, this, DELAY_CB_PRIORITY,
+  //            &m_delay_cb_task);
 }
 
 void VRBRAINScheduler::delay(uint16_t ms)
 {
   /* Wake up the delay callback thread. */
-  portENTER_CRITICAL();
-  ++g_delay_count;
-  portEXIT_CRITICAL();
-  xSemaphoreGive(g_delay_event);
+  //portENTER_CRITICAL();
+  //++g_delay_count;
+  //portEXIT_CRITICAL();
+  //xSemaphoreGive(g_delay_event);
 
-  timer_msleep(ms);
+  //timer_msleep(ms);
 
   /* Put the delay callback thread back to sleep. */
-  portENTER_CRITICAL();
-  --g_delay_count;
-  portEXIT_CRITICAL();
+  //portENTER_CRITICAL();
+  //--g_delay_count;
+  //portEXIT_CRITICAL();
 }
 
 uint32_t VRBRAINScheduler::millis()
 {
-  return (uint32_t)(timer_get_ticks() / 1000ULL);
+  //return (uint32_t)(timer_get_ticks() / 1000ULL);
+return(1);
 }
 
 // XXX this is going to wrap every 1.1 hours
 uint32_t VRBRAINScheduler::micros()
 {
-  return (uint32_t)timer_get_ticks();
+  //return (uint32_t)timer_get_ticks();
+    return(1);
 }
 
 void VRBRAINScheduler::delay_microseconds(uint16_t us)
 {
-  timer_usleep(us);
+  //timer_usleep(us);
 }
 
 void VRBRAINScheduler::register_delay_callback(AP_HAL::Proc k, uint16_t)
 {
-  m_delay_cb = k;
+  //m_delay_cb = k;
 }
 
 void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc k)
 {
-  for (int i = 0; i < m_num_procs; ++i) {
+/*
+    for (int i = 0; i < m_num_procs; ++i) {
     if (m_procs[i] == k)
       return;
   }
@@ -205,21 +208,22 @@ void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc k)
     ++m_num_procs;
     portEXIT_CRITICAL();
   }
+*/
 }
 
 void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc k, uint32_t)
 {
-  m_failsafe_cb = k;
+//  m_failsafe_cb = k;
 }
 
 void VRBRAINScheduler::suspend_timer_procs()
 {
-  xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
+//  xSemaphoreTakeRecursive(g_atomic, portMAX_DELAY);
 }
 
 void VRBRAINScheduler::resume_timer_procs()
 {
-  xSemaphoreGiveRecursive(g_atomic);
+//  xSemaphoreGiveRecursive(g_atomic);
 }
 
 void VRBRAINScheduler::begin_atomic()
@@ -236,10 +240,10 @@ void VRBRAINScheduler::panic(const prog_char_t *errormsg)
 
   // Try to grab "g_atomic" to suspend timer processes, but with a
   // timeout in case a timer proc is locked up.
-  xSemaphoreTakeRecursive(g_atomic, 10);
+  //xSemaphoreTakeRecursive(g_atomic, 10);
 
-  for(;;)
-    ;
+  //for(;;)
+  //  ;
 }
 
 void VRBRAINScheduler::reboot()
@@ -250,28 +254,28 @@ void VRBRAINScheduler::reboot()
 
 void VRBRAINScheduler::run_callbacks()
 {
-  uint32_t now = micros();
+  //uint32_t now = micros();
 
   // Run timer processes if not suspended.
-  portENTER_CRITICAL();
-  uint8_t num_procs = m_num_procs;
-  portEXIT_CRITICAL();
+  //portENTER_CRITICAL();
+  //uint8_t num_procs = m_num_procs;
+  //portEXIT_CRITICAL();
 
-  for (int i = 0; i < num_procs; ++i) {
-    if (m_procs[i] != NULL) {
-      m_procs[i](now);
-    }
-  }
+  //for (int i = 0; i < num_procs; ++i) {
+  //  if (m_procs[i] != NULL) {
+  //    m_procs[i](now);
+  //  }
+  //}
 }
 
 void VRBRAINScheduler::run_failsafe_cb()
 {
-  if (m_failsafe_cb)
-    m_failsafe_cb(micros());
+  //if (m_failsafe_cb)
+  //  m_failsafe_cb(micros());
 }
 
 void VRBRAINScheduler::run_delay_cb()
 {
-  if (m_delay_cb)
-    m_delay_cb();
+ // if (m_delay_cb)
+ //   m_delay_cb();
 }
