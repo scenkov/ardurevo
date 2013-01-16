@@ -108,25 +108,25 @@ public:
 private:
     /// Implements the default 'help' command.
     ///
-    void				_help(void);					///< implements the 'help' command
+    void        _help(void);                                                            ///< implements the 'help' command
 
     /// calls the function for the n'th menu item
     ///
     /// @param n			Index for the menu item to call
     /// @param argc			Number of arguments prepared for the menu item
     ///
-    int8_t				_call(uint8_t n, uint8_t argc);
+    int8_t                  _call(uint8_t n, uint8_t argc);
 
-    const char			*_prompt;						///< prompt to display
-    const command		*_commands;						///< array of commands
-    const uint8_t		_entries;						///< size of the menu
-    const preprompt		_ppfunc;						///< optional pre-prompt action
+    const char *            _prompt;                                                    ///< prompt to display
+    const command *         _commands;                                                  ///< array of commands
+    const uint8_t           _entries;                                                   ///< size of the menu
+    const preprompt         _ppfunc;                                                    ///< optional pre-prompt action
 
-    static char			_inbuf[MENU_COMMANDLINE_MAX];	///< input buffer
-    static arg			_argv[MENU_ARGS_MAX + 1];		///< arguments
+    static char             _inbuf[MENU_COMMANDLINE_MAX];       ///< input buffer
+    static arg              _argv[MENU_ARGS_MAX + 1];                   ///< arguments
 
 	// port to run on
-    static FastSerial       *_port;
+	static FastSerial       *_port;
 };
 
 /// Macros used to define a menu.
@@ -139,14 +139,12 @@ private:
 ///
 /// The MENU2 macro supports the optional pre-prompt printing function.
 ///
+#define MENU(name, prompt, commands)                                                    \
+    static const char __menu_name__ ## name[] PROGMEM = prompt;      \
+    static Menu name(__menu_name__ ## name, commands, sizeof(commands) / sizeof(commands[0]))
 
-#define MENU(name, prompt, commands)							\
-	static const char __menu_name__ ##name[] = prompt;	\
-	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]))
-
-#define MENU2(name, prompt, commands, preprompt)				\
-	static const char __menu_name__ ##name[] = prompt;	\
-	static Menu name(__menu_name__ ##name, commands, sizeof(commands) / sizeof(commands[0]), preprompt)
-
+#define MENU2(name, prompt, commands, preprompt)                                \
+    static const char __menu_name__ ## name[] PROGMEM = prompt;      \
+    static Menu name(__menu_name__ ## name, commands, sizeof(commands) / sizeof(commands[0]), preprompt)
 
 #endif // __AP_COMMON_MENU_H__

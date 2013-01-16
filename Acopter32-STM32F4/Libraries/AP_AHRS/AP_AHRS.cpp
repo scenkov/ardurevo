@@ -6,12 +6,12 @@
 	as published by the Free Software Foundation; either version 2.1
 	of the License, or (at your option) any later version.
 */
-#include <AP_AHRS.h>
 #include <FastSerial.h>
+#include <AP_AHRS.h>
 
 
 // table of user settable parameters
-const AP_Param::GroupInfo AP_AHRS::var_info[] = {
+const AP_Param::GroupInfo AP_AHRS::var_info[] PROGMEM = {
 	// index 0 and 1 are for old parameters that are no longer used
 
     // @Param: GPS_GAIN

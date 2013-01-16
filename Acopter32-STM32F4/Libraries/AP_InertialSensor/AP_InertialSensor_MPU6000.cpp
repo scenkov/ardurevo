@@ -413,19 +413,28 @@ void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     case RATE_50HZ:
         rate = MPUREG_SMPLRT_50HZ;
         default_filter = BITS_DLPF_CFG_20HZ;
+        _micros_per_sample = 20000;
         break;
     case RATE_100HZ:
         rate = MPUREG_SMPLRT_100HZ;
         default_filter = BITS_DLPF_CFG_42HZ;
+        _micros_per_sample = 10000;
         break;
     case RATE_200HZ:
         rate = MPUREG_SMPLRT_200HZ;
         default_filter = BITS_DLPF_CFG_98HZ;
+        _micros_per_sample = 5000;
+        break;
+    case RATE_500HZ:
+        rate = MPUREG_SMPLRT_500HZ;
+        default_filter = BITS_DLPF_CFG_98HZ;
+        _micros_per_sample = 2000;
         break;
     case RATE_1000HZ:
     default:
         rate = MPUREG_SMPLRT_1000HZ;
         default_filter = BITS_DLPF_CFG_98HZ;
+        _micros_per_sample = 1000;
         break;
     }
     
@@ -446,6 +455,12 @@ void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     case 98:
         filter = BITS_DLPF_CFG_98HZ;
         break;
+    case 188:
+        filter = BITS_DLPF_CFG_188HZ;
+        break;
+    case 256:
+        filter = BITS_DLPF_CFG_256HZ_NOLPF2;
+        break;
     case 0:
     default:
         // the user hasn't specified a specific frequency,
@@ -460,26 +475,27 @@ void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     // set low pass filter
     register_write(MPUREG_CONFIG, filter);
     delay(1);
+
     register_write(MPUREG_GYRO_CONFIG,BITS_GYRO_FS_1000DPS);  // Gyro scale 2000°/s
     delay(1);
-	
-	_mpu6000_product_id = register_read(MPUREG_PRODUCT_ID); // read the product ID rev c has 1/2 the sensitivity of rev d
-	//Serial.printf("Product_ID= 0x%x\n", (unsigned) _product_id);
-	
-	if ((_mpu6000_product_id == MPU6000ES_REV_C4) || (_mpu6000_product_id == MPU6000ES_REV_C5) ||
-		(_mpu6000_product_id == MPU6000_REV_C4)   || (_mpu6000_product_id == MPU6000_REV_C5)){
-		// Accel scale 8g (4096 LSB/g)
-		// Rev C has different scaling than rev D
-		register_write(MPUREG_ACCEL_CONFIG,1<<3);
-	} else {
-		// Accel scale 8g (4096 LSB/g)
-		register_write(MPUREG_ACCEL_CONFIG,2<<3);
-	}
+
+    _mpu6000_product_id = register_read(MPUREG_PRODUCT_ID);     // read the product ID rev c has 1/2 the sensitivity of rev d
+    //Serial.printf("Product_ID= 0x%x\n", (unsigned) _mpu6000_product_id);
+
+    if ((_mpu6000_product_id == MPU6000ES_REV_C4) || (_mpu6000_product_id == MPU6000ES_REV_C5) ||
+        (_mpu6000_product_id == MPU6000_REV_C4)   || (_mpu6000_product_id == MPU6000_REV_C5)) {
+        // Accel scale 8g (4096 LSB/g)
+        // Rev C has different scaling than rev D
+        register_write(MPUREG_ACCEL_CONFIG,1<<3);
+    } else {
+        // Accel scale 8g (4096 LSB/g)
+        register_write(MPUREG_ACCEL_CONFIG,2<<3);
+    }
     delay(1);
 
-    register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);			// configure interrupt to fire when new data arrives
+    register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);                  // configure interrupt to fire when new data arrives
     delay(1);
-    register_write(MPUREG_INT_PIN_CFG,BIT_INT_RD_CLEAR);  // INT: Clear on any read
+    register_write(MPUREG_INT_PIN_CFG, BIT_INT_RD_CLEAR);               // clear interrupt on any read
     delay(1);
 
     attachInterrupt(99,data_interrupt,RISING);
@@ -714,7 +730,6 @@ void AP_InertialSensor_MPU6000::FIFO_reset()
     temp = register_read(MPUREG_USER_CTRL);
     temp = temp | BIT_USER_CTRL_FIFO_RESET;             // FIFO RESET BIT
     register_write(MPUREG_USER_CTRL, temp);
-	_new_data = 0;								// clear new data flag
 }
 
 // FIFO_getPacket - read an attitude packet from FIFO buffer

@@ -42,7 +42,6 @@
 #define THROTTLE_HOLD                       6   // alt hold plus pilot input of climb rate
 #define THROTTLE_AUTO                       7   // auto pilot altitude controller with target altitude held in next_WP.alt
 #define THROTTLE_LAND                       8   // landing throttle controller
-#define THROTTLE_SURFACE_TRACKING           9   // ground tracking with sonar or other rangefinder
 
 
 // active altitude sensor
@@ -59,15 +58,17 @@
 #define CH6_PWM_TRIGGER_LOW 1200
 
 #define CH7_DO_NOTHING 0
-#define CH7_SET_HOVER 1
+#define CH7_SET_HOVER 1         // deprecated
 #define CH7_FLIP 2
 #define CH7_SIMPLE_MODE 3
 #define CH7_RTL 4
 #define CH7_SAVE_TRIM 5
 #define CH7_ADC_FILTER 6        // deprecated
 #define CH7_SAVE_WP 7
-#define CH7_MULTI_MODE 8        // deprecated
+#define CH7_MULTI_MODE 8
 #define CH7_CAMERA_TRIGGER 9
+#define CH7_SONAR 10            // allow enabling or disabling sonar in flight which helps avoid surface tracking when you are far above the ground
+
 
 
 // Frame types
@@ -128,6 +129,7 @@
 #define HIL_MODE_ATTITUDE               1
 #define HIL_MODE_SENSORS                2
 
+// Altitude status definitions
 #define REACHED_ALT                     0
 #define DESCENDING                      1
 #define ASCENDING                       2
@@ -440,8 +442,8 @@ enum gcs_severity {
 # define MPU6K_20HZ_FILTER      20
 # define MPU6K_42HZ_FILTER      42
 # define MPU6K_98HZ_FILTER      98
+# define MPU6K_188HZ_FILTER      98
 # define MPU6K_256HZ_FILTER     256
-# define MPU6K_NONE_FILTER      999
 
 
 // APM Hardware selection

@@ -3,8 +3,8 @@
 #include <APM_RC.h>
 #include "RC_Channel_aux.h"
 
-const AP_Param::GroupInfo RC_Channel_aux::var_info[] = {
-	AP_NESTEDGROUPINFO(RC_Channel, 0),
+const AP_Param::GroupInfo RC_Channel_aux::var_info[] PROGMEM = {
+    AP_NESTEDGROUPINFO(RC_Channel, 0),
 
     // @Param: FUNCTION
     // @DisplayName: Servo out function
