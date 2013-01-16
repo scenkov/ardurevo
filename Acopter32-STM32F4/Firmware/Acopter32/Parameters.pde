@@ -13,7 +13,7 @@
 #define GGROUP(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &g.v, {group_info : class::var_info} }
 #define GOBJECT(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &v, {group_info : class::var_info} }
 
-const AP_Param::Info var_info[] = {
+const AP_Param::Info var_info[] PROGMEM = {
     // @Param: SYSID_SW_MREV
     // @DisplayName: Eeprom format version number
     // @Description: This value is incremented when changes are made to the eeprom format
@@ -31,11 +31,6 @@ const AP_Param::Info var_info[] = {
     // @Description: Allows reconising the mavlink version
     // @User: Advanced
     GSCALAR(sysid_this_mav, "SYSID_THISMAV",   MAV_SYSTEM_ID),
-
-    // @Param: SYSID_MYGCS
-    // @DisplayName: My ground station number
-    // @Description: Allows restricting radio overrides to only come from my ground station
-    // @User: Advanced
     GSCALAR(sysid_my_gcs,   "SYSID_MYGCS",     255),
 
     // @Param: SER_AUX_PORT
@@ -93,7 +88,7 @@ const AP_Param::Info var_info[] = {
     // @Increment: 1
     GSCALAR(telem_delay,            "TELEM_DELAY",     0),
 
-    // @Param: RTL_ALT
+    // @Param: ALT_RTL
     // @DisplayName: RTL Altitude
     // @Description: The minimum altitude the model will move to before Returning to Launch.  Set to zero to return at current altitude.
     // @Units: Centimeters
@@ -185,7 +180,7 @@ const AP_Param::Info var_info[] = {
 
     // @Param: RTL_ALT_FINAL
     // @DisplayName: RTL Final Altitude
-    // @Description: This is the altitude the vehicle will move to as the final stage of Returning to Launch or after completing a mission.  Set to zero to land.
+    // @Description: This is the altitude the vehicle will move to as the final stage of Returning to Launch or after completing a mission.  Set to -1 to disable, zero to land.
     // @Units: Centimeters
     // @Range: -1 1000
     // @Increment: 1

@@ -6,7 +6,7 @@
 // AVR runtime
 #include <avr/io.h>
 #include <avr/eeprom.h>
-#include <AP_Progmem.h>
+#include <avr/pgmspace.h>
 #include <math.h>
 
 // Libraries

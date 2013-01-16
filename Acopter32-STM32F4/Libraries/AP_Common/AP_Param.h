@@ -17,9 +17,8 @@
 #include <string.h>
 #include <stdint.h>
 
-//#include <wirish.h>
-#include <AP_Progmem.h>
-#include <HardwareI2C.h>
+#include <wirish.h>
+#include <pgmspace.h>
 #include <EEPROM.h>
 
 #define AP_MAX_NAME_SIZE 16
@@ -120,13 +119,10 @@ public:
     /// Note that if the combination of names is larger than the buffer, the
     /// result in the buffer will be truncated.
     ///
-    /// @param	token			token giving current variable
     /// @param	buffer			The destination buffer
     /// @param	bufferSize		Total size of the destination buffer.
     ///
     void copy_name(char *buffer, size_t bufferSize, bool force_scalar=false);
-
-    void copy_name_token(const ParamToken *token, char *buffer, size_t bufferSize, bool force_scalar=false);
 
     /// Find a variable by name.
     ///
@@ -183,7 +179,8 @@ public:
     static void         erase_all(void);
 
     /// print the value of all variables
-    static void         show_all(void);
+    //static void show_all(FastSerial * ser_port);
+    static void show_all(void);
 
     /// Returns the first variable
     ///
@@ -209,9 +206,6 @@ private:
     /// This structure is placed at the head of the EEPROM to indicate
     /// that the ROM is formatted for AP_Param.
     ///
-    //FastSerial *serext;
-    //HardwareI2C *I2C2_ext;
-
     struct EEPROM_header {
         uint8_t magic[2];
         uint8_t revision;
@@ -237,21 +231,21 @@ private:
     };
 
     // number of bits in each level of nesting of groups
-    static const uint8_t        _group_level_shift = 6;
-    static const uint8_t        _group_bits  = 18;
+    static const uint8_t _group_level_shift = 6;
+    static const uint8_t _group_bits  = 18;
 
-    static const uint8_t        _sentinal_key   = 0xFF;
-    static const uint8_t        _sentinal_type  = 0x3F;
-    static const uint8_t        _sentinal_group = 0xFF;
+    static const uint8_t  _sentinal_key   = 0xFF;
+    static const uint8_t  _sentinal_type  = 0x3F;
+    static const uint8_t  _sentinal_group = 0xFF;
 
-    static bool                 check_group_info(const struct GroupInfo *group_info, uint16_t *total_size, uint8_t max_bits);
-    static bool                 duplicate_key(uint8_t vindex, uint8_t key);
-    static bool                 check_var_info(void);
-    const struct Info *         find_var_info_group(
-                                    const struct GroupInfo *    group_info,
-                                    uint8_t                     vindex,
-                                    uint8_t                     group_base,
-                                    uint8_t                     group_shift,
+    static bool check_group_info(const struct GroupInfo *group_info, uint16_t *total_size, uint8_t max_bits);
+    static bool duplicate_key(uint8_t vindex, uint8_t key);
+    static bool check_var_info(void);
+    const struct Info *find_var_info_group(
+                                           const struct GroupInfo *group_info,
+                                           uint8_t vindex,
+                                           uint8_t group_base,
+                                           uint8_t group_shift,
                                     uint32_t *                  group_element,
                                     const struct GroupInfo **   group_ret,
                                     uint8_t *                   idx);
@@ -259,10 +253,6 @@ private:
                                     uint32_t *                group_element,
                                     const struct GroupInfo ** group_ret,
                                     uint8_t *                 idx);
-    const struct Info *			find_var_info_token(const ParamToken *token,
-                                                    uint32_t *                 group_element,
-                                                    const struct GroupInfo **  group_ret,
-                                                    uint8_t *                  idx);
     static const struct Info *  find_by_header_group(
                                     struct Param_header phdr, void **ptr,
                                     uint8_t vindex,
@@ -469,10 +459,6 @@ public:
     ///
     T & operator[](uint8_t i) {
         return _value[i];
-    }
-
-    T & operator[](int8_t i) {
-        return _value[(uint8_t)i];
     }
 
     /// Value getter

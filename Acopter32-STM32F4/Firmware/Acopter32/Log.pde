@@ -36,7 +36,7 @@ static int8_t   select_logs(uint8_t argc,               const Menu::arg *argv);
 // and stores them in Flash memory, not RAM.
 // User enters the string in the console to call the functions on the right.
 // See class Menu in AP_Coommon for implementation details
-const struct Menu::command log_menu_commands[] = {
+const struct Menu::command log_menu_commands[] PROGMEM = {
     {"dump",        dump_log},
     {"erase",       erase_logs},
     {"enable",      select_logs},
@@ -892,7 +892,6 @@ static void Log_Read_Startup()
 
 static void Log_Write_Data(uint8_t _index, int32_t _data)
 {
-    if (g.log_bitmask == 0) return;
     DataFlash.WriteByte(HEAD_BYTE1);
     DataFlash.WriteByte(HEAD_BYTE2);
     DataFlash.WriteByte(LOG_DATA_MSG);
@@ -904,7 +903,6 @@ static void Log_Write_Data(uint8_t _index, int32_t _data)
 
 static void Log_Write_Data(uint8_t _index, float _data)
 {
-    if (g.log_bitmask == 0) return;
     DataFlash.WriteByte(HEAD_BYTE1);
     DataFlash.WriteByte(HEAD_BYTE2);
     DataFlash.WriteByte(LOG_DATA_MSG);
@@ -916,7 +914,6 @@ static void Log_Write_Data(uint8_t _index, float _data)
 
 static void Log_Write_Data(uint8_t _index, int16_t _data)
 {
-    if (g.log_bitmask == 0) return;
     DataFlash.WriteByte(HEAD_BYTE1);
     DataFlash.WriteByte(HEAD_BYTE2);
     DataFlash.WriteByte(LOG_DATA_MSG);
@@ -928,7 +925,6 @@ static void Log_Write_Data(uint8_t _index, int16_t _data)
 
 static void Log_Write_Data(uint8_t _index, uint16_t _data)
 {
-    if (g.log_bitmask == 0) return;
     DataFlash.WriteByte(HEAD_BYTE1);
     DataFlash.WriteByte(HEAD_BYTE2);
     DataFlash.WriteByte(LOG_DATA_MSG);
@@ -941,7 +937,6 @@ static void Log_Write_Data(uint8_t _index, uint16_t _data)
 
 static void Log_Write_Event(uint8_t _index)
 {
-    if (g.log_bitmask == 0) return;
     DataFlash.WriteByte(HEAD_BYTE1);
     DataFlash.WriteByte(HEAD_BYTE2);
     DataFlash.WriteByte(LOG_DATA_MSG);

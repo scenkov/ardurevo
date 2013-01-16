@@ -11,7 +11,7 @@
 #include "AP_Motors.h"
 
 // parameters for the motor class
-const AP_Param::GroupInfo AP_Motors::var_info[] = {
+const AP_Param::GroupInfo AP_Motors::var_info[]  = {
     // @Param: TB_RATIO
     // @DisplayName: Top Bottom Ratio
     // @Description: Not Used.  Will control the speed of the top motors vs bottom motors on frames such as the Octo-Quad and Y6

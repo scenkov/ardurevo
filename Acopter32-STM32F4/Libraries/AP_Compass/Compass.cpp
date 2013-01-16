@@ -7,7 +7,7 @@ const AP_Param::GroupInfo Compass::var_info[] = {
     AP_GROUPINFO("DEC",    2, Compass, _declination, 0),
     AP_GROUPINFO("LEARN",  3, Compass, _learn, 1), // true if learning calibration
     AP_GROUPINFO("USE",    4, Compass, _use_for_yaw, 1), // true if used for DCM yaw
-    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 0),
+    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 1),
     AP_GROUPEND
 };
 

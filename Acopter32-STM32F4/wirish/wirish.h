@@ -43,7 +43,7 @@
 //#include "wirish_debug.h"
 #include "wirish_math.h"
 #include "wirish_time.h"
-#include "AP_progmem.h"
+#include "wirish_string.h"
 #include "HardwareSPI.h"
 //#include "HardwareSerial.h"
 #include "FastSerial.h"

@@ -9,7 +9,7 @@
 
 */
 
-#include <arm_math.h>
+#include <math.h>
 //#include <avr/eeprom.h>
 #include <wirish.h>
 #include "RC_Channel.h"

@@ -10,7 +10,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include <AP_Progmem.h>
+#include <pgmspace.h>
 #include "AP_Menu.h"
 
 // statics

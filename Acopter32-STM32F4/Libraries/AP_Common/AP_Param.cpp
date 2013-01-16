@@ -17,13 +17,14 @@
 #include <AP_Common.h>
 #include <AP_Math.h>
 
-#include <arm_math.h>
+#include <math.h>
 #include <string.h>
-#include <HardwareI2C.h>
 #include <EEPROM.h>
 
-FastSerial *serext;
-HardwareI2C *I2C2_ext;
+#include <FastSerial.h>
+FastSerialPort2(serext);
+
+HardwareI2C I2C2_ext(2);
 
 //#define ENABLE_FASTSERIAL_DEBUG
 
@@ -130,12 +131,12 @@ bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *  group_info,
             const struct GroupInfo *ginfo = (const struct GroupInfo *)PGM_POINTER(&group_info[i].group_info);
             if (group_shift + _group_level_shift >= _group_bits) {
                 // double nesting of groups is not allowed
-        	serialDebug("Error: double nesting of groups is not allowed\n\r");
+            	// serext->printf("Error: double nesting of groups is not allowed\n\r");
                 return false;
             }
             if (ginfo == NULL ||
                 !check_group_info(ginfo, total_size, group_shift + _group_level_shift)) {
-            	//serialDebug("Error: check_group_info\n\r");
+            	//serext->printf("Error: check_group_info\n\r");
                 return false;
             }
             continue;
@@ -144,18 +145,18 @@ bool AP_Param::check_group_info(const struct AP_Param::GroupInfo *  group_info,
         uint8_t idx = PGM_UINT8(&group_info[i].idx);
         if (idx >= (1<<_group_level_shift)) {
             // passed limit on table size
-        	serialDebug("Error: passed limit on table size\n\r");
+        	//serext->printf("Error: passed limit on table size\n\r");
             return false;
         }
         if ((int8_t)idx <= max_idx) {
             // the indexes must be in increasing order
-        	serialDebug("Error: the indexes must be in increasing order\n\r");
+        	//serext->printf("Error: the indexes must be in increasing order\n\r");
             return false;
         }
         max_idx = (int8_t)idx;
         uint8_t size = type_size((enum ap_var_type)type);
         if (size == 0) {
-        	serialDebug("Error: not a valid type\n\r");
+        	//serext->printf("Error: not a valid type\n\r");
             // not a valid type
             return false;
         }
@@ -170,7 +171,6 @@ bool AP_Param::duplicate_key(uint8_t vindex, uint8_t key)
     for (uint8_t i=vindex+1; i<_num_vars; i++) {
         uint8_t key2 = PGM_UINT8(&_var_info[i].key);
         if (key2 == key) {
-            serialDebug("No duplicate keys allowed\n\r");
             // no duplicate keys allowed
             return true;
         }
@@ -182,20 +182,20 @@ bool AP_Param::duplicate_key(uint8_t vindex, uint8_t key)
 bool AP_Param::check_var_info(void)
 {
     uint16_t total_size = sizeof(struct EEPROM_header);
-    serialDebug("Init Check var\n\r");
+     //serext->printf("Init Check var\n\r");
     for (uint8_t i=0; i<_num_vars; i++) {
         uint8_t type = PGM_UINT8(&_var_info[i].type);
         uint8_t key = PGM_UINT8(&_var_info[i].key);
         if (type == AP_PARAM_GROUP) {
             if (i == 0) {
-            	serialDebug("Error: first element can't be a group\n\r");
+            	// serext->printf("Error: first element can't be a group\n\r");
                 // first element can't be a group, for first() call
                 return false;
             }
             const struct GroupInfo *group_info = (const struct GroupInfo *)PGM_POINTER(&_var_info[i].group_info);
             if (group_info == NULL ||
                 !check_group_info(group_info, &total_size, 0)) {
-            	 serialDebug("Error: check_group_info\n\r");
+            	 //serext->printf("Error: check_group_info\n\r");
                 return false;
             }
         } else {
@@ -203,13 +203,13 @@ bool AP_Param::check_var_info(void)
             if (size == 0) {
                 // not a valid type - the top level list can't contain
                 // AP_PARAM_NONE
-            	 serialDebug("Error: not a valid type - the top level list  can't contain AP_PARAM_NONE\n\r");
+            	 //serext->printf("Error: not a valid type - the top level list  can't contain AP_PARAM_NONE\n\r");
                 return false;
             }
             total_size += size + sizeof(struct Param_header);
         }
         if (duplicate_key(i, key)) {
-        	 serialDebug("Error: duplicate keyE\n\r");
+        	 //serext->printf("Error: duplicate keyE\n\r");
             return false;
         }
     }
@@ -225,8 +225,10 @@ bool AP_Param::check_var_info(void)
 // setup the _var_info[] table
 bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size)
 {
-    EEPROM.init(I2C2_ext,serext);
-    
+
+    I2C2_ext.begin();
+    EEPROM.init(&I2C2_ext,&serext);
+
     struct EEPROM_header hdr;
     uint8_t i;
 
@@ -239,7 +241,7 @@ bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size)
     if (!check_var_info()) {
         return false;
     }
-
+    //serext->printf("setup %u vars", (unsigned)_num_vars);
     serialDebug("setup %u vars", (unsigned)_num_vars);
 
     // check the header
@@ -415,41 +417,6 @@ const struct AP_Param::Info *AP_Param::find_var_info(uint32_t *                 
     return NULL;
 }
 
-
-// find the info structure for a variable
-const struct AP_Param::Info *AP_Param::find_var_info_token(const ParamToken *token,
-                                                           uint32_t *                 group_element,
-                                                           const struct GroupInfo **  group_ret,
-                                                           uint8_t *                  idx)
-{
-    uint8_t i = token->key;
-    uint8_t type = PGM_UINT8(&_var_info[i].type);
-    uintptr_t base = PGM_POINTER(&_var_info[i].ptr);
-    if (type == AP_PARAM_GROUP) {
-        const struct GroupInfo *group_info = (const struct GroupInfo *)PGM_POINTER(&_var_info[i].group_info);
-        const struct AP_Param::Info *info;
-        info = find_var_info_group(group_info, i, 0, 0, group_element, group_ret, idx);
-        if (info != NULL) {
-            return info;
-        }
-    } else if (base == (uintptr_t) this) {
-        *group_element = 0;
-        *group_ret = NULL;
-        *idx = 0;
-        return &_var_info[i];
-    } else if (type == AP_PARAM_VECTOR3F &&
-               (base+sizeof(float) == (uintptr_t) this ||
-                base+2*sizeof(float) == (uintptr_t) this)) {
-        // we are inside a Vector3f. Work out which element we are
-        // referring to.
-        *idx = (((uintptr_t) this) - base)/sizeof(float);
-        *group_element = 0;
-        *group_ret = NULL;
-        return &_var_info[i];
-    }
-    return NULL;
-}
-
 // return the storage size for a AP_PARAM_* type
 const uint8_t AP_Param::type_size(enum ap_var_type type)
 {
@@ -545,48 +512,18 @@ void AP_Param::copy_name(char *buffer, size_t buffer_size, bool force_scalar)
         serialDebug("no info found");
         return;
     }
-    strncpy_P(buffer, info->name, buffer_size);
+    strncpy_P(buffer, (const prog_char_t *)info->name, buffer_size);
     if (ginfo != NULL) {
         uint8_t len = strnlen(buffer, buffer_size);
         if (len < buffer_size) {
-            strncpy_P(&buffer[len], ginfo->name, buffer_size-len);
+            strncpy_P(&buffer[len], (const prog_char_t *)ginfo->name, buffer_size-len);
         }
         if ((force_scalar || idx != 0) && AP_PARAM_VECTOR3F == PGM_UINT8(&ginfo->type)) {
             // the caller wants a specific element in a Vector3f
             add_vector3f_suffix(buffer, buffer_size, idx);
         }
     } else if ((force_scalar || idx != 0) && AP_PARAM_VECTOR3F == PGM_UINT8(&info->type)) {
-        add_vector3f_suffix(buffer, buffer_size, idx);
-    }
-}
-
-// Copy the variable's whole name to the supplied buffer.
-//
-// If the variable is a group member, prepend the group name.
-//
-void AP_Param::copy_name_token(const ParamToken *token, char *buffer, size_t buffer_size, bool force_scalar)
-{
-    uint32_t group_element;
-    const struct GroupInfo *ginfo;
-    uint8_t idx;
-    const struct AP_Param::Info *info = find_var_info_token(token, &group_element, &ginfo, &idx);
-    if (info == NULL) {
-        *buffer = 0;
-        serialDebug("no info found");
-        return;
-    }
-    strncpy_P(buffer, info->name, buffer_size);
-    if (ginfo != NULL) {
-        uint8_t len = strnlen(buffer, buffer_size);
-        if (len < buffer_size) {
-            strncpy_P(&buffer[len], ginfo->name, buffer_size-len);
-        }
-        if ((force_scalar || idx != 0) && AP_PARAM_VECTOR3F == PGM_UINT8(&ginfo->type)) {
-            // the caller wants a specific element in a Vector3f
             add_vector3f_suffix(buffer, buffer_size, idx);
-        }
-    } else if ((force_scalar || idx != 0) && AP_PARAM_VECTOR3F == PGM_UINT8(&info->type)) {
-        add_vector3f_suffix(buffer, buffer_size, idx);
     }
 }
 
@@ -607,14 +544,14 @@ AP_Param::find_group(const char *name, uint8_t vindex, const struct GroupInfo *g
             }
         } else
 #endif // AP_NESTED_GROUPS_ENABLED
-        if (strcasecmp_P(name, group_info[i].name) == 0) {
+        if (strcasecmp_P(name, (const prog_char_t *)group_info[i].name) == 0) {
             uintptr_t p = PGM_POINTER(&_var_info[vindex].ptr);
             *ptype = (enum ap_var_type)type;
             return (AP_Param *)(p + PGM_POINTER(&group_info[i].offset));
         } else if (type == AP_PARAM_VECTOR3F) {
             // special case for finding Vector3f elements
-            uint8_t suffix_len = strnlen_P(group_info[i].name, AP_MAX_NAME_SIZE);
-            if (strncmp_P(name, group_info[i].name, suffix_len) == 0 &&
+            uint8_t suffix_len = strnlen_P((const prog_char_t *)group_info[i].name, AP_MAX_NAME_SIZE);
+            if (strncmp_P(name, (const prog_char_t *)group_info[i].name, suffix_len) == 0 &&
                 name[suffix_len] == '_' &&
                 (name[suffix_len+1] == 'X' ||
                  name[suffix_len+1] == 'Y' ||
@@ -645,8 +582,8 @@ AP_Param::find(const char *name, enum ap_var_type *ptype)
     for (uint8_t i=0; i<_num_vars; i++) {
         uint8_t type = PGM_UINT8(&_var_info[i].type);
         if (type == AP_PARAM_GROUP) {
-            uint8_t len = strnlen_P(_var_info[i].name, AP_MAX_NAME_SIZE);
-            if (strncmp_P(name, _var_info[i].name, len) != 0) {
+            uint8_t len = strnlen_P((const prog_char_t *)_var_info[i].name, AP_MAX_NAME_SIZE);
+            if (strncmp_P(name, (const prog_char_t *)_var_info[i].name, len) != 0) {
                 continue;
             }
             const struct GroupInfo *group_info = (const struct GroupInfo *)PGM_POINTER(&_var_info[i].group_info);
@@ -657,7 +594,7 @@ AP_Param::find(const char *name, enum ap_var_type *ptype)
             // we continue looking as we want to allow top level
             // parameter to have the same prefix name as group
             // parameters, for example CAM_P_G
-        } else if (strcasecmp_P(name, _var_info[i].name) == 0) {
+        } else if (strcasecmp_P(name, (const prog_char_t *)_var_info[i].name) == 0) {
             *ptype = (enum ap_var_type)type;
             return (AP_Param *)PGM_POINTER(&_var_info[i].ptr);
         }

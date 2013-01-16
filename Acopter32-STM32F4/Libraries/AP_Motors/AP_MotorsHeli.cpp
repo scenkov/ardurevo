@@ -1,12 +1,12 @@
 /*
- *       AP_MotorsHeli.cpp - ArduCopter motors library
- *       Code by RandyMackay. DIYDrones.com
- *
- *       This library is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
- */
+	AP_MotorsHeli.cpp - ArduCopter motors library
+	Code by RandyMackay. DIYDrones.com
+
+	This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+*/
 
 #include "AP_MotorsHeli.h"
 
@@ -255,186 +255,186 @@ void AP_MotorsHeli::output_disarmed()
 // output_disarmed - sends commands to the motors
 void AP_MotorsHeli::output_test()
 {
-    int16_t i;
-    // Send minimum values to all motors
-    output_min();
+	int16_t i;
+	// Send minimum values to all motors
+	output_min();
 
-    // servo 1
-    for( i=0; i<5; i++ ) {
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_trim + 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_trim - 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_trim + 0);
-        delay(300);
-    }
+	// servo 1
+	for( i=0; i<5; i++ ) {
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_trim + 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_trim - 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_trim + 0);
+		delay(300);
+	}
 
-    // servo 2
-    for( i=0; i<5; i++ ) {
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_trim + 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_trim - 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_trim + 0);
-        delay(300);
-    }
+	// servo 2
+	for( i=0; i<5; i++ ) {
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_trim + 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_trim - 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_trim + 0);
+		delay(300);
+	}
 
-    // servo 3
-    for( i=0; i<5; i++ ) {
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_trim + 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_trim - 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_trim + 0);
-        delay(300);
-    }
+	// servo 3
+	for( i=0; i<5; i++ ) {
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_trim + 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_trim - 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_trim + 0);
+		delay(300);
+	}
 
-    // external gyro
-    if( ext_gyro_enabled ) {
-        _rc->OutputCh(AP_MOTORS_HELI_EXT_GYRO, ext_gyro_gain);
-    }
+	// external gyro
+	if( ext_gyro_enabled ) {
+		_rc->OutputCh(AP_MOTORS_HELI_EXT_GYRO, ext_gyro_gain);
+	}
 
-    // servo 4
-    for( i=0; i<5; i++ ) {
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_trim + 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_trim - 100);
-        delay(300);
-        _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_trim + 0);
-        delay(300);
-    }
+	// servo 4
+	for( i=0; i<5; i++ ) {
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_trim + 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_trim - 100);
+		delay(300);
+		_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_trim + 0);
+		delay(300);
+	}
 
-    // Send minimum values to all motors
-    output_min();
+	// Send minimum values to all motors
+	output_min();
 }
 
 // reset_swash - free up swash for maximum movements. Used for set-up
 void AP_MotorsHeli::reset_swash()
 {
-    // free up servo ranges
-    _servo_1->radio_min = 1000;
-    _servo_1->radio_max = 2000;
-    _servo_2->radio_min = 1000;
-    _servo_2->radio_max = 2000;
-    _servo_3->radio_min = 1000;
-    _servo_3->radio_max = 2000;
+	// free up servo ranges
+	_servo_1->radio_min = 1000;
+	_servo_1->radio_max = 2000;
+	_servo_2->radio_min = 1000;
+	_servo_2->radio_max = 2000;
+	_servo_3->radio_min = 1000;
+	_servo_3->radio_max = 2000;
 
-    if( swash_type == AP_MOTORS_HELI_SWASH_CCPM ) {                     //CCPM Swashplate, perform servo control mixing
+	if( swash_type == AP_MOTORS_HELI_SWASH_CCPM ) {			//CCPM Swashplate, perform servo control mixing
+		
+		// roll factors
+		_rollFactor[CH_1] = cos(radians(servo1_pos + 90 - phase_angle));
+		_rollFactor[CH_2] = cos(radians(servo2_pos + 90 - phase_angle));
+		_rollFactor[CH_3] = cos(radians(servo3_pos + 90 - phase_angle));
+				
+		// pitch factors
+		_pitchFactor[CH_1] = cos(radians(servo1_pos - phase_angle));
+		_pitchFactor[CH_2] = cos(radians(servo2_pos - phase_angle));
+		_pitchFactor[CH_3] = cos(radians(servo3_pos - phase_angle));
+		
+		// collective factors
+		_collectiveFactor[CH_1] = 1;
+		_collectiveFactor[CH_2] = 1;
+		_collectiveFactor[CH_3] = 1;
+		
+	}else{  								//H1 Swashplate, keep servo outputs seperated
 
-        // roll factors
-        _rollFactor[CH_1] = cos(radians(servo1_pos + 90 - phase_angle));
-        _rollFactor[CH_2] = cos(radians(servo2_pos + 90 - phase_angle));
-        _rollFactor[CH_3] = cos(radians(servo3_pos + 90 - phase_angle));
+		// roll factors
+		_rollFactor[CH_1] = 1;
+		_rollFactor[CH_2] = 0;
+		_rollFactor[CH_3] = 0;
+	
+		// pitch factors
+		_pitchFactor[CH_1] = 0;
+		_pitchFactor[CH_2] = 1;
+		_pitchFactor[CH_3] = 0;
+		
+		// collective factors
+		_collectiveFactor[CH_1] = 0;
+		_collectiveFactor[CH_2] = 0;
+		_collectiveFactor[CH_3] = 1;
+	}
 
-        // pitch factors
-        _pitchFactor[CH_1] = cos(radians(servo1_pos - phase_angle));
-        _pitchFactor[CH_2] = cos(radians(servo2_pos - phase_angle));
-        _pitchFactor[CH_3] = cos(radians(servo3_pos - phase_angle));
-
-        // collective factors
-        _collectiveFactor[CH_1] = 1;
-        _collectiveFactor[CH_2] = 1;
-        _collectiveFactor[CH_3] = 1;
-
-    }else{                                                                      //H1 Swashplate, keep servo outputs seperated
-
-        // roll factors
-        _rollFactor[CH_1] = 1;
-        _rollFactor[CH_2] = 0;
-        _rollFactor[CH_3] = 0;
-
-        // pitch factors
-        _pitchFactor[CH_1] = 0;
-        _pitchFactor[CH_2] = 1;
-        _pitchFactor[CH_3] = 0;
-
-        // collective factors
-        _collectiveFactor[CH_1] = 0;
-        _collectiveFactor[CH_2] = 0;
-        _collectiveFactor[CH_3] = 1;
-    }
-
-    // set roll, pitch and throttle scaling
-    _roll_scaler = 1.0;
-    _pitch_scaler = 1.0;
-    _collective_scalar = ((float)(_rc_throttle->radio_max - _rc_throttle->radio_min))/1000.0;
+	// set roll, pitch and throttle scaling
+	_roll_scaler = 1.0;
+	_pitch_scaler = 1.0;
+	_collective_scalar = ((float)(_rc_throttle->radio_max - _rc_throttle->radio_min))/1000.0;
 	_stab_throttle_scalar = 1.0;
 
-    // we must be in set-up mode so mark swash as uninitialised
-    _swash_initialised = false;
+	// we must be in set-up mode so mark swash as uninitialised
+	_swash_initialised = false;
 }
 
 // init_swash - initialise the swash plate
 void AP_MotorsHeli::init_swash()
 {
 
-    // swash servo initialisation
-    _servo_1->set_range(0,1000);
-    _servo_2->set_range(0,1000);
-    _servo_3->set_range(0,1000);
-    _servo_4->set_angle(4500);
+	// swash servo initialisation
+	_servo_1->set_range(0,1000);
+	_servo_2->set_range(0,1000);
+	_servo_3->set_range(0,1000);
+	_servo_4->set_angle(4500);
 
-    // ensure _coll values are reasonable
-    if( collective_min >= collective_max ) {
-        collective_min = 1000;
-        collective_max = 2000;
-    }
-    collective_mid = constrain(collective_mid, collective_min, collective_max);
+	// ensure _coll values are reasonable
+	if( collective_min >= collective_max ) {
+	    collective_min = 1000;
+		collective_max = 2000;
+	}
+	collective_mid = constrain(collective_mid, collective_min, collective_max);
 
-    // calculate throttle mid point
-    throttle_mid = ((float)(collective_mid-collective_min))/((float)(collective_max-collective_min))*1000.0;
+	// calculate throttle mid point
+	throttle_mid = ((float)(collective_mid-collective_min))/((float)(collective_max-collective_min))*1000.0;
 
-    // determine roll, pitch and throttle scaling
-    _roll_scaler = (float)roll_max/4500.0;
-    _pitch_scaler = (float)pitch_max/4500.0;
-    _collective_scalar = ((float)(collective_max-collective_min))/1000.0;
+	// determine roll, pitch and throttle scaling
+	_roll_scaler = (float)roll_max/4500.0;
+	_pitch_scaler = (float)pitch_max/4500.0;
+	_collective_scalar = ((float)(collective_max-collective_min))/1000.0;
 	_stab_throttle_scalar = ((float)(stab_col_max - stab_col_min))/100.0;
 
-    if( swash_type == AP_MOTORS_HELI_SWASH_CCPM ) {                     //CCPM Swashplate, perform control mixing
+	if( swash_type == AP_MOTORS_HELI_SWASH_CCPM ) {			//CCPM Swashplate, perform control mixing
+		
+		// roll factors
+		_rollFactor[CH_1] = cos(radians(servo1_pos + 90 - phase_angle));
+		_rollFactor[CH_2] = cos(radians(servo2_pos + 90 - phase_angle));
+		_rollFactor[CH_3] = cos(radians(servo3_pos + 90 - phase_angle));
+				
+		// pitch factors
+		_pitchFactor[CH_1] = cos(radians(servo1_pos - phase_angle));
+		_pitchFactor[CH_2] = cos(radians(servo2_pos - phase_angle));
+		_pitchFactor[CH_3] = cos(radians(servo3_pos - phase_angle));
+		
+		// collective factors
+		_collectiveFactor[CH_1] = 1;
+		_collectiveFactor[CH_2] = 1;
+		_collectiveFactor[CH_3] = 1;
+		
+	}else{  	//H1 Swashplate, keep servo outputs seperated
 
-        // roll factors
-        _rollFactor[CH_1] = cos(radians(servo1_pos + 90 - phase_angle));
-        _rollFactor[CH_2] = cos(radians(servo2_pos + 90 - phase_angle));
-        _rollFactor[CH_3] = cos(radians(servo3_pos + 90 - phase_angle));
+		// roll factors
+		_rollFactor[CH_1] = 1;
+		_rollFactor[CH_2] = 0;
+		_rollFactor[CH_3] = 0;
+	
+		// pitch factors
+		_pitchFactor[CH_1] = 0;
+		_pitchFactor[CH_2] = 1;
+		_pitchFactor[CH_3] = 0;
+		
+		// collective factors
+		_collectiveFactor[CH_1] = 0;
+		_collectiveFactor[CH_2] = 0;
+		_collectiveFactor[CH_3] = 1;
+	}
 
-        // pitch factors
-        _pitchFactor[CH_1] = cos(radians(servo1_pos - phase_angle));
-        _pitchFactor[CH_2] = cos(radians(servo2_pos - phase_angle));
-        _pitchFactor[CH_3] = cos(radians(servo3_pos - phase_angle));
+	// servo min/max values
+	_servo_1->radio_min = 1000;
+	_servo_1->radio_max = 2000;
+	_servo_2->radio_min = 1000;
+	_servo_2->radio_max = 2000;
+	_servo_3->radio_min = 1000;
+	_servo_3->radio_max = 2000;
 
-        // collective factors
-        _collectiveFactor[CH_1] = 1;
-        _collectiveFactor[CH_2] = 1;
-        _collectiveFactor[CH_3] = 1;
-
-    }else{              //H1 Swashplate, keep servo outputs seperated
-
-        // roll factors
-        _rollFactor[CH_1] = 1;
-        _rollFactor[CH_2] = 0;
-        _rollFactor[CH_3] = 0;
-
-        // pitch factors
-        _pitchFactor[CH_1] = 0;
-        _pitchFactor[CH_2] = 1;
-        _pitchFactor[CH_3] = 0;
-
-        // collective factors
-        _collectiveFactor[CH_1] = 0;
-        _collectiveFactor[CH_2] = 0;
-        _collectiveFactor[CH_3] = 1;
-    }
-
-    // servo min/max values
-    _servo_1->radio_min = 1000;
-    _servo_1->radio_max = 2000;
-    _servo_2->radio_min = 1000;
-    _servo_2->radio_max = 2000;
-    _servo_3->radio_min = 1000;
-    _servo_3->radio_max = 2000;
-
-    // mark swash as initialised
-    _swash_initialised = true;
+	// mark swash as initialised
+	_swash_initialised = true;
 }
 
 //
@@ -447,85 +447,84 @@ void AP_MotorsHeli::init_swash()
 //
 void AP_MotorsHeli::move_swash(int16_t roll_out, int16_t pitch_out, int16_t coll_in, int16_t yaw_out)
 {
-    int16_t yaw_offset = 0;
-    int16_t coll_out_scaled;
+	int16_t yaw_offset = 0;
+	int16_t coll_out_scaled;
 
-    if( servo_manual == 1 ) {      // are we in manual servo mode? (i.e. swash set-up mode)?
-        // check if we need to free up the swash
-        if( _swash_initialised ) {
-            reset_swash();
-        }
+	if( servo_manual == 1 ) {  // are we in manual servo mode? (i.e. swash set-up mode)?
+		// check if we need to free up the swash
+		if( _swash_initialised ) {
+			reset_swash();
+		}
         coll_out_scaled = coll_in * _collective_scalar + _rc_throttle->radio_min - 1000;
-    }else{      // regular flight mode
+	}else{  // regular flight mode
 
-        // check if we need to reinitialise the swash
-        if( !_swash_initialised ) {
-            init_swash();
-        }
+		// check if we need to reinitialise the swash
+		if( !_swash_initialised ) {
+			init_swash();
+		}
+		
+		// rescale roll_out and pitch-out into the min and max ranges to provide linear motion 
+		// across the input range instead of stopping when the input hits the constrain value
+		// these calculations are based on an assumption of the user specified roll_max and pitch_max 
+		// coming into this equation at 4500 or less, and based on the original assumption of the  
+		// total _servo_x.servo_out range being -4500 to 4500.
+		roll_out = roll_out * _roll_scaler;
+		roll_out = constrain(roll_out, (int16_t)-roll_max, (int16_t)roll_max);
 
-        // rescale roll_out and pitch-out into the min and max ranges to provide linear motion
-        // across the input range instead of stopping when the input hits the constrain value
-        // these calculations are based on an assumption of the user specified roll_max and pitch_max
-        // coming into this equation at 4500 or less, and based on the original assumption of the
-        // total _servo_x.servo_out range being -4500 to 4500.
-        roll_out = roll_out * _roll_scaler;
-        roll_out = constrain(roll_out, (int16_t)-roll_max, (int16_t)roll_max);
+		pitch_out = pitch_out * _pitch_scaler;
+		pitch_out = constrain(pitch_out, (int16_t)-pitch_max, (int16_t)pitch_max);
 
-        pitch_out = pitch_out * _pitch_scaler;
-        pitch_out = constrain(pitch_out, (int16_t)-pitch_max, (int16_t)pitch_max);
-
-        // scale collective pitch
+	    // scale collective pitch
         coll_out = constrain(coll_in, 0, 1000);
 		if (stab_throttle){
 			coll_out = coll_out * _stab_throttle_scalar + stab_col_min*10;
 		}
-        coll_out_scaled = coll_out * _collective_scalar + collective_min - 1000;
-		
-        // rudder feed forward based on collective
-        if( !ext_gyro_enabled ) {
+		coll_out_scaled = coll_out * _collective_scalar + collective_min - 1000;
+
+		// rudder feed forward based on collective
+		if( !ext_gyro_enabled ) {
             yaw_offset = collective_yaw_effect * abs(coll_out_scaled - throttle_mid);
-        }
-    }
+		}
+	}
 
-    // swashplate servos
-    _servo_1->servo_out = (_rollFactor[CH_1] * roll_out + _pitchFactor[CH_1] * pitch_out)/10 + _collectiveFactor[CH_1] * coll_out_scaled + (_servo_1->radio_trim-1500);
-    _servo_2->servo_out = (_rollFactor[CH_2] * roll_out + _pitchFactor[CH_2] * pitch_out)/10 + _collectiveFactor[CH_2] * coll_out_scaled + (_servo_2->radio_trim-1500);
-    if( swash_type == AP_MOTORS_HELI_SWASH_H1 ) {
-        _servo_1->servo_out += 500;
-        _servo_2->servo_out += 500;
-    }
-    _servo_3->servo_out = (_rollFactor[CH_3] * roll_out + _pitchFactor[CH_3] * pitch_out)/10 + _collectiveFactor[CH_3] * coll_out_scaled + (_servo_3->radio_trim-1500);
-    _servo_4->servo_out = yaw_out + yaw_offset;
+	// swashplate servos
+	_servo_1->servo_out = (_rollFactor[CH_1] * roll_out + _pitchFactor[CH_1] * pitch_out)/10 + _collectiveFactor[CH_1] * coll_out_scaled + (_servo_1->radio_trim-1500);
+	_servo_2->servo_out = (_rollFactor[CH_2] * roll_out + _pitchFactor[CH_2] * pitch_out)/10 + _collectiveFactor[CH_2] * coll_out_scaled + (_servo_2->radio_trim-1500);
+	if( swash_type == AP_MOTORS_HELI_SWASH_H1 ) {
+		_servo_1->servo_out += 500;
+		_servo_2->servo_out += 500;
+	}
+	_servo_3->servo_out = (_rollFactor[CH_3] * roll_out + _pitchFactor[CH_3] * pitch_out)/10 + _collectiveFactor[CH_3] * coll_out_scaled + (_servo_3->radio_trim-1500);
+	_servo_4->servo_out = yaw_out + yaw_offset;
 
-    // use servo_out to calculate pwm_out and radio_out
-    _servo_1->calc_pwm();
-    _servo_2->calc_pwm();
-    _servo_3->calc_pwm();
-    _servo_4->calc_pwm();
+	// use servo_out to calculate pwm_out and radio_out
+	_servo_1->calc_pwm();
+	_servo_2->calc_pwm();
+	_servo_3->calc_pwm();
+	_servo_4->calc_pwm();
 
-    // actually move the servos
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_out);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_out);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_out);
-    _rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_out);
+	// actually move the servos
+	_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_1], _servo_1->radio_out);
+	_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_2], _servo_2->radio_out);
+	_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_3], _servo_3->radio_out);
+	_rc->OutputCh(_motor_to_channel_map[AP_MOTORS_MOT_4], _servo_4->radio_out);
 
-    // to be compatible with other frame types
-    motor_out[AP_MOTORS_MOT_1] = _servo_1->radio_out;
-    motor_out[AP_MOTORS_MOT_2] = _servo_2->radio_out;
-    motor_out[AP_MOTORS_MOT_3] = _servo_3->radio_out;
-    motor_out[AP_MOTORS_MOT_4] = _servo_4->radio_out;
+	// to be compatible with other frame types
+	motor_out[AP_MOTORS_MOT_1] = _servo_1->radio_out;
+	motor_out[AP_MOTORS_MOT_2] = _servo_2->radio_out;
+	motor_out[AP_MOTORS_MOT_3] = _servo_3->radio_out;
+	motor_out[AP_MOTORS_MOT_4] = _servo_4->radio_out;
 
-    // output gyro value
-    if( ext_gyro_enabled ) {
-        _rc->OutputCh(AP_MOTORS_HELI_EXT_GYRO, ext_gyro_gain);
-    }
+	// output gyro value
+	if( ext_gyro_enabled ) {
+		_rc->OutputCh(AP_MOTORS_HELI_EXT_GYRO, ext_gyro_gain);
+	}
 }
 
 void AP_MotorsHeli::rsc_control()
 
 {
     switch ( rsc_mode ) {
-
     case AP_MOTORSHELI_RSC_MODE_CH8_PASSTHROUGH:
         if( armed() && (_rc_8->radio_in > (_rc_8->radio_min + 10))) {
             if (rsc_ramp < rsc_ramp_up_rate) {
@@ -537,15 +536,13 @@ void AP_MotorsHeli::rsc_control()
         } else {
 			rsc_ramp--;                                                 //Return RSC Ramp to 0 slowly, allowing for "warm restart"
 			if (rsc_ramp < 0) {
-                rsc_ramp = 0;
+            rsc_ramp = 0;                       //Return RSC Ramp to 0
 			}
 			rsc_output = _rc_8->radio_min;
         }
 		_rc->OutputCh(AP_MOTORS_HELI_EXT_RSC, rsc_output);
         break;
-
     case AP_MOTORSHELI_RSC_MODE_EXT_GOV:
-
         if( armed() && _rc_8->control_in > 100) {
             if (rsc_ramp < rsc_ramp_up_rate) {
                 rsc_ramp++;
@@ -559,35 +556,10 @@ void AP_MotorsHeli::rsc_control()
                 rsc_ramp = 0;
             }
             rsc_output = 1000;                                  //Just to be sure RSC output is 0
-        }
+	}
         _rc->OutputCh(AP_MOTORS_HELI_EXT_RSC, rsc_output);
         break;
-
-    //	case 3:																		// Open Loop ESC Control
-    //
-    //	coll_scaled = _motors->coll_out_scaled + 1000;
-    //	if(coll_scaled <= _motors->collective_mid){
-    //		esc_ol_output = map(coll_scaled, _motors->collective_min, _motors->collective_mid, esc_out_low, esc_out_mid);		// Bottom half of V-curve
-    //	} else if (coll_scaled > _motors->collective_mid){
-    //		esc_ol_output = map(coll_scaled, _motors->collective_mid, _motors->collective_max, esc_out_mid, esc_out_high);		// Top half of V-curve
-    //	} else { esc_ol_output = 1000; }																									// Just in case.
-    //
-    //	if(_motors->armed() && _rc_throttle->control_in > 10){
-    //			if (ext_esc_ramp < ext_esc_ramp_up){
-    //				ext_esc_ramp++;
-    //				ext_esc_output = map(ext_esc_ramp, 0, ext_esc_ramp_up, 1000, esc_ol_output);
-    //			} else {
-    //				ext_esc_output = esc_ol_output;
-    //			}
-    //		} else {
-    //			ext_esc_ramp = 0;	//Return ESC Ramp to 0
-    //			ext_esc_output = 1000; //Just to be sure ESC output is 0
-    //}
-    //		_rc->OutputCh(AP_MOTORS_HELI_EXT_ESC, ext_esc_output);
-    //	break;
-
-
     default:
         break;
-    }
+}
 };

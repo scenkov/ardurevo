@@ -58,7 +58,7 @@ extern void             print_latlon(BetterStream *s, int32_t lat_or_lon);      
 // and stores them in Flash memory, not RAM.
 // User enters the string in the console to call the functions on the right.
 // See class Menu in AP_Coommon for implementation details
-const struct Menu::command test_menu_commands[] = {
+const struct Menu::command test_menu_commands[] PROGMEM = {
     {"pwm",                 test_radio_pwm},
     {"radio",               test_radio},
 //	{"failsafe",	test_failsafe},

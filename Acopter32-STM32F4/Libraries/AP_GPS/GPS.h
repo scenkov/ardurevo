@@ -8,7 +8,7 @@
 
 #include <inttypes.h>
 #include <Stream.h>
-#include <AP_Progmem.h>
+#include <pgmspace.h>
 #include <wirish.h>
 
 /// @class	GPS

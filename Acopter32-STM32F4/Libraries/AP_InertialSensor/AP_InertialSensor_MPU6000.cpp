@@ -969,7 +969,7 @@ void AP_InertialSensor_MPU6000::dmp_load_mem()
 
 // ========= DMP MEMORY ================================
 
-const uint8_t dmpMem[8][16][16] = {
+const uint8_t dmpMem[8][16][16] PROGMEM = {
     {
         {
             0xFB, 0x00, 0x00, 0x3E, 0x00, 0x0B, 0x00, 0x36, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x00

@@ -15,7 +15,8 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <Stream.h>
-#include <AP_progmem.h>
+#include <wirish_string.h>
+#include <pgmspace.h>
 
 class BetterStream : public Stream {
 public:
