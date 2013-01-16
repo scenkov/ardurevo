@@ -13,8 +13,8 @@
  *       as published by the Free Software Foundation; either version 2.1
  *       of the License, or (at your option) any later version.
  */
-#include <AP_AHRS.h>
 #include <FastSerial.h>
+#include <AP_AHRS.h>
 
 // this is the speed in cm/s above which we first get a yaw lock with
 // the GPS

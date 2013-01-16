@@ -20,7 +20,7 @@ RC_Channel* rc_ch[NUM_CHANNELS];
 
 APM_RC_Class *RC_Channel::_apm_rc;
 
-const AP_Param::GroupInfo RC_Channel::var_info[] = {
+const AP_Param::GroupInfo RC_Channel::var_info[] PROGMEM = {
     // @Param: MIN
     // @DisplayName: RC min PWM
     // @Description: RC minimum PWM pulse width. Typically 1000 is lower limit, 1500 is neutral and 2000 is upper limit.

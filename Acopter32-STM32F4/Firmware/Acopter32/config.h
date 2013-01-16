@@ -587,9 +587,6 @@
  # define FS_THR_VALUE_DEFAULT             975
 #endif
 
-#ifndef FS_THR_RTL_MIN_DISTANCE
- # define FS_THR_RTL_MIN_DISTANCE          1500     // the minimum distance from home in which
-#endif
 
 #ifndef MINIMUM_THROTTLE
  # define MINIMUM_THROTTLE       130
@@ -879,7 +876,7 @@
  # define RATE_ROLL_I        		0.100
 #endif
 #ifndef RATE_ROLL_D
- # define RATE_ROLL_D        		0.035
+ # define RATE_ROLL_D        		0.03
 #endif
 #ifndef RATE_ROLL_IMAX
  # define RATE_ROLL_IMAX         	5.0                    // degrees
@@ -892,7 +889,7 @@
  # define RATE_PITCH_I       		0.100
 #endif
 #ifndef RATE_PITCH_D
- # define RATE_PITCH_D       		0.035
+ # define RATE_PITCH_D       		0.03
 #endif
 #ifndef RATE_PITCH_IMAX
  # define RATE_PITCH_IMAX        	5.0                    // degrees
@@ -951,6 +948,11 @@
 #endif
 #ifndef LOITER_IMAX
  # define LOITER_IMAX          		30             // degrees
+#endif
+
+// Loiter repositioning configuration (experimental)
+#ifndef LOITER_REPOSITIONING
+ # define LOITER_REPOSITIONING      DISABLED
 #endif
 #ifndef LOITER_REPOSITION_RATE
  # define LOITER_REPOSITION_RATE   500.0            // cm/s
@@ -1152,7 +1154,7 @@
  # define LOG_PID                       DISABLED
 #endif
 #ifndef LOG_ITERM
- # define LOG_ITERM                     ENABLED
+ # define LOG_ITERM                     DISABLED
 #endif
 #ifndef LOG_INAV
  # define LOG_INAV                      DISABLED

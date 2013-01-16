@@ -74,6 +74,8 @@ typedef struct {
 // has an equivalent effect but avoids the warnings, which otherwise
 // make finding real issues difficult.
 //
+  # undef PROGMEM
+  # define PROGMEM __attribute__(())
  # undef PSTR
 # define PSTR(_x)	(prog_char_t*)_x		// help the compiler with printf_P
 

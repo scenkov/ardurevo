@@ -409,7 +409,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
     }
 
     output                  = p + i + d;
-    nav_lon                 = constrain(output, -32000, 32000); // constraint to remove chance of overflow when adding int32_t to int16_t
+    nav_lon                 = constrain(output, -4500, 4500); // constrain max angle to 45 degrees
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
@@ -442,7 +442,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
     }
 
     output                  = p + i + d;
-    nav_lat                 = constrain(output, -32000, 32000); // constraint to remove chance of overflow when adding int32_t to int16_t
+    nav_lat                 = constrain(output, -4500, 4500); // constrain max angle to 45 degrees
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
@@ -488,7 +488,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
     }
 
     output                  = p + i + d;
-    nav_lon                 = constrain(output, -32000, 32000); // constraint to remove chance of overflow when adding int32_t to int16_t
+    nav_lon                 = constrain(output, -4500, 4500); // constrain max angle to 45 degrees
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
@@ -521,7 +521,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
     }
 
     output                  = p + i + d;
-    nav_lat                 = constrain(output, -32000, 32000); // constraint to remove chance of overflow when adding int32_t to int16_t
+    nav_lat                 = constrain(output, -4500, 4500); // constrain max angle to 45 degrees
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
@@ -595,6 +595,10 @@ static void calc_nav_pitch_roll()
 
     // flip pitch because forward is negative
     auto_pitch = -auto_pitch;
+
+    // constrain maximum roll and pitch angles to 45 degrees
+    auto_roll = constrain(auto_roll, -4500, 4500);
+    auto_pitch = constrain(auto_pitch, -4500, 4500);
 }
 
 static int16_t get_desired_speed(int16_t max_speed)

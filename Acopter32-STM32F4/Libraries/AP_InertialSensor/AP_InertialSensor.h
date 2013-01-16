@@ -33,7 +33,8 @@ public:
         RATE_50HZ,
         RATE_100HZ,
         RATE_200HZ,
-		RATE_1000HZ
+        RATE_500HZ,
+        RATE_1000HZ
     };
 
     /// Perform startup initialisation.

@@ -623,17 +623,6 @@ static void set_mode(byte mode)
         break;
     }
 
-    if(ap.failsafe) {
-        // this is to allow us to fly home without interactive throttle control
-        set_throttle_mode(THROTTLE_AUTO);
-    	ap.manual_throttle = false;
-
-        // does not wait for us to be in high throttle, since the
-        // Receiver will be outputting low throttle
-        motors.auto_armed(true);
-    	set_auto_armed(true);
-    }
-
     if(ap.manual_attitude) {
         // We are under manual attitude control
         // remove the navigation from roll and pitch command

@@ -8,10 +8,9 @@
  *  License as published by the Free Software Foundation; either
  *  version 2.1 of the License, or (at your option) any later version.
  */
-#include <stdlib.h>
-#include <inttypes.h>
+
 #include <AP_Math.h>
-#include <AP_Common.h>
+#include <inttypes.h>
 #include <AP_Compass.h>
 #include <AP_Airspeed.h>
 #include <AP_GPS.h>
@@ -169,16 +168,14 @@ protected:
     // time in microseconds of last compass update
     uint32_t _compass_last_update;
 
-    // a vector to capture the difference between the controller and body frames
-    AP_Vector3f         _trim;
-
     // note: we use ref-to-pointer here so that our caller can change the GPS without our noticing
     //       IMU under us without our noticing.
     AP_InertialSensor   *_ins;
     GPS                 *&_gps;
     AP_Baro             *_barometer;
 
-
+    // a vector to capture the difference between the controller and body frames
+    AP_Vector3f         _trim;
 
     // should we raise the gain on the accelerometers for faster
     // convergence, used when disarmed for ArduCopter

@@ -233,9 +233,7 @@ AP_InertialSensor::_init_accel(void (*delay_cb)(unsigned long t), void (*flash_l
     // loop until we calculate acceptable offsets
     do {
         // get latest accelerometer values
-		for(int z = 0; z < 5; z++){
 		read();
-		}
         update();
         ins_accel = get_accel();
 
@@ -249,9 +247,7 @@ AP_InertialSensor::_init_accel(void (*delay_cb)(unsigned long t), void (*flash_l
         for(int8_t i = 0; i < 50; i++) {
 
             delay_cb(20);
-			for(int z = 0; z < 5; z++){
 			read();
-			}
             update();
             ins_accel = get_accel();
 
@@ -342,7 +338,6 @@ bool AP_InertialSensor::calibrate_accel(void (*delay_cb)(unsigned long t), void 
         wait_key();
 
         // clear out any existing samples from ins
-        read();
         update();
 
         // wait until we have 32 samples

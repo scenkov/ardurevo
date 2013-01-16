@@ -9,7 +9,7 @@ extern int32_t wp_distance;     // Note: unfortunately this variable is in meter
 // ------------------------------
 #define CAM_DEBUG DISABLED
 
-const AP_Param::GroupInfo AP_Camera::var_info[] = {
+const AP_Param::GroupInfo AP_Camera::var_info[] PROGMEM = {
     // @Param: TRIGG_TYPE
     // @DisplayName: Camera shutter (trigger) type
     // @Description: how to trigger the camera to take a picture
