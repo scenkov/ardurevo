@@ -62,6 +62,7 @@ typedef struct {
 // in conjunction with a suitably modified Arduino IDE; never define for
 // production as it generates bad code.
 //
+/*
 #if PRINTF_FORMAT_WARNING_DEBUG
 # undef PSTR
 # define PSTR(_x) _x		// help the compiler with printf_P
@@ -160,7 +161,7 @@ static inline uintptr_t pgm_read_pointer(const void *s)
         return u.p;
     }
 }
-
+*/
 //@}
 
 
@@ -173,7 +174,7 @@ static inline uintptr_t pgm_read_pointer(const void *s)
 /// when passing PROGMEM strings to static object constructors because the PSTR
 /// hack can't be used at global scope.
 ///
-#define PROGMEM_STRING(_v, _s)	static const char _v[] PROGMEM = _s
+//#define PROGMEM_STRING(_v, _s)	static const char _v[] PROGMEM = _s
 
 #define ToRad(x) (x*0.01745329252)	// *pi/180
 #define ToDeg(x) (x*57.2957795131)	// *180/pi

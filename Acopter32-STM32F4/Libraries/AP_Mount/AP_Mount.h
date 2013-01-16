@@ -15,9 +15,9 @@
 * Usage:	Use in main code to control	mounts attached to	*
 *			vehicle.										*
 *															*
-*Comments:  All angles in degrees * 100, distances in meters*
+* Comments: All angles in degrees * 100, distances in meters*
 *			unless otherwise stated.						*
- ************************************************************/
+************************************************************/
 #ifndef AP_Mount_H
 #define AP_Mount_H
 
@@ -64,8 +64,8 @@ public:
 
 private:
 
-	//methods
-	void set_mode(enum MAV_MOUNT_MODE mode);
+    //methods
+    void                            set_mode(enum MAV_MOUNT_MODE mode);
 
     void                            set_retract_angles(float roll, float tilt, float pan); ///< set mount retracted position
     void                            set_neutral_angles(float roll, float tilt, float pan);

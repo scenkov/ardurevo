@@ -17,7 +17,7 @@
 #define DMP_FIFO_BUFFER_SIZE 72        // DMP FIFO buffer size
 
 // DMP memory
-extern const uint8_t        dmpMem[8][16][16] PROGMEM;
+extern const uint8_t        dmpMem[8][16][16] ;
 
 class AP_InertialSensor_MPU6000 : public AP_InertialSensor
 {

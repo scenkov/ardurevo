@@ -23,7 +23,7 @@
  # define MNT_MOUNT2_OPTION     ENABLED // uses   58 bytes of memory (must also be enabled in APM_Config.h)
 #endif
 
-const AP_Param::GroupInfo AP_Mount::var_info[]  = {
+const AP_Param::GroupInfo AP_Mount::var_info[] = {
     // @Param: MODE
     // @DisplayName: Mount operation mode
     // @Description: Camera or antenna mount operation mode

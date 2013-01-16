@@ -16,7 +16,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <pgmspace.h>
+#include <AP_Progmem.h>
 #include <eeprom.h>
 
 #include "AP_MetaClass.h"

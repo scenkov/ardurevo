@@ -19,7 +19,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @Description: This controls how how much to use the GPS to correct the attitude. This should never be set to zero for a plane as it would result in the plane losing control in turns. For a plane please use the default value of 1.0.
     // @Range: 0.0 1.0
     // @Increment: .01
-    AP_GROUPINFO("GPS_GAIN",  2, AP_AHRS, gps_gain, 1.0),
+    AP_GROUPINFO("GPS_GAIN",  2, AP_AHRS, gps_gain, 0.0),
 
     // @Param: GPS_USE
     // @DisplayName: AHRS use GPS for navigation
@@ -32,14 +32,14 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @Description: This controls the weight the compass or GPS has on the heading. A higher value means the heading will track the yaw source (GPS or compass) more rapidly.
     // @Range: 0.1 0.4
     // @Increment: .01
-    AP_GROUPINFO("YAW_P", 4,    AP_AHRS, _kp_yaw, 0.4),
+    AP_GROUPINFO("YAW_P", 4,    AP_AHRS, _kp_yaw, 0.1),
 
     // @Param: RP_P
     // @DisplayName: AHRS RP_P
     // @Description: This controls how fast the accelerometers correct the attitude
     // @Range: 0.1 0.4
     // @Increment: .01
-    AP_GROUPINFO("RP_P",  5,    AP_AHRS, _kp, 0.4),
+    AP_GROUPINFO("RP_P",  5,    AP_AHRS, _kp, 0.1),
 
     // @Param: WIND_MAX
     // @DisplayName: Maximum wind
@@ -54,7 +54,7 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] = {
     // @Description: This controls the use of the barometer for vertical acceleration compensation in AHRS. It is currently recommended that you set this value to zero unless you are a developer experimenting with the AHRS system.
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("BARO_USE",  7,    AP_AHRS, _baro_use, 0),
+    AP_GROUPINFO("BARO_USE",  7,    AP_AHRS, _baro_use, 1),
 
     // @Param: TRIM
     // @DisplayName: AHRS Trim

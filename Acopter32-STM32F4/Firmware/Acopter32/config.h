@@ -40,10 +40,12 @@
 // FOR ACTIVATE PERFORMANCE REPORT
 //#define PREPORT
 
+
+
 // KIND OF FRAME
 //#define FRAME_CONFIG OCTA_FRAME
-#define FRAME_CONFIG QUAD_FRAME
-//#define FRAME_CONFIG HEXA_FRAME
+//#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG HEXA_FRAME
 //#define FRAME_ORIENTATION PLUS_FRAME
 #define FRAME_ORIENTATION X_FRAME
 
@@ -231,15 +233,15 @@
  # define C_LED_PIN 71//35
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
- # define PUSHBUTTON_PIN 41
+ # define SLIDE_SWITCH_PIN (-1) //TEO: ADC0 //40
+ # define PUSHBUTTON_PIN (-1)
  # define CLI_SLIDER_ENABLED DISABLED
  # define USB_MUX_PIN      1
  # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
- # define BATTERY_CURR_PIN      0      // Battery current on A1
- # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      0
+ # define BATTERY_VOLT_PIN      (-1)      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      (-1)      // Battery current on A1
+ # define BATTERY_PIN_1     (-1) // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      (-1)
 #else
  # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
  # define B_LED_PIN 74//36
@@ -397,29 +399,22 @@
 #define SERIAL_CLI_BAUD			57600
 //#define SERIAL_CLI_BAUD			115200
 
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-	//Serial Port for Telemetry  MP32V3F1
-	#define SERIAL_AUX_PORT			0
-	#define SERIAL_AUX_BAUD			38400
-	//Serial Port for GPS		 MP32V3F1
-	#define SERIAL_GPS_PORT			1
-	#define SERIAL_GPS_BAUD			38400
-#elif CONFIG_APM_HARDWARE == MP32V1F1
-	//Serial Port for Telemetry	MP32V1F1
+#if CONFIG_APM_HARDWARE == MP32V1F1
+	//Serial Port for AUX MP32V1F1
 	#define SERIAL_AUX_PORT			1
 	#define SERIAL_AUX_BAUD			38400
-	//Serial Port for GPS		MP32V1F1
+	//Serial Port for GPS MP32V1F1
 	#define SERIAL_GPS_PORT			3
 	#define SERIAL_GPS_BAUD			38400
-#elif CONFIG_APM_HARDWARE == MP32V3F1
-
-	//Serial Port for Telemetry  MP32V3F1
+#else
+	//Serial Port for AUX MP32V1F1
 	#define SERIAL_AUX_PORT			0
 	#define SERIAL_AUX_BAUD			38400
-	//Serial Port for GPS		 MP32V3F1
+	//Serial Port for GPS MP32V1F1
 	#define SERIAL_GPS_PORT			1
 	#define SERIAL_GPS_BAUD			38400
 #endif
+
 //////////////////////////////////////////////////////////////////////////////
 // Battery monitoring
 //

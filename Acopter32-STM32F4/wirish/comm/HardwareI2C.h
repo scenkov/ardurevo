@@ -31,19 +31,19 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdint.h>
-#include "wirish.h"
-#include "i2c.h"
-
 //#include "boards.h"
 
 #ifndef _HARDWAREI2C_H_
 #define _HARDWAREI2C_H_
 
+#include <stdint.h>
+#include "wirish.h"
+#include "i2c.h"
+
 class HardwareI2C
 {
   public:
-	HardwareI2C(uint32_t i2c_num);
+    HardwareI2C(uint32_t i2c_num);
     void begin();
     void end();
     void setSpeed(boolean); 

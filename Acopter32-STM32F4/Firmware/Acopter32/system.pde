@@ -28,7 +28,7 @@ static int8_t   main_menu_help(uint8_t argc, const Menu::arg *argv)
 }
 
 // Command/function table for the top-level menu.
-const struct Menu::command main_menu_commands[] PROGMEM = {
+const struct Menu::command main_menu_commands[] = {
 //   command		function called
 //   =======        ===============
     {"logs",                process_logs},
@@ -90,7 +90,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     
 #endif
 
-    delay(5000);
+    delay(7000);
     // Console serial port
     //
     // The console port buffers are defined to be sufficiently large to support
@@ -110,10 +110,9 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     // Initialize Wire and SPI libraries
     //
 #ifndef DESKTOP_BUILD
-    I2C2x.begin();
-
-
+    //I2C2x.begin();
 #endif
+
     SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
     EEPROM.init(&I2C2x,cliSerial);
 
@@ -239,8 +238,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 #endif
 	
 	
-	
-	
+//#define EEPROM_DEBUG_ENABLE
 #ifdef EEPROM_DEBUG_ENABLE
 	eeprom_set_serial_for_debug(&Serial3);
 #endif
@@ -461,8 +459,8 @@ static void set_mode(byte mode)
 
     // used to stop fly_aways
     // set to false if we have low throttle
-    motors.auto_armed(g.rc_3.control_in > 0);
-    set_auto_armed(g.rc_3.control_in > 0);
+    motors.auto_armed(g.rc_3.control_in > 0 || ap.failsafe);
+    set_auto_armed(g.rc_3.control_in > 0 || ap.failsafe);
 
     // if we change modes, we must clear landed flag
     set_land_complete(false);
@@ -623,17 +621,6 @@ static void set_mode(byte mode)
         break;
     }
 
-    if(ap.failsafe) {
-        // this is to allow us to fly home without interactive throttle control
-        set_throttle_mode(THROTTLE_AUTO);
-    	ap.manual_throttle = false;
-
-        // does not wait for us to be in high throttle, since the
-        // Receiver will be outputting low throttle
-        motors.auto_armed(true);
-    	set_auto_armed(true);
-    }
-
     if(ap.manual_attitude) {
         // We are under manual attitude control
         // remove the navigation from roll and pitch command
@@ -751,7 +738,7 @@ static void reboot_apm(void)
     delay(100); // let serial flush
     // see http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1250663814/
     // for the method
-#if CONFIG_APM_HARDWARE == VRBRAINF4
+#if CONFIG_APM_HARDWARE != MP32V1F1
 	NVIC_SystemReset();
 #endif
     while (1);

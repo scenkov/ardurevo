@@ -27,7 +27,7 @@ static int8_t   setup_gyro                              (uint8_t argc, const Men
  #endif
 
 // Command/function table for the setup menu
-const struct Menu::command setup_menu_commands[] PROGMEM = {
+const struct Menu::command setup_menu_commands[] = {
     // command			function called
     // =======          ===============
     {"erase",                       setup_erase},

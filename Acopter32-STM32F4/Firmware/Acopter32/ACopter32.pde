@@ -145,32 +145,24 @@
 // use.
 
 
-FastSerialPort2(Serial);        // FTDI/console
+FastSerialPort2(Serial);     // FTDI/console
 FastSerial SerialUSB;        // USB
 
 //FastSerial Serial;
 
 #if CONFIG_APM_HARDWARE == MP32V1F1
-	FastSerialPort1(Serial3);       // Telemetry port
+	FastSerialPort1(Serial3);       // AUX port
 	FastSerialPort3(Serial1);       // GPS port
 
-#endif
-
-#if CONFIG_APM_HARDWARE == MP32V3F1
-	FastSerialPort0(Serial3);       // Telemetry port
-	FastSerialPort1(Serial1);       // GPS port
-#endif
-
-
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-	FastSerialPort0(Serial3);       // Telemetry port
+#else
+	FastSerialPort0(Serial3);       // AUX port
 	FastSerialPort1(Serial1);       // GPS port
 #endif
 
 // port to use for command line interface
 static FastSerial *cliSerial = &Serial;
 
-//Serial.begin(SERIAL_CLI_BAUD, 128, 256);
+HardwareSPI SPI(1);
 HardwareSPI SPIx(2);
 HardwareI2C I2C2x(2);
 
@@ -179,7 +171,7 @@ HardwareI2C I2C2x(2);
 // must be the first AP_Param variable declared to ensure its
 // constructor runs before the constructors of the other AP_Param
 // variables
-AP_Param param_loader(var_info, WP_START_BYTE);
+//AP_Param param_loader(var_info, WP_START_BYTE, &I2C2x);
 
 Arduino_Mega_ISR_Registry isr_registry;
 
@@ -205,7 +197,6 @@ static void update_events(void);
 ////////////////////////////////////////////////////////////////////////////////
 // Dataflash
 ////////////////////////////////////////////////////////////////////////////////
-HardwareSPI	SPI(1);
 DataFlash_MP32  DataFlash(&SPI,cliSerial);
 
 
