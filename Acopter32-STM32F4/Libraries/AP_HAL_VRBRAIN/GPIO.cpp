@@ -25,9 +25,8 @@ void VRBRAINGPIO::write(uint8_t pin, uint8_t value)
 }
 
 /* Alternative interface: */
-AP_HAL::DigitalSource* VRBRAINGPIO::channel(uint16_t n)
-{
-  return NULL;
+AP_HAL::DigitalSource* VRBRAINGPIO::channel(uint16_t n) {
+    return new VRBRAINDigitalSource(0);
 }
 
 /* Interrupt interface: */

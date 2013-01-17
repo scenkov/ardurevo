@@ -15,10 +15,10 @@
 #define __AP_HAL_VRBRAIN_I2CDRIVER_H__
 
 #include <AP_HAL_VRBRAIN.h>
-#include "Semaphores.h"
 
 class VRBRAIN::VRBRAINI2CDriver : public AP_HAL::I2CDriver {
 public:
+    VRBRAINI2CDriver(AP_HAL::Semaphore* semaphore) : _semaphore(semaphore) {}
     void begin();
     void end();
     void setTimeout(uint16_t ms);
@@ -43,10 +43,11 @@ public:
                                   uint8_t len, uint8_t* data);
 
     uint8_t lockup_count();
-    AP_HAL::Semaphore* get_semaphore();
+
+    AP_HAL::Semaphore* get_semaphore() { return _semaphore; }
 
 private:
-    VRBRAINSemaphore _semaphore;
+    AP_HAL::Semaphore* _semaphore;
 };
 
 #endif // __AP_HAL_VRBRAIN_I2CDRIVER_H__

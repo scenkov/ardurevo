@@ -25,4 +25,4 @@ uint8_t EmptyI2CDriver::readRegisters(uint8_t addr, uint8_t reg,
                               uint8_t len, uint8_t* data)
 {return 0;}
 
-uint8_t EmptyI2CDriver::lockup_count() {return 0;}
+uint8_t VRBRAINI2CDriver::lockup_count() {return 0;}

@@ -11,6 +11,8 @@ class HAL_VRBRAIN : public AP_HAL::HAL {
 public:
     HAL_VRBRAIN();
     void init(int argc, char * const * argv) const;
+private:
+    VRBRAIN::VRBRAINPrivateMember *_member;
 };
 
 extern const HAL_VRBRAIN AP_HAL_VRBRAIN;

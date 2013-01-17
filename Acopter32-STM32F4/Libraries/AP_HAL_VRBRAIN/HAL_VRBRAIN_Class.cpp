@@ -1,5 +1,6 @@
 
 #include <AP_HAL.h>
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 
 #include "HAL_VRBRAIN_Class.h"
 #include "AP_HAL_VRBRAIN_Private.h"
@@ -7,11 +8,11 @@
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-static VRBRAINUARTDriver uartADriver(0);
-static VRBRAINUARTDriver uartBDriver(1);
-static VRBRAINUARTDriver uartCDriver(2);
-
-static VRBRAINI2CDriver  i2cDriver;
+static VRBRAINUARTDriver uartADriver;
+static VRBRAINUARTDriver uartBDriver;
+static VRBRAINUARTDriver uartCDriver;
+static VRBRAINSemaphore  i2cSemaphore;
+static VRBRAINI2CDriver  i2cDriver(&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;
 static VRBRAINAnalogIn analogIn;
 static VRBRAINStorage storageDriver;
@@ -36,9 +37,9 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &rcinDriver,
       &rcoutDriver,
       &schedulerInstance,
-      &utilInstance)
-{
-}
+        &utilInstance),
+    _member(new EmptyPrivateMember(123))
+{}
 
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
 {
@@ -47,11 +48,9 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   scheduler->init(NULL);
   uartA->begin(115200);
-  console->init(uartA);
-  i2c->begin();
-  spi->init(NULL);
-  storage->init(NULL);
+    _member->init();
 }
 
 const HAL_VRBRAIN AP_HAL_VRBRAIN;
 
+#endif
