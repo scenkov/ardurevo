@@ -38,4 +38,3 @@ int16_t VRBRAINUARTDriver::peek() { return -1; }
 
 /* VRBRAIN implementations of Print virtual methods */
 size_t VRBRAINUARTDriver::write(uint8_t c) { return 0; }
-

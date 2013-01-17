@@ -49,7 +49,7 @@ void VRBRAINScheduler::end_atomic()
 {}
 
 void VRBRAINScheduler::panic(const prog_char_t *errormsg) {
-    hal.console->println_P(errormsg);
+   // hal.console->println_P(errormsg);
     for(;;);
 }
 

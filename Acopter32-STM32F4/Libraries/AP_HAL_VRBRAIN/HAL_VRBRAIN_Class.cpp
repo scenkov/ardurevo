@@ -38,7 +38,7 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &rcoutDriver,
       &schedulerInstance,
         &utilInstance),
-    _member(new EmptyPrivateMember(123))
+    _member(new VRBRAINPrivateMember(123))
 {}
 
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
