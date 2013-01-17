@@ -193,7 +193,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
     uint8_t battery_remaining = -1;
 
     if (current_total1 != 0 && g.pack_capacity != 0) {
-        battery_remaining = (100.0 * (g.pack_capacity - current_total1) / g.pack_capacity);
+        battery_remaining = (100.0f * (g.pack_capacity - current_total1) / g.pack_capacity);
     }
     if (current_total1 != 0) {
         battery_current = current_amps1 * 100;
@@ -257,12 +257,12 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
 {
     mavlink_msg_nav_controller_output_send(
         chan,
-        nav_roll / 1.0e2,
-        nav_pitch / 1.0e2,
-        wp_bearing / 1.0e2,
-        wp_bearing / 1.0e2,
-        wp_distance / 1.0e2,
-        altitude_error / 1.0e2,
+        nav_roll / 1.0e2f,
+        nav_pitch / 1.0e2f,
+        wp_bearing / 1.0e2f,
+        wp_bearing / 1.0e2f,
+        wp_distance / 1.0e2f,
+        altitude_error / 1.0e2f,
         0,
         crosstrack_error);      // was 0
 }
@@ -432,12 +432,12 @@ static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
 {
     mavlink_msg_vfr_hud_send(
         chan,
-        (float)g_gps->ground_speed / 100.0,
-        (float)g_gps->ground_speed / 100.0,
+        (float)g_gps->ground_speed / 100.0f,
+        (float)g_gps->ground_speed / 100.0f,
         (ahrs.yaw_sensor / 100) % 360,
         g.rc_3.servo_out/10,
-        current_loc.alt / 100.0,
-        climb_rate / 100.0);
+        current_loc.alt / 100.0f,
+        climb_rate / 100.0f);
 }
 
 static void NOINLINE send_raw_imu1(mavlink_channel_t chan)
@@ -447,12 +447,12 @@ static void NOINLINE send_raw_imu1(mavlink_channel_t chan)
     mavlink_msg_raw_imu_send(
         chan,
         micros(),
-        accel.x * 1000.0 / gravity,
-        accel.y * 1000.0 / gravity,
-        accel.z * 1000.0 / gravity,
-        gyro.x * 1000.0,
-        gyro.y * 1000.0,
-        gyro.z * 1000.0,
+        accel.x * 1000.0f / gravity,
+        accel.y * 1000.0f / gravity,
+        accel.z * 1000.0f / gravity,
+        gyro.x * 1000.0f,
+        gyro.y * 1000.0f,
+        gyro.z * 1000.0f,
         compass.mag_x,
         compass.mag_y,
         compass.mag_z);
@@ -463,8 +463,8 @@ static void NOINLINE send_raw_imu2(mavlink_channel_t chan)
     mavlink_msg_scaled_pressure_send(
         chan,
         millis(),
-        (float)barometer.get_pressure()/100.0,
-        (float)(barometer.get_pressure() - barometer.get_ground_pressure())/100.0,
+        (float)barometer.get_pressure()/100.0f,
+        (float)(barometer.get_pressure() - barometer.get_ground_pressure())/100.0f,
         (int)(barometer.get_temperature()*10));
 }
 
