@@ -40,6 +40,10 @@
 // FOR ACTIVATE PERFORMANCE REPORT
 //#define PREPORT
 
+/* USING USB for serial?*/
+#define USB ENABLED
+//#define USB DISABLED
+
 // KIND OF FRAME
 //#define FRAME_CONFIG OCTA_FRAME
 #define FRAME_CONFIG QUAD_FRAME
@@ -51,20 +55,16 @@
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_UBLOX
 //#define GPS_PROTOCOL 		GPS_PROTOCOL_NONE
-#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
+//#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
 
 // Kind of RADIO
 //#define CONFIG_APM_HARDWARE MP32PPMSUM22
 //#define PPMSUM60
 
 // MULTIPILOT MODELS
-
 //#define CONFIG_APM_HARDWARE MP32V1F1
 //#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
 #define CONFIG_APM_HARDWARE VRBRAINF4
-
-//#define QUATERNION_ENABLE ENABLED
-#define QUATERNION_ENABLE DISABLED
 
 //#define INS_OILPAN
 //#define INS_VRIMUFULL
@@ -73,7 +73,6 @@
 //#define AUTO_LOITER // Enable Loiter_Ovverite
 
 #define CONFIG_BARO AP_BARO_MS5611
-//#define CONFIG_BARO AP_BARO_MS561101BA
 //#define CONFIG_BARO AP_BARO_BMP085
 
 #define CONFIG_MAG MP32NAVYSENSOR   // VR BRAIN USING THIS CONFIGURATION
@@ -82,8 +81,6 @@
 //#define LOGGING_ENABLED DISABLED   // AVAILABLE ON N
 #define LOGGING_ENABLED ENABLED
 
-//#define AUTO_LOITER  I Prefer Deactivate auto loiter
-
 #ifdef MP32
   #define VRIMU
   #define VRMIMUIDG5000
@@ -91,7 +88,6 @@
   //# define IMUOILPAN
   //# define HMC5843
 #endif 
-//
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -218,7 +214,11 @@
  # define LED_OFF          LOW
  # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
- # define USB_MUX_PIN      1
+  #if USB == ENABLED
+   # define USB_MUX_PIN      1
+  #else
+   # define USB_MUX_PIN      (-1)
+  #endif
  # define CLI_SLIDER_ENABLED DISABLED
  # define OPTFLOW_CS_PIN   (-1)
  # define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
@@ -234,7 +234,11 @@
  # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
  # define PUSHBUTTON_PIN 41
  # define CLI_SLIDER_ENABLED DISABLED
- # define USB_MUX_PIN      1
+  #if USB == ENABLED
+   # define USB_MUX_PIN      1
+  #else
+   # define USB_MUX_PIN      (-1)
+  #endif
  # define OPTFLOW_CS_PIN   (-1)
  # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
  # define BATTERY_CURR_PIN      0      // Battery current on A1

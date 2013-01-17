@@ -959,13 +959,7 @@ GCS_MAVLINK::send_message(enum ap_message id)
 }
 
 void
-GCS_MAVLINK::send_text(gcs_severity severity, const char *str)
-{
-    mavlink_send_text(chan,severity,str);
-}
-
-void
-GCS_MAVLINK::send_text(gcs_severity severity, const prog_char_t *str)
+GCS_MAVLINK::send_text_P(gcs_severity severity, const prog_char_t *str)
 {
     mavlink_statustext_t m;
     uint8_t i;
@@ -1066,7 +1060,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         uint8_t result = MAV_RESULT_UNSUPPORTED;
 
         // do command
-        send_text(SEVERITY_LOW,PSTR("command received: "));
+        send_text_P(SEVERITY_LOW,PSTR("command received: "));
 
         switch(packet.command) {
 
@@ -1251,10 +1245,10 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         if (tell_command.id < MAV_CMD_NAV_LAST) {
             // command needs scaling
-            x = tell_command.lat/1.0e7;                     // local (x), global (latitude)
-            y = tell_command.lng/1.0e7;                     // local (y), global (longitude)
+            x = tell_command.lat/1.0e7f;                     // local (x), global (latitude)
+            y = tell_command.lng/1.0e7f;                     // local (y), global (longitude)
             // ACM is processing alt inside each command. so we save and load raw values. - this is diffrent to APM
-            z = tell_command.alt/1.0e2;                     // local (z), global/relative (altitude)
+            z = tell_command.alt/1.0e2f;                     // local (z), global/relative (altitude)
         }
 
         // Switch to map APM command fields into MAVLink command fields
@@ -1500,7 +1494,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
          *       case MAV_FRAME_LOCAL: // local (relative to home position)
          *               {
          *                       tell_command.lat = 1.0e7*ToDeg(packet.x/
-         *                       (radius_of_earth*cos(ToRad(home.lat/1.0e7)))) + home.lat;
+         *                       (radius_of_earth*cosf(ToRad(home.lat/1.0e7)))) + home.lat;
          *                       tell_command.lng = 1.0e7*ToDeg(packet.y/radius_of_earth) + home.lng;
          *                       tell_command.alt = packet.z*1.0e2;
          *                       tell_command.options = MASK_OPTIONS_RELATIVE_ALT;
@@ -1519,9 +1513,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
          */
 
         // we only are supporting Abs position, relative Alt
-        tell_command.lat = 1.0e7 * packet.x;                 // in as DD converted to * t7
-        tell_command.lng = 1.0e7 * packet.y;                 // in as DD converted to * t7
-        tell_command.alt = packet.z * 1.0e2;
+        tell_command.lat = 1.0e7f * packet.x;                 // in as DD converted to * t7
+        tell_command.lng = 1.0e7f * packet.y;                 // in as DD converted to * t7
+        tell_command.alt = packet.z * 1.0e2f;
         tell_command.options = 1;                 // store altitude relative to home alt!! Always!!
 
         switch (tell_command.id) {                                                      // Switch to map APM command fields into MAVLink command fields
@@ -1645,7 +1639,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                     msg->compid,
                     type);
 
-                send_text(SEVERITY_LOW,PSTR("flight plan received"));
+                send_text_P(SEVERITY_LOW,PSTR("flight plan received"));
                 waypoint_receiving = false;
                 // XXX ignores waypoint radius for individual waypoints, can
                 // only set WP_RADIUS parameter
@@ -1765,7 +1759,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         mavlink_msg_hil_state_decode(msg, &packet);
 
         float vel = sqrt((packet.vx * (float)packet.vx) + (packet.vy * (float)packet.vy));
-        float cog = wrap_360(ToDeg(atan2(packet.vx, packet.vy)) * 100);
+        float cog = wrap_360(ToDeg(atan2f(packet.vx, packet.vy)) * 100);
 
         // set gps hil sensor
         g_gps->setHIL(packet.time_usec/1000,
@@ -1947,11 +1941,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         mavlink_fence_point_t packet;
         mavlink_msg_fence_point_decode(msg, &packet);
         if (packet.count != geofence_limit.fence_total()) {
-            send_text(SEVERITY_LOW,PSTR("bad fence point"));
+            send_text_P(SEVERITY_LOW,PSTR("bad fence point"));
         } else {
             Vector2l point;
-            point.x = packet.lat*1.0e7;
-            point.y = packet.lng*1.0e7;
+            point.x = packet.lat*1.0e7f;
+            point.y = packet.lng*1.0e7f;
             geofence_limit.set_fence_point_with_index(point, packet.idx);
         }
         break;
@@ -1963,11 +1957,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         if (mavlink_check_target(packet.target_system, packet.target_component))
             break;
         if (packet.idx >= geofence_limit.fence_total()) {
-            send_text(SEVERITY_LOW,PSTR("bad fence point"));
+            send_text_P(SEVERITY_LOW,PSTR("bad fence point"));
         } else {
             Vector2l point = geofence_limit.get_fence_point_with_index(packet.idx);
             mavlink_msg_fence_point_send(chan, 0, 0, packet.idx, geofence_limit.fence_total(),
-                                         point.x*1.0e-7, point.y*1.0e-7);
+                                         point.x*1.0e-7f, point.y*1.0e-7f);
         }
         break;
     }
@@ -1995,7 +1989,7 @@ GCS_MAVLINK::_count_parameters()
 }
 
 /**
- * @brief Send the next pending parameter, called from deferred message
+ * queued_param_send - Send the next pending parameter, called from deferred message
  * handling code
  */
 void
@@ -2029,7 +2023,7 @@ GCS_MAVLINK::queued_param_send()
 }
 
 /**
- * @brief Send the next pending waypoint, called from deferred message
+ * queued_waypoint_send - Send the next pending waypoint, called from deferred message
  * handling code
  */
 void
@@ -2112,19 +2106,11 @@ static void gcs_update(void)
     }
 }
 
-static void gcs_send_text(gcs_severity severity, const char *str)
-{
-    gcs0.send_text(severity, str);
-    if (gcs3.initialised) {
-        gcs3.send_text(severity, str);
-    }
-}
-
 static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
 {
-    gcs0.send_text(severity, str);
+    gcs0.send_text_P(severity, str);
     if (gcs3.initialised) {
-        gcs3.send_text(severity, str);
+        gcs3.send_text_P(severity, str);
     }
 }
 
@@ -2135,17 +2121,10 @@ static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
  */
 static void gcs_send_text_fmt(const prog_char_t *fmt, ...)
 {
-    char fmtstr[40];
     va_list arg_list;
-    uint8_t i;
-    for (i=0; i<sizeof(fmtstr)-1; i++) {
-        fmtstr[i] = pgm_read_byte((const prog_char *)(fmt++));
-        if (fmtstr[i] == 0) break;
-    }
-    fmtstr[i] = 0;
     pending_status.severity = (uint8_t)SEVERITY_LOW;
     va_start(arg_list, fmt);
-    vsnprintf((char *)pending_status.text, sizeof(pending_status.text), fmtstr, arg_list);
+    vsnprintf((char *)pending_status.text, sizeof(pending_status.text), fmt, arg_list);
     va_end(arg_list);
     mavlink_send_message(MAVLINK_COMM_0, MSG_STATUSTEXT, 0);
     if (gcs3.initialised) {

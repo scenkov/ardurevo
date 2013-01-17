@@ -63,11 +63,13 @@ static void run_cli(FastSerial *port)
 
 static void init_ardupilot()
 {
-SerialUSB.configure(99);
-SerialUSB.begin(115200, 128, 256);
+
+
 Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 #if USB_MUX_PIN > 0
+    SerialUSB.configure(99);
+    SerialUSB.begin(115200, 128, 256);
     // on the APM2 board we have a mux thet switches UART0 between
     // USB and the board header. If the right ArduPPM firmware is
     // installed we can detect if USB is connected using the
@@ -110,12 +112,11 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     // Initialize Wire and SPI libraries
     //
 #ifndef DESKTOP_BUILD
-    I2C2x.begin();
-
-
+    //I2C2x.begin();
 #endif
+
     SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
-    EEPROM.init(&I2C2x,cliSerial);
+    //EEPROM.init(&I2C2x,cliSerial);
 
 
     //

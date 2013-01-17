@@ -285,7 +285,7 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
     cliSerial->println_P(PSTR("Initialising gyros"));
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,
-             delay, flash_leds, pScheduler, &Serial);
+             delay, flash_leds, pScheduler, cliSerial);
     ins.calibrate_accel(delay, flash_leds, setup_printf_P, setup_wait_key);
     report_ins();
     return(0);

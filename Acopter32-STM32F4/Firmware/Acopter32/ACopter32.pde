@@ -63,12 +63,20 @@
 
 
 #include <arm_math.h>
+#include <stdio.h>
+#include <stdarg.h>
+
 // Libraries
 #include <EEPROM.h>
 
 #include <FastSerial.h>
+
 #include <AP_Common.h>
+#include <AP_Progmem.h>
 #include <AP_Menu.h>
+
+#include <GCS_MAVLink.h>        // MAVLink GCS definitions
+
 #include <Arduino_Mega_ISR_Registry.h>
 #include <APM_RC.h>             // ArduPilot Mega RC Library
 #include <AP_GPS.h>             // ArduPilot GPS library
@@ -123,7 +131,6 @@
 #include "config.h"
 #include "config_channels.h"
 
-#include <GCS_MAVLink.h>        // MAVLink GCS definitions
 
 // Local modules
 #include "Parameters.h"
@@ -148,7 +155,10 @@
 
 
 FastSerialPort2(Serial);        // FTDI/console
+
+#if USB_MUX_PIN > 0
 FastSerial SerialUSB;        // USB
+#endif
 
 //FastSerial Serial;
 
@@ -156,15 +166,7 @@ FastSerial SerialUSB;        // USB
 	FastSerialPort1(Serial3);       // Telemetry port
 	FastSerialPort3(Serial1);       // GPS port
 
-#endif
-
-#if CONFIG_APM_HARDWARE == MP32V3F1
-	FastSerialPort0(Serial3);       // Telemetry port
-	FastSerialPort1(Serial1);       // GPS port
-#endif
-
-
-#if CONFIG_APM_HARDWARE == VRBRAINF4
+#else
 	FastSerialPort0(Serial3);       // Telemetry port
 	FastSerialPort1(Serial1);       // GPS port
 #endif
@@ -173,6 +175,7 @@ FastSerial SerialUSB;        // USB
 static FastSerial *cliSerial = &Serial;
 
 //Serial.begin(SERIAL_CLI_BAUD, 128, 256);
+HardwareSPI SPI(1);
 HardwareSPI SPIx(2);
 HardwareI2C I2C2x(2);
 
@@ -207,7 +210,6 @@ static void update_events(void);
 ////////////////////////////////////////////////////////////////////////////////
 // Dataflash
 ////////////////////////////////////////////////////////////////////////////////
-HardwareSPI	SPI(1);
 DataFlash_MP32  DataFlash(&SPI,cliSerial);
 
 

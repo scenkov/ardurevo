@@ -179,7 +179,7 @@ protected:
     AP_Vector3f             _gyro_offset;
 
     // filtering frequency (0 means default)
-    AP_Int8                 _mpu6000_filter;
+    AP_Int16                 _mpu6000_filter;
 };
 
 #include "AP_InertialSensor_VRIMU.h"

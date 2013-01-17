@@ -18,22 +18,62 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] PROGMEM = {
     // @User: Standard
     AP_GROUPINFO("PRODUCT_ID",  0, AP_InertialSensor, _product_id,   0),
 
-    // @Param: ACCSCAL
-    // @DisplayName: Acceleration Scaling
-    // @Description: Calibration scaling of x/y/z acceleration axes. This is setup using the acceleration calibration
+    // @Param: ACCSCAL_X
+    // @DisplayName: Accelerometer scaling of X axis
+    // @Description: Accelerometer scaling of X axis.  Calculated during acceleration calibration routine
+    // @Range 0.8 1.2
+    // @User: Advanced
+
+    // @Param: ACCSCAL_Y
+    // @DisplayName: Accelerometer scaling of Y axis
+    // @Description: Accelerometer scaling of Y axis  Calculated during acceleration calibration routine
+    // @Range 0.8 1.2
+    // @User: Advanced
+
+    // @Param: ACCSCAL_Z
+    // @DisplayName: Accelerometer scaling of Z axis
+    // @Description: Accelerometer scaling of Z axis  Calculated during acceleration calibration routine
+    // @Range 0.8 1.2
     // @User: Advanced
     AP_GROUPINFO("ACCSCAL",     1, AP_InertialSensor, _accel_scale,  0),
 
-    // @Param: ACCOFFS
-    // @DisplayName: Acceleration Offsets
-    // @Description: Calibration offsets of x/y/z acceleration axes. This is setup using the acceleration calibration or level operations
+    // @Param: ACCOFFS_X
+    // @DisplayName: Accelerometer offsets of X axis
+    // @Description: Accelerometer offsets of X axis. This is setup using the acceleration calibration or level operations
     // @Units: m/s/s
+    // @Range: -300 300
+    // @User: Advanced
+
+    // @Param: ACCOFFS_Y
+    // @DisplayName: Accelerometer offsets of Y axis
+    // @Description: Accelerometer offsets of Y axis. This is setup using the acceleration calibration or level operations
+    // @Units: m/s/s
+    // @Range: -300 300
+    // @User: Advanced
+
+    // @Param: ACCOFFS_Z
+    // @DisplayName: Accelerometer offsets of Z axis
+    // @Description: Accelerometer offsets of Z axis. This is setup using the acceleration calibration or level operations
+    // @Units: m/s/s
+    // @Range: -300 300
     // @User: Advanced
     AP_GROUPINFO("ACCOFFS",     2, AP_InertialSensor, _accel_offset, 0),
 
-    // @Param: GYROFFS
-    // @DisplayName: Gyro offsets
-    // @Description: Calibration offsets of x/y/z gyroscope axes. This is setup on each boot during gyro calibrations
+    // @Param: GYROFFS_X
+    // @DisplayName: Gyro offsets of X axis
+    // @Description: Gyro sensor offsets of X axis. This is setup on each boot during gyro calibrations
+    // @Units: rad/s
+    // @User: Advanced
+
+    // @Param: GYROFFS_Y
+    // @DisplayName: Gyro offsets of Y axis
+    // @Description: Gyro sensor offsets of Y axis. This is setup on each boot during gyro calibrations
+    // @Units: rad/s
+    // @User: Advanced
+
+    // @Param: GYROFFS_Z
+    // @DisplayName: Gyro offsets of Z axis
+    // @Description: Gyro sensor offsets of Z axis. This is setup on each boot during gyro calibrations
     // @Units: rad/s
     // @User: Advanced
     AP_GROUPINFO("GYROFFS",     3, AP_InertialSensor, _gyro_offset,  0),
@@ -271,7 +311,7 @@ AP_InertialSensor::_init_accel(void (*delay_cb)(unsigned long t), void (*flash_l
         // TO-DO: replace with gravity #define form location.cpp
         accel_offset.z += GRAVITY;
 
-        total_change = fabs(prev.x - accel_offset.x) + fabs(prev.y - accel_offset.y) + fabs(prev.z - accel_offset.z);
+        total_change = fabsf(prev.x - accel_offset.x) + fabsf(prev.y - accel_offset.y) + fabsf(prev.z - accel_offset.z);
         max_offset = (accel_offset.x > accel_offset.y) ? accel_offset.x : accel_offset.y;
         max_offset = (max_offset > accel_offset.z) ? max_offset : accel_offset.z;
 
@@ -393,7 +433,7 @@ bool AP_InertialSensor::_calibrate_accel( Vector3f accel_sample[6], Vector3f& ac
 
     // reset
     beta[0] = beta[1] = beta[2] = 0;
-    beta[3] = beta[4] = beta[5] = 1.0/GRAVITY;
+    beta[3] = beta[4] = beta[5] = 1.0f/GRAVITY;
     
     while( num_iterations < 20 && change > eps ) {
         num_iterations++;
@@ -431,11 +471,11 @@ bool AP_InertialSensor::_calibrate_accel( Vector3f accel_sample[6], Vector3f& ac
     accel_offsets.z = beta[2] * accel_scale.z;
 
     // sanity check scale
-    if( accel_scale.is_nan() || fabs(accel_scale.x-1.0) > 0.1 || fabs(accel_scale.y-1.0) > 0.1 || fabs(accel_scale.z-1.0) > 0.1 ) {
+    if( accel_scale.is_nan() || fabsf(accel_scale.x-1.0f) > 0.1f || fabsf(accel_scale.y-1.0f) > 0.1f || fabsf(accel_scale.z-1.0f) > 0.1f ) {
         success = false;
     }
     // sanity check offsets (2.0 is roughly 2/10th of a G, 5.0 is roughly half a G)
-    if( accel_offsets.is_nan() || fabs(accel_offsets.x) > 2.0 || fabs(accel_offsets.y) > 2.0 || fabs(accel_offsets.z) > 3.0 ) {
+    if( accel_offsets.is_nan() || fabsf(accel_offsets.x) > 2.0f || fabsf(accel_offsets.y) > 2.0f || fabsf(accel_offsets.z) > 3.0f ) {
         success = false;
     }
 
@@ -454,8 +494,8 @@ void AP_InertialSensor::_calibrate_update_matrices(float dS[6], float JS[6][6], 
         b = beta[3+j];
         dx = (float)data[j] - beta[j];
         residual -= b*b*dx*dx;
-        jacobian[j] = 2.0*b*b*dx;
-        jacobian[3+j] = -2.0*b*dx*dx;
+        jacobian[j] = 2.0f*b*b*dx;
+        jacobian[3+j] = -2.0f*b*dx*dx;
     }
     
     for( j=0; j<6; j++ ) {
@@ -472,9 +512,9 @@ void AP_InertialSensor::_calibrate_reset_matrices(float dS[6], float JS[6][6])
 {
     int16_t j,k;
     for( j=0; j<6; j++ ) {
-        dS[j] = 0.0;
+        dS[j] = 0.0f;
         for( k=0; k<6; k++ ) {
-            JS[j][k] = 0.0;
+            JS[j][k] = 0.0f;
         }
     }
 }
@@ -503,12 +543,12 @@ void AP_InertialSensor::_calibrate_find_delta(float dS[6], float JS[6][6], float
     //back-substitute
     for( i=5; i>=0; i-- ) {
         dS[i] /= JS[i][i];
-        JS[i][i] = 1.0;
+        JS[i][i] = 1.0f;
         
         for( j=0; j<i; j++ ) {
             mu = JS[i][j];
             dS[j] -= mu*dS[i];
-            JS[i][j] = 0.0;
+            JS[i][j] = 0.0f;
         }
     }
 

@@ -16,27 +16,24 @@
 #include <stdarg.h>
 #include <Stream.h>
 #include <wirish_string.h>
-#include <pgmspace.h>
+#include <AP_Progmem.h>
 
 class BetterStream : public Stream {
 public:
-        BetterStream(void) {
-        }
-        // Stream extensions
-        void            print_P(const prog_char_t *);
-        void            println_P(const prog_char_t *);
-        void            _printf_P(const prog_char *, ...);
+    BetterStream(void) {}
 
-
-        void            printf(const char *, ...)
+            void print_P(const prog_char_t *);
+            void println_P(const prog_char_t *);
+            void printf(const char *, ...)
                 __attribute__ ((format(__printf__, 2, 3)));
-				
-        void            vprintf_P(const prog_char *, va_list);
-
-        virtual int     txspace(void);
+    /* No format checking on printf_P: can't currently support that on AVR */
+            void _printf_P(const prog_char *, ...);	
 
 #define printf_P(fmt, ...) _printf_P((const prog_char *)fmt, ## __VA_ARGS__)
 
+        void            vprintf_P(const prog_char *, va_list);
+
+        virtual int     txspace(void);
 private:
         void            _vprintf(unsigned char, const char *, va_list)
                 __attribute__ ((format(__printf__, 3, 0)));
