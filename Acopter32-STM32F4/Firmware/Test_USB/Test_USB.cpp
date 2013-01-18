@@ -1,15 +1,20 @@
 #line 1 "./Firmware/Test_USB/Test_USB.pde"
 // Libraries
 #include <FastSerial.h>
-#include "WProgram.h"
-#include "AP_HAL.h"
-#include "AP_HAL_VRBRAIN.h"
+#include "Wirish.h"
+#include <AP_Common.h>
+#include <AP_Progmem.h>
+#include <AP_Param.h>
+//#include <AP_Math.h>
 
-//const AP_HAL::HAL& hal = AP_HAL_BOARD_VRBRAIN;
+#include <AP_HAL.h>
+#include <AP_HAL_VRBRAIN.h>
 
   void setup()  ;
   void loop() ;
-#line 9 "./Firmware/Test_USB/Test_USB.pde"
+#line 12 "./Firmware/Test_USB/Test_USB.pde"
+const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
+
 FastSerialPort0(Serial);        // FTDI/console
 FastSerial SerialUSB;
 
@@ -43,3 +48,4 @@ void loop()
 	
 }
 
+AP_HAL_MAIN();

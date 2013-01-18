@@ -15,7 +15,7 @@
 
 #include <FastSerial.h>
 #include <AP_Common.h>
-#include <AP_Math.h>
+//#include <AP_Math.h>
 
 #include <math.h>
 #include <string.h>

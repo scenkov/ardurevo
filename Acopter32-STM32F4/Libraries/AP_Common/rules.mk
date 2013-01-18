@@ -3,6 +3,7 @@ sp := $(sp).x
 dirstack_$(sp) := $(d)
 d := $(dir)
 BUILDDIRS += $(BUILD_PATH)/$(d)
+#BUILDDIRS += $(BUILD_PATH)/$(d)/tools
 
 # Local flags
 CFLAGS_$(d) := 
@@ -15,6 +16,9 @@ cppSRCS_$(d) += AP_Common.cpp
 cppSRCS_$(d) += AP_Loop.cpp
 cppSRCS_$(d) += AP_Param.cpp
 cppSRCS_$(d) += AP_Var_menufuncs.cpp
+
+#cppSRCS_$(d) += tools/eedump_apparam.c
+#cppSRCS_$(d) += tools/eedump.c
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)
