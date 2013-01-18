@@ -1,3 +1,4 @@
+#line 1 "./Firmware/Test_USB/AP_Compass_test.pde"
 /*
 	Example of APM_Compass library (HMC5843 sensor).
 	Code by Jordi MuÒoz and Jose Julio. DIYDrones.com
@@ -9,20 +10,24 @@
 #include <AP_Math.h>		// ArduPilot Mega Vector/Matrix math Library
 #include <HardwareI2C.h>
 
+  void setup() ;
+  void loop() ;
+#line 12 "./Firmware/Test_USB/AP_Compass_test.pde"
 FastSerialPort2(Serial);
 HardwareI2C I2C2x(2);
 
-#define ToRad(x) (x*0.01745329252)  // *pi/180
-#define ToDeg(x) (x*57.2957795131)  // *180/pi
+//#define ToRad(x) (x*0.01745329252)  // *pi/180
+//#define ToDeg(x) (x*57.2957795131)  // *180/pi
 
-AP_Compass_HMC5843 compass;
+AP_Compass_HMC5843      compass(&I2C2x,&Serial);
 
 
 unsigned long timer;
 
 void setup()
 {
-  Serial.begin(115200);
+  delay(5000);
+  Serial.begin(57600);
   Serial.println("Compass library test (HMC5843 and HMC5883L)");
   I2C2x.begin();
 

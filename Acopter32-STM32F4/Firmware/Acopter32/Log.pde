@@ -62,6 +62,8 @@ MENU2(log_menu, "Log", log_menu_commands, print_log_menu);
 static bool
 print_log_menu(void)
 {
+    cliSerial->set_blocking_writes(true);
+
     int16_t log_start;
     int16_t log_end;
     int16_t temp;

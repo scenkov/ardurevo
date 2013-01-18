@@ -27,7 +27,7 @@ cpu_flags        := -mcpu=cortex-m4
 WIRISH_PATH      := $(SRCROOT)/wirish
 LIBRARIES_PATH   := $(SRCROOT)/Libraries
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_USB
-#SKETCH          := Test_USB
+#SKETCH           := AP_Compass_test
 FIRMWARE_PATH    := $(SRCROOT)/Firmware/ACopter32
 SKETCH          := ACopter32
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)

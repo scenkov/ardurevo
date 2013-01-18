@@ -12,17 +12,18 @@
 FastSerialPort2(Serial);
 HardwareI2C I2C2x(2);
 
-#define ToRad(x) (x*0.01745329252)  // *pi/180
-#define ToDeg(x) (x*57.2957795131)  // *180/pi
+//#define ToRad(x) (x*0.01745329252)  // *pi/180
+//#define ToDeg(x) (x*57.2957795131)  // *180/pi
 
-AP_Compass_HMC5843 compass;
+AP_Compass_HMC5843      compass(&I2C2x,&Serial);
 
 
 unsigned long timer;
 
 void setup()
 {
-  Serial.begin(115200);
+  delay(5000);
+  Serial.begin(57600);
   Serial.println("Compass library test (HMC5843 and HMC5883L)");
   I2C2x.begin();
 

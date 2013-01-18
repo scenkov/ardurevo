@@ -114,7 +114,8 @@ public:
     FastSerial();
     FastSerial(usart_dev *usart_device,
                uint8 tx_pin,
-               uint8 rx_pin);
+               uint8 rx_pin,
+               uint8_t isusb);
 
     virtual void init(usart_dev *usart_device,
                    uint8 tx_pin,
@@ -168,18 +169,27 @@ public:
 #define FSRXPIN3 	BOARD_UART4_RX_PIN //11
 
 
+
 ///
 /// Macro defining a FastSerial port instance.
 ///
 #define FastSerialPort(_name, _num)   		\
-		FastSerial _name(FSUSART##_num, 	\
-						FSTXPIN##_num, 		\
-						FSRXPIN##_num);
+		FastSerial _name(FSUSART##_num, \
+						FSTXPIN##_num, \
+						FSRXPIN##_num, \
+						0);
 
 #define FastSerialPort_Init(_name, _num)   	\
-		_name.init(FSUSART##_num,		\
-						 FSTXPIN##_num, 	\
-						 FSRXPIN##_num);
+		_name.init(FSUSART##_num,	\
+						FSTXPIN##_num, \
+						FSRXPIN##_num, \
+						0);
+
+#define FastSerialPortUSB(_name)   		\
+		FastSerial _name(0,      \
+						0, \
+						0, \
+						1);
 
 	/*
 #define FastSerialPort(_name, _num)   		\

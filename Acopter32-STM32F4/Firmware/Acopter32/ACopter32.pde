@@ -157,7 +157,7 @@
 FastSerialPort2(Serial);        // FTDI/console
 
 #if USB_MUX_PIN > 0
-FastSerial SerialUSB;        // USB
+FastSerialPortUSB(SerialUSB);        // USB
 #endif
 
 //FastSerial Serial;
@@ -184,7 +184,7 @@ HardwareI2C I2C2x(2);
 // must be the first AP_Param variable declared to ensure its
 // constructor runs before the constructors of the other AP_Param
 // variables
-AP_Param param_loader(var_info, WP_START_BYTE);
+AP_Param param_loader(var_info, WP_START_BYTE, &I2C2x);
 
 Arduino_Mega_ISR_Registry isr_registry;
 

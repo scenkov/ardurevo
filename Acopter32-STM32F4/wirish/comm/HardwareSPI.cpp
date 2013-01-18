@@ -314,22 +314,22 @@ static spi_baud_rate determine_baud_rate(spi_dev *dev, SPIFrequency freq)
 	switch(freq)
 	{
 		case SPI_18MHZ:
-			rate = SPI_BAUD_PCLK_DIV_8;
+			rate = SPI_BAUD_PCLK_DIV_2;
 			break;
 		case SPI_9MHZ:
-			rate = SPI_BAUD_PCLK_DIV_16;
+			rate = SPI_BAUD_PCLK_DIV_4;
 			break;
 		case SPI_4_5MHZ:
-			rate = SPI_BAUD_PCLK_DIV_32;
+			rate = SPI_BAUD_PCLK_DIV_8;
 			break;
 		case SPI_2_25MHZ:
-			rate = SPI_BAUD_PCLK_DIV_64;
+			rate = SPI_BAUD_PCLK_DIV_16;
 			break;
 		case SPI_1_125MHZ:
-			rate = SPI_BAUD_PCLK_DIV_128;
+			rate = SPI_BAUD_PCLK_DIV_32;
 			break;
 		case SPI_562_500KHZ:
-			rate = SPI_BAUD_PCLK_DIV_256;
+			rate = SPI_BAUD_PCLK_DIV_64;
 			break;
 		case SPI_281_250KHZ:
 			rate = SPI_BAUD_PCLK_DIV_256;

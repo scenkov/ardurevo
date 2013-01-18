@@ -89,7 +89,7 @@ int32_t AC_PID::get_d(int32_t input, float dt)
         _last_derivative    = derivative;
 
 		// add in derivative component
-		return (int32_t)(_kd * 0.1 * derivative);
+		return (int32_t)(_kd * derivative);
 	}
 	return 0;
 }

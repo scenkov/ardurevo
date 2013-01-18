@@ -24,7 +24,7 @@
 #include <FastSerial.h>
 FastSerialPort2(serext);
 
-HardwareI2C I2C2_ext(2);
+HardwareI2C *I2C2_ext;
 
 //#define ENABLE_FASTSERIAL_DEBUG
 
@@ -223,11 +223,11 @@ bool AP_Param::check_var_info(void)
 
 
 // setup the _var_info[] table
-bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size)
+bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size, HardwareI2C *I2C)
 {
 
-    I2C2_ext.begin();
-    EEPROM.init(&I2C2_ext,&serext);
+    I2C2_ext = I2C;
+    EEPROM.init(I2C2_ext,&serext);
 
     struct EEPROM_header hdr;
     uint8_t i;

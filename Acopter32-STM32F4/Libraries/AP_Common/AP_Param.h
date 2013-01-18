@@ -89,11 +89,11 @@ public:
     // called once at startup to setup the _var_info[] table. This
     // will also check the EEPROM header and re-initialise it if the
     // wrong version is found
-    static bool        setup(const struct Info *info, uint16_t eeprom_size);
+    static bool        setup(const struct Info *info, uint16_t eeprom_size, HardwareI2C *I2C);
 
     // constructor to load default values and setup var_info table
-    AP_Param(const struct Info *info, uint16_t eeprom_size) {
-        setup(info, eeprom_size);
+    AP_Param(const struct Info *info, uint16_t eeprom_size, HardwareI2C *I2C) {
+        setup(info, eeprom_size, I2C);
         load_defaults();
     }
 

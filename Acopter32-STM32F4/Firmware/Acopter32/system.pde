@@ -68,8 +68,8 @@ static void init_ardupilot()
 Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 #if USB_MUX_PIN > 0
-    SerialUSB.configure(99);
-    SerialUSB.begin(115200, 128, 256);
+    //SerialUSB.configure(99);
+    //SerialUSB.begin(115200, 128, 256);
     // on the APM2 board we have a mux thet switches UART0 between
     // USB and the board header. If the right ArduPPM firmware is
     // installed we can detect if USB is connected using the
@@ -85,7 +85,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         // added later
 	SerialUSB.end();
     } else {
-        cliSerial->flush();
+        //cliSerial->flush();
         cliSerial = &SerialUSB;
 	cliSerial->begin(115200,256,256);
     }
@@ -115,7 +115,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     //I2C2x.begin();
 #endif
 
-    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
+    SPI.begin(SPI_1_125MHZ, MSBFIRST, 0);
     //EEPROM.init(&I2C2x,cliSerial);
 
 
@@ -360,6 +360,7 @@ init_rate_controllers();
     startup_ground();
 
     // now that initialisation of IMU has occurred increase SPI to 2MHz
+    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();

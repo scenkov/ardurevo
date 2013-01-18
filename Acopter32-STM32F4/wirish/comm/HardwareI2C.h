@@ -43,7 +43,7 @@
 class HardwareI2C
 {
   public:
-	HardwareI2C(uint32_t i2c_num);
+    HardwareI2C(uint32_t i2c_num);
     void begin();
     void end();
     void setSpeed(boolean); 

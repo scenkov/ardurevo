@@ -46,16 +46,12 @@
 
 // KIND OF FRAME
 //#define FRAME_CONFIG OCTA_FRAME
-#define FRAME_CONFIG QUAD_FRAME
-//#define FRAME_CONFIG HEXA_FRAME
+//#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG HEXA_FRAME
+
 //#define FRAME_ORIENTATION PLUS_FRAME
 #define FRAME_ORIENTATION X_FRAME
 
-// MODEL OF GPS
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_UBLOX
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_NONE
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
 
 // Kind of RADIO
 //#define CONFIG_APM_HARDWARE MP32PPMSUM22
@@ -66,20 +62,7 @@
 //#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
 #define CONFIG_APM_HARDWARE VRBRAINF4
 
-//#define INS_OILPAN
-//#define INS_VRIMUFULL
-#define INS_MPU6000
 
-//#define AUTO_LOITER // Enable Loiter_Ovverite
-
-#define CONFIG_BARO AP_BARO_MS5611
-//#define CONFIG_BARO AP_BARO_BMP085
-
-#define CONFIG_MAG MP32NAVYSENSOR   // VR BRAIN USING THIS CONFIGURATION
-//#define CONFIG_MAG MP32NAVY2012
-
-//#define LOGGING_ENABLED DISABLED   // AVAILABLE ON N
-#define LOGGING_ENABLED ENABLED
 
 #ifdef MP32
   #define VRIMU
@@ -95,18 +78,18 @@
 //
 
 #ifndef CONFIG_APM_HARDWARE
- # define CONFIG_APM_HARDWARE APM_HARDWARE_APM1
+ # define CONFIG_APM_HARDWARE VRBRAINF4
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // APM2 HARDWARE DEFAULTS
 //
 
-#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+#if CONFIG_APM_HARDWARE == VRBRAINF4
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION   AP_COMPASS_APM2_SHIELD
+ # define MAG_ORIENTATION	ROTATION_YAW_270
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
  # ifdef APM2_BETA_HARDWARE
@@ -114,6 +97,23 @@
  # else // APM2 Production Hardware (default)
   #  define CONFIG_BARO     AP_BARO_MS5611
  # endif
+ # define CONFIG_MAG MP32NAVYSENSOR
+ # define LOGGING_ENABLED ENABLED
+#endif
+#if CONFIG_APM_HARDWARE == MP32V3F1
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define MAG_ORIENTATION	ROTATION_YAW_180
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define MAGNETOMETER ENABLED
+ # ifdef APM2_BETA_HARDWARE
+  #  define CONFIG_BARO     AP_BARO_BMP085
+ # else // APM2 Production Hardware (default)
+  #  define CONFIG_BARO     AP_BARO_MS5611
+ # endif
+ # define CONFIG_MAG MP32NAVY2012
+ # define LOGGING_ENABLED ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -179,6 +179,7 @@
 #  define CONFIG_MPU6000_CHIP_SELECT_PIN 77 // 53
 # endif
 #endif
+
 #ifndef MPU6K_FILTER
  # define MPU6K_FILTER MPU6K_DEFAULT_FILTER
 #endif
@@ -207,9 +208,9 @@
 
 #if CONFIG_APM_HARDWARE == VRBRAINF4
 
- # define A_LED_PIN        19//37			//36 = B,	37 = A,	35 = C
- # define B_LED_PIN        20//36
- # define C_LED_PIN        21//35
+ # define A_LED_PIN        19
+ # define B_LED_PIN        20
+ # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
  # define SLIDE_SWITCH_PIN (-1)
@@ -226,13 +227,13 @@
  # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
  # define CURRENT_PIN_1      1
 #elif CONFIG_APM_HARDWARE == MP32V3F1
- # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
- # define B_LED_PIN 74//36
- # define C_LED_PIN 71//35
+ # define A_LED_PIN 69
+ # define B_LED_PIN 74
+ # define C_LED_PIN 71
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
- # define PUSHBUTTON_PIN 41
+ # define SLIDE_SWITCH_PIN (-1) //OLD: 47
+ # define PUSHBUTTON_PIN (-1) //OLD:41
  # define CLI_SLIDER_ENABLED DISABLED
   #if USB == ENABLED
    # define USB_MUX_PIN      1
@@ -245,12 +246,12 @@
  # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
  # define CURRENT_PIN_1      0
 #else
- # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
- # define B_LED_PIN 74//36
- # define C_LED_PIN 71//35
+ # define A_LED_PIN 69
+ # define B_LED_PIN 74
+ # define C_LED_PIN 71
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
+ # define SLIDE_SWITCH_PIN 47
  # define PUSHBUTTON_PIN 41
  # define CLI_SLIDER_ENABLED DISABLED
  # define USB_MUX_PIN      (-1)
@@ -449,13 +450,13 @@
 
 
 #ifndef PIEZO
-# define PIEZO				ENABLED				//Enables Piezo Code and beeps once on Startup to verify operation
+# define PIEZO			ENABLED				//Enables Piezo Code and beeps once on Startup to verify operation
 #endif
 #ifndef PIEZO_LOW_VOLTAGE
-# define PIEZO_LOW_VOLTAGE	ENABLED				//Enables Tone on reaching low battery or current alert
+# define PIEZO_LOW_VOLTAGE ENABLED				//Enables Tone on reaching low battery or current alert
 #endif
 #ifndef PIEZO_ARMING
-# define PIEZO_ARMING		ENABLED				//Two tones on ARM, 1 Tone on disarm
+# define PIEZO_ARMING	ENABLED				//Two tones on ARM, 1 Tone on disarm
 #endif
 
 // Battery failsafe
@@ -498,23 +499,13 @@
 # define MAG_PROTOCOL  MAG_PROTOCOL_5883  // Default Setting
 #endif
 
-#ifndef CAM_ROLL_GAIN
-# define CAM_ROLL_GAIN			1.0
-#endif
-#ifndef CAM_PITCH_GAIN
-# define CAM_PITCH_GAIN			1.0
-#endif
-
-
-
 //////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
-//#if defined( __AVR_ATmega2560__ )  // determines if optical flow code is included
-  //#define OPTFLOW_ENABLED
-//#endif
-
-#ifndef OPTFLOW					// sets global enabled/disabled flag for optflow (as seen in CLI)
-# define OPTFLOW				DISABLED
+#if defined( __AVR_ATmega2560__ )       // determines if optical flow code is included
+ #define OPTFLOW                        ENABLED
+#endif
+#ifndef OPTFLOW                         // sets global enabled/disabled flag for optflow (as seen in CLI)
+ # define OPTFLOW                       DISABLED
 #endif
 #ifndef OPTFLOW_ORIENTATION
  # define OPTFLOW_ORIENTATION    AP_OPTICALFLOW_ADNS3080_PINS_FORWARD
@@ -641,14 +632,14 @@
 // CAMERA TRIGGER AND CONTROL
 //
 #ifndef CAMERA
-# define CAMERA		ENABLED
+# define CAMERA	ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // MOUNT (ANTENNA OR CAMERA)
 //
 #ifndef MOUNT
-# define MOUNT		ENABLED
+# define MOUNT	ENABLED
 #endif
 
 #ifndef MOUNT2
@@ -874,26 +865,26 @@
  # define MAX_INPUT_PITCH_ANGLE     4500
 #endif
 #ifndef RATE_ROLL_P
- # define RATE_ROLL_P        		0.140
+ # define RATE_ROLL_P        		0.135
 #endif
 #ifndef RATE_ROLL_I
  # define RATE_ROLL_I        		0.100
 #endif
 #ifndef RATE_ROLL_D
- # define RATE_ROLL_D        		0.03
+ # define RATE_ROLL_D        		0.003
 #endif
 #ifndef RATE_ROLL_IMAX
  # define RATE_ROLL_IMAX         	5.0                    // degrees
 #endif
 
 #ifndef RATE_PITCH_P
- # define RATE_PITCH_P       		0.140
+ # define RATE_PITCH_P       		0.135
 #endif
 #ifndef RATE_PITCH_I
  # define RATE_PITCH_I       		0.100
 #endif
 #ifndef RATE_PITCH_D
- # define RATE_PITCH_D       		0.03
+ # define RATE_PITCH_D       		0.003
 #endif
 #ifndef RATE_PITCH_IMAX
  # define RATE_PITCH_IMAX        	5.0                    // degrees

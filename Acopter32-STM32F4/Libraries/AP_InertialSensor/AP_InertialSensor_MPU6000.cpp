@@ -383,7 +383,7 @@ void AP_InertialSensor_MPU6000::data_interrupt(void)
 
 void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 {
-	_SPIx->begin(SPI_1_125MHZ   ,MSBFIRST ,0);
+    _SPIx->begin(SPI_1_125MHZ   ,MSBFIRST ,0);
 
 	// MPU6000 chip select setup
     pinMode(_cs_pin, OUTPUT);
@@ -504,7 +504,7 @@ void AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 	//dmp_init();
 
 
-    _SPIx->begin(SPI_9MHZ, MSBFIRST, 0);
+    _SPIx->begin(SPI_18MHZ, MSBFIRST, 0);
 }
 
 float AP_InertialSensor_MPU6000::_temp_to_celsius ( uint16_t regval )
