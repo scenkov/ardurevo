@@ -91,23 +91,12 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     }
     
 #endif
+    cliSerial->printf_P("Start...");
 
     delay(5000);
-    // Console serial port
-    //
-    // The console port buffers are defined to be sufficiently large to support
-    // the MAVLink protocol efficiently
-    //
 
-
-    // GPS serial port.
-    //
-
-    cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
-                         "\n\nFree RAM: %u\n"),
-                    freeRAM());
+    cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE "\n\nFree RAM: %u\n"), freeRAM());
 	
-
     //
     // Initialize Wire and SPI libraries
     //
