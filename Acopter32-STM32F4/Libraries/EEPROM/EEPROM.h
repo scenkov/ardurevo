@@ -39,24 +39,37 @@
 	{
 	public:
 		uint16_t Status;
-
-		EEPROMClass(void);
+		EEPROMClass();
+		EEPROMClass(HardwareI2C *i2c_d, FastSerial *ser_port);
 		uint16_t init(HardwareI2C *i2c_d, FastSerial *ser_port);
 		uint16_t format(void);
 		uint16_t read(uint16_t address);
 		uint16_t read(uint16_t address, uint16_t *data);
 		uint16_t write(uint16_t address, uint16_t data);
 
+		void eeprom_read_block(void *pointer_ram, const void *pointer_eeprom, size_t n);
+		void eeprom_write_block(const void *pointer_ram, void *pointer_eeprom, size_t n);
+
+		uint8_t eeprom_read_byte(const uint8_t *addr);
+		uint16_t eeprom_write_byte(uint8_t *addr, uint8_t value);
+
+		uint16_t eeprom_read_word(const uint16_t *addr);
+		void eeprom_write_word(uint16_t *addr, uint16_t value);
+
+		uint32_t eeprom_read_dword(const uint32_t *addr);
+		void eeprom_write_dword(uint32_t *addr, uint32_t value);
+
 	private:
-		HardwareI2C *_I2Cx;
+		static HardwareI2C *_I2Cx;
 	};
 
 
 #endif
 
-extern EEPROMClass EEPROM;
+//extern EEPROMClass EEPROM;
 
 //static functions - access to utilities to emulate EEPROM
+/*
 extern void eeprom_read_block(void *pointer_ram, const void *pointer_eeprom, size_t n);
 extern void eeprom_write_block(const void *pointer_ram, void *pointer_eeprom, size_t n);
 
@@ -68,5 +81,5 @@ extern void eeprom_write_word(uint16_t *addr, uint16_t value);
 
 extern uint32_t eeprom_read_dword(const uint32_t *addr);
 extern void eeprom_write_dword(uint32_t *addr, uint32_t value);
-
+*/
 #endif	/* __EEPROM_H */

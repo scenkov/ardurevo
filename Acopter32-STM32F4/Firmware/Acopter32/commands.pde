@@ -34,22 +34,22 @@ static struct Location get_cmd_with_index(int i)
         // read WP position
         uintptr_t mem = (WP_START_BYTE) + (i * WP_SIZE);
 
-        temp.id = eeprom_read_byte((uint8_t*)mem);
+        temp.id = EEPROM.eeprom_read_byte((uint8_t*)mem);
 
         mem++;
-        temp.options = eeprom_read_byte((uint8_t*)mem);
+        temp.options = EEPROM.eeprom_read_byte((uint8_t*)mem);
 
         mem++;
-        temp.p1 = eeprom_read_byte((uint8_t*)mem);
+        temp.p1 = EEPROM.eeprom_read_byte((uint8_t*)mem);
 
         mem++;
-        temp.alt = eeprom_read_dword((uint32_t*)mem);           // alt is stored in CM! Alt is stored relative!
+        temp.alt = EEPROM.eeprom_read_dword((uint32_t*)mem);           // alt is stored in CM! Alt is stored relative!
 
         mem += 4;
-        temp.lat = eeprom_read_dword((uint32_t*)mem);         // lat is stored in decimal * 10,000,000
+        temp.lat = EEPROM.eeprom_read_dword((uint32_t*)mem);         // lat is stored in decimal * 10,000,000
 
         mem += 4;
-        temp.lng = eeprom_read_dword((uint32_t*)mem);         // lon is stored in decimal * 10,000,000
+        temp.lng = EEPROM.eeprom_read_dword((uint32_t*)mem);         // lon is stored in decimal * 10,000,000
     }
 
     // Add on home altitude if we are a nav command (or other command with altitude) and stored alt is relative
@@ -83,22 +83,22 @@ static void set_cmd_with_index(struct Location temp, int i)
 
     uintptr_t mem = WP_START_BYTE + (i * WP_SIZE);
 
-    eeprom_write_byte((uint8_t *)   mem, temp.id);
+    EEPROM.eeprom_write_byte((uint8_t *)   mem, temp.id);
 
     mem++;
-    eeprom_write_byte((uint8_t *)   mem, temp.options);
+    EEPROM.eeprom_write_byte((uint8_t *)   mem, temp.options);
 
     mem++;
-    eeprom_write_byte((uint8_t *)   mem, temp.p1);
+    EEPROM.eeprom_write_byte((uint8_t *)   mem, temp.p1);
 
     mem++;
-    eeprom_write_dword((uint32_t *) mem, temp.alt);     // Alt is stored in CM!
+    EEPROM.eeprom_write_dword((uint32_t *) mem, temp.alt);     // Alt is stored in CM!
 
     mem += 4;
-    eeprom_write_dword((uint32_t *) mem, temp.lat);     // Lat is stored in decimal degrees * 10^7
+    EEPROM.eeprom_write_dword((uint32_t *) mem, temp.lat);     // Lat is stored in decimal degrees * 10^7
 
     mem += 4;
-    eeprom_write_dword((uint32_t *) mem, temp.lng);     // Long is stored in decimal degrees * 10^7
+    EEPROM.eeprom_write_dword((uint32_t *) mem, temp.lng);     // Long is stored in decimal degrees * 10^7
 
     // Make sure our WP_total
     if(g.command_total < (i+1))

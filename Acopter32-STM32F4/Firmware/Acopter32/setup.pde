@@ -990,7 +990,7 @@ static void zero_eeprom(void)
     cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 
     for (uintptr_t i = 0; i < EEPROM_MAX_ADDR; i++) {
-        eeprom_write_byte((uint8_t *) i, b);
+	EEPROM.eeprom_write_byte((uint8_t *) i, b);
     }
 
     cliSerial->printf_P(PSTR("done\n"));

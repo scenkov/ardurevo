@@ -89,11 +89,12 @@ public:
     // called once at startup to setup the _var_info[] table. This
     // will also check the EEPROM header and re-initialise it if the
     // wrong version is found
-    static bool        setup(const struct Info *info, uint16_t eeprom_size, HardwareI2C *I2C);
+    static bool        setup(const struct Info *info, uint16_t eeprom_size);
 
     // constructor to load default values and setup var_info table
-    AP_Param(const struct Info *info, uint16_t eeprom_size, HardwareI2C *I2C) {
-        setup(info, eeprom_size, I2C);
+    AP_Param(const struct Info *info, uint16_t eeprom_size, EEPROMClass *E2P) {
+	E2PROM = E2P;
+        setup(info, eeprom_size);
         load_defaults();
     }
 
@@ -302,6 +303,10 @@ private:
     static const uint8_t        k_EEPROM_magic0      = 0x50;
     static const uint8_t        k_EEPROM_magic1      = 0x41; ///< "AP"
     static const uint8_t        k_EEPROM_revision    = 6; ///< current format revision
+
+    //FastSerial *_serext;
+    //HardwareI2C *_I2Cext;
+    static EEPROMClass *E2PROM;
 };
 
 /// Template class for scalar variables.

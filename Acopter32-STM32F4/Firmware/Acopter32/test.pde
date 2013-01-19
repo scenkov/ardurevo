@@ -110,7 +110,7 @@ test_eedump(uint8_t argc, const Menu::arg *argv)
     for (i = 0; i < EEPROM_MAX_ADDR; i += 16) {
         cliSerial->printf_P(PSTR("%04x:"), i);
         for (j = 0; j < 16; j++)
-            cliSerial->printf_P(PSTR(" %02x"), eeprom_read_byte((const uint8_t *)(i + j)));
+            cliSerial->printf_P(PSTR(" %02x"), EEPROM.eeprom_read_byte((const uint8_t *)(i + j)));
         cliSerial->println();
     }
     return(0);

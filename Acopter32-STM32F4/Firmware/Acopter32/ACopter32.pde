@@ -67,7 +67,6 @@
 #include <stdarg.h>
 
 // Libraries
-#include <EEPROM.h>
 
 #include <FastSerial.h>
 
@@ -82,6 +81,7 @@
 #include <AP_GPS.h>             // ArduPilot GPS library
 #include <HardwareI2C.h>    // Arduino Compatible I2C lib
 #include <SPI.h>                // Arduino SPI lib
+#include <EEPROM.h>
 //#include <SPI3.h>               // SPI3 library
 //#include <AP_Semaphore.h>       // for removing conflict between optical flow and dataflash on SPI3 bus
 #include <DataFlash.h>          // ArduPilot Mega Flash Memory Library
@@ -178,13 +178,14 @@ static FastSerial *cliSerial = &Serial;
 HardwareSPI SPI(1);
 HardwareSPI SPIx(2);
 HardwareI2C I2C2x(2);
+EEPROMClass EEPROM(&I2C2x, cliSerial);
 
 
 // this sets up the parameter table, and sets the default values. This
 // must be the first AP_Param variable declared to ensure its
 // constructor runs before the constructors of the other AP_Param
 // variables
-AP_Param param_loader(var_info, WP_START_BYTE, &I2C2x);
+AP_Param param_loader(var_info, WP_START_BYTE, &EEPROM);
 
 Arduino_Mega_ISR_Registry isr_registry;
 
@@ -948,7 +949,7 @@ AP_Mount camera_mount2(&current_loc, g_gps, &ahrs, 1);
 #if AP_LIMITS == ENABLED
 AP_Limits               limits;
 AP_Limit_GPSLock        gpslock_limit(g_gps);
-AP_Limit_Geofence       geofence_limit(FENCE_START_BYTE, FENCE_WP_SIZE, MAX_FENCEPOINTS, g_gps, &home, &current_loc);
+AP_Limit_Geofence       geofence_limit(FENCE_START_BYTE, FENCE_WP_SIZE, MAX_FENCEPOINTS, g_gps, &home, &current_loc, &EEPROM);
 AP_Limit_Altitude       altitude_limit(&current_loc);
 #endif
 

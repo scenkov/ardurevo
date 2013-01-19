@@ -16,15 +16,14 @@
 #include <FastSerial.h>
 #include <AP_Common.h>
 #include <AP_Math.h>
-
-#include <math.h>
-#include <string.h>
+#include <HardwareI2C.h>
 #include <EEPROM.h>
 
-#include <FastSerial.h>
-FastSerialPort2(serext);
+//FastSerial *serext;
 
-HardwareI2C *I2C2_ext;
+//HardwareI2C *I2C_ext;
+
+EEPROMClass *AP_Param::E2PROM;
 
 //#define ENABLE_FASTSERIAL_DEBUG
 
@@ -77,9 +76,9 @@ void AP_Param::eeprom_write_check(const void *ptr, uint16_t ofs, uint8_t size)
 {
     const uint8_t *b = (const uint8_t *)ptr;
     while (size--) {
-        uint8_t v = eeprom_read_byte((const uint8_t *)(uintptr_t)ofs);
+        uint8_t v = E2PROM->eeprom_read_byte((const uint8_t *)(uintptr_t)ofs);
         if (v != *b) {
-            eeprom_write_byte((uint8_t *)(uintptr_t)ofs, *b);
+            E2PROM->eeprom_write_byte((uint8_t *)(uintptr_t)ofs, *b);
         }
         b++;
         ofs++;
@@ -223,11 +222,8 @@ bool AP_Param::check_var_info(void)
 
 
 // setup the _var_info[] table
-bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size, HardwareI2C *I2C)
+bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size)
 {
-
-    I2C2_ext = I2C;
-    EEPROM.init(I2C2_ext,&serext);
 
     struct EEPROM_header hdr;
     uint8_t i;
@@ -245,7 +241,7 @@ bool AP_Param::setup(const struct AP_Param::Info *info, uint16_t eeprom_size, Ha
     serialDebug("setup %u vars", (unsigned)_num_vars);
 
     // check the header
-    eeprom_read_block(&hdr, 0, sizeof(hdr));
+    E2PROM->eeprom_read_block(&hdr, 0, sizeof(hdr));
 
     if (hdr.magic[0] != k_EEPROM_magic0 ||
         hdr.magic[1] != k_EEPROM_magic1 ||
@@ -487,7 +483,7 @@ bool AP_Param::scan(const AP_Param::Param_header *target, uint16_t *pofs)
     struct Param_header phdr;
     uint16_t ofs = sizeof(AP_Param::EEPROM_header);
     while (ofs < _eeprom_size) {
-        eeprom_read_block(&phdr, (void *)(uintptr_t)ofs, sizeof(phdr));
+	E2PROM->eeprom_read_block(&phdr, (void *)(uintptr_t)ofs, sizeof(phdr));
         if (phdr.type == target->type &&
             phdr.key == target->key &&
             phdr.group_element == target->group_element) {
@@ -812,7 +808,7 @@ bool AP_Param::load(void)
     }
 
     // found it
-    eeprom_read_block(ap, (void*)(ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
+    E2PROM->eeprom_read_block(ap, (void*)(ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
     return true;
 }
 
@@ -880,7 +876,7 @@ bool AP_Param::load_all(void)
     uint16_t ofs = sizeof(AP_Param::EEPROM_header);
 
     while (ofs < _eeprom_size) {
-        eeprom_read_block(&phdr, (void *)(uintptr_t)ofs, sizeof(phdr));
+	E2PROM->eeprom_read_block(&phdr, (void *)(uintptr_t)ofs, sizeof(phdr));
         // note that this is an || not an && for robustness
         // against power off while adding a variable
         if (phdr.type == _sentinal_type ||
@@ -895,7 +891,7 @@ bool AP_Param::load_all(void)
 
         info = find_by_header(phdr, &ptr);
         if (info != NULL) {
-            eeprom_read_block(ptr, (void*)(ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
+            E2PROM->eeprom_read_block(ptr, (void*)(ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
         }
 
         ofs += type_size((enum ap_var_type)phdr.type) + sizeof(phdr);

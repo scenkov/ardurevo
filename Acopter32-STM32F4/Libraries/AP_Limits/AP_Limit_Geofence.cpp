@@ -7,6 +7,9 @@
 ///         Andreas Antonopoulos
 
 #include <AP_Limit_Geofence.h>
+#include <EEPROM.h>
+
+EEPROMClass *AP_Limit_Geofence::EPROM;
 
 const AP_Param::GroupInfo AP_Limit_Geofence::var_info[] = {
     // @Param: FNC_ON
@@ -46,7 +49,7 @@ const AP_Param::GroupInfo AP_Limit_Geofence::var_info[] = {
 };
 
 
-AP_Limit_Geofence::AP_Limit_Geofence(uint32_t efs, uint8_t f_wp_s, uint8_t max_fp, GPS *&gps, struct Location *h_loc, struct Location *c_loc) :
+AP_Limit_Geofence::AP_Limit_Geofence(uint32_t efs, uint8_t f_wp_s, uint8_t max_fp, GPS *&gps, struct Location *h_loc, struct Location *c_loc, EEPROMClass *E2P) :
     AP_Limit_Module(AP_LIMITS_GEOFENCE),
     _gps(gps),
     _current_loc(c_loc),
@@ -56,6 +59,7 @@ AP_Limit_Geofence::AP_Limit_Geofence(uint32_t efs, uint8_t f_wp_s, uint8_t max_f
     _max_fence_points(max_fp),
     _boundary_uptodate(false)
 {
+    EPROM = E2P;
     update_boundary();
 }
 
@@ -153,9 +157,9 @@ void AP_Limit_Geofence::set_fence_point_with_index(Vector2l &point, uint8_t i)
 
     mem = _eeprom_fence_start + (i * _fence_wp_size);
 
-    eeprom_write_dword((uint32_t *)mem, point.x);
+    EPROM->eeprom_write_dword((uint32_t *)mem, point.x);
     mem += sizeof(uint32_t);
-    eeprom_write_dword((uint32_t *)mem, point.y);
+    EPROM->eeprom_write_dword((uint32_t *)mem, point.y);
 
     _boundary_uptodate = false;
 }
@@ -174,9 +178,9 @@ Vector2l AP_Limit_Geofence::get_fence_point_with_index(uint8_t i)
 
     // read fence point
     mem = _eeprom_fence_start + (i * _fence_wp_size);
-    ret.x = eeprom_read_dword((uint32_t *)mem);
+    ret.x = EPROM->eeprom_read_dword((uint32_t *)mem);
     mem += sizeof(uint32_t);
-    ret.y = eeprom_read_dword((uint32_t *)mem);
+    ret.y = EPROM->eeprom_read_dword((uint32_t *)mem);
 
     return ret;
 }

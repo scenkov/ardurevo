@@ -3,6 +3,10 @@
 #define I2CDELAY 50
 //#define DELAYI2C
 
+HardwareI2C::HardwareI2C()
+{
+}
+
 HardwareI2C::HardwareI2C(uint32_t i2c_num)
 {
     switch (i2c_num) {

@@ -26,7 +26,7 @@
 class AP_Limit_Geofence : public AP_Limit_Module {
 
 public:
-    AP_Limit_Geofence(uint32_t _eeprom_fence_start, uint8_t fpsize, uint8_t max_fp, GPS *&gps, struct Location *home_loc, struct Location *current_loc);
+    AP_Limit_Geofence(uint32_t _eeprom_fence_start, uint8_t fpsize, uint8_t max_fp, GPS *&gps, struct Location *home_loc, struct Location *current_loc, EEPROMClass *E2P);
     bool        init();
     bool        triggered();
 
@@ -62,6 +62,7 @@ private:
     const unsigned          _max_fence_points;
     bool                    _boundary_uptodate;
     Vector2l                _boundary[MAX_FENCEPOINTS];      // complex mode fence
+    static EEPROMClass *EPROM;
 
 };
 
