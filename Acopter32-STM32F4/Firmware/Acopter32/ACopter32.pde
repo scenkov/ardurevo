@@ -67,7 +67,7 @@
 #include <stdarg.h>
 
 // Libraries
-
+#include <EEPROM.h>
 #include <FastSerial.h>
 
 #include <AP_Common.h>
@@ -81,7 +81,7 @@
 #include <AP_GPS.h>             // ArduPilot GPS library
 #include <HardwareI2C.h>    // Arduino Compatible I2C lib
 #include <SPI.h>                // Arduino SPI lib
-#include <EEPROM.h>
+
 //#include <SPI3.h>               // SPI3 library
 //#include <AP_Semaphore.h>       // for removing conflict between optical flow and dataflash on SPI3 bus
 #include <DataFlash.h>          // ArduPilot Mega Flash Memory Library
@@ -967,8 +967,8 @@ void get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t ma
     init_ardupilot();
 }
 static uint16_t superfastloop_speed = 400; 	//2.5 KHz
-static uint16_t fastloop_speed = 4000; 		//250 Hz
-static uint16_t fifty_HZ_count = 5;
+static uint16_t fastloop_speed = 2500; 		//250 Hz
+static uint16_t fifty_HZ_count = 8;
 
 #ifdef INS_VRIMUFULL
 	superfastloop_speed = 1000; 	//1KHz

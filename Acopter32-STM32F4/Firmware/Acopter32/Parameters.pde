@@ -701,6 +701,7 @@ static void load_parameters(void)
 
         // erase all parameters
         cliSerial->printf_P(PSTR("Firmware change: erasing EEPROM...\n"));
+        zero_eeprom();
         AP_Param::erase_all();
 
         // save the current format version

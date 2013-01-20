@@ -41,8 +41,8 @@
 //#define PREPORT
 
 /* USING USB for serial?*/
-#define USB ENABLED
-//#define USB DISABLED
+//#define USB ENABLED
+#define USB DISABLED
 
 // KIND OF FRAME
 //#define FRAME_CONFIG OCTA_FRAME

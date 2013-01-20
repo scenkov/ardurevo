@@ -26,8 +26,8 @@ static ring_buffer usart2_rxrb;
 static usart_dev usart2 = {
     .USARTx     = USART2,
     .clk	    = RCC_APB1Periph_USART2,
-    .txrb       = &usart2_rxrb,
-    .rxrb       = &usart2_txrb,
+    .txrb       = &usart2_txrb,
+    .rxrb       = &usart2_rxrb,
     .max_baud   = 2250000UL,
     .irq	    = USART2_IRQn,
     .tx_timeout = 10000,

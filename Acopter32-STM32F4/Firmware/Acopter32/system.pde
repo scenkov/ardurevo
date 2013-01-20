@@ -97,15 +97,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
     cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE "\n\nFree RAM: %u\n"), freeRAM());
 	
-    //
-    // Initialize Wire and SPI libraries
-    //
-#ifndef DESKTOP_BUILD
-    //I2C2x.begin();
-#endif
 
-    SPI.begin(SPI_1_125MHZ, MSBFIRST, 0);
-    //EEPROM.init(&I2C2x,cliSerial);
 
 
     //
@@ -148,7 +140,15 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 	
 
 	
+    //
+    // Initialize Wire and SPI libraries
+    //
+//#ifndef DESKTOP_BUILD
+    I2C2x.begin();
+//#endif
 
+
+    EEPROM.init(&I2C2x,cliSerial);
 	
 
 
@@ -212,6 +212,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 	
 
+    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
 
 
 #if LOGGING_ENABLED == ENABLED

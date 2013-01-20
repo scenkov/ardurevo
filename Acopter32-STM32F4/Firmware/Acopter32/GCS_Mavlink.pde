@@ -1088,7 +1088,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (packet.param1 == 1 ||
                 packet.param2 == 1 ||
                 packet.param3 == 1) {
+        	cliSerial->set_blocking_writes(true);
                 ins.init_accel(mavlink_delay, flash_leds);  // level accelerometer values
+                cliSerial->set_blocking_writes(false);
                 ahrs.set_trim(Vector3f(0,0,0));             // clear out saved trim
             }
             if (packet.param4 == 1) {
@@ -1096,7 +1098,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             }
             if (packet.param5 == 1) {
                 // this blocks
+        	cliSerial->set_blocking_writes(true);
                 ins.calibrate_accel(mavlink_delay, flash_leds, gcs_send_text_fmt, setup_wait_key);
+                cliSerial->set_blocking_writes(false);
             }
             result = MAV_RESULT_ACCEPTED;
             break;
