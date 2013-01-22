@@ -28,7 +28,7 @@ public:
 
   AP_InertialSensor_VRIMU(uint8_t cs_pin, HardwareSPI *spi_dev, FastSerial *ser_port);
 
-  uint16_t init( AP_PeriodicProcess * scheduler );
+  //uint16_t init( AP_PeriodicProcess * scheduler );
 
   /* Concrete implementation of AP_InertialSensor functions: */
   /// Update the data from the Sensor and apply the filter on read data
@@ -36,17 +36,19 @@ public:
   //is there new data available?
   bool new_data_available();
   /// Get matrix of X,Y,Z accelerometer data in one call  
-  void get_accels( float * );
+  //void get_accels( float * );
   /// Get sensor data ax,ay,az,gx,gy,gz accelerometer data in one call  
-  void get_sensors( float * );
+  //void get_sensors( float * );
   /// Get Temperature from sensor
   float temperature();
   /// Get Sample Time
+  uint32_t        get_delta_time_micros();    // get_delta_time returns the time period in seconds overwhich the sensor data was collected    
   uint32_t sample_time();
   /// Reset Sample Time
   void reset_sample_time();
-    float get_gyro_drift_rate();
-	
+  float get_gyro_drift_rate();
+
+
     // get number of samples read from the sensors
     uint16_t        num_samples_available();
  // static const struct AP_Param::GroupInfo var_info[];
@@ -59,6 +61,10 @@ public:
 
   static HardwareSPI *_SPIx;
   static void read(uint32_t time);
+  
+  protected:
+    uint16_t        _init_sensor(AP_PeriodicProcess * scheduler, Sample_rate sample_rate);
+
 private:
 
   static int16_t spi_transfer_16(void);
@@ -70,16 +76,11 @@ private:
 
   AP_PeriodicProcess * _scheduler;
 
-  Vector3f _gyro;
-  Vector3f _accel;
   float _temp;
 
   uint32_t _last_sample_micros;
 
   float _temp_to_celsius( uint16_t );
-
-  static const float _accel_scale;
-  static const float _gyro_scale;
 
   static const uint8_t _gyro_data_index[3];
   static const  int8_t _gyro_data_sign[3];
@@ -97,8 +98,21 @@ private:
   // ensure we can't initialise twice
   unsigned _initialised:1;
 
-  float _gyro_apply_std_offset( uint16_t adc_value );
-  float _accel_apply_std_offset( uint16_t adc_value );
+  uint32_t                    _delta_time_micros;
+
+    static const uint8_t        _sensors[6];
+    static const int8_t         _sensor_signs[6];
+    static const uint8_t        _gyro_temp_ch;
+
+    static const float          _gravity;
+
+    static const float          _gyro_gain_x;
+    static const float          _gyro_gain_y;
+    static const float          _gyro_gain_z;
+
+    static const float          _adc_constraint;
+
+    uint8_t                     _sample_threshold;
 };
 
 #endif // __AP_INERTIAL_SENSOR_VRIMU_H__

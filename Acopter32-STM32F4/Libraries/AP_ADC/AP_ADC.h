@@ -1,8 +1,8 @@
 #ifndef AP_ADC_H
 #define AP_ADC_H
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <wirish.h>
 #include <../AP_PeriodicProcess/AP_PeriodicProcess.h>
