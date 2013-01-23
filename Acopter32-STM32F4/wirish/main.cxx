@@ -30,6 +30,7 @@
     init();
 }
 
+ /*
 int main(void) {
     setup();
 
@@ -38,3 +39,4 @@ int main(void) {
     }
     return 0;
 }
+*/
