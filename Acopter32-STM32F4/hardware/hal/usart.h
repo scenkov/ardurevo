@@ -4,6 +4,7 @@
 #include <stm32f4xx.h>
 #include "ring_buffer.h"
 #include <hal_types.h>
+#include <laserlab_MP32V1F4.h>
 
 /*
  * Devices
@@ -34,6 +35,9 @@ typedef struct usart_dev {
     uint8_t tx_buf[USART_TX_BUF_SIZE];
     IRQn_Type irq;
     uint32_t tx_timeout;
+    uint8_t rx_pin;
+    uint8_t tx_pin;
+    uint8_t gpio_af;
 } usart_dev;
 
 #ifdef __cplusplus

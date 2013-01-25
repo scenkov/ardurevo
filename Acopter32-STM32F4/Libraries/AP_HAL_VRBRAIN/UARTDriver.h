@@ -4,15 +4,24 @@
 
 #include <AP_HAL_VRBRAIN.h>
 
+#include <usart.h>
+#include <usb.h>
+#include <gpio.h>
+
+#define DEFAULT_TX_TIMEOUT 10000
+
 class VRBRAIN::VRBRAINUARTDriver : public AP_HAL::UARTDriver  {
 public:
-    VRBRAINUARTDriver();
+    uint8_t usb;
+    uint8_t usb_present;
+
+    VRBRAINUARTDriver(struct usart_dev *usart);
   /* VRBRAIN implementations of UARTDriver virtual methods */
-  void begin(uint32_t b);
-  void begin(uint32_t b, uint16_t rxS, uint16_t txS);
+  void begin(uint32_t baud);
+  void begin(uint32_t baud, uint16_t rxS, uint16_t txS);
   void end();
   void flush();
-  bool is_initialized();
+  bool is_initialized(){ return _initialized; };
   void set_blocking_writes(bool blocking);
   bool tx_pending();
 
@@ -33,6 +42,13 @@ public:
 
     /* Empty implementations of Print virtual methods */
     size_t write(uint8_t c);
+private:
+    uint8_t _port;
+    usart_dev *usart_device;
+    uint8_t tx_pin;
+    uint8_t rx_pin;
+    bool _initialized;
+
 };
 
 #endif // __AP_HAL_EMPTY_UARTDRIVER_H__

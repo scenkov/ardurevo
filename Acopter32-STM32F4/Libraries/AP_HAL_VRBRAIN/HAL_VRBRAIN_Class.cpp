@@ -4,13 +4,14 @@
 
 #include "HAL_VRBRAIN_Class.h"
 #include "AP_HAL_VRBRAIN_Private.h"
+#include <usart.h>
 
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-static VRBRAINUARTDriver uartADriver;
-static VRBRAINUARTDriver uartBDriver;
-static VRBRAINUARTDriver uartCDriver;
+static VRBRAINUARTDriver uartADriver(_USART3);
+static VRBRAINUARTDriver uartBDriver(_USART2);
+static VRBRAINUARTDriver uartCDriver(_UART4);
 static VRBRAINSemaphore  i2cSemaphore;
 static VRBRAINI2CDriver  i2cDriver(&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;

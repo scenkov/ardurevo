@@ -17,6 +17,9 @@ static usart_dev usart1 = {
     .max_baud   = 4500000UL,
     .irq	    = USART1_IRQn,
     .tx_timeout = 10000,
+    .rx_pin = BOARD_USART1_TX_PIN,
+    .tx_pin = BOARD_USART1_RX_PIN,
+    .gpio_af = GPIO_AF_USART1
 };
 /** USART1 device */
 usart_dev *_USART1 = &usart1;
@@ -31,6 +34,9 @@ static usart_dev usart2 = {
     .max_baud   = 2250000UL,
     .irq	    = USART2_IRQn,
     .tx_timeout = 10000,
+    .rx_pin = BOARD_USART2_TX_PIN,
+    .tx_pin = BOARD_USART2_RX_PIN,
+    .gpio_af = GPIO_AF_USART2
 };
 /** USART2 device */
 usart_dev *_USART2 = &usart2;
@@ -45,6 +51,9 @@ static usart_dev usart3 = {
     .max_baud = 2250000UL,
     .irq	  = USART3_IRQn,
     .tx_timeout = 10000,
+    .rx_pin = BOARD_USART3_TX_PIN,
+    .tx_pin = BOARD_USART3_RX_PIN,
+    .gpio_af = GPIO_AF_USART3
 };
 /** USART3 device */
 usart_dev *_USART3 = &usart3;
@@ -59,6 +68,9 @@ static usart_dev uart4 = {
     .max_baud = 2250000UL,
     .irq	  = UART4_IRQn,
     .tx_timeout = 10000,
+    .rx_pin = BOARD_UART4_TX_PIN,
+    .tx_pin = BOARD_UART4_RX_PIN,
+    .gpio_af = GPIO_AF_UART4
 };
 /** UART4 device */
 usart_dev *_UART4 = &uart4;
@@ -73,6 +85,9 @@ static usart_dev uart5 = {
     .max_baud = 2250000UL,
     .irq	  = UART5_IRQn,
     .tx_timeout = 10000,
+    .rx_pin = BOARD_UART5_TX_PIN,
+    .tx_pin = BOARD_UART5_RX_PIN,
+    .gpio_af = GPIO_AF_UART5
 };
 /** UART5 device */
 usart_dev *_UART5 = &uart5;
@@ -87,6 +102,9 @@ static usart_dev usart6 = {
     .max_baud = 2250000UL,
     .irq	  = USART6_IRQn,
     .tx_timeout = 10000,
+    .rx_pin = 0,
+    .tx_pin = 0,
+    .gpio_af = GPIO_AF_USART6
 };
 /** UART6 device */
 usart_dev *_USART6 = &usart6;
