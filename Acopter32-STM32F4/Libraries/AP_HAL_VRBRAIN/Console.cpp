@@ -78,10 +78,6 @@ int16_t VRBRAINConsoleDriver::read() {
     return _d->read();
 }
 
-int16_t VRBRAINConsoleDriver::peek() {
-    return _d->peek();
-}
-
 size_t VRBRAINConsoleDriver::write(uint8_t c) {
     return _d->write(c);
 }

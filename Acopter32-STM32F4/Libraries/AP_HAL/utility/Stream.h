@@ -18,7 +18,6 @@ public:
     /* return value for read() and peek() :
      * -1 if nothing available, uint8_t value otherwise. */
     virtual int16_t read() = 0;
-    virtual int16_t peek() = 0;
 
 };
 

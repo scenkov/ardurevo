@@ -21,8 +21,10 @@ public:
   void begin(uint32_t baud, uint16_t rxS, uint16_t txS);
   void end();
   void flush();
-  bool is_initialized(){ return _initialized; };
+  bool is_initialized(){ return _initialized; }
+
   void set_blocking_writes(bool blocking);
+
   bool tx_pending();
 
   /* VRBRAIN implementations of BetterStream virtual methods */
@@ -38,7 +40,6 @@ public:
   int16_t available();
   int16_t txspace();
   int16_t read();
-  int16_t peek();
 
     /* Empty implementations of Print virtual methods */
     size_t write(uint8_t c);

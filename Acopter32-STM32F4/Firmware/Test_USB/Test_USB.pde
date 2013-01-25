@@ -11,35 +11,16 @@
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
-FastSerialPort0(Serial);        // FTDI/console
-FastSerial SerialUSB;
 
 void setup() 
 {
- 	Serial.begin(115200);
-   	SerialUSB.configure(99);
-    SerialUSB.begin(115200);
-   	
-   	Serial.println("Seriale OK");
-   	
-    }
-
-uint8_t txbuf[] = { 't', 'e', 's','t','\n'};
-int ret;
-uint8_t ch;
+    hal.console->println_P("hello world");
+}
 
 void loop()
 {  	
-	/*
-	if (usb_data_available())
-	{
-		ch = usb_getc();
-		Serial.print(ch);
-		usb_putc(ch);
-	}
-	*/
-	Serial.printf("ciao\n");
-	SerialUSB.printf("Fast Serial USB : Ciao da USB\n");
+
+	hal.console->println("*");
 	delay(1000);
 	
 }
