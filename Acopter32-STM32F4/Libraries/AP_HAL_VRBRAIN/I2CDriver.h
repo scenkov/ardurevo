@@ -15,10 +15,11 @@
 #define __AP_HAL_VRBRAIN_I2CDRIVER_H__
 
 #include <AP_HAL_VRBRAIN.h>
+#include <i2c.h>
 
 class VRBRAIN::VRBRAINI2CDriver : public AP_HAL::I2CDriver {
 public:
-    VRBRAINI2CDriver(AP_HAL::Semaphore* semaphore) : _semaphore(semaphore) {}
+    VRBRAINI2CDriver(i2c_dev *dev_num);
     void begin();
     void end();
     void setTimeout(uint16_t ms);
@@ -47,6 +48,7 @@ public:
     AP_HAL::Semaphore* get_semaphore() { return _semaphore; }
 
 private:
+    i2c_dev *dev;
     AP_HAL::Semaphore* _semaphore;
 };
 
