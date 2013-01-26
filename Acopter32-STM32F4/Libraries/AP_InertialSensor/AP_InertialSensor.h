@@ -3,10 +3,10 @@
 #ifndef __AP_INERTIAL_SENSOR_H__
 #define __AP_INERTIAL_SENSOR_H__
 
-#define GRAVITY 9.80665
+#define GRAVITY 9.80665f
 // Gyro and Accelerometer calibration criteria
-#define AP_INERTIAL_SENSOR_ACCEL_TOT_MAX_OFFSET_CHANGE  4.0
-#define AP_INERTIAL_SENSOR_ACCEL_MAX_OFFSET             250.0
+#define AP_INERTIAL_SENSOR_ACCEL_TOT_MAX_OFFSET_CHANGE  4.0f
+#define AP_INERTIAL_SENSOR_ACCEL_MAX_OFFSET             250.0f
 
 #include <stdint.h>
 #include <AP_HAL.h>
@@ -113,8 +113,7 @@ public:
     /* get_delta_time returns the time period in seconds
      * overwhich the sensor data was collected
      */
-    virtual float get_delta_time() { return (float)get_delta_time_micros() * 1.0e-6; }
-    virtual uint32_t  get_delta_time_micros() = 0;
+    virtual float get_delta_time() = 0;
 
     // return the maximum gyro drift rate in radians/s/s. This
     // depends on what gyro chips are being used
@@ -125,6 +124,11 @@ public:
 
     // class level parameters
     static const struct AP_Param::GroupInfo var_info[];
+
+    // set overall board orientation
+    void set_board_orientation(enum Rotation orientation) {
+        _board_orientation = orientation;
+    }
 
 protected:
 
@@ -167,6 +171,9 @@ protected:
 
     // filtering frequency (0 means default)
     AP_Int8                 _mpu6000_filter;
+
+    // board orientation from AHRS
+    enum Rotation			_board_orientation;
 };
 
 #include "AP_InertialSensor_Oilpan.h"

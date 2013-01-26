@@ -15,6 +15,7 @@ public:
     void cs_assert();
     void cs_release();
     uint8_t transfer (uint8_t data);
+    void transfer (const uint8_t *data, uint16_t len);
 private:
     VRBRAINSemaphore _semaphore;
 };
@@ -24,8 +25,6 @@ public:
     VRBRAINSPIDeviceManager();
     void init(void *);
     AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice);
-private:
-    VRBRAINSPIDeviceDriver _device;
-};
+private:    VRBRAINSPIDeviceDriver _device;};
 
 #endif // __AP_HAL_VRBRAIN_SPIDRIVER_H__

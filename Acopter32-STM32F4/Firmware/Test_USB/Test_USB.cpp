@@ -1,11 +1,11 @@
 #line 1 "./Firmware/Test_USB/Test_USB.pde"
 // Libraries
-#include <FastSerial.h>
+//#include <FastSerial.h>
 #include "Wirish.h"
 #include <AP_Common.h>
 #include <AP_Progmem.h>
 #include <AP_Param.h>
-//#include <AP_Math.h>
+#include <AP_Math.h>
 
 #include <AP_HAL.h>
 #include <AP_HAL_VRBRAIN.h>
@@ -14,36 +14,22 @@
   void loop() ;
 #line 12 "./Firmware/Test_USB/Test_USB.pde"
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
-
-FastSerialPort0(Serial);        // FTDI/console
-FastSerial SerialUSB;
+int abs1;
+float abs2;
 
 void setup() 
 {
- 	Serial.begin(115200);
-   	SerialUSB.configure(99);
-    SerialUSB.begin(115200);
-   	
-   	Serial.println("Seriale OK");
-   	
-    }
-
-uint8_t txbuf[] = { 't', 'e', 's','t','\n'};
-int ret;
-uint8_t ch;
+    hal.console->println_P("hello world");
+    abs1 = -15;
+    abs2 = -123.897;
+}
 
 void loop()
 {  	
-	/*
-	if (usb_data_available())
-	{
-		ch = usb_getc();
-		Serial.print(ch);
-		usb_putc(ch);
-	}
-	*/
-	Serial.printf("ciao\n");
-	SerialUSB.printf("Fast Serial USB : Ciao da USB\n");
+
+
+	hal.console->println("*");
+	hal.console->printf_P(PSTR("abs1: %d abs2:%f"),abs(abs1),fabs(abs2));
 	delay(1000);
 	
 }

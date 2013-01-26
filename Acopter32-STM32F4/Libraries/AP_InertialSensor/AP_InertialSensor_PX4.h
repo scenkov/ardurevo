@@ -23,25 +23,29 @@ public:
     bool            update();
     bool            new_data_available();
     float           temperature();
-    uint32_t        get_delta_time_micros();
+    float        	get_delta_time();
     uint32_t        get_last_sample_time_micros();
     float           get_gyro_drift_rate();
     uint16_t        num_samples_available();
 
 private:
     uint16_t        _init_sensor( Sample_rate sample_rate );
-    uint32_t        _last_update_usec;
-    uint32_t        _delta_time_usec;
+    static		    void _ins_timer(uint32_t now);
+    static          void _accumulate(void);
+    uint64_t        _last_update_usec;
+    float           _delta_time;
+    static Vector3f	_accel_sum;
+    static uint32_t _accel_sum_count;
+    static Vector3f	_gyro_sum;
+    static uint32_t _gyro_sum_count;
+    static volatile bool _in_accumulate;
+    static uint64_t _last_accel_timestamp;
+    static uint64_t _last_gyro_timestamp;
+    uint8_t  _sample_divider;
 
-    // accelerometer ORB subscription handle
-    int _accel_sub;
-
-    // gyro ORB subscription handle
-    int _gyro_sub;
-
-    // raw sensor values, combined structure
-    struct sensor_combined_s _raw_sensors;
-    
+    // accelerometer and gyro driver handles
+    static int _accel_fd;
+    static int _gyro_fd;
 };
 #endif
 #endif // __AP_INERTIAL_SENSOR_PX4_H__

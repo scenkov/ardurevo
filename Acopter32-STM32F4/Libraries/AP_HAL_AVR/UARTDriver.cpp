@@ -62,7 +62,7 @@ void AVRUARTDriver::begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace) {
 			txSpace = _txBuffer->mask + 1;
 
 		if (rxSpace == (_rxBuffer->mask + 1U) && 
-                    txSpace == (_txBuffer->mask + 1U)) {
+			txSpace == (_txBuffer->mask + 1U)) {
 			// avoid re-allocating the buffers if possible
 			need_allocate = false;
 			*_ucsrb &= ~(_portEnableBits | _portTxBits);
@@ -150,16 +150,6 @@ int16_t AVRUARTDriver::read(void) {
 	return (c);
 }
 
-int16_t AVRUARTDriver::peek(void) {
-
-	// if the head and tail are equal, the buffer is empty
-	if (!_open || (_rxBuffer->head == _rxBuffer->tail))
-		return (-1);
-
-	// pull character from tail
-	return (_rxBuffer->bytes[_rxBuffer->tail]);
-}
-
 void AVRUARTDriver::flush(void) {
 	// don't reverse this or there may be problems if the RX interrupt
 	// occurs after reading the value of _rxBuffer->head but before writing
@@ -224,7 +214,7 @@ bool AVRUARTDriver::_allocBuffer(Buffer *buffer, uint16_t size)
 	// Note that we ignore requests for more than BUFFER_MAX space.
 	for (shift = 1; (1U << shift) < min(_max_buffer_size, size); shift++)
 		;
-	mask = (1 << shift) - 1;
+	mask = (1U << shift) - 1;
 
 	// If the descriptor already has a buffer allocated we need to take
 	// care of it.
@@ -241,7 +231,7 @@ bool AVRUARTDriver::_allocBuffer(Buffer *buffer, uint16_t size)
 	buffer->mask = mask;
 
 	// allocate memory for the buffer - if this fails, we fail.
-	buffer->bytes = (uint8_t *) malloc(buffer->mask + 1);
+	buffer->bytes = (uint8_t *) malloc(buffer->mask + (size_t)1);
 
 	return (buffer->bytes != NULL);
 }

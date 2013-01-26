@@ -8,16 +8,19 @@
 #include <AP_Baro.h>                    // ArduPilot Mega Barometer Library
 #include <AP_Buffer.h>                  // FIFO buffer library
 
-#define AP_INTERTIALNAV_GRAVITY 9.80665
-#define AP_INTERTIALNAV_TC_XY   3.0 // default time constant for complementary filter's X & Y axis
-#define AP_INTERTIALNAV_TC_Z    7.0 // default time constant for complementary filter's Z axis
+#define AP_INTERTIALNAV_GRAVITY 9.80665f
+#define AP_INTERTIALNAV_TC_XY   3.0f // default time constant for complementary filter's X & Y axis
+#define AP_INTERTIALNAV_TC_Z    7.0f // default time constant for complementary filter's Z axis
+
+#define AP_INTERTIALNAV_ACCEL_CORR_MAX 100.0    // max allowed accelerometer offset correction
 
 // #defines to control how often historical accel based positions are saved
 // so they can later be compared to laggy gps readings
 #define AP_INTERTIALNAV_SAVE_POS_AFTER_ITERATIONS   10
 #define AP_INTERTIALNAV_GPS_LAG_IN_10HZ_INCREMENTS  4       // must not be larger than size of _hist_position_estimate_x and _hist_position_estimate_y
+#define AP_INTERTIALNAV_GPS_TIMEOUT_MS              300     // timeout after which position error from GPS will fall to zero
 
-#define AP_INERTIALNAV_LATLON_TO_CM 1.1113175
+#define AP_INERTIALNAV_LATLON_TO_CM 1.1113175f
 
 /*
  * AP_InertialNav is an attempt to use accelerometers to augment other sensors to improve altitud e position hold
@@ -110,7 +113,6 @@ public:
     static const struct AP_Param::GroupInfo var_info[];
 
     // public variables
-    AP_Vector3f             accel_correction;          // acceleration corrections
     Vector3f                accel_correction_ef;        // earth frame accelerometer corrections. here for logging purposes only
 
 protected:
@@ -149,6 +151,7 @@ protected:
     Vector3f                _position_base;             // position estimate
     Vector3f                _position_correction;       // sum of correction to _comp_h from delayed 1st order samples    
     Vector3f                _velocity;                  // latest velocity estimate (integrated from accelerometer values)
+    Vector3f                _position_error;
 };
 
 #endif // __AP_INERTIALNAV_H__

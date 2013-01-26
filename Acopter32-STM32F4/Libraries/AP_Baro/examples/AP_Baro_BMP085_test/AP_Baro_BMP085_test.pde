@@ -44,11 +44,20 @@ void setup()
 void loop()
 {
     float tmp_float;
+    static uint32_t last_print;
 
-    if((hal.scheduler->micros()- timer) > 50000L) {
-        timer = hal.scheduler->micros();
+    // accumulate values at 100Hz
+    if ((hal.scheduler->micros()- timer) > 20000L) {
+	    bmp085.accumulate();
+	    timer = hal.scheduler->micros();
+    }
+
+    // print at 10Hz
+    if ((hal.scheduler->millis()- last_print) >= 100) {
+	uint32_t start = hal.scheduler->micros();
+        last_print = hal.scheduler->millis();
         bmp085.read();
-        uint32_t read_time = hal.scheduler->micros() - timer;
+        uint32_t read_time = hal.scheduler->micros() - start;
         if (! bmp085.healthy) {
             hal.console->println("not healthy");
             return;
@@ -62,7 +71,9 @@ void loop()
         tmp_float = pow(tmp_float, 0.190295);
         float alt = 44330.0 * (1.0 - tmp_float);
         hal.console->print(alt);
-        hal.console->printf(" t=%lu", read_time);
+        hal.console->printf(" t=%lu samples=%u", 
+			    read_time, 
+			    (unsigned)bmp085.get_pressure_samples());
         hal.console->println();
     }
 }

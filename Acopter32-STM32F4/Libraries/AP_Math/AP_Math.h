@@ -7,7 +7,10 @@
 
 #include <AP_Common.h>
 #include <AP_Param.h>
-#include <math.h>
+#include <arm_math.h>
+#ifdef __AVR__
+# include <AP_Math_AVR_Compat.h>
+#endif
 #include <stdint.h>
 #include "rotations.h"
 #include "vector2.h"
@@ -16,16 +19,16 @@
 #include "quaternion.h"
 #include "polygon.h"
 
-
 #ifndef PI
-#define PI 3.141592653589793
+#define PI 3.141592653589793f
 #endif
-#define DEG_TO_RAD 0.017453292519943295769236907684886
-#define RAD_TO_DEG 57.295779513082320876798154814105
+#define DEG_TO_RAD 0.017453292519943295769236907684886f
+#define RAD_TO_DEG 57.295779513082320876798154814105f
 
 // acceleration due to gravity in m/s/s
-#define GRAVITY_MSS 9.80665
+#define GRAVITY_MSS 9.80665f
 
+#define ROTATION_COMBINATION_SUPPORT 0
 
 // define AP_Param types AP_Vector3f and Ap_Matrix3f
 AP_PARAMDEFV(Matrix3f, Matrix3f, AP_PARAM_MATRIX3F);
@@ -37,10 +40,12 @@ float           safe_asin(float v);
 // a varient of sqrt() that always gives a valid answer.
 float           safe_sqrt(float v);
 
+#if ROTATION_COMBINATION_SUPPORT
 // find a rotation that is the combination of two other
 // rotations. This is used to allow us to add an overall board
 // rotation to an existing rotation of a sensor such as the compass
 enum Rotation           rotation_combination(enum Rotation r1, enum Rotation r2, bool *found = NULL);
+#endif
 
 // return distance in meters between two locations
 float                   get_distance(const struct Location *loc1, const struct Location *loc2);

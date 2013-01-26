@@ -17,8 +17,8 @@ public:
 
     VRBRAINUARTDriver(struct usart_dev *usart);
   /* VRBRAIN implementations of UARTDriver virtual methods */
-  void begin(uint32_t baud);
-  void begin(uint32_t baud, uint16_t rxS, uint16_t txS);
+  void begin(uint32_t b);
+  void begin(uint32_t b, uint16_t rxS, uint16_t txS);
   void end();
   void flush();
   bool is_initialized(){ return _initialized; }
@@ -43,6 +43,7 @@ public:
 
     /* Empty implementations of Print virtual methods */
     size_t write(uint8_t c);
+
 private:
     uint8_t _port;
     usart_dev *usart_device;

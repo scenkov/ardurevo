@@ -11,7 +11,7 @@ CFLAGS_$(d) := -Wall -Werror
 cSRCS_$(d) :=
 
 cppSRCS_$(d) := 
-#cppSRCS_$(d) += AP_PerfMon.cpp
+cppSRCS_$(d) += AP_Progmem_AVR.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

@@ -8,13 +8,13 @@ float safe_asin(float v)
     if (isnan(v)) {
         return 0.0;
     }
-    if (v >= 1.0) {
+    if (v >= 1.0f) {
         return PI/2;
     }
-    if (v <= -1.0) {
+    if (v <= -1.0f) {
         return -PI/2;
     }
-    return asin(v);
+    return asinf(v);
 }
 
 // a varient of sqrt() that checks the input ranges and ensures a
@@ -24,14 +24,14 @@ float safe_asin(float v)
 // real input should have been zero
 float safe_sqrt(float v)
 {
-    float ret = sqrt(v);
+    float ret = sqrtf(v);
     if (isnan(ret)) {
         return 0;
     }
     return ret;
 }
 
-
+#if ROTATION_COMBINATION_SUPPORT
 // find a rotation that is the combination of two other
 // rotations. This is used to allow us to add an overall board
 // rotation to an existing rotation of a sensor such as the compass
@@ -51,7 +51,7 @@ enum Rotation rotation_combination(enum Rotation r1, enum Rotation r2, bool *fou
         tv2(1,2,3);
         tv2.rotate(r);
         diff = tv1 - tv2;
-        if (diff.length() < 1.0e-6) {
+        if (diff.length() < 1.0e-6f) {
             // we found a match
             if (found) {
                 *found = true;
@@ -67,6 +67,7 @@ enum Rotation rotation_combination(enum Rotation r1, enum Rotation r2, bool *fou
     }
     return ROTATION_NONE;
 }
+#endif
 
 // constrain a value
 float constrain(float amt, float low, float high) {
@@ -100,10 +101,10 @@ float sq(float v) {
 
 // 2D vector length
 float pythagorous2(float a, float b) {
-	return sqrt(sq(a)+sq(b));
+	return sqrtf(sq(a)+sq(b));
 }
 
 // 3D vector length
 float pythagorous3(float a, float b, float c) {
-	return sqrt(sq(a)+sq(b)+sq(c));
+	return sqrtf(sq(a)+sq(b)+sq(c));
 }

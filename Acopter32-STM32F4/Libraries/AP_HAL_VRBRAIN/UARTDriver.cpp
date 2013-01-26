@@ -22,7 +22,7 @@ VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart):
 {
     this->tx_pin = usart_device->tx_pin;
     this->rx_pin = usart_device->rx_pin;
-    this->_initialized = 1;
+    this->_initialized = true;
     begin(57600);
 }
 

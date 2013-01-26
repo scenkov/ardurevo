@@ -139,11 +139,6 @@ int16_t SITLUARTDriver::read(void)
     return -1;
 }
 
-int16_t SITLUARTDriver::peek(void) 
-{
-    return -1;
-}
-
 void SITLUARTDriver::flush(void) 
 {
 }
@@ -220,7 +215,6 @@ void SITLUARTDriver::_tcp_start_connection(bool wait_for_connection)
             _connected = true;
             _listen_fd = -1;
             _fd = 1;
-            _set_nonblocking(0);
             return;
 	}
 
@@ -279,7 +273,6 @@ void SITLUARTDriver::_tcp_start_connection(bool wait_for_connection)
             setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
             setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
             _connected = true;
-            _set_nonblocking(_fd);
         }
 }
 
@@ -300,7 +293,6 @@ void SITLUARTDriver::_check_connection(void)
                 setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
                 setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
                 fprintf(stdout, "New connection on serial port %u\n", _portNumber);
-                _set_nonblocking(_fd);
             }
 	}
 }

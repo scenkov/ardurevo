@@ -16,6 +16,7 @@ cppSRCS_$(d) += location.cpp
 cppSRCS_$(d) += matrix3.cpp
 cppSRCS_$(d) += polygon.cpp
 cppSRCS_$(d) += quaternion.cpp
+cppSRCS_$(d) += vector2.cpp
 cppSRCS_$(d) += vector3.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)

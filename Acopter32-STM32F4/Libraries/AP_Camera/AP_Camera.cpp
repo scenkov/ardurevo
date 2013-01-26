@@ -2,14 +2,17 @@
 
 #include <AP_Camera.h>
 #include <AP_Relay.h>
-#include <../RC_Channel/RC_Channel_aux.h>
+#include <AP_Math.h>
+#include <RC_Channel.h>
+#include <AP_HAL.h>
 
+extern const AP_HAL::HAL& hal;
 extern int32_t wp_distance;     // Note: unfortunately this variable is in meter for ArduPlane and cm for ArduCopter
 
 // ------------------------------
 #define CAM_DEBUG DISABLED
 
-const AP_Param::GroupInfo AP_Camera::var_info[] = {
+const AP_Param::GroupInfo AP_Camera::var_info[] PROGMEM = {
     // @Param: TRIGG_TYPE
     // @DisplayName: Camera shutter (trigger) type
     // @Description: how to trigger the camera to take a picture
@@ -49,7 +52,7 @@ AP_Camera::servo_pic()
 	RC_Channel_aux::set_radio(RC_Channel_aux::k_cam_trigger, _servo_on_pwm);
 
 	// leave a message that it should be active for this many loops (assumes 50hz loops)
-	_trigger_counter = constrain(_trigger_duration*5,0,255);
+	_trigger_counter = constrain_int16(_trigger_duration*5,0,255);
 }
 
 /// basic relay activation
@@ -59,7 +62,7 @@ AP_Camera::relay_pic()
     _apm_relay->on();
 
     // leave a message that it should be active for this many loops (assumes 50hz loops)
-    _trigger_counter = constrain(_trigger_duration*5,0,255);
+    _trigger_counter = constrain_int16(_trigger_duration*5,0,255);
 }
 
 /// pictures blurry? use this trigger. Turns off the throttle until for # of cycles of medium loop then takes the picture and re-enables the throttle.
@@ -90,7 +93,7 @@ void
 AP_Camera::transistor_pic()
 {
     // TODO: Assign pin spare pin for output
-    digitalWrite(AP_CAMERA_TRANSISTOR_PIN, HIGH);
+    hal.gpio->write(AP_CAMERA_TRANSISTOR_PIN,1);
 
     // leave a message that it should be active for two event loop cycles
     _trigger_counter = 1;
@@ -134,11 +137,13 @@ AP_Camera::trigger_pic_cleanup()
             case AP_CAMERA_TRIGGER_TYPE_WP_DISTANCE:
                 RC_Channel_aux::set_radio(RC_Channel_aux::k_cam_trigger, _servo_off_pwm);
                 break;
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
             case AP_CAMERA_TRIGGER_TYPE_RELAY:
                 _apm_relay->off();
                 break;
+#endif
             case AP_CAMERA_TRIGGER_TYPE_TRANSISTOR:
-                digitalWrite(AP_CAMERA_TRANSISTOR_PIN, LOW);
+                hal.gpio->write(AP_CAMERA_TRANSISTOR_PIN, 0);
                 break;
         }
     }

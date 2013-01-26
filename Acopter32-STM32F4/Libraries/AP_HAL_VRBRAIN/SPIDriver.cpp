@@ -29,6 +29,9 @@ uint8_t VRBRAINSPIDeviceDriver::transfer (uint8_t data)
     return 0;
 }
 
+void VRBRAINSPIDeviceDriver::transfer (const uint8_t *data, uint16_t len)
+{
+}
 VRBRAINSPIDeviceManager::VRBRAINSPIDeviceManager()
 {}
 

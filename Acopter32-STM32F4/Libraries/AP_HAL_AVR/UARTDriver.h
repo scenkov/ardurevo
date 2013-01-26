@@ -1,6 +1,7 @@
 
 #ifndef __AP_HAL_AVR_UART_DRIVER_H__
 #define __AP_HAL_AVR_UART_DRIVER_H__
+#include <AP_HAL_Boards.h>
 #if (CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2)
 
 #include <stdint.h>
@@ -54,7 +55,6 @@ public:
     int16_t available();
     int16_t txspace();
     int16_t read();
-    int16_t peek();
 
     /* Implementations of Print virtual methods */
     size_t write(uint8_t c);
@@ -109,13 +109,12 @@ private:
 	static void _freeBuffer(Buffer *buffer);
 
 	/// default receive buffer size
-	static const uint16_t _default_rx_buffer_size = 128;
+	static const uint16_t _default_rx_buffer_size = 4;
 
 	/// default transmit buffer size
 	static const uint16_t _default_tx_buffer_size = 16;
 
 	/// maxium tx/rx buffer size
-	///
 	static const uint16_t _max_buffer_size = 256;
 };
 

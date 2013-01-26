@@ -31,21 +31,25 @@ void VRBRAINScheduler::register_delay_callback(AP_HAL::Proc k,
 
 void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc k)
 {}
-
-void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc,
-            uint32_t period_us)
-{}
-
 void VRBRAINScheduler::suspend_timer_procs()
 {}
 
 void VRBRAINScheduler::resume_timer_procs()
 {}
 
-void VRBRAINScheduler::begin_atomic()
+bool VRBRAINScheduler::in_timerprocess()
 {}
 
-void VRBRAINScheduler::end_atomic()
+void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc,
+            uint32_t period_us)
+{}
+
+
+
+bool VRBRAINScheduler::system_initializing()
+{}
+
+void VRBRAINScheduler::system_initialized()
 {}
 
 void VRBRAINScheduler::panic(const prog_char_t *errormsg) {

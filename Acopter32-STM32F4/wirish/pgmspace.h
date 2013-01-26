@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <inttypes.h>
-
+/*
 #ifndef __ATTR_PROGMEM__
 #define __ATTR_PROGMEM__ __attribute__(())
 #endif
@@ -53,5 +53,5 @@ static inline float    pgm_read_float(const void *s) { return *(const float *)s;
 #ifdef __cplusplus
 }
 #endif
-
+*/
 #endif

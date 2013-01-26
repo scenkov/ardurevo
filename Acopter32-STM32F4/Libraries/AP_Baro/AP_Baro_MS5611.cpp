@@ -119,10 +119,13 @@ bool AP_Baro_MS5611_SPI::sem_take_nonblocking()
     static int semfail_ctr = 0;
     bool got = _spi_sem->take_nonblocking();
     if (!got) {
-        semfail_ctr++;
-        if (semfail_ctr > 100) {
-            hal.scheduler->panic(PSTR("PANIC: failed to take _spi_sem "
-                        "100 times in a row, in AP_Baro_MS5611::_update"));
+        if (!hal.scheduler->system_initializing()) {
+            semfail_ctr++;
+            if (semfail_ctr > 100) {
+                hal.scheduler->panic(PSTR("PANIC: failed to take _spi_sem "
+                                          "100 times in a row, in "
+                                          "AP_Baro_MS5611::_update"));
+            }
         }
         return false; /* never reached */
     } else {
@@ -189,10 +192,13 @@ bool AP_Baro_MS5611_I2C::sem_take_nonblocking()
     static int semfail_ctr = 0;
     bool got = _i2c_sem->take_nonblocking();
     if (!got) {
-        semfail_ctr++;
-        if (semfail_ctr > 100) {
-            hal.scheduler->panic(PSTR("PANIC: failed to take _i2c_sem "
-                        "100 times in a row, in AP_Baro_MS5611::_update"));
+        if (!hal.scheduler->system_initializing()) {
+            semfail_ctr++;
+            if (semfail_ctr > 100) {
+                hal.scheduler->panic(PSTR("PANIC: failed to take _i2c_sem "
+                                          "100 times in a row, in "
+                                          "AP_Baro_MS5611::_update"));
+            }
         }
         return false; /* never reached */
     } else {
@@ -280,7 +286,9 @@ void AP_Baro_MS5611::_update(uint32_t tnow)
         return;
     }
 
-    _serial->sem_take_nonblocking();
+    if (!_serial->sem_take_nonblocking()) {
+        return;
+    }
     _timer = tnow;
 
     if (_state == 0) {
@@ -371,15 +379,15 @@ void AP_Baro_MS5611::_calculate()
     // multiple samples, giving us more precision
     dT = D2-(((uint32_t)C5)<<8);
     TEMP = (dT * C6)/8388608;
-    OFF = C2 * 65536.0 + (C4 * dT) / 128;
-    SENS = C1 * 32768.0 + (C3 * dT) / 256;
+    OFF = C2 * 65536.0f + (C4 * dT) / 128;
+    SENS = C1 * 32768.0f + (C3 * dT) / 256;
 
     if (TEMP < 0) {
         // second order temperature compensation when under 20 degrees C
         float T2 = (dT*dT) / 0x80000000;
         float Aux = TEMP*TEMP;
-        float OFF2 = 2.5*Aux;
-        float SENS2 = 1.25*Aux;
+        float OFF2 = 2.5f*Aux;
+        float SENS2 = 1.25f*Aux;
         TEMP = TEMP - T2;
         OFF = OFF - OFF2;
         SENS = SENS - SENS2;

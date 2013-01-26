@@ -41,12 +41,12 @@
 #include "pwm.h"
 #include "ext_interrupts.h"
 //#include "wirish_debug.h"
-#include "wirish_math.h"
+//#include "wirish_math.h"
 #include "wirish_time.h"
 #include "wirish_string.h"
 #include "HardwareSPI.h"
 //#include "HardwareSerial.h"
-#include "FastSerial.h"
+//#include "FastSerial.h"
 #include "HardwareI2C.h"
 #include "HardwareTimer.h"
 //#include "usb_serial.h"
@@ -55,8 +55,8 @@
 
 /* Arduino wiring macros and bit defines  */
 
-#define true 0x1
-#define false 0x0
+//#define true 0x1
+//#define false 0x0
 
 #define LSBFIRST 0
 #define MSBFIRST 1
