@@ -9,6 +9,12 @@
  */
 
 #include "UARTDriver.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+
 #include <usart.h>
 #include <usb.h>
 #include <gpio.h>
@@ -66,82 +72,55 @@ bool VRBRAINUARTDriver::tx_pending() {
 
 /* VRBRAIN implementations of BetterStream virtual methods */
 void VRBRAINUARTDriver::print_P(const prog_char_t *pstr) {
-    char    c;
 
-    while ('\0' != (c = pgm_read_byte((const prog_char *)pstr++)))
-    	write(c);
+    print(pstr);
+
 }
 void VRBRAINUARTDriver::println_P(const prog_char_t *pstr) {
-    print_P(pstr);
-    println();
+
+    println(pstr);
+
 }
-void VRBRAINUARTDriver::printf(const char *pstr, ...) {
+void VRBRAINUARTDriver::printf(const char *fmt, ...) {
+
     va_list ap;
+    va_start(ap, fmt);
+    _vprintf(fmt, ap);
+    va_end(ap);
 
-            va_start(ap, pstr);
-
-            unsigned char c;        /* holds a char from the format string */
-            char buf[1024];  //destination buffer
-    		int i = 0;
-
-    		//sprintf(buf, fmt, ap);
-    		vsprintf(buf, pstr, ap);
-
-    		//per sicurezza....
-    		buf[1023] = 0;
-
-    		c = buf[i];
-    		while (c != 0)
-    		{
-    			/* emit cr before lf to make most terminals happy */
-    			if (c == '\n')
-    					write('\r');
-    			write(c);
-    			i++;
-    			c = buf[i];
-    		}
-
-            va_end(ap);
 }
-void VRBRAINUARTDriver::_printf_P(const prog_char *pstr, ...) {
+void VRBRAINUARTDriver::_printf_P(const prog_char *fmt, ...) {
+
     va_list ap;
+    va_start(ap, fmt);
+    _vprintf(fmt, ap);
+    va_end(ap);
 
-            va_start(ap, pstr);
-
-            unsigned char c;        /* holds a char from the format string */
-            char buf[1024];  //destination buffer
-    		int i = 0;
-
-    		//sprintf(buf, fmt, ap);
-    		vsprintf(buf, pstr, ap);
-
-    		//per sicurezza....
-    		buf[1023] = 0;
-
-    		c = buf[i];
-    		while (c != 0)
-    		{
-    			/* emit cr before lf to make most terminals happy */
-    			if (c == '\n')
-    					write('\r');
-    			write(c);
-    			i++;
-    			c = buf[i];
-    		}
-
-
-            va_end(ap);
 }
 
 void VRBRAINUARTDriver::vprintf(const char *pstr, va_list ap) {
+
     printf(pstr, ap);
+
 }
-void VRBRAINUARTDriver::vprintf_P(const prog_char *pstr, va_list ap) {
-    unsigned char c;        /* holds a char from the format string */
+void VRBRAINUARTDriver::vprintf_P(const prog_char *fmt, va_list ap) {
+
+    _vprintf(fmt, ap);
+
+}
+
+void VRBRAINUARTDriver::_internal_vprintf(const char *fmt, va_list ap)
+{
+    //if (hal.scheduler->in_timerprocess()) {
+        // not allowed from timers
+      //  return;
+    //}
+
+    unsigned char c;
     char buf[1024];  //destination buffer
     int i = 0;
 
-    vsprintf(buf, pstr, ap);
+    vsprintf(buf, fmt, ap);
 
     //per sicurezza....
     buf[1023] = 0;
@@ -149,14 +128,50 @@ void VRBRAINUARTDriver::vprintf_P(const prog_char *pstr, va_list ap) {
     c = buf[i];
     while (c != 0)
     {
-	/* emit cr before lf to make most terminals happy */
+
     	if (c == '\n')
     	    write('\r');
     	write(c);
     	i++;
     	c = buf[i];
     }
+
+    /*
+    char *buf = NULL;
+    int n = avsprintf(&buf, fmt, ap);
+    if (n > 0) {
+        write((const uint8_t *)buf, n);
+    }
+    if (buf != NULL) {
+        free(buf);    
+    }
+    */
 }
+
+// handle %S -> %s
+void VRBRAINUARTDriver::_vprintf(const char *fmt, va_list ap)
+{
+    //if (hal.scheduler->in_timerprocess()) {
+        // not allowed from timers
+    //    return;
+    //}
+    // we don't use vdprintf() as it goes directly to the file descriptor
+	if (strstr(fmt, "%S")) {
+		char *fmt2 = strdup(fmt);
+		if (fmt2 != NULL) {
+			for (uint16_t i=0; fmt2[i]; i++) {
+				if (fmt2[i] == '%' && fmt2[i+1] == 'S') {
+					fmt2[i+1] = 's';
+				}
+			}
+            _internal_vprintf(fmt2, ap);
+			free(fmt2);
+		}
+	} else {
+        _internal_vprintf(fmt, ap);
+	}
+}
+
 
 /* VRBRAIN implementations of Stream virtual methods */
 int16_t VRBRAINUARTDriver::available() {
