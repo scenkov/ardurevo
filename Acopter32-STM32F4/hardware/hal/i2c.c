@@ -414,7 +414,7 @@ uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uin
 	else 
 	{
 		//errno_r = EBUSY;
-		return ERROR;
+		return I2C_ERROR;
 	}
 
     /*
@@ -428,7 +428,7 @@ uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uin
           break;
     }
   
-    return OK;
+    return I2C_OK;
 }
 
 uint8_t i2c_is_busy()

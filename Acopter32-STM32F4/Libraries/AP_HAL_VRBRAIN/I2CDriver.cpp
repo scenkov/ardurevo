@@ -13,6 +13,8 @@
 
 using namespace VRBRAIN;
 
+extern const AP_HAL::HAL& hal;
+
 VRBRAINI2CDriver::VRBRAINI2CDriver(i2c_dev *dev_num):
 	dev(dev_num),
 	_semaphore(0)
@@ -22,7 +24,7 @@ VRBRAINI2CDriver::VRBRAINI2CDriver(i2c_dev *dev_num):
 
 void VRBRAINI2CDriver::begin() {
 	i2c_init(this->dev, 0, I2C_400KHz_SPEED);
-	//hal.scheduler->delay(50);
+	hal.scheduler->delay(50);
 }
 void VRBRAINI2CDriver::end() {}
 void VRBRAINI2CDriver::setTimeout(uint16_t ms) {}
