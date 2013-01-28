@@ -3,8 +3,8 @@
 #define AP_Compass_HMC5843_H
 
 #include <AP_HAL.h>
-#include "../AP_Common/AP_Common.h"
-#include "../AP_Math/AP_Math.h"
+#include <AP_Common.h>
+#include <AP_Math.h>
 
 #include "Compass.h"
 
@@ -26,6 +26,7 @@
 #define AP_COMPASS_COMPONENTS_DOWN_PINS_LEFT ROTATION_ROLL_180_YAW_270
 #define AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD_LEFT ROTATION_ROLL_180_YAW_315
 #define AP_COMPASS_APM2_SHIELD ROTATION_NONE
+#define AP_COMPASS_MP32_SHIELD ROTATION_NONE
 
 // orientations for Sparkfun magnetometer
 #define AP_COMPASS_SPARKFUN_COMPONENTS_UP_PINS_FORWARD ROTATION_YAW_270

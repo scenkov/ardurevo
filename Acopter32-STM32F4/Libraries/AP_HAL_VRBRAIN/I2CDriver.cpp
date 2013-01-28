@@ -22,7 +22,7 @@ VRBRAINI2CDriver::VRBRAINI2CDriver(i2c_dev *dev_num):
 
 void VRBRAINI2CDriver::begin() {
 	i2c_init(this->dev, 0, I2C_400KHz_SPEED);
-	delay(50);
+	//hal.scheduler->delay(50);
 }
 void VRBRAINI2CDriver::end() {}
 void VRBRAINI2CDriver::setTimeout(uint16_t ms) {}
@@ -36,36 +36,44 @@ uint8_t VRBRAINI2CDriver::write(uint8_t addr, uint8_t len, uint8_t* data)
 
 uint8_t VRBRAINI2CDriver::writeRegister(uint8_t addr, uint8_t reg, uint8_t val)
 {
-	uint8_t ibuff[2];
+    uint8_t ibuff[2];
 
-	ibuff[0] = reg;
-	ibuff[1] = val;
+    ibuff[0] = reg;
+    ibuff[1] = val;
 
-	uint8_t ret = i2c_write(this->dev, addr, ibuff, 2);
-	return ret;
+    uint8_t ret = i2c_write(this->dev, addr, ibuff, 2);
+    return ret;
 }
 
-uint8_t VRBRAINI2CDriver::writeRegisters(uint8_t addr, uint8_t reg,
-                               uint8_t len, uint8_t* data)
+uint8_t VRBRAINI2CDriver::writeRegisters(uint8_t addr, uint8_t reg, uint8_t len, uint8_t* data)
 {
     return 0;
-
 }
 
 uint8_t VRBRAINI2CDriver::read(uint8_t addr, uint8_t len, uint8_t* data)
 {
-	uint8_t ibuff[1];
 
-	ibuff[0] = (uint8_t)addr;
-
-	uint8_t ret = i2c_read(this->dev, addr, ibuff, 1, data, len);
+	uint8_t ret = i2c_read(this->dev, addr, NULL, 0, data, len);
 	return ret;
 
 }
 uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
-{return 0;}
-uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg,
-                              uint8_t len, uint8_t* data)
-{return 0;}
+{
+	uint8_t ibuff[1];
+
+	ibuff[0] = (uint8_t)reg;
+
+	uint8_t ret = i2c_read(this->dev, addr, ibuff, 1, data, 1);
+	return ret;
+}
+uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t len, uint8_t* data)
+{
+	uint8_t ibuff[1];
+
+	ibuff[0] = (uint8_t)reg;
+
+	uint8_t ret = i2c_read(this->dev, addr, ibuff, 1, data, len);
+	return ret;
+}
 
 uint8_t VRBRAINI2CDriver::lockup_count() {return 0;}

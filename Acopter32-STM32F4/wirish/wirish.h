@@ -47,7 +47,7 @@
 #include "HardwareSPI.h"
 //#include "HardwareSerial.h"
 //#include "FastSerial.h"
-#include "HardwareI2C.h"
+//#include "HardwareI2C.h"
 #include "HardwareTimer.h"
 //#include "usb_serial.h"
 #include "hal.h"

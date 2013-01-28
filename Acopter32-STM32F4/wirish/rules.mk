@@ -19,7 +19,7 @@ cppSRCS_$(d) :=
 cppSRCS_$(d) += boards/$(BOARD)/$(BOARD).cpp
 #cppSRCS_$(d) += comm/BetterStream.cpp
 #cppSRCS_$(d) += comm/FastSerial.cpp
-cppSRCS_$(d) += comm/HardwareI2C.cpp
+#cppSRCS_$(d) += comm/HardwareI2C.cpp
 cppSRCS_$(d) += comm/HardwareSPI.cpp
 cppSRCS_$(d) += boards.cpp
 cppSRCS_$(d) += cxxabi-compat.cpp
@@ -30,7 +30,7 @@ cppSRCS_$(d) += pwm.cpp
 cppSRCS_$(d) += wirish_analog.cpp
 cppSRCS_$(d) += wirish_digital.cpp
 cppSRCS_$(d) += wirish_math.cpp
-cppSRCS_$(d) += wirish_time.cpp
+#cppSRCS_$(d) += wirish_time.cpp
 
 sSRCS_$(d)   := 
 sSRCS_$(d)   += boards/$(BOARD)/$(BOARD)_startup.S

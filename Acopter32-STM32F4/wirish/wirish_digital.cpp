@@ -30,6 +30,7 @@
 
 #include "wirish.h"
 #include "io.h"
+#include <Scheduler.h>
 
 void pinMode(uint8 pin, WiringPinMode mode) {
     gpio_pin_mode outputMode;

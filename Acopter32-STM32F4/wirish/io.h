@@ -34,7 +34,9 @@
 #define _IO_H_
 
 #include "gpio.h"
-#include "wirish_time.h"
+#include "hal_types.h"
+#include "boards.h"
+#include <wirish_time.h>
 
 
 /**

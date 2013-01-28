@@ -1,5 +1,6 @@
 
 #include "Scheduler.h"
+#include <delay.h>
 
 using namespace VRBRAIN;
 
@@ -12,18 +13,39 @@ void VRBRAINScheduler::init(void* machtnichts)
 {}
 
 void VRBRAINScheduler::delay(uint16_t ms)
-{}
+{
+    uint32 i;
+    for (i = 0; i < ms; i++) {
+	delay_microseconds(1000);
+    }
+
+}
 
 uint32_t VRBRAINScheduler::millis() {
-    return 10000;
+    return systick_uptime();
 }
 
 uint32_t VRBRAINScheduler::micros() {
-    return 200000;
+    uint32 ms;
+    uint32 cycle_cnt;
+
+    do {
+        ms = millis();
+        cycle_cnt = systick_get_count();
+    } while (ms != millis());
+
+#define US_PER_MS               1000
+    /* SYSTICK_RELOAD_VAL is 1 less than the number of cycles it
+     * actually takes to complete a SysTick reload */
+    return ((ms * US_PER_MS) +
+            (SYSTICK_RELOAD_VAL + 1 - cycle_cnt) / CYCLES_PER_MICROSECOND);
+#undef US_PER_MS
 }
 
 void VRBRAINScheduler::delay_microseconds(uint16_t us)
-{}
+{
+    delay_us((uint32_t)us);
+}
 
 void VRBRAINScheduler::register_delay_callback(AP_HAL::Proc k,
             uint16_t min_time_ms)
