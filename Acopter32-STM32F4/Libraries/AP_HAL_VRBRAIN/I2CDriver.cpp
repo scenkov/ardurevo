@@ -36,6 +36,20 @@ uint8_t VRBRAINI2CDriver::write(uint8_t addr, uint8_t len, uint8_t* data)
     return ret;
 }
 
+int8_t VRBRAINI2CDriver::write(uint8_t address, uint16_t registerAddress, uint8_t databyte)
+{
+	uint8_t ibuff[3];
+
+	ibuff[0] = (uint8_t)(registerAddress >> 8);
+	ibuff[1] = (uint8_t)(registerAddress & 0xFF);
+	ibuff[2] = (uint8_t)databyte;
+
+	uint8_t ret = i2c_write(this->dev, address, ibuff, 3);
+	//uint8_t ret = i2c_write(this->i2c_d, address, registerAddress, databyte);
+
+	return ret;
+}
+
 uint8_t VRBRAINI2CDriver::writeRegister(uint8_t addr, uint8_t reg, uint8_t val)
 {
     uint8_t ibuff[2];
@@ -58,6 +72,19 @@ uint8_t VRBRAINI2CDriver::read(uint8_t addr, uint8_t len, uint8_t* data)
 	uint8_t ret = i2c_read(this->dev, addr, NULL, 0, data, len);
 	return ret;
 
+}
+int8_t VRBRAINI2CDriver::read(uint8_t address, uint16_t registerAddress, uint8_t numberBytes, uint8_t *dataBuffer)
+{
+	uint8_t ibuff[2];
+
+	//preparing I2C buffer
+	ibuff[0]=(uint8_t)(registerAddress >> 8);
+	ibuff[1]=(uint8_t)(registerAddress & 0xFF);
+
+	uint8_t ret = i2c_read(this->dev, address, ibuff, 2, dataBuffer, numberBytes);
+	//uint8_t ret = i2c_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
+
+	return ret;
 }
 uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
 {

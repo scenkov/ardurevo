@@ -1,14 +1,17 @@
+#include <AP_Hal.h>
 #include "EEPROM.h"
 
-static FastSerial *serPort;
+extern const AP_HAL::HAL& hal;
+
+//static FastSerial *serPort;
 
 #ifdef EEPROM_DEBUG_ENABLE
 #pragma message "*** EEPROM Debug Enabled ***"
-#define debug(fmt, args...) do { if (serPort != NULL) { serPort->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__ , ##args); delay(100); } } while(0)
+#define debug(fmt, args...) do { if (serPort != NULL) { hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__ , ##args); delay(100); } } while(0)
 #else
 #define debug(fmt, args...)
 #endif
-#define notify(fmt, args...) do { if (serPort != NULL) { serPort->printf(fmt, ##args); delay(100); } } while(0)
+#define notify(fmt, args...) do { if (serPort != NULL) { hal.console->->printf(fmt, ##args); delay(100); } } while(0)
 
 #if EEPROM_TYPE_ENABLE == EEPROM_FLASH
 
@@ -18,10 +21,10 @@ EEPROMClass::EEPROMClass(void)
 {
 }
 
-uint16_t EEPROMClass::init(HardwareI2C *i2c_d, FastSerial *ser_port)
+uint16_t EEPROMClass::init()
 {
-	_I2Cx = i2c_d;
-	serPort = ser_port;
+	//hal.i2c = i2c_d;
+	//serPort = ser_port;
 
 	Status = 0x0000;
 	return Status;
@@ -49,7 +52,7 @@ uint16_t EEPROMClass::read(uint16_t Address, uint16_t *Data)
 {
 	uint8_t rdata[10];
 
-	int8_t xret = _I2Cx->read(EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)1, (uint8_t *)rdata);
+	int8_t xret = hal.i2c->read((uint8_t)EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)1, (uint8_t *)rdata);
 	*Data = (uint16_t)rdata[0];
 
 	if (xret != 0)
@@ -61,8 +64,8 @@ uint16_t EEPROMClass::read(uint16_t Address, uint16_t *Data)
 
 uint16_t EEPROMClass::write(uint16_t Address, uint16_t Data)
 {
-	int8_t xret = _I2Cx->write(EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
-	delay(5);
+	int8_t xret = hal.i2c->write(EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
+	hal.scheduler->delay(5);
 
 	if (xret != 0)
 		return 0x0001;

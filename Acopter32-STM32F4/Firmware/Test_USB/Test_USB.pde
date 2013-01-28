@@ -22,6 +22,11 @@ void setup()
     abs1 = -15;
     abs2 = -123.897;
     msg = PSTR("It works!");
+    //compass.set_orientation(MAG_ORIENTATION);                                                   // set compass's orientation on aircraft
+    if (!compass.init() || !compass.read()) {
+        // make sure we don't pass a broken compass to DCM
+	hal.console->println_P(PSTR("COMPASS INIT ERROR"));
+    }
 }
 
 void loop()

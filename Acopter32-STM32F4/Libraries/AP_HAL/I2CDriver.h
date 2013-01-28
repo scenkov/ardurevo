@@ -15,6 +15,7 @@ public:
 
     /* write: for i2c devices which do not obey register conventions */
     virtual uint8_t write(uint8_t addr, uint8_t len, uint8_t* data) = 0;
+    virtual int8_t write(uint8_t address, uint16_t registerAddress, uint8_t databyte)=0;
     /* writeRegister: write a single 8-bit value to a register */
     virtual uint8_t writeRegister(uint8_t addr, uint8_t reg, uint8_t val) = 0;
     /* writeRegisters: write bytes to contigious registers */
@@ -23,6 +24,8 @@ public:
 
     /* read: for i2c devices which do not obey register conventions */
     virtual uint8_t read(uint8_t addr, uint8_t len, uint8_t* data) = 0;
+    virtual int8_t read(uint8_t address, uint16_t registerAddress, uint8_t numberBytes, uint8_t *dataBuffer) = 0;
+
     /* readRegister: read from a device register - writes the register,
      * then reads back an 8-bit value. */
     virtual uint8_t readRegister(uint8_t addr, uint8_t reg, uint8_t* data) = 0;
