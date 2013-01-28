@@ -16,6 +16,12 @@
 
 #include <AP_HAL_VRBRAIN.h>
 
+#define MC24C64		//Defines the EEPROM MC24C64
+#define EEPROM_ADDRESS	0xA0
+
+#define EEPROM_PAGE_SIZE	(uint32_t)0x10000
+#define EEPROM_START_ADDRESS	0x00
+
 class VRBRAIN::VRBRAINStorage : public AP_HAL::Storage
 {
 public:
@@ -30,6 +36,15 @@ public:
   void write_word(uint16_t loc, uint16_t value);
   void write_dword(uint16_t loc, uint32_t value);
   void write_block(uint16_t dst, void* src, size_t n);
+
+private:
+  uint16_t format(void);
+  uint16_t read(uint16_t Address);
+  uint16_t read(uint16_t Address, uint16_t *Data);
+  uint16_t write(uint16_t Address, uint16_t Data);
+
+  uint16_t Status;
+
 };
 
 #endif // __AP_HAL_VRBRAIN_STORAGE_H__
