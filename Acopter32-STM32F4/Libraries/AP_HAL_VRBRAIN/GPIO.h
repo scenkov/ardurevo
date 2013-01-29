@@ -3,7 +3,7 @@
 #define __AP_HAL_VRBRAIN_GPIO_H__
 
 #include <AP_HAL_VRBRAIN.h>
-
+#include <io.h>
 class VRBRAIN::VRBRAINGPIO : public AP_HAL::GPIO {
 public:
     VRBRAINGPIO();
