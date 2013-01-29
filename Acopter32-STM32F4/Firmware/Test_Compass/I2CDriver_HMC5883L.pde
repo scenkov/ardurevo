@@ -21,15 +21,15 @@ void setup() {
     hal.console->printf_P(PSTR("Initializing HMC5883L at address %x\r\n"),
                                 HMC5883L);
 
-    uint8_t stat = hal.i2c->writeRegister(HMC5883L,0x02,0x00);
-    //if (stat == 0) {
-    //    hal.console->printf_P(PSTR("successful init\r\n"));
-    //} else {
-    //    hal.console->printf_P(PSTR("failed init: return status %d\r\n"),
-   //             (int)stat);
-    //    for(;;);
-    //}
-    hal.console->printf_P(PSTR("failed init: return status %d\r\n"),(int)stat);
+    uint8_t stat = hal.i2c->writeRegister(HMC5883L,(uint8_t)0x02,(uint8_t)0x00);
+    if (stat == 0) {
+        hal.console->printf_P(PSTR("successful init\r\n"));
+    } else {
+        hal.console->printf_P(PSTR("failed init: return status %d\r\n"),
+                (int)stat);
+        for(;;);
+    }
+    //hal.console->printf_P(PSTR("failed init: return status %d\r\n"),(int)stat);
 }
 
 void loop() {
@@ -37,19 +37,19 @@ void loop() {
     //read 6 bytes (x,y,z) from the device
     uint8_t stat = hal.i2c->readRegisters(HMC5883L,0x03,6, data);
 
-    //if (stat == 0){
-        int x, y, z;
-        x = data[0] << 8;
-        x |= data[1];
-        y = data[2] << 8;
-        y |= data[3];
-        z = data[4] << 8;
-        z |= data[5];
-        hal.console->printf_P(PSTR("x: %d y: %d z: %d \r\n"), x, y, z);
+    if (stat == 0){
+        int16_t x, y, z;
+        x = (int16_t)data[0] << 8;
+        x |= (int16_t)data[1];
+        z = (int16_t)data[2] << 8;
+        z |= (int16_t)data[3];
+        y = (int16_t)data[4] << 8;
+        y |= (int16_t)data[5];
+        hal.console->printf_P(PSTR("x: %d y: %d z: %d \r\n"), -x, y, -z);
         hal.console->println();
-    //} else {
-    //    hal.console->printf_P(PSTR("i2c error: status %d\r\n"), (int)stat);
-    //}
+    } else {
+        hal.console->printf_P(PSTR("i2c error: status %d\r\n"), (int)stat);
+    }
         hal.scheduler->delay(10);
 }
 
