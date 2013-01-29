@@ -2,7 +2,7 @@
 #define __EEPROM_H
 
 //#define EEPROM_DEBUG_ENABLE		//Enable debug
-
+#include <AP_Hal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <wirish.h>
@@ -41,14 +41,12 @@
 		uint16_t Status;
 
 		EEPROMClass(void);
-		uint16_t init(HardwareI2C *i2c_d, FastSerial *ser_port);
+		uint16_t init();
 		uint16_t format(void);
 		uint16_t read(uint16_t address);
 		uint16_t read(uint16_t address, uint16_t *data);
 		uint16_t write(uint16_t address, uint16_t data);
 
-	private:
-		HardwareI2C *_I2Cx;
 	};
 
 
