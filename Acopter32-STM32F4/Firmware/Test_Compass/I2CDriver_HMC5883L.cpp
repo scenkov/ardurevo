@@ -1,3 +1,4 @@
+#line 1 "./Firmware/Test_Compass/I2CDriver_HMC5883L.pde"
 /*******************************************
 *   Sample sketch that configures an HMC5883L 3 axis
 *   magnetometer to continuous mode and reads back
@@ -13,6 +14,9 @@
 #include <AP_HAL_VRBRAIN.h>
 
 
+  void setup() ;
+  void loop() ;
+#line 16 "./Firmware/Test_Compass/I2CDriver_HMC5883L.pde"
 const AP_HAL::HAL& hal = AP_HAL_VRBRAIN;
 
 #define HMC5883L  0x3C
