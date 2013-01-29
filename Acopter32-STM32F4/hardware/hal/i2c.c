@@ -356,7 +356,7 @@ uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *buffer, uint8_t len)
 	else
 	{
 		//errno_r = EBUSY;
-		return ERROR;
+		return I2C_ERROR;
 	}
 	
     /*
@@ -370,7 +370,7 @@ uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *buffer, uint8_t len)
        if ((systick_uptime() - startime) > TIMEOUT)
           break;
     }
-    return OK;
+    return I2C_OK;
 }
 
 uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uint8_t *rx_buffer, uint8_t rxlen)
