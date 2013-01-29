@@ -22,6 +22,7 @@ AP_Compass_HMC5843 compass;
 
 void setup() 
 {
+    compass.init();
     hal.console->println_P("hello world");
     abs1 = -15;
     abs2 = -123.897;
