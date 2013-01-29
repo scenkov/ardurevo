@@ -8,11 +8,11 @@ HardwareI2C::HardwareI2C(uint32_t i2c_num)
     switch (i2c_num) {
     case 1:
         this->i2c_d = _I2C1;
-        this->begin();
+        //this->begin();
         break;
     case 2:
         this->i2c_d = _I2C2;
-        this->begin();
+        //this->begin();
         break;
     default:
         assert_param(0);
@@ -25,8 +25,8 @@ HardwareI2C::HardwareI2C(uint32_t i2c_num)
 void HardwareI2C::begin()
 {
 	/* set as master */
-	i2c_init(this->i2c_d, 0, I2C_400KHz_SPEED);
-	delay(I2CDELAY);
+	//i2c_init(this->i2c_d, 0, I2C_400KHz_SPEED);
+	//delay(I2CDELAY);
 }
 
 void HardwareI2C::end()

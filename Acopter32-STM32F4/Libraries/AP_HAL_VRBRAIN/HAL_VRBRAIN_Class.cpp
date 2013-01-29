@@ -13,7 +13,7 @@ static VRBRAINUARTDriver uartADriver(_USART3);
 static VRBRAINUARTDriver uartBDriver(_USART2);
 static VRBRAINUARTDriver uartCDriver(_UART4);
 static VRBRAINSemaphore  i2cSemaphore;
-static VRBRAINI2CDriver  i2cDriver(_I2C2);
+static VRBRAINI2CDriver  i2cDriver(_I2C2,&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;
 static VRBRAINAnalogIn analogIn;
 static VRBRAINStorage storageDriver;
@@ -49,10 +49,8 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   scheduler->init(NULL);
   uartA->begin(115200);
-  //i2cDriver.begin();
-  //storageDriver.init();
-  //EEPROM.init();
   _member->init();
+  i2c->begin();
 }
 
 const HAL_VRBRAIN AP_HAL_VRBRAIN;

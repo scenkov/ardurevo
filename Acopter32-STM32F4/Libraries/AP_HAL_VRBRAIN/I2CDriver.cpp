@@ -11,29 +11,29 @@
 #include "I2CDriver.h"
 #include <i2c.h>
 
-using namespace VRBRAIN;
-
 extern const AP_HAL::HAL& hal;
 
-VRBRAINI2CDriver::VRBRAINI2CDriver(i2c_dev *dev_num):
-	dev(dev_num),
-	_semaphore(0)
-{
-    begin();
-}
+#define I2CDELAY 50
+
+using namespace VRBRAIN;
 
 void VRBRAINI2CDriver::begin() {
-	i2c_init(this->dev, 0, I2C_400KHz_SPEED);
-	hal.scheduler->delay(50);
+    i2c_init(this->_dev, 0, I2C_400KHz_SPEED);
+    hal.scheduler->delay(I2CDELAY);
 }
 void VRBRAINI2CDriver::end() {}
 void VRBRAINI2CDriver::setTimeout(uint16_t ms) {}
 void VRBRAINI2CDriver::setHighSpeed(bool active) {}
 
-uint8_t VRBRAINI2CDriver::write(uint8_t addr, uint8_t len, uint8_t* data)
+uint8_t VRBRAINI2CDriver::write(uint8_t address, uint8_t len, uint8_t* tx_buffer)
 {
-    uint8_t ret = i2c_write(this->dev, addr, data, len);
-    return ret;
+	uint8_t ret = i2c_write(this->_dev, address, tx_buffer, len);
+
+	//uint8_t ret = i2c_Write(this->i2c_d, address, len, data);
+	#ifdef DELAYI2C
+		delay(I2CDELAY);
+	#endif
+	return ret;
 }
 
 int8_t VRBRAINI2CDriver::write(uint8_t address, uint16_t registerAddress, uint8_t databyte)
@@ -44,32 +44,40 @@ int8_t VRBRAINI2CDriver::write(uint8_t address, uint16_t registerAddress, uint8_
 	ibuff[1] = (uint8_t)(registerAddress & 0xFF);
 	ibuff[2] = (uint8_t)databyte;
 
-	uint8_t ret = i2c_write(this->dev, address, ibuff, 3);
+	uint8_t ret = i2c_write(this->_dev, address, ibuff, 3);
 	//uint8_t ret = i2c_write(this->i2c_d, address, registerAddress, databyte);
 
 	return ret;
 }
 
-uint8_t VRBRAINI2CDriver::writeRegister(uint8_t addr, uint8_t reg, uint8_t val)
+uint8_t VRBRAINI2CDriver::writeRegister(uint8_t address, uint8_t registerAddress, uint8_t databyte)
 {
-    uint8_t ibuff[2];
+	//uint8_t ret = i2c_8bitaddr_write(this->i2c_d, address, registerAddress, databyte);
+	//uint8_t ret = i2c_write(this->i2c_d, address, registerAddress, databyte);
 
-    ibuff[0] = reg;
-    ibuff[1] = val;
+	uint8_t ibuff[2];
 
-    uint8_t ret = i2c_write(this->dev, addr, ibuff, 2);
-    return ret;
+	ibuff[0] = registerAddress;
+	ibuff[1] = databyte;
+
+	uint8_t ret = i2c_write(this->_dev, address, ibuff, 2);
+
+	#ifdef DELAYI2C
+		delay(I2CDELAY);
+	#endif
+
+	return ret;
 }
 
-uint8_t VRBRAINI2CDriver::writeRegisters(uint8_t addr, uint8_t reg, uint8_t len, uint8_t* data)
-{
-    return 0;
-}
+uint8_t VRBRAINI2CDriver::writeRegisters(uint8_t addr, uint8_t reg,
+                               uint8_t len, uint8_t* data)
+{return 0;}
+
 
 uint8_t VRBRAINI2CDriver::read(uint8_t addr, uint8_t len, uint8_t* data)
 {
 
-	uint8_t ret = i2c_read(this->dev, addr, NULL, 0, data, len);
+	uint8_t ret = i2c_read(this->_dev, addr, NULL, 0, data, len);
 	return ret;
 
 }
@@ -81,7 +89,7 @@ int8_t VRBRAINI2CDriver::read(uint8_t address, uint16_t registerAddress, uint8_t
 	ibuff[0]=(uint8_t)(registerAddress >> 8);
 	ibuff[1]=(uint8_t)(registerAddress & 0xFF);
 
-	uint8_t ret = i2c_read(this->dev, address, ibuff, 2, dataBuffer, numberBytes);
+	uint8_t ret = i2c_read(this->_dev, address, ibuff, 2, dataBuffer, numberBytes);
 	//uint8_t ret = i2c_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
 
 	return ret;
@@ -92,16 +100,23 @@ uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
 
 	ibuff[0] = (uint8_t)reg;
 
-	uint8_t ret = i2c_read(this->dev, addr, ibuff, 1, data, 1);
+	uint8_t ret = i2c_read(this->_dev, addr, ibuff, 1, data, 1);
 	return ret;
 }
-uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t len, uint8_t* data)
+uint8_t VRBRAINI2CDriver::readRegisters(uint8_t address, uint8_t registerAddress,
+                              uint8_t numberBytes, uint8_t* dataBuffer)
 {
 	uint8_t ibuff[1];
 
-	ibuff[0] = (uint8_t)reg;
+	ibuff[0] = (uint8_t)registerAddress;
 
-	uint8_t ret = i2c_read(this->dev, addr, ibuff, 1, data, len);
+	uint8_t ret = i2c_read(this->_dev, address, ibuff, 1, dataBuffer, numberBytes);
+	//uint8_t ret = i2c_8bitaddr_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
+	//uint8_t ret = i2c_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
+#ifdef DELAYI2C
+	delay(I2CDELAY);
+#endif
+
 	return ret;
 }
 

@@ -12,7 +12,7 @@
 #include <AP_HAL_VRBRAIN.h>
 
 //#include <EEPROM.h>
-#include <AP_Compass.h>
+//#include <AP_Compass.h>
 
 #define EEPROM_MAX_ADDR		4096
 
@@ -20,46 +20,60 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 int abs1;
 float abs2;
 const prog_char_t *msg;
-AP_Compass_HMC5843 compass;
 
+#define EEPROM_ADDRESS	0xA0
+#define EEPROM_START_ADDRESS	0x00
+
+uint8_t fibs[12] = { 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144 };
+
+void test_erase() {
+    hal.console->printf_P(PSTR("erasing... "));
+    hal.console->println();
+    for(int i = 0; i < 100; i++) {
+        hal.storage->write_byte(i, 0);
+    }
+    hal.console->printf_P(PSTR(" done.\r\n"));
+    hal.console->println();
+}
+
+void test_write() {
+    hal.console->printf_P(PSTR("writing... "));
+    hal.console->println();
+    hal.storage->write_block(0, fibs, 12);
+    hal.console->printf_P(PSTR(" done.\r\n"));
+    hal.console->println();
+}
+
+void test_readback() {
+    hal.console->printf_P(PSTR("reading back...\r\n"));
+    hal.console->println();
+    uint8_t readback[12];
+    bool success = true;
+    hal.storage->read_block(readback, 0, 12);
+    for (int i = 0; i < 12; i++) {
+        if (readback[i] != fibs[i]) {
+            success = false;
+            hal.console->printf_P(PSTR("At index %d expected %d got %d\r\n"),
+                    i, (int) fibs[i], (int) readback[i]);
+            hal.console->println();
+        }
+    }
+    if (success) {
+        hal.console->printf_P(PSTR("all bytes read successfully\r\n"));
+        hal.console->println();
+    }
+    hal.console->printf_P(PSTR("done reading back.\r\n"));
+}
 void setup() 
 {
-    hal.console->println_P("hello world");
-    abs1 = -15;
-    abs2 = -123.897;
-    msg = PSTR("It works!");
-    //EEPROM.init();
-    //compass.set_orientation(MAG_ORIENTATION);                                                   // set compass's orientation on aircraft
-    //if (!compass.init() || !compass.read()) {
-        // make sure we don't pass a broken compass to DCM
-	//hal.console->println_P(PSTR("COMPASS INIT ERROR"));
-    //}
+    hal.console->printf_P(PSTR("Starting AP_HAL_AVR::Storage test\r\n"));
+    test_erase();
+    test_write();
+    test_readback();
 }
 
 void loop()
 {  	
-
-
-	hal.console->println("*");
-	hal.console->printf_P(PSTR("abs1: %d abs2:%f and %S"),abs(abs1),fabs(abs2),msg);
-	hal.scheduler->delay(1000);
-	/*
-	 *
-	 if (compass.read()) {
-		//float heading = compass.calculate_heading(ahrs.get_dcm_matrix());
-	        hal.console->printf_P(PSTR("XYZ: %d, %d, %d\n"),
-	                                compass.mag_x,
-	                                compass.mag_y,
-	                                compass.mag_z);
-	        } else {
-	            hal.console->println_P(PSTR("not healthy"));
-	}*/
-	    for (int i = 0; i < EEPROM_MAX_ADDR; i += 16) {
-	        hal.console->printf_P(PSTR("%04x:"), i);
-	        for (int j = 0; j < 16; j++)
-	            hal.console->printf_P(PSTR(" %02x"), hal.storage->read_byte((const uint8_t *)(i + j)));
-	        hal.console->println();
-	    }
 	
 }
 
