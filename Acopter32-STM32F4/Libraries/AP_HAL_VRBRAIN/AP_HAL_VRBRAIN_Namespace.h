@@ -11,7 +11,8 @@ namespace VRBRAIN {
     class VRBRAINUARTDriver;
     class VRBRAINI2CDriver;
     class VRBRAINSPIDeviceManager;
-    class VRBRAINSPIDeviceDriver;
+    class VRBRAINSPI1DeviceDriver;
+    class VRBRAINSPI2DeviceDriver;
     class VRBRAINAnalogSource;
     class VRBRAINAnalogIn;
     class VRBRAINStorage;
