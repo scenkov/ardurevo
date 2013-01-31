@@ -31,7 +31,7 @@ inline void VRBRAINSPI1DeviceDriver::_cs_assert() {
 }
 
 inline void VRBRAINSPI1DeviceDriver::_cs_release() {
-    _cs_pin->write(1);
+    //_cs_pin->write(1);
 }
 
 inline uint8_t VRBRAINSPI1DeviceDriver::_transfer(uint8_t data) {
