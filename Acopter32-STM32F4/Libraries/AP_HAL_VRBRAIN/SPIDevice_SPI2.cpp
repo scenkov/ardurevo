@@ -29,6 +29,9 @@ void VRBRAINSPI2DeviceDriver::init() {
         spi_slave_enable(_dev, (spi_mode)0, MSBFIRST);
     }
 
+    pinMode(_cs_pin, OUTPUT);
+    digitalWrite(_cs_pin, HIGH);
+
 }
 
 AP_HAL::Semaphore* VRBRAINSPI2DeviceDriver::get_semaphore() {
@@ -36,21 +39,50 @@ AP_HAL::Semaphore* VRBRAINSPI2DeviceDriver::get_semaphore() {
 }
 
 inline void VRBRAINSPI2DeviceDriver::_cs_assert() {
-
+    digitalWrite(_cs_pin, LOW);
 }
 
 inline void VRBRAINSPI2DeviceDriver::_cs_release() {
-    //_cs_pin->write(1);
+    digitalWrite(_cs_pin, HIGH);
 }
 
 inline uint8_t VRBRAINSPI2DeviceDriver::_transfer(uint8_t data) {
+    uint8_t buf[1];
 
+    //write 1byte
+    spi_tx(this->_dev, data, 1);
+
+    //read one byte
+    while (!spi_is_rx_nonempty(this->_dev))
+            ;
+    buf[0] = (uint8_t)spi_rx_reg(this->_dev);
+    return buf[0];
 }
 
 void VRBRAINSPI2DeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t len) {
 
+    _cs_assert();
+    if (rx == NULL) {
+        for (uint16_t i = 0; i < len; i++) {
+            _transfer(tx[i]);
+        }
+    } else {
+        for (uint16_t i = 0; i < len; i++) {
+            rx[i] = _transfer(tx[i]);
+        }
+    }
+    _cs_release();
 }
 
+uint8_t VRBRAINSPI2DeviceDriver::transfer(uint8_t data) {
+    return _transfer(data);
+}
+
+void VRBRAINSPI2DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
+    for (uint16_t i = 0; i < len; i++) {
+            _transfer(tx[i]);
+    }
+}
 void VRBRAINSPI2DeviceDriver::cs_assert() {
     _cs_assert();
 }
@@ -59,14 +91,7 @@ void VRBRAINSPI2DeviceDriver::cs_release() {
     _cs_release();
 }
 
-uint8_t VRBRAINSPI2DeviceDriver::transfer(uint8_t data) {
-    return _transfer(data);
-}
 
-void VRBRAINSPI2DeviceDriver::transfer(const uint8_t *data, uint16_t len) {
-    while (len--)
-        _transfer(*data++);
-}
 
 const spi_pins* VRBRAINSPI2DeviceDriver::dev_to_spi_pins(spi_dev *dev) {
     if (_dev->SPIx == SPI1)

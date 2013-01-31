@@ -26,8 +26,10 @@ STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
 WIRISH_PATH      := $(SRCROOT)/wirish
 LIBRARIES_PATH   := $(SRCROOT)/Libraries
-FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_Compass
-SKETCH          := I2CDriver_HMC5883L
+FIRMWARE_PATH    := $(SRCROOT)/Firmware/SPIDriver_MPU6000
+SKETCH          := SPIDriver_MPU6000
+#FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_Compass
+#SKETCH          := I2CDriver_HMC5883L
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/ACopter32
 #SKETCH          := ACopter32
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)

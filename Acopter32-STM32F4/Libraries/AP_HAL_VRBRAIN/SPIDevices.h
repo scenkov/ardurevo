@@ -55,9 +55,10 @@ static const spi_pins board_spi_pins[] __FLASH__ = {
 
 class VRBRAIN::VRBRAINSPI1DeviceDriver : public AP_HAL::SPIDeviceDriver {
 public:
-    VRBRAINSPI1DeviceDriver()
+    VRBRAINSPI1DeviceDriver(uint8_t cs_pin)
     :
-        _dev(_SPI2)
+        _dev(_SPI1),
+        _cs_pin(cs_pin)
     {}
 
     void init();
@@ -80,17 +81,19 @@ private:
 
     static VRBRAIN::VRBRAINSemaphore _semaphore;
 
-    //uint8_t _device_num;
     spi_dev *_dev;
+    uint8_t _cs_pin;
+
 
 };
 
 
 class VRBRAIN::VRBRAINSPI2DeviceDriver : public AP_HAL::SPIDeviceDriver {
 public:
-    VRBRAINSPI2DeviceDriver()
+    VRBRAINSPI2DeviceDriver(uint8_t cs_pin)
     :
-        _dev(_SPI2)
+        _dev(_SPI2),
+        _cs_pin(cs_pin)
     {}
 
     void init();
@@ -114,8 +117,8 @@ private:
 
     static VRBRAIN::VRBRAINSemaphore _semaphore;
 
-    //uint8_t _device_num;
     spi_dev *_dev;
+    uint8_t _cs_pin;
 };
 
 

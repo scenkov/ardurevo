@@ -18,9 +18,21 @@ void VRBRAINSPIDeviceManager::init(void* machtnichts) {
      * the MS5611 CS pin works around the problem
      */
 
+    _mpu6k = new VRBRAINSPI2DeviceDriver(77);
+    _mpu6k->init();
+
 }
 
 AP_HAL::SPIDeviceDriver* VRBRAINSPIDeviceManager::device(enum AP_HAL::SPIDevice d)
 {
-
+    switch (d) {
+        case AP_HAL::SPIDevice_Dataflash:
+            return _dataflash;
+        case AP_HAL::SPIDevice_MS5611:
+            return _ms5611;
+        case AP_HAL::SPIDevice_MPU6000:
+            return _mpu6k;
+        default:
+            return NULL;
+    };
 }
