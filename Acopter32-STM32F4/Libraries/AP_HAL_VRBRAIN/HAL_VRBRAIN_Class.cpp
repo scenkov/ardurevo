@@ -51,6 +51,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   uartA->begin(115200);
   _member->init();
   i2c->begin();
+  spi->init(NULL);
 }
 
 const HAL_VRBRAIN AP_HAL_VRBRAIN;

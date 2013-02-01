@@ -7,6 +7,7 @@
 #include "GPIO.h"
 #include "Semaphores.h"
 #include <spi.h>
+#include <io.h>
 
 using namespace VRBRAIN;
 
