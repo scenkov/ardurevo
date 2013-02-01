@@ -16,22 +16,34 @@ extern const AP_HAL::HAL& hal;
 VRBRAINSemaphore VRBRAINSPI2DeviceDriver::_semaphore;
 
 void VRBRAINSPI2DeviceDriver::init() {
-    //_dev = _SPI2;
+    _dev = _SPI2;
 
+    pinMode(_cs_pin, OUTPUT);
+    digitalWrite(_cs_pin, HIGH);
+
+    //set frequency
     SPIFrequency freq = SPI_1_125MHZ;
     spi_baud_rate baud = determine_baud_rate(freq);
 
+    //set mode
+    spi_mode m = (spi_mode)0;
+
+    //set master
     bool as_master = true;
 
+    //init the device
+    spi_init(_dev);
+
+    //configure gpios
     configure_gpios(_dev, as_master);
+
     if (as_master) {
         spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
     } else {
         spi_slave_enable(_dev, (spi_mode)0, MSBFIRST);
     }
 
-    pinMode(_cs_pin, OUTPUT);
-    digitalWrite(_cs_pin, HIGH);
+
 
 }
 
@@ -51,7 +63,7 @@ inline uint8_t VRBRAINSPI2DeviceDriver::_transfer(uint8_t data) {
     uint8_t buf[1];
 
     //write 1byte
-    spi_tx(this->_dev, data, 1);
+    spi_tx(this->_dev, &data, 1);
 
     //read one byte
     while (!spi_is_rx_nonempty(this->_dev))
