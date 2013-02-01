@@ -66,18 +66,22 @@ AP_Baro_MS5611_I2C AP_Baro_MS5611::i2c;
 void AP_Baro_MS5611_SPI::init()
 {
     _spi = hal.spi->device(AP_HAL::SPIDevice_MS5611);
-    if (_spi == NULL) {
-        hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611 did not get "
-                    "valid SPI device driver!"));
-        return; /* never reached */
-    }
-    _spi_sem = _spi->get_semaphore();
-    if (_spi_sem == NULL) {
-        hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611 did not get "
-                    "valid SPI semaphroe!"));
-        return; /* never reached */
+    //if (_spi == NULL) {
+    //    hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611 did not get "
+    //                "valid SPI device driver!"));
+    //    return; /* never reached */
+    //}
+    //_spi_sem = _spi->get_semaphore();
+    //if (_spi_sem == NULL) {
+    //    hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611 did not get "
+    //                "valid SPI semaphroe!"));
+    //    return; /* never reached */
         
-    }
+    //}
+}
+
+void AP_Baro_MS5611::update(){
+    _update(hal.scheduler->micros());
 }
 
 uint16_t AP_Baro_MS5611_SPI::read_16bits(uint8_t reg)
@@ -107,7 +111,7 @@ void AP_Baro_MS5611_SPI::write(uint8_t reg)
 }
 
 bool AP_Baro_MS5611_SPI::sem_take_blocking() {
-    return _spi_sem->take(10);
+    //return _spi_sem->take(10);
 }
 
 bool AP_Baro_MS5611_SPI::sem_take_nonblocking()
@@ -223,11 +227,11 @@ bool AP_Baro_MS5611::init()
     }
 
     _serial->init();
-    if (!_serial->sem_take_blocking()){
-        hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611: failed to take "
-                    "serial semaphore for init"));
-        return false; /* never reached */
-    }
+    //if (!_serial->sem_take_blocking()){
+    //    hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611: failed to take "
+    //                "serial semaphore for init"));
+    //    return false; /* never reached */
+    //}
 
     _serial->write(CMD_MS5611_RESET);
     hal.scheduler->delay(4);
@@ -255,11 +259,12 @@ bool AP_Baro_MS5611::init()
     _d2_count = 0;
 
     hal.scheduler->register_timer_process( AP_Baro_MS5611::_update );
-    _serial->sem_give();
+    //_serial->sem_give();
 
     // wait for at least one value to be read
     uint32_t tstart = hal.scheduler->millis();
     while (!_updated) {
+	update();
         hal.scheduler->delay(10);
         if (hal.scheduler->millis() - tstart > 1000) {
             hal.scheduler->panic(PSTR("PANIC: AP_Baro_MS5611 took more than "
@@ -286,9 +291,9 @@ void AP_Baro_MS5611::_update(uint32_t tnow)
         return;
     }
 
-    if (!_serial->sem_take_nonblocking()) {
-        return;
-    }
+    //if (!_serial->sem_take_nonblocking()) {
+    //    return;
+    //}
     _timer = tnow;
 
     if (_state == 0) {
@@ -324,7 +329,7 @@ void AP_Baro_MS5611::_update(uint32_t tnow)
         }
     }
 
-    _serial->sem_give();
+   // _serial->sem_give();
 }
 
 uint8_t AP_Baro_MS5611::read()
@@ -336,13 +341,13 @@ uint8_t AP_Baro_MS5611::read()
 
         // Suspend timer procs because these variables are written to
         // in "_update".
-        hal.scheduler->suspend_timer_procs();
+        //hal.scheduler->suspend_timer_procs();
         sD1 = _s_D1; _s_D1 = 0;
         sD2 = _s_D2; _s_D2 = 0;
         d1count = _d1_count; _d1_count = 0;
         d2count = _d2_count; _d2_count = 0;
         _updated = false;
-        hal.scheduler->resume_timer_procs();
+        //hal.scheduler->resume_timer_procs();
 
         if (d1count != 0) {
             D1 = ((float)sD1) / d1count;

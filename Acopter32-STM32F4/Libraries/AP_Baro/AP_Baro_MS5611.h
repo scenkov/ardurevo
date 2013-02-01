@@ -83,6 +83,7 @@ public:
     int32_t         get_raw_temp();
 
     void            _calculate();
+    void            update();
 
     /* Serial port drivers to pass to "init". */
     static AP_Baro_MS5611_SPI spi;

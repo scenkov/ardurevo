@@ -19,7 +19,7 @@
 // debug only:
 //#include <avr/io.h>
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+
   static void register_write(uint8_t reg, uint8_t val) ;
   static uint8_t register_read(uint8_t reg) ;
   static uint16_t spi_read_16(void) ;
@@ -28,11 +28,6 @@
   static void setup() ;
   static void loop() ;
 #line 22 "./Firmware/SPIDriver_MPU6000/SPIDriver_MPU6000.pde"
-const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
-const AP_HAL::HAL& hal = AP_HAL_AVR_APM1;
-#endif
-
 const AP_HAL::HAL& hal = AP_HAL_VRBRAIN;
 
 AP_HAL::SPIDeviceDriver* spidev;
