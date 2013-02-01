@@ -1,3 +1,4 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #include <AP_HAL.h>
 
 
@@ -5,20 +6,44 @@
 #include "SPIDevices.h"
 #include "GPIO.h"
 #include "Semaphores.h"
+#include <spi.h>
+#include <io.h>
 
 using namespace VRBRAIN;
 
 extern const AP_HAL::HAL& hal;
 
-#define SPI0_MISO_PIN 50
-#define SPI0_MOSI_PIN 51
-#define SPI0_SCK_PIN  52
-
 VRBRAINSemaphore VRBRAINSPI1DeviceDriver::_semaphore;
 
-static volatile bool spi1_transferflag = false;
-
 void VRBRAINSPI1DeviceDriver::init() {
+    _dev = _SPI1;
+
+    pinMode(_cs_pin, OUTPUT);
+    digitalWrite(_cs_pin, HIGH);
+
+    //set frequency
+    SPIFrequency freq = SPI_1_125MHZ;
+    spi_baud_rate baud = determine_baud_rate(freq);
+
+    //set mode
+    spi_mode m = (spi_mode)0;
+
+    //set master
+    bool as_master = true;
+
+    //init the device
+    spi_init(_dev);
+
+    //configure gpios
+    configure_gpios(_dev, as_master);
+
+    if (as_master) {
+        spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
+    } else {
+        spi_slave_enable(_dev, (spi_mode)0, MSBFIRST);
+    }
+
+
 
 }
 
@@ -27,35 +52,135 @@ AP_HAL::Semaphore* VRBRAINSPI1DeviceDriver::get_semaphore() {
 }
 
 inline void VRBRAINSPI1DeviceDriver::_cs_assert() {
-
+    digitalWrite(_cs_pin, LOW);
 }
 
 inline void VRBRAINSPI1DeviceDriver::_cs_release() {
-    //_cs_pin->write(1);
+    digitalWrite(_cs_pin, HIGH);
 }
 
 inline uint8_t VRBRAINSPI1DeviceDriver::_transfer(uint8_t data) {
+    uint8_t buf[1];
 
-}
+    //write 1byte
+    spi_tx(this->_dev, &data, 1);
 
-void VRBRAINSPI1DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
-
-}
-
-void VRBRAINSPI1DeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t len) {
-
-}
-
-void VRBRAINSPI1DeviceDriver::cs_assert() {
-
-}
-
-void VRBRAINSPI1DeviceDriver::cs_release() {
-
+    //read one byte
+    while (!spi_is_rx_nonempty(this->_dev))
+            ;
+    buf[0] = (uint8_t)spi_rx_reg(this->_dev);
+    return buf[0];
 }
 
 uint8_t VRBRAINSPI1DeviceDriver::transfer(uint8_t data) {
     return _transfer(data);
 }
 
+
+void VRBRAINSPI1DeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t len) {
+
+    _cs_assert();
+    if (rx == NULL) {
+        for (uint16_t i = 0; i < len; i++) {
+            _transfer(tx[i]);
+        }
+    } else {
+        for (uint16_t i = 0; i < len; i++) {
+            rx[i] = _transfer(tx[i]);
+        }
+    }
+    _cs_release();
+}
+
+void VRBRAINSPI1DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
+    for (uint16_t i = 0; i < len; i++) {
+            _transfer(tx[i]);
+    }
+}
+
+void VRBRAINSPI1DeviceDriver::cs_assert() {
+    _cs_assert();
+}
+
+void VRBRAINSPI1DeviceDriver::cs_release() {
+    _cs_release();
+}
+
+
+const spi_pins* VRBRAINSPI1DeviceDriver::dev_to_spi_pins(spi_dev *dev) {
+    if (_dev->SPIx == SPI1)
+       return board_spi_pins;
+    else if (dev->SPIx == SPI2)
+       return board_spi_pins + 1;
+#ifdef STM32_HIGH_DENSITY
+    else if (_dev->SPIx == SPI3)
+	  return board_spi_pins + 2;
+#endif
+	else
+	{
+	  assert_param(0);
+	  return NULL;
+	}
+}
+
+void VRBRAINSPI1DeviceDriver::configure_gpios(spi_dev *dev, bool as_master) {
+    const spi_pins *pins = dev_to_spi_pins(dev);
+
+    if (!pins) {
+        return;
+    }
+
+    const stm32_pin_info *nssi = &PIN_MAP[pins->nss];
+    const stm32_pin_info *scki = &PIN_MAP[pins->sck];
+    const stm32_pin_info *misoi = &PIN_MAP[pins->miso];
+    const stm32_pin_info *mosii = &PIN_MAP[pins->mosi];
+
+    spi_gpio_cfg(dev,
+		as_master,
+                nssi->gpio_device,
+                nssi->gpio_bit,
+                scki->gpio_device,
+                scki->gpio_bit,
+                misoi->gpio_bit,
+                mosii->gpio_bit);
+}
+
+const spi_baud_rate VRBRAINSPI1DeviceDriver::determine_baud_rate(SPIFrequency freq)
+{
+
+	spi_baud_rate rate;
+
+	switch(freq)
+	{
+		case SPI_18MHZ:
+			rate = SPI_BAUD_PCLK_DIV_2;
+			break;
+		case SPI_9MHZ:
+			rate = SPI_BAUD_PCLK_DIV_4;
+			break;
+		case SPI_4_5MHZ:
+			rate = SPI_BAUD_PCLK_DIV_8;
+			break;
+		case SPI_2_25MHZ:
+			rate = SPI_BAUD_PCLK_DIV_16;
+			break;
+		case SPI_1_125MHZ:
+			rate = SPI_BAUD_PCLK_DIV_32;
+			break;
+		case SPI_562_500KHZ:
+			rate = SPI_BAUD_PCLK_DIV_64;
+			break;
+		case SPI_281_250KHZ:
+			rate = SPI_BAUD_PCLK_DIV_128;
+			break;
+		case SPI_140_625KHZ:
+			rate = SPI_BAUD_PCLK_DIV_256;
+			break;
+		default:
+			rate = SPI_BAUD_PCLK_DIV_32;
+			break;
+
+	}
+	return rate;
+}
 

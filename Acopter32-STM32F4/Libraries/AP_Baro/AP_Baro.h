@@ -27,6 +27,7 @@ public:
     // accumulate a reading - overridden in some drivers
     virtual void            accumulate(void) {}
 
+    virtual void update(void){};
     // calibrate the barometer. This must be called on startup if the
     // altitude/climb_rate/acceleration interfaces are ever used
     // the callback is a delay() like routine

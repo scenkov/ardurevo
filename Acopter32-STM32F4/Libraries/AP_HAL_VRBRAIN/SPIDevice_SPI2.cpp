@@ -72,6 +72,11 @@ inline uint8_t VRBRAINSPI2DeviceDriver::_transfer(uint8_t data) {
     return buf[0];
 }
 
+uint8_t VRBRAINSPI2DeviceDriver::transfer(uint8_t data) {
+    return _transfer(data);
+}
+
+
 void VRBRAINSPI2DeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16_t len) {
 
     _cs_assert();
@@ -87,15 +92,12 @@ void VRBRAINSPI2DeviceDriver::transaction(const uint8_t *tx, uint8_t *rx, uint16
     _cs_release();
 }
 
-uint8_t VRBRAINSPI2DeviceDriver::transfer(uint8_t data) {
-    return _transfer(data);
-}
-
 void VRBRAINSPI2DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
     for (uint16_t i = 0; i < len; i++) {
             _transfer(tx[i]);
     }
 }
+
 void VRBRAINSPI2DeviceDriver::cs_assert() {
     _cs_assert();
 }

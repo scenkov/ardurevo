@@ -75,7 +75,7 @@ void VRBRAINScheduler::system_initialized()
 {}
 
 void VRBRAINScheduler::panic(const prog_char_t *errormsg) {
-   // hal.console->println_P(errormsg);
+   hal.console->println_P(errormsg);
     for(;;);
 }
 

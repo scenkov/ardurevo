@@ -32,6 +32,8 @@ VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart):
     begin(57600);
 }
 
+extern const AP_HAL::HAL& hal;
+
 void VRBRAINUARTDriver::begin(uint32_t baud) {
 
 
@@ -100,7 +102,7 @@ void VRBRAINUARTDriver::_printf_P(const prog_char *fmt, ...) {
 
 void VRBRAINUARTDriver::vprintf(const char *pstr, va_list ap) {
 
-    printf(pstr, ap);
+    _vprintf(pstr, ap);
 
 }
 void VRBRAINUARTDriver::vprintf_P(const prog_char *fmt, va_list ap) {
