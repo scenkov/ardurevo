@@ -1,6 +1,14 @@
 
 #include "RCOutput.h"
 
+static int analogOutPin[20];
+
+static inline long map(long value, long fromStart, long fromEnd,
+                long toStart, long toEnd) {
+    return (value - fromStart) * (toEnd - toStart) / (fromEnd - fromStart) +
+        toStart;
+}
+
 using namespace VRBRAIN;
 void VRBRAINRCOutput::InitDefaultPWM(void)
 {
@@ -23,12 +31,12 @@ void VRBRAINRCOutput::InitDefaultPWM(void)
 void VRBRAINRCOutput::init(void* machtnichts)
 {
     // Init Pwm Out
-    _serial->println("Init DefaultPWM");
+    //_serial->println("Init DefaultPWM");
 
     InitDefaultPWM();
-    _serial->println("Init PWM HWD");
+    //_serial->println("Init PWM HWD");
 
-    InitPWM(_serial);
+    InitPWM();
 
 
 }
@@ -42,7 +50,7 @@ unsigned short VRBRAINRCOutput::GetTimerReloadValue(unsigned short uFreq){
 }
 
 
-void VRBRAINRCOutput::InitPWM(FastSerial * _serial)
+void VRBRAINRCOutput::InitPWM()
 {
 unsigned int valout=0;
 
@@ -61,30 +69,30 @@ unsigned int valout=0;
 	if (analogOutPin[i] > 200)
 		{
 		valout=analogOutPin[i]-200;
-		InitFQUpdate(valout, _serial);
+		InitFQUpdate(valout);
 		pinMode(valout,PWM);
-
+/*
 		_serial->print("Motor ESC:");
 		_serial->print(i);
 		_serial->print(":");
 		_serial->println(analogOutPin[i]);
-
+*/
 		}
 		else
 		{
 		pinMode(analogOutPin[i],PWM);
-
+/*
 		_serial->print("Motor PWM:");
 		_serial->print(i);
 		_serial->print(":");
 		_serial->println(analogOutPin[i]);
-
+*/
 		}
 	}
 
 }
 
-void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
+void VRBRAINRCOutput::InitFQUpdate(unsigned char channel)
 {
 	unsigned char timer_select = 0;
 	unsigned short Reload;
@@ -92,32 +100,32 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 	ccr_select = PIN_MAP[channel].timer_device;
 	if (ccr_select == TIMER1)
 	{
-		_serial->println("Motor SERVO: TIMER 1");
+		//_serial->println("Motor SERVO: TIMER 1");
 		timer_select=1;
 	}
 	if (ccr_select == TIMER2)
 	{
-		_serial->println("Motor SERVO: TIMER 2");
+		//_serial->println("Motor SERVO: TIMER 2");
 		timer_select=2;
 	}
 	if (ccr_select == TIMER3)
 	{
-		_serial->println("Motor SERVO: TIMER 3");
+		//_serial->println("Motor SERVO: TIMER 3");
 		timer_select=3;
 	}
 	if (ccr_select == TIMER4)
 	{
-		_serial->println("Motor SERVO: TIMER 4");
+		//_serial->println("Motor SERVO: TIMER 4");
 		timer_select=4;
 	}
 	if (ccr_select == TIMER5)
 	{
-		_serial->println("Motor SERVO: TIMER 5");
+		//_serial->println("Motor SERVO: TIMER 5");
 		timer_select=5;
 	}
 	if (ccr_select == TIMER8)
 	{
-		_serial->println("Motor SERVO: TIMER 8");
+		//_serial->println("Motor SERVO: TIMER 8");
 		timer_select=8;
 	}
 
@@ -126,7 +134,7 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 	switch (timer_select)
 	{
 		case 1:
-			_serial->println("Motor ESC: TIMER 1");
+			//_serial->println("Motor ESC: TIMER 1");
 			//timer_init(TIMER1);
 			timer_set_prescaler(TIMER1, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -136,7 +144,7 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER1);
 			break;
 		case 2:
-			_serial->println("Motor ESC: TIMER 2");
+			//_serial->println("Motor ESC: TIMER 2");
 			//timer_init(TIMER2);
 			timer_set_prescaler(TIMER2, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -146,7 +154,7 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER2);
 			break;
 		case 3:
-			_serial->println("Motor ESC: TIMER 3");
+			//_serial->println("Motor ESC: TIMER 3");
 			//timer_init(TIMER3);
 			timer_set_prescaler(TIMER3, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -156,7 +164,7 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER3);
 			break;
 		case 4:
-			_serial->println("Motor ESC: TIMER 4");
+			//_serial->println("Motor ESC: TIMER 4");
 			//timer_init(TIMER4);
 			timer_set_prescaler(TIMER4, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -166,7 +174,7 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER4);
 			break;
 		case 5:
-			_serial->println("Motor ESC: TIMER 5");
+			//_serial->println("Motor ESC: TIMER 5");
 			//timer_init(TIMER5);
 			timer_set_prescaler(TIMER5, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -176,7 +184,7 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER5);
 			break;
 		case 8:
-			_serial->println("Motor ESC: TIMER 8");
+			//_serial->println("Motor ESC: TIMER 8");
 			//timer_init(TIMER8);
 			timer_set_prescaler(TIMER8, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -212,12 +220,12 @@ void VRBRAINRCOutput::write(uint8_t ch, uint16_t period_us)
 {
 	if (analogOutPin[ch]>200)
 	{
-		pwm = map(pwm, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
+		period_us = map(period_us, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
 		analogWrite(analogOutPin[ch]-200, period_us);
 	}
 	else
 	{
-		pwm = map(pwm, 1000, 2000, 28000, 57141);	// MP32F4 PWM 490 HZ
+		period_us = map(period_us, 1000, 2000, 28000, 57141);	// MP32F4 PWM 490 HZ
 		analogWrite(analogOutPin[ch], period_us);
 	}
 

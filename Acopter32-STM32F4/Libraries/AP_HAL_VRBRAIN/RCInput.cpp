@@ -2,8 +2,31 @@
 #include <timer.h>
 #include "RCInput.h"
 
+// MP32F4
+#define PPM_IN_CH1 22
+#define PPM_IN_CH2 63  // PA8
+#define PPM_IN_CH3 66  //
+#define PPM_IN_CH4 89
+#define PPM_IN_CH5 59
+#define PPM_IN_CH6 62
+#define PPM_IN_CH7 0 //57
+#define PPM_IN_CH8 60
+
+
+
+#define RISING_EDGE 1
+#define FALLING_EDGE 0
+#define MINONWIDTH 950
+#define MAXONWIDTH 2075
+
 #define MINCHECK 900
 #define MAXCHECK 2100
+
+// PATCH FOR FAILSAFE AND FRSKY
+#define MINOFFWIDTH 1000
+#define MAXOFFWIDTH 30000
+
+
 
 // STANDARD PPM VARIABLE
 
@@ -16,8 +39,8 @@ static byte receiverPin[12] = {PPM_IN_CH1,PPM_IN_CH2,PPM_IN_CH3,PPM_IN_CH4,PPM_I
 	volatile uint16_t rcTmpValue[20] = {1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500}; // interval [1000;2000]
 
 // Variable definition for Input Capture interrupt
-volatile uint16_t APM_RC_MP32::_PWM_RAW[NUM_CHANNELS] = {2400,2400,2400,2400,2400,2400,2400,2400};
-volatile uint8_t APM_RC_MP32::_radio_status=0;
+//volatile uint16_t APM_RC_MP32::_PWM_RAW[NUM_CHANNELS] = {2400,2400,2400,2400,2400,2400,2400,2400};
+//volatile uint8_t APM_RC_MP32::_radio_status=0;
 
 	volatile unsigned char radio_status_rc=0;
 	volatile unsigned char sync=0;
@@ -53,7 +76,7 @@ volatile unsigned int now;
 volatile unsigned int diff;
 int i;
 
-  now = micros();
+  now = hal.scheduler->micros();
   diff = now - last;
   last = now;
 if(diff>4000  &&  diff<21000) // Sincro del frame
@@ -102,7 +125,7 @@ uint32_t mask, pending;
 
 	//byte channel=0;
     pending = EXTI->PR;
-    currentTime = micros();
+    currentTime = hal.scheduler->micros();
 
     for (byte channel = 0; channel < 8; channel++) {
       pin = receiverPin[channel];
@@ -505,10 +528,6 @@ using namespace VRBRAIN;
 /* ADD ON PIN NORMALLY AVAILABLE ON RX BUT IF PPM SUM ACTIVE AVAILABLE AS SERVO OUTPUT */
 
 
-void VRBRAINRCInput::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial )
-{
-}
-
 
 void VRBRAINRCInput::InitDefaultPPMSUM(char board)
 {
@@ -635,14 +654,14 @@ if (input_channel_ch1 != 0)
 {
 attachInterrupt(input_channel_ch1, rxIntPPM, CHANGE);
 pinMode(input_channel_ch1, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 if (input_channel_ch2 != 0)
 {
 attachInterrupt(input_channel_ch2, rxIntPPM, CHANGE);
 pinMode(input_channel_ch2, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 
@@ -650,20 +669,20 @@ if (input_channel_ch3 != 0)
 {
 attachInterrupt(input_channel_ch3, rxIntPPM, CHANGE);
 pinMode(input_channel_ch3, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 if (input_channel_ch4 != 0)
 {
 attachInterrupt(input_channel_ch4, rxIntPPM, CHANGE);
 pinMode(input_channel_ch4, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 if (input_channel_ch5 != 0)
 {
 attachInterrupt(input_channel_ch5, rxIntPPM, CHANGE);
 pinMode(input_channel_ch5, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 
@@ -671,7 +690,7 @@ if (input_channel_ch6 != 0)
 {
 attachInterrupt(input_channel_ch6, rxIntPPM, CHANGE);
 pinMode(input_channel_ch6, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 
@@ -679,7 +698,7 @@ if (input_channel_ch7 != 0)
 {
 attachInterrupt(input_channel_ch7, rxIntPPM, CHANGE);
 pinMode(input_channel_ch7, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 
@@ -687,7 +706,7 @@ if (input_channel_ch8 != 0)
 {
 attachInterrupt(input_channel_ch8, rxIntPPM, CHANGE);
 pinMode(input_channel_ch8, INPUT);
-delay(100);
+hal.scheduler->delay(100);
 }
 
 #endif
@@ -699,6 +718,102 @@ for(byte channel = 0; channel < 11; channel++)
 }
 
 
+void VRBRAINRCInput::InitDefaultPPM(char board)
+{
+switch (board)
+{
+case 0:
+
+// MP32V1F1
+//#define PPM_IN_CH1 22
+//#define PPM_IN_CH2 23  // PA8
+//#define PPM_IN_CH3 24  //
+//#define PPM_IN_CH4 89
+//#define PPM_IN_CH5 59
+//#define PPM_IN_CH6 62
+//#define PPM_IN_CH7 60
+//#define PPM_IN_CH8 0
+input_channel_ch1=22;
+input_channel_ch2=23;
+input_channel_ch3=24;
+input_channel_ch4=89;
+input_channel_ch5=59;
+input_channel_ch6=62;
+input_channel_ch7=60;
+input_channel_ch8=0;
+break;
+case 1:
+
+// MP32V3F3
+//#define PPM_IN_CH1 22
+//#define PPM_IN_CH2 63  // PA8
+//#define PPM_IN_CH3 66  //
+//#define PPM_IN_CH4 89
+//#define PPM_IN_CH5 59
+//#define PPM_IN_CH6 62
+//#define PPM_IN_CH7 60
+//#define PPM_IN_CH8 0
+input_channel_ch1=22;
+input_channel_ch2=63;
+input_channel_ch3=66;
+input_channel_ch4=89;
+input_channel_ch5=59;
+input_channel_ch6=62;
+input_channel_ch8=12;
+input_channel_ch7=60;
+/*
+input_channel_ch7=12;
+input_channel_ch8=60;
+*/
+
+break;
+case 2:
+
+// MP32V3F3
+//#define PPM_IN_CH1 22
+//#define PPM_IN_CH2 63  // PA8
+//#define PPM_IN_CH3 66  //
+//#define PPM_IN_CH4 89
+//#define PPM_IN_CH5 59
+//#define PPM_IN_CH6 62
+//#define PPM_IN_CH7 60
+//#define PPM_IN_CH8 0
+
+	//input_channel_ch1=12;
+	//input_channel_ch2=13;
+	//input_channel_ch3=14;
+	//input_channel_ch4=15;
+    //PIN 13 freeze board (was USB DISC)
+/*
+	PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
+	PE11	80	PWM_IN1		 IRQ 10-15			  PPM2
+	PE13	86	PWM_IN2		 IRQ 10-15			  PPM3
+	PE14	89	PWM_IN3		 IRQ 10-15			  PPM4
+	PC6		12	PWM_IN4		 IRQ 5-9			  PPM5
+	PC7		13	PWM_IN5		 IRQ 5-9			  PPM6
+	PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
+	PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
+*/
+
+input_channel_ch1=75;
+input_channel_ch2=80;
+input_channel_ch3=86;
+input_channel_ch4=89;
+input_channel_ch5=12;
+input_channel_ch6=13;
+input_channel_ch7=0;
+input_channel_ch8=0;
+
+//input_channel_ch5=12;
+//input_channel_ch6=13;
+//input_channel_ch7=14;
+//input_channel_ch8=15;
+break;
+
+
+}
+}
+
 
 // Public Methods //////////////////////////////////////////////////////////////
 void VRBRAINRCInput::InitPPMSUM(void)
@@ -707,9 +822,6 @@ pinMode(ppm_sum_channel,INPUT);
 attachInterrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
 }
 
-void APM_RC_MP32::SetFastOutputChannels(uint32_t chmask, uint16_t speed_hz)
-{
-}
 uint16_t VRBRAINRCInput::InputCh(unsigned char ch)
 {
   uint16_t data;
@@ -733,21 +845,21 @@ VRBRAINRCInput::VRBRAINRCInput()
 
 void VRBRAINRCInput::init(void* machtnichts)
 {
-    iboard=board;
-    if (board < 10)
+    iboard=11;
+    if (iboard < 10)
     {
     // Init Radio In
-    _serial->println("Init Default PPM");
-    InitDefaultPPM(board);
-    _serial->println("Init PPM HWD");
+    //_serial->println("Init Default PPM");
+    InitDefaultPPM(iboard);
+    //_serial->println("Init PPM HWD");
     InitPPM();
     }
     else
     {
     // Init Radio In
-    _serial->println("Init Default PPMSUM");
-    InitDefaultPPMSUM(board);
-    _serial->println("Init PPMSUM HWD");
+    //_serial->println("Init Default PPMSUM");
+    InitDefaultPPMSUM(iboard);
+    //_serial->println("Init PPMSUM HWD");
     InitPPMSUM();
 
     }
