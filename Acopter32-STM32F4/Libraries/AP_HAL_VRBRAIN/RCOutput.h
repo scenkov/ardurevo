@@ -3,6 +3,7 @@
 #define __AP_HAL_VRBRAIN_RCOUTPUT_H__
 
 #include <AP_HAL_VRBRAIN.h>
+#include <fastserial.h>
 
 class VRBRAIN::VRBRAINRCOutput : public AP_HAL::RCOutput {
     void     init(void* machtnichts);
@@ -16,6 +17,11 @@ class VRBRAIN::VRBRAINRCOutput : public AP_HAL::RCOutput {
     void     write(uint8_t ch, uint16_t* period_us, uint8_t len);
     uint16_t read(uint8_t ch);
     void     read(uint16_t* period_us, uint8_t len);
+private:
+    void InitDefaultPWM(void);
+    unsigned short GetTimerReloadValue(unsigned short uFreq);
+    void InitPWM(FastSerial * _serial);
+    void InitFQUpdate(unsigned char channel, FastSerial * _serial);
 };
 
 #endif // __AP_HAL_VRBRAIN_RCOUTPUT_H__

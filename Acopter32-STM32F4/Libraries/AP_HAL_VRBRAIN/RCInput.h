@@ -15,6 +15,12 @@ public:
     bool set_overrides(int16_t *overrides, uint8_t len);
     bool set_override(uint8_t channel, int16_t override);
     void clear_overrides();
+private:
+    void InitDefaultPPMSUM(char board);
+    void InitPPM(void);
+    void InitPPMSUM(void);
+    uint16_t InputCh(unsigned char ch);
+
 };
 
 #endif // __AP_HAL_VRBRAIN_RCINPUT_H__
