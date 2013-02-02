@@ -21,7 +21,7 @@
 #include <RC_Channel.h>
 
 #include <AP_HAL_VRBRAIN.h>
-//#include <AP_HAL_AVR_SITL.h>
+//#include <AP_HAL_VRBRAIN_SITL.h>
 //#include <AP_HAL_Empty.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;

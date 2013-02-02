@@ -1,3 +1,4 @@
+#line 1 "./Firmware/test_RCInputOutput/RC_Channel.pde"
 /*
  *       Example of RC_Channel library.
  *       Code by Jason Short. 2010
@@ -21,9 +22,17 @@
 #include <RC_Channel.h>
 
 #include <AP_HAL_VRBRAIN.h>
-//#include <AP_HAL_AVR_SITL.h>
+//#include <AP_HAL_VRBRAIN_SITL.h>
 //#include <AP_HAL_Empty.h>
 
+   void setup() ;
+  void loop() ;
+  void debug_rcin() ;
+  void read_radio() ;
+  void print_pwm() ;
+   void print_radio_values() ;
+   void setup_radio(void) ;
+#line 27 "./Firmware/test_RCInputOutput/RC_Channel.pde"
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
 RC_Channel rc_1(CH_1);
