@@ -849,17 +849,17 @@ void VRBRAINRCInput::init(void* machtnichts)
     if (iboard < 10)
     {
     // Init Radio In
-    //_serial->println("Init Default PPM");
+	 hal.console->println("Init Default PPM");
     InitDefaultPPM(iboard);
-    //_serial->println("Init PPM HWD");
+    hal.console->println("Init PPM HWD");
     InitPPM();
     }
     else
     {
     // Init Radio In
-    //_serial->println("Init Default PPMSUM");
+	hal.console->println("Init Default PPMSUM");
     InitDefaultPPMSUM(iboard);
-    //_serial->println("Init PPMSUM HWD");
+    hal.console->println("Init PPMSUM HWD");
     InitPPMSUM();
 
     }
@@ -872,14 +872,24 @@ uint8_t VRBRAINRCInput::valid() {
 }
 
 uint16_t VRBRAINRCInput::read(uint8_t ch) {
-    if (ch == 2) return 900; /* throttle should be low, for safety */
-    else return 1500;
+    uint16_t data;
+     if (iboard <10)
+     data = rcPinValue[ch];
+     else
+   {
+     data = rcValue[rcChannel[ch+1]];
+   }
+     return data; // We return the value correctly copied when the IRQ's where disabled
 }
 
 uint8_t VRBRAINRCInput::read(uint16_t* periods, uint8_t len) {
     for (uint8_t i = 0; i < len; i++){
-        if (i == 2) periods[i] = 900;
-        else periods[i] = 1500;
+	     if (iboard <10)
+             periods[i] = rcPinValue[i];
+	     else
+	   {
+            periods[i] = rcValue[rcChannel[i+1]];
+	   }
     }
     return len;
 }

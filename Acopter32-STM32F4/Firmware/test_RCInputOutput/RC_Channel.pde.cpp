@@ -50,7 +50,7 @@ void setup()
 {
     hal.console->println("ArduPilot RC Channel test");
     hal.scheduler->delay(500);
-
+    hal.rcin->init(1);
     setup_radio();
 
     print_radio_values();
