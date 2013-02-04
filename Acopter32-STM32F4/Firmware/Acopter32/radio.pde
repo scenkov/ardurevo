@@ -79,7 +79,7 @@ int type;
         type=11;
 #endif
 
-	APM_RC.Init(type, &isr_registry,cliSerial );		// APM Radio initialization
+    APM_RC.Init(type, &isr_registry,cliSerial, g.esc_calibrate );		// APM Radio initialization
 
     motors.set_update_rate(g.rc_speed);
     motors.set_frame_orientation(g.frame_orientation);

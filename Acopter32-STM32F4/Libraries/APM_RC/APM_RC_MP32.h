@@ -189,26 +189,26 @@ private:
 
 	APM_RC_MP32();
 	
-	void Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial);
+	void Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough);
 	
 	void InitDefaultPPM(char board);
 	void InitDefaultPPMSUM(char board);
 	void InitPPM(void);
 	void InitDefaultPWM(void);
 	void InitPPMSUM(void);
-	void InitPWM(FastSerial * _serial); 
+	void InitPWM(FastSerial * _serial, bool esc_passthrough);
 	
-	void OutputCh(unsigned char ch, uint16_t pwm);
-    uint16_t                OutputCh_current(uint8_t ch);
-	uint16_t InputCh(unsigned char ch);
-	unsigned char GetState();
-	bool setHIL(int16_t v[NUM_CHANNELS]);
-	void clearOverride(void);
-	void Force_Out(void);
-	void SetFastOutputChannels(uint32_t chmask, uint16_t speed_hz = 400);
+	void 		OutputCh(unsigned char ch, uint16_t pwm);
+	uint16_t	OutputCh_current(uint8_t ch);
+	uint16_t 	InputCh(unsigned char ch);
+	unsigned char 	GetState();
+	bool 		setHIL(int16_t v[NUM_CHANNELS]);
+	void 		clearOverride(void);
+	void 		Force_Out(void);
+	void 		SetFastOutputChannels(uint32_t chmask, uint16_t speed_hz = 400);
 
-  void enable_out(uint8_t);
-  void disable_out(uint8_t);
+	void enable_out(uint8_t);
+	void disable_out(uint8_t);
 
 	void Force_Out0_Out1(void);
 	void Force_Out2_Out3(void);

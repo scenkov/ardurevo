@@ -548,15 +548,16 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	*/
 }
 
-void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial )
+void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough )
 {
+    bool esc_pass = esc_passthrough;
 iboard=board;
 if (board < 10)
 {
 // Init Radio In
 _serial->println("Init Default PPM");
 InitDefaultPPM(board);
-_serial->println("Init PPM HWD");
+//_serial->println("Init PPM HWD");
 InitPPM();
 }
 else
@@ -564,7 +565,7 @@ else
 // Init Radio In
 _serial->println("Init Default PPMSUM");
 InitDefaultPPMSUM(board);
-_serial->println("Init PPMSUM HWD");
+//_serial->println("Init PPMSUM HWD");
 InitPPMSUM();
 
 }
@@ -572,17 +573,17 @@ InitPPMSUM();
 _serial->println("Init DefaultPWM");
 
 InitDefaultPWM();
-_serial->println("Init PWM HWD");
+//_serial->println("Init PWM HWD");
 
-InitPWM(_serial);
+InitPWM(_serial, esc_pass);
 
 
 }
 
-void APM_RC_MP32::InitPWM(FastSerial * _serial)
+void APM_RC_MP32::InitPWM(FastSerial * _serial, bool esc_passthrough)
 {
 unsigned int valout=0;
-
+bool esc_pass = esc_passthrough;
   analogOutPin[MOTORID1] = output_channel_ch1; 
   analogOutPin[MOTORID2] = output_channel_ch2; 
   analogOutPin[MOTORID3] = output_channel_ch3; 
@@ -595,27 +596,25 @@ unsigned int valout=0;
   for(int i=MOTORID1;i<MOTORID8+1;i++)
 	{
 	   	
-	if (analogOutPin[i] > 200)
+	if ((analogOutPin[i] > 200) || esc_pass)
 		{
-		valout=analogOutPin[i]-200;
+		valout= (analogOutPin[i]>200) ? analogOutPin[i]-200 : analogOutPin[i];
 		InitFQUpdate(valout, _serial);
 		pinMode(valout,PWM);
 		
-		_serial->print("Motor ESC:");
+		_serial->print("Servo 50Hz: ");
 		_serial->print(i);
-		_serial->print(":");
+		_serial->print(": ");
 		_serial->println(analogOutPin[i]);
 		
 		}
 		else
 		{
 		pinMode(analogOutPin[i],PWM);
-
-		_serial->print("Motor PWM:");
+		_serial->print("Motor 490Hz: ");
 		_serial->print(i);
-		_serial->print(":");
+		_serial->print(": ");
 		_serial->println(analogOutPin[i]);
-		
 		}
 	}
   
@@ -647,41 +646,41 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 	ccr_select = PIN_MAP[channel].timer_device;
 	if (ccr_select == TIMER1)
 	{
-		_serial->println("Motor SERVO: TIMER 1");
+		//_serial->println("Motor SERVO: TIMER 1");
 		timer_select=1;
 	}
 	if (ccr_select == TIMER2)
 	{
-		_serial->println("Motor SERVO: TIMER 2");
+		//_serial->println("Motor SERVO: TIMER 2");
 		timer_select=2;
 	}
 	if (ccr_select == TIMER3)
 	{
-		_serial->println("Motor SERVO: TIMER 3");
+		//_serial->println("Motor SERVO: TIMER 3");
 		timer_select=3;
 	}
 	if (ccr_select == TIMER4)
 	{
-		_serial->println("Motor SERVO: TIMER 4");
+		//_serial->println("Motor SERVO: TIMER 4");
 		timer_select=4;
 	}
 	if (ccr_select == TIMER5)
 	{
-		_serial->println("Motor SERVO: TIMER 5");
+		//_serial->println("Motor SERVO: TIMER 5");
 		timer_select=5;
 	}
 	if (ccr_select == TIMER8)
 	{
-		_serial->println("Motor SERVO: TIMER 8");
+		//_serial->println("Motor SERVO: TIMER 8");
 		timer_select=8;
 	}
 	
-	timer_select=4;
+	//timer_select=4;
 
 	switch (timer_select)
 	{
 		case 1:
-			_serial->println("Motor ESC: TIMER 1");
+			//_serial->println("Motor ESC: TIMER 1");
 			//timer_init(TIMER1);
 			timer_set_prescaler(TIMER1, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -691,7 +690,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER1);
 			break;
 		case 2:
-			_serial->println("Motor ESC: TIMER 2");
+			//_serial->println("Motor ESC: TIMER 2");
 			//timer_init(TIMER2);
 			timer_set_prescaler(TIMER2, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -701,7 +700,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER2);
 			break;
 		case 3:
-			_serial->println("Motor ESC: TIMER 3");
+			//_serial->println("Motor ESC: TIMER 3");
 			//timer_init(TIMER3);
 			timer_set_prescaler(TIMER3, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -711,7 +710,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER3);
 			break;
 		case 4:
-			_serial->println("Motor ESC: TIMER 4");
+			//_serial->println("Motor ESC: TIMER 4");
 			//timer_init(TIMER4);
 			timer_set_prescaler(TIMER4, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -721,7 +720,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER4);
 			break;
 		case 5:
-			_serial->println("Motor ESC: TIMER 5");
+			//_serial->println("Motor ESC: TIMER 5");
 			//timer_init(TIMER5);
 			timer_set_prescaler(TIMER5, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
@@ -731,7 +730,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER5);
 			break;
 		case 8:
-			_serial->println("Motor ESC: TIMER 8");
+			//_serial->println("Motor ESC: TIMER 8");
 			//timer_init(TIMER8);
 			timer_set_prescaler(TIMER8, 21);
 			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
