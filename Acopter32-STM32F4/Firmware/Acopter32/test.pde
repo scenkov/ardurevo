@@ -913,11 +913,11 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_sonar(uint8_t argc, const Menu::arg *argv)
 {
+#if CONFIG_SONAR == ENABLED
     if(g.sonar_enabled == false) {
         cliSerial->printf_P(PSTR("Sonar disabled\n"));
         return (0);
     }
-#if CONFIG_SONAR == ENABLED
     // make sure sonar is initialised
     init_sonar();
 
@@ -925,15 +925,16 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
     while(1) {
         delay(100);
 
-        cliSerial->printf_P(PSTR("Sonar: %d cm\n"), sonar.read());
-        //cliSerial->printf_P(PSTR("Sonar, %d, %d\n"), sonar.read(), sonar.raw_value);
+        //cliSerial->printf_P(PSTR("Sonar: %d cm\n"), sonar.read());
+        cliSerial->printf_P(PSTR("Sonar, %d, %d\n"), sonar.read(), sonar.raw_value);
 
         if(cliSerial->available() > 0) {
             return (0);
         }
     }
-#endif
+
     return (0);
+#endif
 }
 #endif
 

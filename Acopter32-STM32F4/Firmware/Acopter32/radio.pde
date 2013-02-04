@@ -105,7 +105,7 @@ int type;
         if(g.esc_calibrate == 0) {
             // we will enter esc_calibrate mode on next reboot
             g.esc_calibrate.set_and_save(1);
-            // send miinimum throttle out to ESC
+            // send minimum throttle out to ESC
             motors.output_min();
             // display message on console
             cliSerial->printf_P(PSTR("Entering ESC Calibration: please restart APM.\n"));
@@ -118,7 +118,7 @@ int type;
             cliSerial->printf_P(PSTR("ESC Calibration active: passing throttle through to ESCs.\n"));
             // clear esc flag
             g.esc_calibrate.set_and_save(0);
-            // block until we restart
+            // pass through user throttle to escs
             init_esc();
         }
     }else{

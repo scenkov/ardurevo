@@ -11,7 +11,7 @@
 
 EEPROMClass *AP_Limit_Geofence::EPROM;
 
-const AP_Param::GroupInfo AP_Limit_Geofence::var_info[] = {
+const AP_Param::GroupInfo AP_Limit_Geofence::var_info[] PROGMEM = {
     // @Param: FNC_ON
     // @DisplayName: Enable Geofence
     // @Description: Setting this to Enabled(1) will enable the geofence. Setting this to Disabled(0) will disable the geofence

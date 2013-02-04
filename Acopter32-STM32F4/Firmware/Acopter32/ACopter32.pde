@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V2.9-rc5"
+#define THISFIRMWARE "ArduCopter V2.9.1 rc-2"
 /*
  *  ArduCopter Version 2.9
  *  Lead author:	Jason Short
@@ -1435,9 +1435,10 @@ static void super_slow_loop()
 }
 
 // called at 100hz but data from sensor only arrives at 20 Hz
-#if OPTFLOW == ENABLED
+
 static void update_optical_flow(void)
 {
+#if OPTFLOW == ENABLED
     static uint32_t last_of_update = 0;
     static uint8_t of_log_counter = 0;
 
@@ -1455,8 +1456,9 @@ static void update_optical_flow(void)
             }
         }
     }
-}
 #endif  // OPTFLOW == ENABLED
+}
+
 
 // called at 50hz
 static void update_GPS(void)
@@ -1874,7 +1876,7 @@ bool set_throttle_mode( uint8_t new_throttle_mode )
             set_new_altitude(current_loc.alt);          // by default hold the current altitude
             if ( throttle_mode <= THROTTLE_MANUAL_TILT_COMPENSATED ) {      // reset the alt hold I terms if previous throttle mode was manual
                 reset_throttle_I();
-                set_accel_throttle_I_from_pilot_throttle();
+                set_accel_throttle_I_from_pilot_throttle(get_pilot_desired_throttle(g.rc_3.control_in));
             }
             throttle_initialised = true;
             break;
@@ -1914,6 +1916,7 @@ bool set_throttle_mode( uint8_t new_throttle_mode )
 void update_throttle_mode(void)
 {
     int16_t pilot_climb_rate;
+    int16_t pilot_throttle_scaled;
 
     if(ap.do_flip)     // this is pretty bad but needed to flip in AP modes.
         return;
@@ -1941,19 +1944,20 @@ void update_throttle_mode(void)
             set_throttle_out(0, false);
         }else{
             // send pilot's output directly to motors
-            set_throttle_out(g.rc_3.control_in, false);
+            pilot_throttle_scaled = get_pilot_desired_throttle(g.rc_3.control_in);
+            set_throttle_out(pilot_throttle_scaled, false);
 
             // update estimate of throttle cruise
 			#if FRAME_CONFIG == HELI_FRAME
             update_throttle_cruise(motors.coll_out);
 			#else
-			update_throttle_cruise(g.rc_3.control_in);
+			update_throttle_cruise(pilot_throttle_scaled);
 			#endif  //HELI_FRAME
 			
 
             // check if we've taken off yet
             if (!ap.takeoff_complete && motors.armed()) {
-                if (g.rc_3.control_in > g.throttle_cruise) {
+                if (pilot_throttle_scaled > g.throttle_cruise) {
                     // we must be in the air by now
                     set_takeoff_complete(true);
                 }
@@ -1966,17 +1970,18 @@ void update_throttle_mode(void)
         if (g.rc_3.control_in <= 0) {
             set_throttle_out(0, false); // no need for angle boost with zero throttle
         }else{
-            set_throttle_out(g.rc_3.control_in, true);
+            pilot_throttle_scaled = get_pilot_desired_throttle(g.rc_3.control_in);
+            set_throttle_out(pilot_throttle_scaled, true);
 
             // update estimate of throttle cruise
             #if FRAME_CONFIG == HELI_FRAME
             update_throttle_cruise(motors.coll_out);
 			#else
-			update_throttle_cruise(g.rc_3.control_in);
+			update_throttle_cruise(pilot_throttle_scaled);
 			#endif  //HELI_FRAME
 
             if (!ap.takeoff_complete && motors.armed()) {
-                if (g.rc_3.control_in > g.throttle_cruise) {
+                if (pilot_throttle_scaled > g.throttle_cruise) {
                     // we must be in the air by now
                     set_takeoff_complete(true);
                 }
@@ -2103,7 +2108,7 @@ static void update_trig(void){
     // 270 = cos_yaw: -1.00, sin_yaw:  0.00,
 }
 
-// updated at 10hz
+/* updated at 10hz */
 
 static void update_altitude()
 {

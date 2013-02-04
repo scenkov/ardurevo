@@ -1097,10 +1097,15 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 trim_radio();
             }
             if (packet.param5 == 1) {
+                float trim_roll, trim_pitch;
                 // this blocks
         	cliSerial->set_blocking_writes(true);
-                ins.calibrate_accel(mavlink_delay, flash_leds, gcs_send_text_fmt, setup_wait_key);
+                ins.calibrate_accel(mavlink_delay, flash_leds, gcs_send_text_fmt, setup_wait_key, trim_roll, trim_pitch);
                 cliSerial->set_blocking_writes(false);
+                // reset ahrs's trim to suggested values from calibration routine
+                trim_roll = constrain(trim_roll, ToRad(-10.0f), ToRad(10.0f));
+                trim_pitch = constrain(trim_pitch, ToRad(-10.0f), ToRad(10.0f));
+                ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
             }
             result = MAV_RESULT_ACCEPTED;
             break;
@@ -1993,7 +1998,7 @@ GCS_MAVLINK::_count_parameters()
 }
 
 /**
- * queued_param_send - Send the next pending parameter, called from deferred message
+ * @brief Send the next pending parameter, called from deferred message
  * handling code
  */
 void
@@ -2027,7 +2032,7 @@ GCS_MAVLINK::queued_param_send()
 }
 
 /**
- * queued_waypoint_send - Send the next pending waypoint, called from deferred message
+ * @brief Send the next pending waypoint, called from deferred message
  * handling code
  */
 void

@@ -68,7 +68,9 @@ public:
     virtual bool        calibrate_accel(void (*delay_cb)(unsigned long t),
                                         void (*flash_leds_cb)(bool on),
                                         void (*send_msg)(const prog_char_t *, ...),
-                                        void (*wait_key)(void));
+                                        void (*wait_key)(void),
+                                        float& trim_roll,
+                                        float& trim_pitch);
 
     /// Perform cold-start initialisation for just the gyros.
     ///
@@ -160,6 +162,7 @@ protected:
     virtual void            _calibrate_update_matrices(float dS[6], float JS[6][6], float beta[6], float data[3]);
     virtual void            _calibrate_reset_matrices(float dS[6], float JS[6][6]);
     virtual void            _calibrate_find_delta(float dS[6], float JS[6][6], float delta[6]);
+    virtual void            _calculate_trim(Vector3f accel_sample, float& trim_roll, float& trim_pitch);
 
     // save parameters to eeprom
     void                    _save_parameters();

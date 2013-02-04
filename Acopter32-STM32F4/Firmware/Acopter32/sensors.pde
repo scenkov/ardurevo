@@ -6,16 +6,18 @@
 static void ReadSCP1000(void) {
 }
 
- #if CONFIG_SONAR == ENABLED
+
 static void init_sonar(void)
 {
+#if CONFIG_SONAR == ENABLED
   #if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
     sonar.calculate_scaler(g.sonar_type, 3.3);
   #else
     sonar.calculate_scaler(g.sonar_type, 5.0);
   #endif
+#endif
 }
- #endif
+
 
 static void init_barometer(void)
 {
@@ -38,6 +40,12 @@ static int32_t read_barometer(void)
 static int16_t read_sonar(void)
 {
 #if CONFIG_SONAR == ENABLED
+    // exit immediately if sonar is disabled
+    if( !g.sonar_enabled ) {
+        sonar_alt_health = 0;
+        return 0;
+    }
+
     int16_t temp_alt = sonar.read();
 
     if(temp_alt >= sonar.min_distance && temp_alt <= sonar.max_distance * 0.70) {
