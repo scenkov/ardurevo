@@ -551,51 +551,53 @@ void APM_RC_MP32::InitDefaultPWM(void)
 void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough )
 {
     bool esc_pass = esc_passthrough;
-iboard=board;
-if (board < 10)
-{
-// Init Radio In
-_serial->println("Init Default PPM");
-InitDefaultPPM(board);
-//_serial->println("Init PPM HWD");
-InitPPM();
-}
-else
-{
-// Init Radio In
-_serial->println("Init Default PPMSUM");
-InitDefaultPPMSUM(board);
-//_serial->println("Init PPMSUM HWD");
-InitPPMSUM();
+    iboard=board;
 
-}
-// Init Pwm Out
-_serial->println("Init DefaultPWM");
+    if (board < 10)
+    {
+    // Init Radio In
+    _serial->println("Init Default PPM");
+    InitDefaultPPM(board);
+    //_serial->println("Init PPM HWD");
+    InitPPM();
+    }
+    else
+    {
+    // Init Radio In
+    _serial->println("Init Default PPMSUM");
+    InitDefaultPPMSUM(board);
+    //_serial->println("Init PPMSUM HWD");
+    InitPPMSUM();
 
-InitDefaultPWM();
-//_serial->println("Init PWM HWD");
+    }
+    // Init Pwm Out
+    _serial->println("Init DefaultPWM");
 
-InitPWM(_serial, esc_pass);
+    /* we pass esc_pass so we modify pin number on the go*/
+    InitDefaultPWM();
 
+    //_serial->println("Init PWM HWD");
 
+    InitPWM(_serial, esc_pass);
 }
 
 void APM_RC_MP32::InitPWM(FastSerial * _serial, bool esc_passthrough)
 {
 unsigned int valout=0;
 bool esc_pass = esc_passthrough;
-  analogOutPin[MOTORID1] = output_channel_ch1; 
-  analogOutPin[MOTORID2] = output_channel_ch2; 
-  analogOutPin[MOTORID3] = output_channel_ch3; 
-  analogOutPin[MOTORID4] = output_channel_ch4; 
-  analogOutPin[MOTORID5] = output_channel_ch5; 
-  analogOutPin[MOTORID6] = output_channel_ch6; 
-  analogOutPin[MOTORID7] = output_channel_ch7; 
-  analogOutPin[MOTORID8] = output_channel_ch8; 
+
+    //check if we are in esc_passthrough mode. If yes add 200 to the pin numeber so it gets recognised as a 60 Hz frequency PWM*/
+  analogOutPin[MOTORID1] = (esc_pass && (output_channel_ch1 < 200)) ? output_channel_ch1 + 200 : output_channel_ch1;
+  analogOutPin[MOTORID2] = (esc_pass && (output_channel_ch2 < 200)) ? output_channel_ch2 + 200 : output_channel_ch2;
+  analogOutPin[MOTORID3] = (esc_pass && (output_channel_ch3 < 200)) ? output_channel_ch3 + 200 : output_channel_ch3;
+  analogOutPin[MOTORID4] = (esc_pass && (output_channel_ch4 < 200)) ? output_channel_ch4 + 200 : output_channel_ch4;
+  analogOutPin[MOTORID5] = (esc_pass && (output_channel_ch5 < 200)) ? output_channel_ch5 + 200 : output_channel_ch5;
+  analogOutPin[MOTORID6] = (esc_pass && (output_channel_ch6 < 200)) ? output_channel_ch6 + 200 : output_channel_ch6;
+  analogOutPin[MOTORID7] = (esc_pass && (output_channel_ch7 < 200)) ? output_channel_ch7 + 200 : output_channel_ch7;
+  analogOutPin[MOTORID8] = (esc_pass && (output_channel_ch8 < 200)) ? output_channel_ch8 + 200 : output_channel_ch8;
 
   for(int i=MOTORID1;i<MOTORID8+1;i++)
 	{
-	   	
 	if ((analogOutPin[i] > 200) || esc_pass)
 		{
 		valout= (analogOutPin[i]>200) ? analogOutPin[i]-200 : analogOutPin[i];
@@ -617,7 +619,6 @@ bool esc_pass = esc_passthrough;
 		_serial->println(analogOutPin[i]);
 		}
 	}
-  
 }
 
 unsigned short APM_RC_MP32::GetTimerReloadValue(unsigned short uFreq){
