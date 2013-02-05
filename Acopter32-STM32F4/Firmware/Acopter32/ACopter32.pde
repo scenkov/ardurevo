@@ -963,8 +963,8 @@ void get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t ma
 ////////////////////////////////////////////////////////////////////////////////
 
 static uint16_t superfastloop_speed = 400; 	//2.5 KHz
-static uint16_t fastloop_speed = 2500; 		//400 Hz
-static uint16_t fifty_HZ_count = 8;
+static uint16_t fastloop_speed = 4000; 		//250 Hz
+static uint16_t fifty_HZ_count = 5;
      
 void setup() {
  

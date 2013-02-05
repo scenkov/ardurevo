@@ -19,13 +19,13 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] PROGMEM = {
     // @Description: This controls how how much to use the GPS to correct the attitude. This should never be set to zero for a plane as it would result in the plane losing control in turns. For a plane please use the default value of 1.0.
     // @Range: 0.0 1.0
     // @Increment: .01
-    AP_GROUPINFO("GPS_GAIN",  2, AP_AHRS, gps_gain, 1.0),
+    AP_GROUPINFO("GPS_GAIN",  2, AP_AHRS, gps_gain, 0.0),
 
     // @Param: GPS_USE
     // @DisplayName: AHRS use GPS for navigation
     // @Description: This controls whether to use dead-reckoning or GPS based navigation. If set to 0 then the GPS won't be used for navigation, and only dead reckoning will be used. A value of zero should never be used for normal flight.
     // @User: Advanced
-    AP_GROUPINFO("GPS_USE",  3, AP_AHRS, _gps_use, 1),
+    AP_GROUPINFO("GPS_USE",  3, AP_AHRS, _gps_use, 0),
 
     // @Param: YAW_P
     // @DisplayName: Yaw P
