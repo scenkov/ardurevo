@@ -5,7 +5,7 @@ d := $(dir)
 BUILDDIRS += $(BUILD_PATH)/$(d)
 
 # Local flags
-CFLAGS_$(d) := -Wall -Werror
+CFLAGS_$(d) := -Wall
 
 # Local rules and targets
 cSRCS_$(d) :=

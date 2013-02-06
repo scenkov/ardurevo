@@ -104,19 +104,19 @@ static void init_arm_motors()
     static bool did_ground_start = false;
 
     // disable failsafe because initialising everything takes a while
-    //failsafe_disable();
+    failsafe_disable();
 
     //cliSerial->printf("\nARM\n");
-#if HIL_MODE != HIL_MODE_DISABLED || defined(DESKTOP_BUILD)
+#if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
 #endif
 
     // we don't want writes to the serial port to cause us to pause
     // mid-flight, so set the serial ports non-blocking once we arm
     // the motors
-    cliSerial->set_blocking_writes(false);
+    hal.uartA->set_blocking_writes(false);
     if (gcs3.initialised) {
-        Serial3.set_blocking_writes(false);
+        hal.uartC->set_blocking_writes(false);
     }
 
 #if COPTER_LEDS == ENABLED
@@ -167,13 +167,13 @@ static void init_arm_motors()
     set_armed(true);
 
     // reenable failsafe
-    //failsafe_enable();
+    failsafe_enable();
 }
 
 
 static void init_disarm_motors()
 {
-#if HIL_MODE != HIL_MODE_DISABLED || defined(DESKTOP_BUILD)
+#if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     gcs_send_text_P(SEVERITY_HIGH, PSTR("DISARMING MOTORS"));
 #endif
 

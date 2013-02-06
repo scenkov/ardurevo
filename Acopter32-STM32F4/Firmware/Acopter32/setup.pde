@@ -3,31 +3,31 @@
 #if CLI_ENABLED == ENABLED
 
 // Functions called from the setup menu
-static int8_t   setup_radio                             (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_motors                    (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_accel                             (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_accel_scale               (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_frame                             (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_factory                   (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_erase                             (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_flightmodes               (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_batt_monitor              (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_sonar                             (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_compass                   (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_tune                              (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_range                             (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_radio             (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_motors            (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_accel             (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_accel_scale       (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_frame             (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_factory           (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_erase             (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_flightmodes       (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_batt_monitor      (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_sonar             (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_compass           (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_tune              (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_range             (uint8_t argc, const Menu::arg *argv);
 //static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_declination               (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_optflow                   (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_declination       (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_optflow           (uint8_t argc, const Menu::arg *argv);
 
 
  #if FRAME_CONFIG == HELI_FRAME
-static int8_t   setup_heli                              (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_gyro                              (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_heli              (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_gyro              (uint8_t argc, const Menu::arg *argv);
  #endif
 
 // Command/function table for the setup menu
-const struct Menu::command setup_menu_commands[]  = {
+const struct Menu::command setup_menu_commands[] PROGMEM = {
     // command			function called
     // =======          ===============
     {"erase",                       setup_erase},
@@ -207,7 +207,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 
         if(cliSerial->available() > 0) {
             delay(20);
-            cliSerial->flush();
+            while (cliSerial->read() != -1); /* flush */
 
             g.rc_1.save_eeprom();
             g.rc_2.save_eeprom();
@@ -230,8 +230,11 @@ static int8_t
 setup_motors(uint8_t argc, const Menu::arg *argv)
 {
     cliSerial->printf_P(PSTR(
-                        "Now connect the main lipo and follow the instruction on the wiki for your frame setup.\n"
-                        "For security remember to disconnect the main lipo after the test, then hit any key to exit.\n"
+                        "Connect battery for this test.\n"
+                        "Motors will not spin in channel order (1,2,3,4) but by frame position order.\n"
+                        "Front (& right of centerline) motor first, then in clockwise order around frame.\n"
+                        "http://code.google.com/p/arducopter/wiki/AC2_Props_2 for demo video.\n"
+                        "Remember to disconnect battery after this test.\n"
                         "Any key to exit.\n"));
     while(1) {
         delay(20);
@@ -247,10 +250,11 @@ setup_motors(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_accel(uint8_t argc, const Menu::arg *argv)
 {
+    ahrs.init();
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,
-             delay, flash_leds, pScheduler, &Serial);
-    ins.init_accel(delay, flash_leds);  // level accelerometer values
+             flash_leds);
+    ins.init_accel(flash_leds);
     ahrs.set_trim(Vector3f(0,0,0));     // clear out saved trim
     report_ins();
     return(0);
@@ -279,14 +283,18 @@ static void setup_wait_key(void)
         cliSerial->read();
     }
 }
+
+
 static int8_t
 setup_accel_scale(uint8_t argc, const Menu::arg *argv)
 {
     cliSerial->println_P(PSTR("Initialising gyros"));
+    ahrs.init();
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,
-             delay, flash_leds, pScheduler, &Serial);
-    ins.calibrate_accel(delay, flash_leds, setup_printf_P, setup_wait_key);
+             flash_leds);
+    AP_InertialSensor_UserInteractStream interact(hal.console);
+    ins.calibrate_accel(flash_leds, &interact);
     report_ins();
     return(0);
 }
@@ -315,8 +323,8 @@ setup_frame(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_flightmodes(uint8_t argc, const Menu::arg *argv)
 {
-    byte _switchPosition = 0;
-    byte _oldSwitchPosition = 0;
+    uint8_t _switchPosition = 0;
+    uint8_t _oldSwitchPosition = 0;
     int8_t mode = 0;
 
     cliSerial->printf_P(PSTR("\nMode switch to edit, aileron: select modes, rudder: Simple on/off\n"));
@@ -779,10 +787,10 @@ static void report_batt_monitor()
     print_blanks(2);
 }
 
-static void report_wp(byte index = 255)
+static void report_wp(uint8_t index = 255)
 {
     if(index == 255) {
-        for(byte i = 0; i < g.command_total; i++) {
+        for(uint8_t i = 0; i < g.command_total; i++) {
             struct Location temp = get_cmd_with_index(i);
             print_wp(&temp, i);
         }
@@ -965,7 +973,7 @@ print_radio_values()
 }
 
 static void
-print_switch(byte p, byte m, bool b)
+print_switch(uint8_t p, uint8_t m, bool b)
 {
     cliSerial->printf_P(PSTR("Pos %d:\t"),p);
     print_flight_mode(m);
@@ -985,12 +993,10 @@ print_done()
 
 static void zero_eeprom(void)
 {
-    byte b = 0;
-
     cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 
-    for (uintptr_t i = 0; i < EEPROM_MAX_ADDR; i++) {
-        eeprom_write_byte((uint8_t *) i, b);
+    for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
+        hal.storage->write_byte(i, 0);
     }
 
     cliSerial->printf_P(PSTR("done\n"));
@@ -1001,7 +1007,7 @@ print_accel_offsets_and_scaling(void)
 {
     Vector3f accel_offsets = ins.get_accel_offsets();
     Vector3f accel_scale = ins.get_accel_scale();
-    cliSerial->printf_P(PSTR("A_off: %5.4f, %5.4f, %5.4f\nA_scale: %5.4f, %5.4f, %5.4f\n"),
+    cliSerial->printf_P(PSTR("A_off: %4.2f, %4.2f, %4.2f\tA_scale: %4.2f, %4.2f, %4.2f\n"),
                     (float)accel_offsets.x,                           // Pitch
                     (float)accel_offsets.y,                           // Roll
                     (float)accel_offsets.z,                           // YAW
@@ -1014,7 +1020,7 @@ static void
 print_gyro_offsets(void)
 {
     Vector3f gyro_offsets = ins.get_gyro_offsets();
-    cliSerial->printf_P(PSTR("G_off: %4.4f, %4.4f, %4.4f\n"),
+    cliSerial->printf_P(PSTR("G_off: %4.2f, %4.2f, %4.2f\n"),
                     (float)gyro_offsets.x,
                     (float)gyro_offsets.y,
                     (float)gyro_offsets.z);
@@ -1037,8 +1043,8 @@ heli_get_servo(int16_t servo_num){
 
 // Used to read integer values from the serial port
 static int16_t read_num_from_serial() {
-    byte index = 0;
-    byte timeout = 0;
+    uint8_t index = 0;
+    uint8_t timeout = 0;
     char data[5] = "";
 
     do {
@@ -1089,6 +1095,8 @@ static void print_enabled(bool b)
 static void
 init_esc()
 {
+    // reduce update rate to motors to 50Hz
+    motors.set_update_rate(50);
     motors.enable();
     motors.armed(true);
     while(1) {
@@ -1099,7 +1107,7 @@ init_esc()
     }
 }
 
-static void print_wp(struct Location *cmd, byte index)
+static void print_wp(struct Location *cmd, uint8_t index)
 {
    	//float t1 = (float)cmd->lat / t7;
     //float t2 = (float)cmd->lng / t7;

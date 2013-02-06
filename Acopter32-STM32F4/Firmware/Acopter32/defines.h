@@ -3,6 +3,8 @@
 #ifndef _DEFINES_H
 #define _DEFINES_H
 
+#include <AP_HAL_Boards.h>
+
 // Just so that it's completely clear...
 #define ENABLED                 1
 #define DISABLED                0
@@ -21,19 +23,16 @@
 #define YAW_LOOK_AT_HEADING    		    5       // point towards a particular angle (not pilot input accepted)
 #define YAW_LOOK_AHEAD					6		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
 #define YAW_TOY                         7       // THOR This is the Yaw mode
-   
 
-#define RADIO_TYPE 0  // 0 Standard Radio 1 PPMSUM  2 OTHER
 
-#define ROLL_PITCH_STABLE       0
-#define ROLL_PITCH_ACRO         1
-#define ROLL_PITCH_AUTO         2
-#define ROLL_PITCH_STABLE_OF    3
-#define ROLL_PITCH_TOY          4       // THOR This is the Roll and Pitch mode
-#define ROLL_PITCH_LOITER_PR    5
+#define ROLL_PITCH_STABLE           0
+#define ROLL_PITCH_ACRO             1
+#define ROLL_PITCH_AUTO             2
+#define ROLL_PITCH_STABLE_OF        3
+#define ROLL_PITCH_TOY              4       // THOR This is the Roll and Pitch mode
+#define ROLL_PITCH_LOITER_INAV      5       // pilot inputs the desired horizontal velocities
 
-#define IMU_TYPE  0   // 0 Oilpan 1 VRIMU DIGIT - FULL 2 VRIMU ANALOG 3 VRIMU PRO (GYRO ADXRS610)
-#define THROTTLE_MANUAL         0
+#define THROTTLE_MANUAL                     0   // manual throttle mode - pilot input goes directly to motors
 #define THROTTLE_MANUAL_TILT_COMPENSATED    1   // mostly manual throttle but with some tilt compensation
 #define THROTTLE_ACCELERATION               2   // pilot inputs the desired acceleration
 #define THROTTLE_RATE                       3   // pilot inputs the desired climb rate.  Note: this uses the unstabilized rate controller
@@ -42,7 +41,6 @@
 #define THROTTLE_HOLD                       6   // alt hold plus pilot input of climb rate
 #define THROTTLE_AUTO                       7   // auto pilot altitude controller with target altitude held in next_WP.alt
 #define THROTTLE_LAND                       8   // landing throttle controller
-#define THROTTLE_SURFACE_TRACKING           9   // ground tracking with sonar or other rangefinder
 
 
 // active altitude sensor
@@ -59,15 +57,17 @@
 #define CH6_PWM_TRIGGER_LOW 1200
 
 #define CH7_DO_NOTHING 0
-#define CH7_SET_HOVER 1
+#define CH7_SET_HOVER 1         // deprecated
 #define CH7_FLIP 2
 #define CH7_SIMPLE_MODE 3
 #define CH7_RTL 4
 #define CH7_SAVE_TRIM 5
 #define CH7_ADC_FILTER 6        // deprecated
 #define CH7_SAVE_WP 7
-#define CH7_MULTI_MODE 8        // deprecated
+#define CH7_MULTI_MODE 8
 #define CH7_CAMERA_TRIGGER 9
+#define CH7_SONAR 10            // allow enabling or disabling sonar in flight which helps avoid surface tracking when you are far above the ground
+
 
 
 // Frame types
@@ -93,8 +93,8 @@
 
 #define TRUE 1
 #define FALSE 0
-#define ToRad(x) (x*0.01745329252)      // *pi/180
-#define ToDeg(x) (x*57.2957795131)      // *180/pi
+#define ToRad(x) radians(x)	// *pi/180
+#define ToDeg(x) degrees(x)	// *180/pi
 
 #define DEBUG 0
 #define LOITER_RANGE 60 // for calculating power outside of loiter radius
@@ -113,21 +113,12 @@
 #define GPS_PROTOCOL_MTK19      6
 #define GPS_PROTOCOL_AUTO       7
 
-#define CH_ROLL CH_1
-#define CH_PITCH CH_2
-#define CH_THROTTLE CH_3
-#define CH_RUDDER CH_4
-#define CH_YAW CH_4
-
-#define RC_CHANNEL_ANGLE 0
-#define RC_CHANNEL_RANGE 1
-#define RC_CHANNEL_ANGLE_RAW 2
-
 // HIL enumerations
 #define HIL_MODE_DISABLED               0
 #define HIL_MODE_ATTITUDE               1
 #define HIL_MODE_SENSORS                2
 
+// Altitude status definitions
 #define REACHED_ALT                     0
 #define DESCENDING                      1
 #define ASCENDING                       2
@@ -150,12 +141,6 @@
 #define TOY_M 12                        // THOR Enum for Toy mode
 #define NUM_MODES 13
 
-#define SIMPLE_1 1
-#define SIMPLE_2 2
-#define SIMPLE_3 4
-#define SIMPLE_4 8
-#define SIMPLE_5 16
-#define SIMPLE_6 32
 // CH_6 Tuning
 // -----------
 #define CH6_NONE            0           // no tuning performed
@@ -195,8 +180,8 @@
 #define CH6_AHRS_KP         31          // accelerometer effect on roll/pitch angle (0=low)
 #define CH6_INAV_TC         32          // inertial navigation baro/accel and gps/accel time constant (1.5 = strong baro/gps correction on accel estimatehas very strong does not correct accel estimate, 7 = very weak correction)
 
-// nav byte mask
-// -------------
+// nav byte mask used with wp_verify_byte variable
+// -----------------------------------------------
 #define NAV_LOCATION 1
 #define NAV_ALTITUDE 2
 #define NAV_DELAY    4
@@ -209,11 +194,12 @@
 #define NO_COMMAND 0
 
 
-// Navigation modes held in wp_control variable
-#define LOITER_MODE 1
-#define WP_MODE 2
-#define CIRCLE_MODE 3
-#define NO_NAV_MODE 4
+// Navigation modes held in nav_mode variable
+#define NAV_NONE        0
+#define NAV_CIRCLE      1
+#define NAV_LOITER      2
+#define NAV_WP          3
+#define NAV_LOITER_INAV 4
 
 // Yaw override behaviours - used for setting yaw_override_behaviour
 #define YAW_OVERRIDE_BEHAVIOUR_AT_NEXT_WAYPOINT     0   // auto pilot takes back yaw control at next waypoint
@@ -292,19 +278,24 @@ enum gcs_severity {
 #define LOG_CONTROL_TUNING_MSG          0x04
 #define LOG_NAV_TUNING_MSG              0x05
 #define LOG_PERFORMANCE_MSG             0x06
-#define LOG_RAW_MSG                     0x07
+#define LOG_IMU_MSG                     0x07
 #define LOG_CMD_MSG                     0x08
 #define LOG_CURRENT_MSG                 0x09
 #define LOG_STARTUP_MSG                 0x0A
 #define LOG_MOTORS_MSG                  0x0B
 #define LOG_OPTFLOW_MSG                 0x0C
-#define LOG_DATA_MSG                    0x0D
+#define LOG_EVENT_MSG                   0x0D
 #define LOG_PID_MSG                     0x0E
 #define LOG_ITERM_MSG                   0x0F
 #define LOG_DMP_MSG                     0x10
 #define LOG_INAV_MSG                    0x11
 #define LOG_CAMERA_MSG                  0x12
 #define LOG_ERROR_MSG                   0x13
+#define LOG_DATA_INT16_MSG              0x14
+#define LOG_DATA_UINT16_MSG             0x15
+#define LOG_DATA_INT32_MSG              0x16
+#define LOG_DATA_UINT32_MSG             0x17
+#define LOG_DATA_FLOAT_MSG              0x18
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
 
@@ -315,9 +306,9 @@ enum gcs_severity {
 #define MASK_LOG_CTUN                   (1<<4)
 #define MASK_LOG_NTUN                   (1<<5)
 #define MASK_LOG_MODE                   (1<<6)
-#define MASK_LOG_RAW                    (1<<7)
+#define MASK_LOG_IMU                    (1<<7)
 #define MASK_LOG_CMD                    (1<<8)
-#define MASK_LOG_CUR                    (1<<9)
+#define MASK_LOG_CURRENT                (1<<9)
 #define MASK_LOG_MOTORS                 (1<<10)
 #define MASK_LOG_OPTFLOW                (1<<11)
 #define MASK_LOG_PID                    (1<<12)
@@ -356,65 +347,67 @@ enum gcs_severity {
 #define DATA_RTL_REACHED_ALT            31
 
 // battery monitoring macros
-#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/4096.0))*g.volt_div_ratio
-#define CURRENT_AMPS(x) ((x*(g.input_voltage/4096.0))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
+#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0f))*g.volt_div_ratio
+#define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0f))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
 
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
 
-// AN0 - 7 are located at edge of IMU PCB "above" pressure sensor and Expansion port
+// AN0 - 7 are located at edge of IMU PCB "above" pressure sensor and
+// Expansion port
 // AN0 - 5 are also located next to voltage dividers and sliding SW2 switch
-// AN0 - 3 has 10kOhm resistor in serial, include 3.9kOhm to make it as voltage divider
-// AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins next to SW2 switch
+// AN0 - 3 has 10kOhm resistor in serial, include 3.9kOhm to make it as
+// voltage divider
+// AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
+// next to SW2 switch
 // Look more ArduCopter Wiki for voltage dividers and other ports
-//#define AN0  47  // resistor, vdiv use, divider 1 closest to relay
-//#define AN1  51  // resistor, vdiv use, divider 2
-//#define AN2  6  // resistor, vdiv use, divider 3
-//#define AN3  7  // resistor, vdiv use, divider 4 closest to SW2
-//#define AN4  8  // direct GPIO pin, default as analog input, next to SW2 switch
-//#define AN5  9  // direct GPIO pin, default as analog input, next to SW2 switch
-//#define AN6  10  // direct GPIO pin, default as analog input, close to Pressure sensor, Expansion Ports
-//#define AN7  11  // direct GPIO pin, default as analog input, close to Pressure sensor, Expansion Ports
+#define AN0  54  // resistor, vdiv use, divider 1 closest to relay
+#define AN1  55  // resistor, vdiv use, divider 2
+#define AN2  56  // resistor, vdiv use, divider 3
+#define AN3  57  // resistor, vdiv use, divider 4 closest to SW2
+#define AN4  58  // direct GPIO pin, default as analog input, next to SW2
+                 // switch
+#define AN5  59  // direct GPIO pin, default as analog input, next to SW2
+                 // switch
+#define AN6  60  // direct GPIO pin, default as analog input, close to
+                 // Pressure sensor, Expansion Ports
+#define AN7  61  // direct GPIO pin, default as analog input, close to
+                 // Pressure sensor, Expansion Ports
 
-// AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and Expansion port
-// AN8 - 15 PINs are not connected anywhere, they are located as last 8 pins on edge of the board above Expansion Ports
-// even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on inner row
-//#define AN8  69  // NC
-//#define AN9  71  // NC
-//#define AN10  74 // NC
-//#define AN11  69 // NC
-//#define AN12  71 // NC
-//#define AN13  74 // NC
-//#define AN14  69 // NC
-//#define AN15  71 // NC
+// AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and
+// Expansion port
+// AN8 - 15 PINs are not connected anywhere, they are located as last 8 pins
+// on edge of the board above Expansion Ports
+// even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on
+// inner row
+#define AN8  62  // NC
+#define AN9  63  // NC
+#define AN10  64 // NC
+#define AN11  65 // NC
+#define AN12  66 // NC
+#define AN13  67 // NC
+#define AN14  68 // NC
+#define AN15  69 // NC
 
+#define RELAY_APM1_PIN 47
+#define RELAY_APM2_PIN 13
 
-//#define RELAY_PIN 47
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-#define PIEZO_PIN 68           //Last pin on the back ADC connector
-#else
-#define PIEZO_PIN 19           //Last pin on the back ADC connector
-#endif
-
-
-// sonar
-//#define SonarToCm(x) (x*1.26)   // Sonar raw value to centimeters
+#define PIEZO_PIN AN5           //Last pin on the back ADC connector
 
 // RADIANS
-#define RADX100 0.000174532925
-#define DEGX100 5729.57795
+#define RADX100 0.000174532925f
+#define DEGX100 5729.57795f
 
 
 // EEPROM addresses
-#define EEPROM_MAX_ADDR		4096
-// parameters get the first 1KiB of EEPROM, remainder is for waypoints
-#define WP_START_BYTE 0x800 // where in memory home WP is stored + all other WP
+#define EEPROM_MAX_ADDR         4096
+// parameters get the first 1536 bytes of EEPROM, remainder is for waypoints
+#define WP_START_BYTE 0x600 // where in memory home WP is stored + all other
+                            // WP
 #define WP_SIZE 15
 
-#define ONBOARD_PARAM_NAME_LENGTH 15
-
 // fence points are stored at the end of the EEPROM
-//#define MAX_FENCEPOINTS 6
+#define MAX_FENCEPOINTS 6
 #define FENCE_WP_SIZE sizeof(Vector2l)
 #define FENCE_START_BYTE (EEPROM_MAX_ADDR-(MAX_FENCEPOINTS*FENCE_WP_SIZE))
 
@@ -428,31 +421,17 @@ enum gcs_severity {
 #define NOINLINE __attribute__((noinline))
 
 // IMU selection
-#define CONFIG_IMU_OILPAN 1
+#define CONFIG_IMU_OILPAN  1
 #define CONFIG_IMU_MPU6000 2
-#define CONFIG_IMU_VRIMU 3
-
-
-// MPU6K Filter Rates
-# define MPU6K_DEFAULT_FILTER   0
-# define MPU6K_5HZ_FILTER       5
-# define MPU6K_10HZ_FILTER      10
-# define MPU6K_20HZ_FILTER      20
-# define MPU6K_42HZ_FILTER      42
-# define MPU6K_98HZ_FILTER      98
-# define MPU6K_256HZ_FILTER     256
-# define MPU6K_NONE_FILTER      999
-
-
-// APM Hardware selection
-#define APM_HARDWARE_APM1 1
-#define APM_HARDWARE_APM2 2
-#define MP32V1F1  3
-#define MP32V3F1  4
-#define VRBRAINF4 5
+#define CONFIG_IMU_SITL    3
+#define CONFIG_IMU_PX4     4
 
 #define AP_BARO_BMP085    1
 #define AP_BARO_MS5611    2
+#define AP_BARO_PX4       3
+
+#define AP_BARO_MS5611_SPI 1
+#define AP_BARO_MS5611_I2C 2
 
 // Error message sub systems and error codes
 #define ERROR_SUBSYSTEM_MAIN                1
@@ -470,16 +449,6 @@ enum gcs_severity {
 #define ERROR_CODE_FAILSAFE_BATTERY   3
 #define ERROR_CODE_FAILSAFE_WATCHDOG  4
 
-#define  MP32NAVYSENSOR  1
-#define  MP32NAVY2012    2
 
-
-#define LOGGING_SIMPLE    1
-#define LOGGING_VERBOSE   2
-
-// Channel Config selection
-
-#define CHANNEL_CONFIG_DEFAULT 1
-#define CHANNEL_CONFIG_CUSTOM  2
 
 #endif // _DEFINES_H

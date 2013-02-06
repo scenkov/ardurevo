@@ -9,7 +9,7 @@
 #include <AP_Progmem.h>
 #include "AP_InertialSensor.h"
 
-#define MPU6000_CS_PIN       53        // APM pin connected to mpu6000's chip select pin
+//#define MPU6000_CS_PIN       53        // APM pin connected to mpu6000's chip select pin
 #define DMP_FIFO_BUFFER_SIZE 72        // DMP FIFO buffer size
 
 // enable debug to see a register dump on startup

@@ -11,9 +11,7 @@ CFLAGS_$(d) :=
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
-cppSRCS_$(d) += AP_Relay_APM1.cpp
-cppSRCS_$(d) += AP_Relay_APM2.cpp
-
+cppSRCS_$(d) += AP_Relay.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

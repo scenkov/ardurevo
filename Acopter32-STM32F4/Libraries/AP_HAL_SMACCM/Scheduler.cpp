@@ -11,6 +11,10 @@
  * Written by James Bielman <jamesjb@galois.com>, 20 December 2012
  */
 
+#include <AP_HAL_Boards.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+
 #include <hwf4/gpio.h>
 #include <hwf4/timer.h>
 
@@ -28,7 +32,7 @@ extern const AP_HAL::HAL& hal;
 #define SCHEDULER_TICKS  (1 / (portTICK_RATE_MS))
 
 /** Stack size of the scheduler thread. */
-#define SCHEDULER_STACK_SIZE 256
+#define SCHEDULER_STACK_SIZE 1536
 
 /** Priority of the scheduler timer process task. */
 #define SCHEDULER_PRIORITY (configMAX_PRIORITIES - 1)
@@ -37,7 +41,7 @@ extern const AP_HAL::HAL& hal;
 #define DELAY_CB_TICKS (1 / (portTICK_RATE_MS))
 
 /** Stack size of the delay callback task. */
-#define DELAY_CB_STACK_SIZE 64
+#define DELAY_CB_STACK_SIZE 512
 
 /** Priority of the delay callback task. */
 #define DELAY_CB_PRIORITY 0
@@ -133,7 +137,7 @@ static void delay_cb_task(void *arg)
 
 SMACCMScheduler::SMACCMScheduler()
   : m_delay_cb(NULL), m_task(NULL), m_delay_cb_task(NULL),
-    m_failsafe_cb(NULL), m_num_procs(0)
+    m_failsafe_cb(NULL), m_num_procs(0), m_initializing(true)
 {
 }
 
@@ -275,3 +279,23 @@ void SMACCMScheduler::run_delay_cb()
   if (m_delay_cb)
     m_delay_cb();
 }
+
+/** Return true if in the context of a timer process. */
+bool SMACCMScheduler::in_timerprocess()
+{
+  return (xTaskGetCurrentTaskHandle() == m_task);
+}
+
+/** Return true if the system is initializing. */
+bool SMACCMScheduler::system_initializing()
+{
+  return m_initializing;
+}
+
+/** Set the system initializing flag to false. */
+void SMACCMScheduler::system_initialized()
+{
+  m_initializing = false;
+}
+
+#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM

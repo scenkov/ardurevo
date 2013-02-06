@@ -11,7 +11,7 @@ CFLAGS_$(d) := -Wall -Werror
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
-cppSRCS_$(d) += AP_Motors.cpp
+cppSRCS_$(d) += AP_Motors_Class.cpp
 cppSRCS_$(d) += AP_MotorsHeli.cpp
 cppSRCS_$(d) += AP_MotorsHexa.cpp
 cppSRCS_$(d) += AP_MotorsMatrix.cpp

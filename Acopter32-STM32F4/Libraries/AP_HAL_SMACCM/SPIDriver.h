@@ -11,16 +11,16 @@
 #ifndef __AP_HAL_SMACCM_SPIDRIVER_H__
 #define __AP_HAL_SMACCM_SPIDRIVER_H__
 
+#include <AP_HAL_Boards.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+
 #include <AP_HAL_SMACCM.h>
 #include "Semaphores.h"
 
 #include <hwf4/spi.h>
 
 class SMACCM::SMACCMSPIDeviceDriver : public AP_HAL::SPIDeviceDriver {
-private:
-    SMACCMSemaphore _semaphore;
-    struct spi_bus *_bus;
-    struct spi_device *_device;
 public:
     SMACCMSPIDeviceDriver(spi_bus *bus, spi_device *device);
     void init();
@@ -30,7 +30,11 @@ public:
     void cs_assert();
     void cs_release();
     uint8_t transfer (uint8_t data);
-
+    void transfer (const uint8_t *data, uint16_t len);
+private:
+    SMACCMSemaphore _semaphore;
+    struct spi_bus *_bus;
+    struct spi_device *_device;
 };
 
 class SMACCM::SMACCMSPIDeviceManager : public AP_HAL::SPIDeviceManager {
@@ -40,4 +44,5 @@ public:
     AP_HAL::SPIDeviceDriver* device(AP_HAL::SPIDevice);
 };
 
+#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 #endif // __AP_HAL_SMACCM_SPIDRIVER_H__

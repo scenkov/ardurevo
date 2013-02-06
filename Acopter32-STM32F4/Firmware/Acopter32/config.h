@@ -21,15 +21,18 @@
 //
 // - Try to keep this file organised in the same order as APM_Config.h.example
 //
-
 #include "defines.h"
 
 ///
 /// DO NOT EDIT THIS INCLUDE - if you want to make a local change, make that
 /// change in your local copy of APM_Config.h.
 ///
-#include "APM_Config.h"  // <== THIS INCLUDE, DO NOT EDIT IT. EVER.
-//#include "APM_Config_mavlink_hil.h"  // <== THIS INCLUDE, DO NOT EDIT IT. EVER.
+#ifdef USE_CMAKE_APM_CONFIG
+ #include "APM_Config_cmake.h"  // <== Prefer cmake config if it exists
+#else
+ #include "APM_Config.h" // <== THIS INCLUDE, DO NOT EDIT IT. EVER.
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -37,76 +40,19 @@
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-// FOR ACTIVATE PERFORMANCE REPORT
-//#define PREPORT
 
-// KIND OF FRAME
-#define FRAME_CONFIG OCTA_FRAME
-//#define FRAME_CONFIG QUAD_FRAME
-//#define FRAME_CONFIG HEXA_FRAME
-//#define FRAME_ORIENTATION PLUS_FRAME
-#define FRAME_ORIENTATION X_FRAME
-
-// MODEL OF GPS
-#define GPS_PROTOCOL 		GPS_PROTOCOL_MTK19
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_UBLOX
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_NONE
-//#define GPS_PROTOCOL 		GPS_PROTOCOL_AUTO
-
-// Kind of RADIO
-//#define CONFIG_APM_HARDWARE MP32PPMSUM22
-#define PPMSUM60
-
-// MULTIPILOT MODELS
-
-//#define CONFIG_APM_HARDWARE MP32V1F1
-//#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
-#define CONFIG_APM_HARDWARE VRBRAINF4
-
-//#define QUATERNION_ENABLE ENABLED
-#define QUATERNION_ENABLE DISABLED
-
-//#define INS_OILPAN
-//#define INS_VRIMUFULL
-#define INS_MPU6000
-
-//#define AUTO_LOITER // Enable Loiter_Ovverite
-
-#define CONFIG_BARO AP_BARO_MS5611
-//#define CONFIG_BARO AP_BARO_MS561101BA
-//#define CONFIG_BARO AP_BARO_BMP085
-
-#define CONFIG_MAG MP32NAVYSENSOR   // VR BRAIN USING THIS CONFIGURATION
-//#define CONFIG_MAG MP32NAVY2012
-
-//#define LOGGING_ENABLED DISABLED   // AVAILABLE ON N
-#define LOGGING_ENABLED ENABLED
-
-//#define AUTO_LOITER  I Prefer Deactivate auto loiter
-
-#ifdef MP32
-  #define VRIMU
-  #define VRMIMUIDG5000
-  
-  //# define IMUOILPAN
-  //# define HMC5843
-#endif 
-//
-
-
-//////////////////////////////////////////////////////////////////////////////
-// APM HARDWARE
-//
-
-#ifndef CONFIG_APM_HARDWARE
- # define CONFIG_APM_HARDWARE APM_HARDWARE_APM1
+#ifdef CONFIG_APM_HARDWARE
+#error CONFIG_APM_HARDWARE option is deprecated! use CONFIG_HAL_BOARD instead
 #endif
 
+#ifndef CONFIG_HAL_BOARD
+#error CONFIG_HAL_BOARD must be defined to build ArduCopter
+#endif
 //////////////////////////////////////////////////////////////////////////////
 // APM2 HARDWARE DEFAULTS
 //
 
-#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
@@ -116,8 +62,35 @@
  # ifdef APM2_BETA_HARDWARE
   #  define CONFIG_BARO     AP_BARO_BMP085
  # else // APM2 Production Hardware (default)
-  #  define CONFIG_BARO     AP_BARO_MS5611
+  #  define CONFIG_BARO          AP_BARO_MS5611
+  #  define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
  # endif
+#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_SITL
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define MAG_ORIENTATION   AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define MAGNETOMETER ENABLED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_PX4
+ # define CONFIG_BARO       AP_BARO_PX4
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define MAG_ORIENTATION   ROTATION_NONE
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define MAGNETOMETER ENABLED
+ # define SERIAL0_BAUD 57600
+#elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # define CONFIG_BARO       AP_BARO_MS5611
+ # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
+ # define CONFIG_ADC        DISABLED
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define MAG_ORIENTATION   AP_COMPASS_COMPONENTS_DOWN_PINS_BACK
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define MAGNETOMETER ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -136,31 +109,38 @@
  # define TOY_MIXER      TOY_LINEAR_MIXER
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////
+// Bulk defines for TradHeli
+#if FRAME_CONFIG == HELI_FRAME
+  # define RC_FAST_SPEED 				125
+  # define RTL_YAW                  	YAW_LOOK_AT_HOME
+  # define TILT_COMPENSATION 			5
+  # define RATE_INTEGRATOR_LEAK_RATE 	0.02f
+  # define RATE_ROLL_D    				0
+  # define RATE_PITCH_D       			0
+  # define HELI_PITCH_FF				0
+  # define HELI_ROLL_FF					0
+  # define HELI_YAW_FF					0  
+  # define RC_FAST_SPEED 				125
+  # define STABILIZE_THROTTLE			THROTTLE_MANUAL
+  # define MPU6K_FILTER                 10
+#endif
+
+
+// optical flow doesn't work in SITL yet
+#ifdef DESKTOP_BUILD
+# define OPTFLOW DISABLED
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
 // IMU Selection
 //
 #ifndef CONFIG_IMU_TYPE
-#ifdef INS_VRIMUFULL
-# define CONFIG_IMU_TYPE CONFIG_IMU_VRIMU
+ # define CONFIG_IMU_TYPE CONFIG_IMU_OILPAN
 #endif
-
-#ifdef INS_MPU6000
-# define CONFIG_IMU_TYPE CONFIG_IMU_MPU6000
-#endif
-#endif
-
-#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
-# ifndef CONFIG_MPU6000_CHIP_SELECT_PIN
-#  define CONFIG_MPU6000_CHIP_SELECT_PIN 77 // 53
-# endif
-#endif
-
-#if CONFIG_IMU_TYPE == CONFIG_IMU_VRIMU
-# ifndef CONFIG_MPU6000_CHIP_SELECT_PIN
-#  define CONFIG_MPU6000_CHIP_SELECT_PIN 77 // 53
-# endif
+#ifndef MPU6K_FILTER
+ # define MPU6K_FILTER MPU6K_DEFAULT_FILTER
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -178,48 +158,73 @@
 // PWM control
 // default RC speed in Hz
 #ifndef RC_FAST_SPEED
- # if FRAME_CONFIG == HELI_FRAME
-  #   define RC_FAST_SPEED 125
- # else
-  #   define RC_FAST_SPEED 490
- # endif
+   #   define RC_FAST_SPEED 490
 #endif
 
 ////////////////////////////////////////////////////////
 // LED and IO Pins
 //
-
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-
- # define A_LED_PIN        19//37			//36 = B,	37 = A,	35 = C
- # define B_LED_PIN        20//36
- # define C_LED_PIN        21//35
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+ # define A_LED_PIN        37
+ # define B_LED_PIN        36
+ # define C_LED_PIN        35
  # define LED_ON           HIGH
  # define LED_OFF          LOW
+ # define SLIDE_SWITCH_PIN 40
+ # define PUSHBUTTON_PIN   41
+ # define USB_MUX_PIN      -1
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      1      // Battery current on A1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
+ # define A_LED_PIN        27
+ # define B_LED_PIN        26
+ # define C_LED_PIN        25
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
  # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
- # define USB_MUX_PIN      1
  # define CLI_SLIDER_ENABLED DISABLED
- # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
- # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      1
-#else
- # define A_LED_PIN 69//37			//36 = B,	37 = A,	35 = C
- # define B_LED_PIN 74//36
- # define C_LED_PIN 71//35
- # define LED_ON           HIGH
- # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 47 //TEO: ADC0 //40
- # define PUSHBUTTON_PIN 41
+ # define USB_MUX_PIN      23
+ # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
+ # define BATTERY_CURR_PIN      2      // Battery current on A2
+#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
+ # define A_LED_PIN        27
+ # define B_LED_PIN        26
+ # define C_LED_PIN        25
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
+ # define SLIDE_SWITCH_PIN (-1)
+ # define PUSHBUTTON_PIN   (-1)
  # define CLI_SLIDER_ENABLED DISABLED
- # define USB_MUX_PIN      (-1)
- # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
- # define BATTERY_CURR_PIN      0      // Battery current on A1
- # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      0
+ # define USB_MUX_PIN      -1
+ # define BATTERY_VOLT_PIN 1      // Battery voltage on A1
+ # define BATTERY_CURR_PIN 2      // Battery current on A2
+#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
+ # define A_LED_PIN        27
+ # define B_LED_PIN        26
+ # define C_LED_PIN        25
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
+ # define SLIDE_SWITCH_PIN (-1)
+ # define PUSHBUTTON_PIN   (-1)
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define USB_MUX_PIN      -1
+ # define BATTERY_VOLT_PIN -1
+ # define BATTERY_CURR_PIN -1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+// XXX these are just copied, may not make sense
+ # define A_LED_PIN        27
+ # define B_LED_PIN        26
+ # define C_LED_PIN        25
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
+ # define SLIDE_SWITCH_PIN (-1)
+ # define PUSHBUTTON_PIN   (-1)
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define USB_MUX_PIN      -1
+ # define BATTERY_VOLT_PIN -1
+ # define BATTERY_CURR_PIN -1
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,33 +238,37 @@
 #define COPTER_LED_ON           HIGH
 #define COPTER_LED_OFF          LOW
 
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-#define COPTER_LED_1 65  	// Motor or Aux LED
-#define COPTER_LED_2 68  	// Motor LED or Beeper
-#define COPTER_LED_3 102  	// Motor or GPS LED
-#else
-// COPTER LEDs
-#define COPTER_LED_1 83  	// Motor LED
-#define COPTER_LED_2 83  	// Motor LED
-#define COPTER_LED_3 86 	// Motor LED
-#define COPTER_LED_4 86 	// Motor LED
-#define COPTER_LED_5 92  	// Motor or Aux LED
-#define COPTER_LED_6 92   	// Motor or Aux LED
-#define COPTER_LED_7 92 	// Motor or GPS LED
-#define COPTER_LED_8 92 	// Motor or GPS LED
-
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+ #define COPTER_LED_1 AN4       // Motor or Aux LED
+ #define COPTER_LED_2 AN5       // Motor LED or Beeper
+ #define COPTER_LED_3 AN6       // Motor or GPS LED
+ #define COPTER_LED_4 AN7       // Motor LED
+ #define COPTER_LED_5 AN8       // Motor LED
+ #define COPTER_LED_6 AN9       // Motor LED
+ #define COPTER_LED_7 AN10      // Motor LED
+ #define COPTER_LED_8 AN11      // Motor LED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || HAL_BOARD_SMACCM
+ #define COPTER_LED_1 AN8       // Motor or Aux LED
+ #define COPTER_LED_2 AN9       // Motor LED
+ #define COPTER_LED_3 AN10      // Motor or GPS LED
+ #define COPTER_LED_4 AN11      // Motor LED
+ #define COPTER_LED_5 AN12      // Motor LED
+ #define COPTER_LED_6 AN13      // Motor LED
+ #define COPTER_LED_7 AN14      // Motor LED
+ #define COPTER_LED_8 AN15      // Motor LED
 #endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Pushbutton & Relay
 //
 
 #ifndef CONFIG_PUSHBUTTON
- # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_PUSHBUTTON ENABLED
 #endif
 
 #ifndef CONFIG_RELAY
- # define CONFIG_RELAY DISABLED
+ # define CONFIG_RELAY ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -291,7 +300,7 @@
  # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
  # ifndef CONFIG_SONAR_SOURCE_ANALOG_PIN
-  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN A0
+  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 0
  # endif
 #else
  # warning Invalid value for CONFIG_SONAR_SOURCE, disabling sonar
@@ -300,19 +309,23 @@
 #endif
 
 #ifndef CONFIG_SONAR
-# define CONFIG_SONAR DISABLED
+ # define CONFIG_SONAR ENABLED
+#endif
+
+#ifndef SONAR_ALT_HEALTH_MAX
+ # define SONAR_ALT_HEALTH_MAX 3            // number of good reads that indicates a healthy sonar
+#endif
+
+#ifndef THR_SURFACE_TRACKING_P
+ # define THR_SURFACE_TRACKING_P 0.2        // gain for controlling how quickly sonar range adjusts target altitude (lower means slower reaction)
+#endif
+
+#ifndef THR_SURFACE_TRACKING_VELZ_MAX
+ # define THR_SURFACE_TRACKING_VELZ_MAX 30  // max speed number of good reads that indicates a healthy sonar
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Channel Config (custom MOT channel mappings)
-//
-
-#ifndef CONFIG_CHANNELS
- # define CONFIG_CHANNELS CHANNEL_CONFIG_DEFAULT
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// Acrobatics
+// Channel 7 default option
 //
 
 #ifndef CH7_OPTION
@@ -322,7 +335,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // HIL_MODE                                 OPTIONAL
-	
+
 #ifndef HIL_MODE
  #define HIL_MODE        HIL_MODE_DISABLED
 #endif
@@ -353,69 +366,32 @@
 //////////////////////////////////////////////////////////////////////////////
 // Serial port speeds.
 //
-//Serial Port for CLI
-#define SERIAL_CLI_PORT			2
-#define SERIAL_CLI_BAUD			57600
-//#define SERIAL_CLI_BAUD			115200
-
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-	//Serial Port for Telemetry  MP32V3F1
-	#define SERIAL_AUX_PORT			0
-	#define SERIAL_AUX_BAUD			38400
-	//Serial Port for GPS		 MP32V3F1
-	#define SERIAL_GPS_PORT			1
-	#define SERIAL_GPS_BAUD			38400
+#ifndef SERIAL0_BAUD
+ # define SERIAL0_BAUD                   115200
 #endif
-#if CONFIG_APM_HARDWARE == MP32V1F1
-	//Serial Port for Telemetry	MP32V1F1
-	#define SERIAL_AUX_PORT			1
-	#define SERIAL_AUX_BAUD			38400
-	//Serial Port for GPS		MP32V1F1
-	#define SERIAL_GPS_PORT			3
-	#define SERIAL_GPS_BAUD			38400
+#ifndef SERIAL3_BAUD
+ # define SERIAL3_BAUD                    57600
 #endif
 
-#if CONFIG_APM_HARDWARE == MP32V3F1
 
-	//Serial Port for Telemetry  MP32V3F1
-	#define SERIAL_AUX_PORT			0
-	#define SERIAL_AUX_BAUD			38400
-	//Serial Port for GPS		 MP32V3F1
-	#define SERIAL_GPS_PORT			1
-	#define SERIAL_GPS_BAUD			38400
-#endif
 //////////////////////////////////////////////////////////////////////////////
 // Battery monitoring
 //
-#ifndef BATTERY_EVENT
- # define BATTERY_EVENT                  DISABLED
-#endif
 #ifndef LOW_VOLTAGE
- # define LOW_VOLTAGE                    9.6
+ # define LOW_VOLTAGE                    9.6f
 #endif
 #ifndef VOLT_DIV_RATIO
- # define VOLT_DIV_RATIO                 3.56
+ # define VOLT_DIV_RATIO                 3.56f
 #endif
 
 #ifndef CURR_AMP_PER_VOLT
- # define CURR_AMP_PER_VOLT              27.32
+ # define CURR_AMP_PER_VOLT              27.32f
 #endif
 #ifndef CURR_AMPS_OFFSET
- # define CURR_AMPS_OFFSET               0.0
+ # define CURR_AMPS_OFFSET               0.0f
 #endif
 #ifndef HIGH_DISCHARGE
  # define HIGH_DISCHARGE                 1760
-#endif
-
-
-#ifndef PIEZO
-# define PIEZO				ENABLED				//Enables Piezo Code and beeps once on Startup to verify operation
-#endif
-#ifndef PIEZO_LOW_VOLTAGE
-# define PIEZO_LOW_VOLTAGE	ENABLED				//Enables Tone on reaching low battery or current alert
-#endif
-#ifndef PIEZO_ARMING
-# define PIEZO_ARMING		ENABLED				//Two tones on ARM, 1 Tone on disarm
 #endif
 
 // Battery failsafe
@@ -429,7 +405,7 @@
 // INPUT_VOLTAGE
 //
 #ifndef INPUT_VOLTAGE
- # define INPUT_VOLTAGE                  5.0
+ # define INPUT_VOLTAGE                  5.0f
 #endif
 
 
@@ -439,42 +415,17 @@
  # define MAGNETOMETER                   ENABLED
 #endif
 #ifndef MAG_ORIENTATION
-
-#if CONFIG_MAG == MP32NAVYSENSOR
-//# define MAG_ORIENTATION AP_COMPASS_COMPONENTS_DOWN_PINS_RIGHT   // Multipilot VRIMU ;) WORK FINE !!!
-# define MAG_ORIENTATION	ROTATION_YAW_270
+ # define MAG_ORIENTATION                AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #endif
-
-#if CONFIG_MAG == MP32NAVY2012
-//TEST con VRIMU V3
-//# define MAG_ORIENTATION AP_COMPASS_COMPONENTS_UP_PINS_LEFT  //270   45 gradi di troppo
-#define MAG_ORIENTATION  ROTATION_YAW_180
-//#define MAG_ORIENTATION AP_COMPASS_COMPONENTS_UP_PINS_BACK_RIGHT      //135
-// dovrebbe essere questa:# define MAG_ORIENTATION AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD //(x=x y=-y z=-z)
-#endif
-
-#endif
-#ifndef MAG_PROTOCOL
-# define MAG_PROTOCOL  MAG_PROTOCOL_5883  // Default Setting
-#endif
-
-#ifndef CAM_ROLL_GAIN
-# define CAM_ROLL_GAIN			1.0
-#endif
-#ifndef CAM_PITCH_GAIN
-# define CAM_PITCH_GAIN			1.0
-#endif
-
 
 
 //////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
-//#if defined( __AVR_ATmega2560__ )  // determines if optical flow code is included
-  //#define OPTFLOW_ENABLED
-//#endif
-
-#ifndef OPTFLOW					// sets global enabled/disabled flag for optflow (as seen in CLI)
-# define OPTFLOW				DISABLED
+#if defined( __AVR_ATmega2560__ )       // determines if optical flow code is included
+ #define OPTFLOW                        ENABLED
+#endif
+#ifndef OPTFLOW                         // sets global enabled/disabled flag for optflow (as seen in CLI)
+ # define OPTFLOW                       DISABLED
 #endif
 #ifndef OPTFLOW_ORIENTATION
  # define OPTFLOW_ORIENTATION    AP_OPTICALFLOW_ADNS3080_PINS_FORWARD
@@ -487,22 +438,22 @@
 #endif
 // optical flow based loiter PI values
 #ifndef OPTFLOW_ROLL_P
- #define OPTFLOW_ROLL_P 2.5
+ #define OPTFLOW_ROLL_P 2.5f
 #endif
 #ifndef OPTFLOW_ROLL_I
- #define OPTFLOW_ROLL_I 0.5
+ #define OPTFLOW_ROLL_I 0.5f
 #endif
 #ifndef OPTFLOW_ROLL_D
- #define OPTFLOW_ROLL_D 0.12
+ #define OPTFLOW_ROLL_D 0.12f
 #endif
 #ifndef OPTFLOW_PITCH_P
- #define OPTFLOW_PITCH_P 2.5
+ #define OPTFLOW_PITCH_P 2.5f
 #endif
 #ifndef OPTFLOW_PITCH_I
- #define OPTFLOW_PITCH_I 0.5
+ #define OPTFLOW_PITCH_I 0.5f
 #endif
 #ifndef OPTFLOW_PITCH_D
- #define OPTFLOW_PITCH_D 0.12
+ #define OPTFLOW_PITCH_D 0.12f
 #endif
 #ifndef OPTFLOW_IMAX
  #define OPTFLOW_IMAX 1
@@ -551,9 +502,6 @@
  # define FS_THR_VALUE_DEFAULT             975
 #endif
 
-#ifndef FS_THR_RTL_MIN_DISTANCE
- # define FS_THR_RTL_MIN_DISTANCE          1500     // the minimum distance from home in which
-#endif
 
 #ifndef MINIMUM_THROTTLE
  # define MINIMUM_THROTTLE       130
@@ -565,7 +513,12 @@
 #ifndef LAND_SPEED
  # define LAND_SPEED    50          // the descent speed for the final stage of landing in cm/s
 #endif
-
+#ifndef LAND_START_ALT
+ # define LAND_START_ALT 1000         // altitude in cm where land controller switches to slow rate of descent
+#endif
+#ifndef LAND_DETECTOR_TRIGGER
+ # define LAND_DETECTOR_TRIGGER 50    // number of 50hz iterations with near zero climb rate and low throttle that triggers landing complete.
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -591,7 +544,7 @@
 // Y6 Support
 
 #ifndef TOP_BOTTOM_RATIO
- # define TOP_BOTTOM_RATIO       1.00
+ # define TOP_BOTTOM_RATIO       1.00f
 #endif
 
 
@@ -599,18 +552,45 @@
 // CAMERA TRIGGER AND CONTROL
 //
 #ifndef CAMERA
-# define CAMERA		ENABLED
+ # if defined( __AVR_ATmega1280__ )
+  #  define CAMERA        DISABLED
+ # else
+  #  define CAMERA        ENABLED
+ # endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // MOUNT (ANTENNA OR CAMERA)
 //
 #ifndef MOUNT
-# define MOUNT		ENABLED
+ # if defined( __AVR_ATmega1280__ )
+  #  define MOUNT         DISABLED
+ # else
+  #  define MOUNT         ENABLED
+ # endif
 #endif
 
 #ifndef MOUNT2
-# define MOUNT2		DISABLED
+ # define MOUNT2         DISABLED
+#endif
+
+#if defined( __AVR_ATmega1280__ ) && (MOUNT == ENABLED || MOUNT2 == ENABLED)
+ # warning "You choose to enable MOUNT on a small ATmega1280, CLI, CAMERA and AP_LIMITS will be disabled to free some space for it"
+
+// The small ATmega1280 chip does not have enough memory for mount support
+// so disable CLI, this will allow mount support and other improvements to fit.
+// This should almost have no side effects, because the APM planner can now do a complete board setup.
+ # define CLI_ENABLED DISABLED
+
+// The small ATmega1280 chip does not have enough memory for mount support
+// so disable AUTO GPS support, this will allow mount support and other improvements to fit.
+// This should almost have no side effects, because the most users use MTK anyways.
+// If the user defined a GPS protocol, than we will NOT overwrite it
+ # if GPS_PROTOCOL == GPS_PROTOCOL_AUTO
+  #  undef GPS_PROTOCOL
+  #  define GPS_PROTOCOL GPS_PROTOCOL_MTK
+ # endif
+
 // To save some more space
  # undef CAMERA
  # define CAMERA         DISABLED
@@ -628,9 +608,23 @@
 #define EARTH_FRAME     0
 #define BODY_FRAME      1
 
-// Stabilize Mode
-#ifndef STABILIZE_THROTTLE
- # define STABILIZE_THROTTLE		THROTTLE_MANUAL_TILT_COMPENSATED
+// Flight mode roll, pitch, yaw, throttle and navigation definitions
+
+// Acro Mode
+#ifndef ACRO_YAW
+ # define ACRO_YAW           	    YAW_ACRO
+#endif
+
+#ifndef ACRO_RP
+ # define ACRO_RP            	    ROLL_PITCH_ACRO
+#endif
+
+#ifndef ACRO_THR
+ # define ACRO_THR           	    THROTTLE_MANUAL
+#endif
+
+#ifndef ACRO_NAV
+ # define ACRO_NAV           	    NAV_NONE
 #endif
 
 // Alt Hold Mode
@@ -646,6 +640,10 @@
  # define ALT_HOLD_THR           	THROTTLE_HOLD
 #endif
 
+#ifndef ALT_HOLD_NAV
+ # define ALT_HOLD_NAV           	NAV_NONE
+#endif
+
 // AUTO Mode
 #ifndef AUTO_YAW
  # define AUTO_YAW                  YAW_LOOK_AT_NEXT_WP
@@ -657,6 +655,23 @@
 
 #ifndef AUTO_THR
  # define AUTO_THR                  THROTTLE_AUTO
+#endif
+
+// CIRCLE Mode
+#ifndef CIRCLE_YAW
+ # define CIRCLE_YAW             	YAW_LOOK_AT_LOCATION
+#endif
+
+#ifndef CIRCLE_RP
+ # define CIRCLE_RP                 ROLL_PITCH_AUTO
+#endif
+
+#ifndef CIRCLE_THR
+ # define CIRCLE_THR                THROTTLE_HOLD
+#endif
+
+#ifndef CIRCLE_NAV
+ # define CIRCLE_NAV           	    NAV_CIRCLE
 #endif
 
 // Guided Mode
@@ -672,17 +687,8 @@
  # define GUIDED_THR                THROTTLE_AUTO
 #endif
 
-// CIRCLE Mode
-#ifndef CIRCLE_YAW
- # define CIRCLE_YAW             	YAW_LOOK_AT_NEXT_WP
-#endif
-
-#ifndef CIRCLE_RP
- # define CIRCLE_RP                 ROLL_PITCH_AUTO
-#endif
-
-#ifndef CIRCLE_THR
- # define CIRCLE_THR                THROTTLE_HOLD
+#ifndef GUIDED_NAV
+ # define GUIDED_NAV           	    NAV_WP
 #endif
 
 // LOITER Mode
@@ -696,6 +702,27 @@
 
 #ifndef LOITER_THR
  # define LOITER_THR                THROTTLE_HOLD
+#endif
+
+#ifndef LOITER_NAV
+ # define LOITER_NAV                NAV_LOITER
+#endif
+
+// POSITION Mode
+#ifndef POSITION_YAW
+ # define POSITION_YAW             	YAW_HOLD
+#endif
+
+#ifndef POSITION_RP
+ # define POSITION_RP               ROLL_PITCH_AUTO
+#endif
+
+#ifndef POSITION_THR
+ # define POSITION_THR              THROTTLE_HOLD
+#endif
+
+#ifndef POSITION_NAV
+ # define POSITION_NAV              NAV_LOITER
 #endif
 
 
@@ -739,7 +766,7 @@
 
 
 
-// LOITER Mode
+// Optical Flow LOITER Mode
 #ifndef OF_LOITER_YAW
  # define OF_LOITER_YAW          	YAW_HOLD
 #endif
@@ -752,6 +779,10 @@
  # define OF_LOITER_THR             THROTTLE_HOLD
 #endif
 
+#ifndef OF_LOITER_NAV
+ # define OF_LOITER_NAV             NAV_NONE
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // Attitude Control
 //
@@ -759,26 +790,26 @@
 // Extra motor values that are changed from time to time by jani @ jDrones as software
 // and charachteristics changes.
 #ifdef MOTORS_JD880
- # define STABILIZE_ROLL_P          3.7
- # define STABILIZE_ROLL_I          0.0
- # define STABILIZE_ROLL_IMAX    	8.0            // degrees
- # define STABILIZE_PITCH_P         3.7
- # define STABILIZE_PITCH_I         0.0
- # define STABILIZE_PITCH_IMAX   	8.0            // degrees
+ # define STABILIZE_ROLL_P          3.7f
+ # define STABILIZE_ROLL_I          0.0f
+ # define STABILIZE_ROLL_IMAX    	8.0f            // degrees
+ # define STABILIZE_PITCH_P         3.7f
+ # define STABILIZE_PITCH_I         0.0f
+ # define STABILIZE_PITCH_IMAX   	8.0f            // degrees
 #endif
 
 #ifdef MOTORS_JD850
- # define STABILIZE_ROLL_P          4.2
- # define STABILIZE_ROLL_I          0.0
- # define STABILIZE_ROLL_IMAX    	8.0            // degrees
- # define STABILIZE_PITCH_P         4.2
- # define STABILIZE_PITCH_I         0.0
- # define STABILIZE_PITCH_IMAX   	8.0            // degrees
+ # define STABILIZE_ROLL_P          4.2f
+ # define STABILIZE_ROLL_I          0.0f
+ # define STABILIZE_ROLL_IMAX    	8.0f            // degrees
+ # define STABILIZE_PITCH_P         4.2f
+ # define STABILIZE_PITCH_I         0.0f
+ # define STABILIZE_PITCH_IMAX   	8.0f            // degrees
 #endif
 
 
 #ifndef ACRO_P
- # define ACRO_P                 4.5
+ # define ACRO_P                 4.5f
 #endif
 
 #ifndef AXIS_LOCK_ENABLED
@@ -787,33 +818,33 @@
 
 // Good for smaller payload motors.
 #ifndef STABILIZE_ROLL_P
- # define STABILIZE_ROLL_P          4.5
+ # define STABILIZE_ROLL_P          4.5f
 #endif
 #ifndef STABILIZE_ROLL_I
- # define STABILIZE_ROLL_I          0.0
+ # define STABILIZE_ROLL_I          0.0f
 #endif
 #ifndef STABILIZE_ROLL_IMAX
- # define STABILIZE_ROLL_IMAX    	8.0            // degrees
+ # define STABILIZE_ROLL_IMAX    	8.0f            // degrees
 #endif
 
 #ifndef STABILIZE_PITCH_P
- # define STABILIZE_PITCH_P         4.5
+ # define STABILIZE_PITCH_P         4.5f
 #endif
 #ifndef STABILIZE_PITCH_I
- # define STABILIZE_PITCH_I         0.0
+ # define STABILIZE_PITCH_I         0.0f
 #endif
 #ifndef STABILIZE_PITCH_IMAX
- # define STABILIZE_PITCH_IMAX   	8.0            // degrees
+ # define STABILIZE_PITCH_IMAX   	8.0f            // degrees
 #endif
 
 #ifndef  STABILIZE_YAW_P
- # define STABILIZE_YAW_P           4.5            // increase for more aggressive Yaw Hold, decrease if it's bouncy
+ # define STABILIZE_YAW_P           4.5f            // increase for more aggressive Yaw Hold, decrease if it's bouncy
 #endif
 #ifndef  STABILIZE_YAW_I
- # define STABILIZE_YAW_I           0.0
+ # define STABILIZE_YAW_I           0.0f
 #endif
 #ifndef  STABILIZE_YAW_IMAX
- # define STABILIZE_YAW_IMAX        8.0            // degrees * 100
+ # define STABILIZE_YAW_IMAX        8.0f            // degrees * 100
 #endif
 
 #ifndef YAW_LOOK_AHEAD_MIN_SPEED
@@ -832,42 +863,42 @@
  # define MAX_INPUT_PITCH_ANGLE     4500
 #endif
 #ifndef RATE_ROLL_P
- # define RATE_ROLL_P        		0.150
+ # define RATE_ROLL_P        		0.150f
 #endif
 #ifndef RATE_ROLL_I
- # define RATE_ROLL_I        		0.100
+ # define RATE_ROLL_I        		0.100f
 #endif
 #ifndef RATE_ROLL_D
- # define RATE_ROLL_D        		0.004
+ # define RATE_ROLL_D        		0.004f
 #endif
 #ifndef RATE_ROLL_IMAX
- # define RATE_ROLL_IMAX         	5.0                    // degrees
+ # define RATE_ROLL_IMAX         	5.0f                    // degrees
 #endif
 
 #ifndef RATE_PITCH_P
- # define RATE_PITCH_P       		0.150
+ # define RATE_PITCH_P       		0.150f
 #endif
 #ifndef RATE_PITCH_I
- # define RATE_PITCH_I       		0.100
+ # define RATE_PITCH_I       		0.100f
 #endif
 #ifndef RATE_PITCH_D
- # define RATE_PITCH_D       		0.004
+ # define RATE_PITCH_D       		0.004f
 #endif
 #ifndef RATE_PITCH_IMAX
- # define RATE_PITCH_IMAX        	5.0                    // degrees
+ # define RATE_PITCH_IMAX        	5.0f                    // degrees
 #endif
 
 #ifndef RATE_YAW_P
- # define RATE_YAW_P              	0.25
+ # define RATE_YAW_P              	0.25f
 #endif
 #ifndef RATE_YAW_I
- # define RATE_YAW_I              	0.015
+ # define RATE_YAW_I              	0.015f
 #endif
 #ifndef RATE_YAW_D
- # define RATE_YAW_D              	0.000
+ # define RATE_YAW_D              	0.000f
 #endif
 #ifndef RATE_YAW_IMAX
- # define RATE_YAW_IMAX            	8.0          // degrees
+ # define RATE_YAW_IMAX            	8.0f          // degrees
 #endif
 
 
@@ -903,30 +934,26 @@
 // Loiter control gains
 //
 #ifndef LOITER_P
- # define LOITER_P             		.20
+ # define LOITER_P             		.20f
 #endif
 #ifndef LOITER_I
- # define LOITER_I             		0.0
+ # define LOITER_I             		0.0f
 #endif
 #ifndef LOITER_IMAX
  # define LOITER_IMAX          		30             // degrees
 #endif
-#ifndef LOITER_REPOSITION_RATE
- # define LOITER_REPOSITION_RATE   500.0            // cm/s
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // Loiter Navigation control gains
 //
 #ifndef LOITER_RATE_P
- # define LOITER_RATE_P          	5.0            //
+ # define LOITER_RATE_P          	5.0f            //
 #endif
 #ifndef LOITER_RATE_I
- # define LOITER_RATE_I          	0.04           // Wind control
+ # define LOITER_RATE_I          	0.04f           // Wind control
 #endif
 #ifndef LOITER_RATE_D
- # define LOITER_RATE_D          	0.40           // try 2 or 3 for LOITER_RATE 1
+ # define LOITER_RATE_D          	0.40f           // try 2 or 3 for LOITER_RATE 1
 #endif
 #ifndef LOITER_RATE_IMAX
  # define LOITER_RATE_IMAX       	30                     // degrees
@@ -936,13 +963,13 @@
 // WP Navigation control gains
 //
 #ifndef NAV_P
- # define NAV_P                     2.4                    //
+ # define NAV_P                     2.4f                    //
 #endif
 #ifndef NAV_I
- # define NAV_I                     0.17           // Wind control
+ # define NAV_I                     0.17f           // Wind control
 #endif
 #ifndef NAV_D
- # define NAV_D                     0.00           // .95
+ # define NAV_D                     0.00f           // .95
 #endif
 #ifndef NAV_IMAX
  # define NAV_IMAX                  18                     // degrees
@@ -978,11 +1005,15 @@
  # define THROTTLE_CRUISE       450            //
 #endif
 
+#ifndef THR_MID
+ # define THR_MID        500                            // Throttle output (0 ~ 1000) when throttle stick is in mid position
+#endif
+
 #ifndef ALT_HOLD_P
- # define ALT_HOLD_P            2.0
+ # define ALT_HOLD_P            2.0f
 #endif
 #ifndef ALT_HOLD_I
- # define ALT_HOLD_I            0.0
+ # define ALT_HOLD_I            0.0f
 #endif
 #ifndef ALT_HOLD_IMAX
  # define ALT_HOLD_IMAX         300
@@ -990,13 +1021,13 @@
 
 // RATE control
 #ifndef THROTTLE_P
- # define THROTTLE_P            6.0
+ # define THROTTLE_P            6.0f
 #endif
 #ifndef THROTTLE_I
- # define THROTTLE_I            0.0
+ # define THROTTLE_I            0.0f
 #endif
 #ifndef THROTTLE_D
- # define THROTTLE_D            0.2
+ # define THROTTLE_D            0.2f
 #endif
 
 #ifndef THROTTLE_IMAX
@@ -1020,13 +1051,13 @@
 
 // Throttle Accel control
 #ifndef THROTTLE_ACCEL_P
- # define THROTTLE_ACCEL_P  0.75
+ # define THROTTLE_ACCEL_P  0.75f
 #endif
 #ifndef THROTTLE_ACCEL_I
- # define THROTTLE_ACCEL_I  1.50
+ # define THROTTLE_ACCEL_I  1.50f
 #endif
 #ifndef THROTTLE_ACCEL_D
- # define THROTTLE_ACCEL_D 0.0
+ # define THROTTLE_ACCEL_D 0.0f
 #endif
 #ifndef THROTTLE_ACCEL_IMAX
  # define THROTTLE_ACCEL_IMAX 500
@@ -1037,7 +1068,7 @@
 // Crosstrack compensation
 //
 #ifndef CROSSTRACK_GAIN
- # define CROSSTRACK_GAIN       .2
+ # define CROSSTRACK_GAIN       .2f
 #endif
 #ifndef CROSSTRACK_MIN_DISTANCE
  # define CROSSTRACK_MIN_DISTANCE       15
@@ -1062,9 +1093,19 @@
 //////////////////////////////////////////////////////////////////////////////
 // Dataflash logging control
 //
-
-#ifndef LOGGING_ENABLED
-# define LOGGING_ENABLED               ENABLED
+// Logging must be disabled for 1280 build.
+#if defined( __AVR_ATmega1280__ )
+ # if LOGGING_ENABLED == ENABLED
+// If logging was enabled in APM_Config or command line, warn the user.
+  #  warning "Logging is not supported on ATmega1280"
+  #  undef LOGGING_ENABLED
+ # endif
+ # ifndef LOGGING_ENABLED
+  #  define LOGGING_ENABLED    DISABLED
+ # endif
+#elif !defined(LOGGING_ENABLED)
+// Logging is enabled by default for all other builds.
+ # define LOGGING_ENABLED                ENABLED
 #endif
 
 
@@ -1089,15 +1130,15 @@
 #ifndef LOG_MODE
  # define LOG_MODE                      ENABLED
 #endif
-#ifndef LOG_RAW
- # define LOG_RAW                       DISABLED
+#ifndef LOG_IMU
+ # define LOG_IMU                       DISABLED
 #endif
 #ifndef LOG_CMD
  # define LOG_CMD                       ENABLED
 #endif
 // current
-#ifndef LOG_CUR
- # define LOG_CUR                       DISABLED
+#ifndef LOG_CURRENT
+ # define LOG_CURRENT                   DISABLED
 #endif
 // quad motor PWMs
 #ifndef LOG_MOTORS
@@ -1111,7 +1152,7 @@
  # define LOG_PID                       DISABLED
 #endif
 #ifndef LOG_ITERM
- # define LOG_ITERM                     ENABLED
+ # define LOG_ITERM                     DISABLED
 #endif
 #ifndef LOG_INAV
  # define LOG_INAV                      DISABLED
@@ -1126,18 +1167,18 @@
 #define DEFAULT_LOG_BITMASK \
     LOGBIT(ATTITUDE_FAST)   | \
     LOGBIT(ATTITUDE_MED)    | \
-    LOGBIT(GPS)                             | \
-    LOGBIT(PM)                              | \
-    LOGBIT(CTUN)                    | \
-    LOGBIT(NTUN)                    | \
-    LOGBIT(MODE)                    | \
-    LOGBIT(RAW)                             | \
-    LOGBIT(CMD)                             | \
-    LOGBIT(CUR)                             | \
-    LOGBIT(MOTORS)                  | \
-    LOGBIT(OPTFLOW)                 | \
-    LOGBIT(PID)                     | \
-    LOGBIT(ITERM)                   | \
+    LOGBIT(GPS)             | \
+    LOGBIT(PM)              | \
+    LOGBIT(CTUN)            | \
+    LOGBIT(NTUN)            | \
+    LOGBIT(MODE)            | \
+    LOGBIT(IMU)             | \
+    LOGBIT(CMD)             | \
+    LOGBIT(CURRENT)         | \
+    LOGBIT(MOTORS)          | \
+    LOGBIT(OPTFLOW)         | \
+    LOGBIT(PID)             | \
+    LOGBIT(ITERM)           | \
     LOGBIT(INAV)
 
 // if we are using fast, Disable Medium
@@ -1201,18 +1242,16 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Developer Items
-#define VRIMU
-#define VRMIMUIDG5000
-
-//# define IMUOILPAN
-//# define HMC5843
-
-//#define PIN_CONTROL_ENABLE					//Enable the use of performance measures for PIN
-#define SAVE_EEPROM_EXCLUDE_PARAMETERS		//Excludes the parameters are saved in EEPROM during operation
+//
 
 // use this to completely disable the CLI
 #ifndef CLI_ENABLED
-# define CLI_ENABLED ENABLED
+// Sorry the chip is just too small to let this fit
+ # if defined( __AVR_ATmega1280__ )
+  #  define CLI_ENABLED           DISABLED
+ # else
+  #  define CLI_ENABLED           ENABLED
+ # endif
 #endif
 
 // use this to disable the CLI slider switch

@@ -28,7 +28,7 @@ static int8_t   main_menu_help(uint8_t argc, const Menu::arg *argv)
 }
 
 // Command/function table for the top-level menu.
-const struct Menu::command main_menu_commands[] = {
+const struct Menu::command main_menu_commands[] PROGMEM = {
 //   command		function called
 //   =======        ===============
     {"logs",                process_logs},
@@ -48,11 +48,14 @@ static int8_t reboot_board(uint8_t argc, const Menu::arg *argv)
 }
 
 // the user wants the CLI. It never exits
-static void run_cli(FastSerial *port)
+static void run_cli(AP_HAL::UARTDriver *port)
 {
     cliSerial = port;
     Menu::set_port(port);
     port->set_blocking_writes(true);
+
+    // disable the mavlink delay callback
+    hal.scheduler->register_delay_callback(NULL, 5);
 
     while (1) {
         main_menu.run();
@@ -63,18 +66,14 @@ static void run_cli(FastSerial *port)
 
 static void init_ardupilot()
 {
-SerialUSB.configure(99);
-SerialUSB.begin(115200, 128, 256);
-Serial.begin(SERIAL_CLI_BAUD, 128, 256);
-
 #if USB_MUX_PIN > 0
     // on the APM2 board we have a mux thet switches UART0 between
     // USB and the board header. If the right ArduPPM firmware is
     // installed we can detect if USB is connected using the
     // USB_MUX_PIN
-    //pinMode(USB_MUX_PIN, INPUT);
+    pinMode(USB_MUX_PIN, INPUT);
 
-    ap_system.usb_connected = SerialUSB.usb_present;
+    ap_system.usb_connected = !digitalReadFast(USB_MUX_PIN);
     if (!ap_system.usb_connected) {
         // USB is not connected, this means UART0 may be a Xbee, with
         // its darned bricking problem. We can't write to it for at
@@ -82,12 +81,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         // now is to delay for 1 second. Something more elegant may be
         // added later
         delay(1000);
-    } else {
-        cliSerial->flush();
-        cliSerial = &SerialUSB;
-	cliSerial->begin(115200,256,256);
     }
-    
 #endif
 
     // Console serial port
@@ -95,32 +89,25 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     // The console port buffers are defined to be sufficiently large to support
     // the MAVLink protocol efficiently
     //
-
+#if HIL_MODE != HIL_MODE_DISABLED
+    // we need more memory for HIL, as we get a much higher packet rate
+    hal.uartA->begin(SERIAL0_BAUD, 256, 256);
+#else
+    // use a bit less for non-HIL operation
+    hal.uartA->begin(SERIAL0_BAUD, 128, 128);
+#endif
 
     // GPS serial port.
     //
+#if GPS_PROTOCOL != GPS_PROTOCOL_IMU
+    // standard gps running. Note that we need a 256 byte buffer for some
+    // GPS types (eg. UBLOX)
+    hal.uartB->begin(38400, 256, 16);
+#endif
 
     cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
                          "\n\nFree RAM: %u\n"),
-                    freeRAM());
-	
-
-    //
-    // Initialize Wire and SPI libraries
-    //
-#ifndef DESKTOP_BUILD
-    I2C2x.begin();
-
-
-#endif
-    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
-    EEPROM.init(&I2C2x,cliSerial);
-
-
-    //
-    // Initialize the isr_registry.
-    //
-    isr_registry.init();
+                    memcheck_available_memory());
 
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
@@ -137,40 +124,24 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
     digitalWrite(C_LED_PIN, LED_OFF);
 
-    pinMode(BATTERY_PIN_1,INPUT_ANALOG);
-
-#if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
-  // Set Port B, pin 7 as output for an external relay (A9 Enclosure's label)
-  pinMode(RELAY_APM2_PIN, OUTPUT);
-#else
-  // Set Port L, pin 2 as output for the onboard relay
-  //pinMode(RELAY_APM1_PIN, OUTPUT);
-#endif
-
 #if SLIDE_SWITCH_PIN > 0
     pinMode(SLIDE_SWITCH_PIN, INPUT);           // To enter interactive mode
 #endif
 #if CONFIG_PUSHBUTTON == ENABLED
     pinMode(PUSHBUTTON_PIN, INPUT);                     // unused
 #endif
-	
-	
 
-	
-
-	
-
+    relay.init(); 
 
 #if COPTER_LEDS == ENABLED
-    pinMode(PIEZO_PIN, OUTPUT);
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
     pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
     pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
-    //pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
-    //pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
-    //pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
+    pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
+    pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
+    pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
+    pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
+    pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
 
     if ( !bitRead(g.copter_leds_mode, 3) ) {
         piezo_beep();
@@ -183,45 +154,28 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     load_parameters();
 
     // init the GCS
-    gcs0.init(cliSerial);
+    gcs0.init(hal.uartA);
 
-#if GPS_PROTOCOL != GPS_PROTOCOL_IMU
+    // Register the mavlink service callback. This will run
+    // anytime there are more than 5ms remaining in a call to
+    // hal.scheduler->delay.
+    hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
 
-    // standard gps running. Note that we need a 256 byte buffer for some
-    // GPS types (eg. UBLOX)
-	#if CONFIG_APM_HARDWARE == VRBRAINF4
-		Serial1.configure(g.serial_gps_port);
-	    Serial1.begin(map_baudrate(g.serial_gps_baud, SERIAL_GPS_BAUD), 256, 16);
-		//Serial1.use_tx_fifo(false);
-	#else
-		Serial1.configure(g.serial_gps_port);
-		Serial1.begin(map_baudrate(g.serial_gps_baud, SERIAL_GPS_BAUD), 256, 16);
-		//Serial1.use_tx_fifo(false);
-	#endif
-#endif
-
-	// Telemetry port.
-	//
-  
-	//
+#if USB_MUX_PIN > 0
+    if (!ap_system.usb_connected) {
+        // we are not connected via USB, re-init UART0 with right
+        // baud rate
+        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
+    }
+#else
     // we have a 2nd serial port for telemetry
-	Serial3.configure(g.serial_aux_port);
-	Serial3.begin(map_baudrate(g.serial_aux_baud, SERIAL_AUX_BAUD), 256, 16);
-	//Serial3.println("Seriale TELEMETRIA");
-	//gcs3.init(&Serial3);
-
-	
-#ifdef AP_VAR_DEBUG_ENABLE
-	AP_Var::set_serial_for_debug(&Serial3);
+    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+    gcs3.init(hal.uartC);
 #endif
 
     // identify ourselves correctly with the ground station
     mavlink_system.sysid = g.sysid_this_mav;
     mavlink_system.type = 2; //MAV_QUADROTOR;
-
-	
-
-
 
 #if LOGGING_ENABLED == ENABLED
     DataFlash.Init();
@@ -236,64 +190,35 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         DataFlash.start_new_log();
     }
 #endif
-	
-	
-	
-	
-#ifdef EEPROM_DEBUG_ENABLE
-	eeprom_set_serial_for_debug(&Serial3);
-#endif
-/*
-#ifdef RADIO_OVERRIDE_DEFAULTS
-    {
-        int16_t rc_override[8] = RADIO_OVERRIDE_DEFAULTS;
-        APM_RC.setHIL(rc_override);
-    }
-#endif
-*/
 
 #if FRAME_CONFIG == HELI_FRAME
     motors.servo_manual = false;
     motors.init_swash();              // heli initialisation
 #endif
 
-    RC_Channel::set_apm_rc(&APM_RC);
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
-
-//TEO 2012_01_06
-//    timer_scheduler.init( &isr_registry );
-	if (pScheduler)
-        {
     /*
      *  setup the 'main loop is dead' check. Note that this relies on
      *  the RC library being initialised.
      */
-	    cliSerial->println("Timer scheduler");
-		pScheduler->init( &isr_registry );
-        }
-          //TEO 2012_02_01 test timer
-//        timer_scheduler.register_process( test_led );
-
+    hal.scheduler->register_timer_failsafe(failsafe_check, 1000);
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
  #if CONFIG_ADC == ENABLED
     // begin filtering the ADC Gyros
-	//adc.filter_result = true;
-	adc.Init(pScheduler);       // APM ADC library initialization
+    adc.Init();           // APM ADC library initialization
  #endif // CONFIG_ADC
 
-	cliSerial->println("barometer init");
-	barometer.init(pScheduler);
+    barometer.init();
 
 #endif // HIL_MODE
 
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
-    g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);
+    g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
 
-    cliSerial->println("compass init");
     if(g.compass_enabled)
         init_compass();
 
@@ -307,11 +232,9 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     inertial_nav.init();
 #endif
 
-// agmatthews USERHOOKS
 #ifdef USERHOOK_INIT
     USERHOOK_INIT
 #endif
-cliSerial->println("Fine init");
 
 #if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
     // If the switch is in 'menu' mode, run the main menu.
@@ -326,9 +249,12 @@ cliSerial->println("Fine init");
         run_cli(cliSerial);
     }
 #else
-    cliSerial->printf_P(PSTR("\nPress ENTER 3 times to start interactive setup\n"));
+    const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
+    cliSerial->println_P(msg);
+#if USB_MUX_PIN == 0
+    hal.uartC->println_P(msg);
+#endif
 #endif // CLI_ENABLED
-    cliSerial->println("Gps Check live END");
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
@@ -341,7 +267,7 @@ cliSerial->println("Fine init");
     init_sonar();
 #endif
 
-#if FRAME_CONIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME
 // initialise controller filters
 init_rate_controllers();
 #endif // HELI_FRAME
@@ -357,24 +283,25 @@ init_rate_controllers();
 
     startup_ground();
 
-    // now that initialisation of IMU has occurred increase SPI to 2MHz
-
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
 #endif
 
+    init_ap_limits();
+
+    cliSerial->print_P(PSTR("\nReady to FLY "));
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
+// Experimental AP_Limits library - set constraints, limits, fences, minima,
+// maxima on various parameters
 ////////////////////////////////////////////////////////////////////////////////
+static void init_ap_limits() {
 #if AP_LIMITS == ENABLED
-
-    // AP_Limits modules are stored as a _linked list_. That allows us to define an infinite number of modules
-    // and also to allocate no space until we actually need to.
-
-    // The linked list looks (logically) like this
-    //   [limits module] -> [first limit module] -> [second limit module] -> [third limit module] -> NULL
+    // The linked list looks (logically) like this [limits module] -> [first
+    // limit module] -> [second limit module] -> [third limit module] -> NULL
 
 
     // The details of the linked list are handled by the methods
@@ -395,38 +322,34 @@ init_rate_controllers();
             m = limits.modules_next();
         }
     }
-
 #endif
-
-    cliSerial->print_P(PSTR("\nReady to FLY "));
-    cliSerial->use_tx_fifo(true);
 }
 
 
-//********************************************************************************
+//******************************************************************************
 //This function does all the calibrations, etc. that we need during a ground start
-//********************************************************************************
+//******************************************************************************
 static void startup_ground(void)
 {
     gcs_send_text_P(SEVERITY_LOW,PSTR("GROUND START"));
 
+    // initialise ahrs (may push imu calibration into the mpu6000 if using that device).
+    ahrs.init();
+
     // Warm up and read Gyro offsets
     // -----------------------------
-    ins.init(AP_InertialSensor::COLD_START, 
+    ins.init(AP_InertialSensor::COLD_START,
              ins_sample_rate,
-             mavlink_delay, flash_leds, pScheduler, cliSerial);
+             flash_leds);
  #if CLI_ENABLED == ENABLED
     report_ins();
  #endif
-
-    // initialise ahrs (may push imu calibration into the mpu6000 if using that device).
-    ahrs.init();
 
     // setup fast AHRS gains to get right attitude
     ahrs.set_fast_gains(true);
 
 #if SECONDARY_DMP_ENABLED == ENABLED
-    ahrs2.init();
+    ahrs2.init(&timer_scheduler);
     ahrs2.set_as_secondary(true);
     ahrs2.set_fast_gains(true);
 #endif
@@ -441,7 +364,7 @@ static void startup_ground(void)
 }
 
 // set_mode - change flight mode and perform any necessary initialisation
-static void set_mode(byte mode)
+static void set_mode(uint8_t mode)
 {
     // Switch to stabilize mode if requested mode requires a GPS lock
     if(!ap.home_is_set) {
@@ -455,19 +378,19 @@ static void set_mode(byte mode)
         mode = STABILIZE;
     }
 
-    control_mode            = mode;
-    control_mode            = constrain(control_mode, 0, NUM_MODES - 1);
+    control_mode 	= mode;
+    control_mode    = constrain(control_mode, 0, NUM_MODES - 1);
 
     // used to stop fly_aways
     // set to false if we have low throttle
-    motors.auto_armed(g.rc_3.control_in > 0);
-    set_auto_armed(g.rc_3.control_in > 0);
+    motors.auto_armed(g.rc_3.control_in > 0 || ap.failsafe);
+    set_auto_armed(g.rc_3.control_in > 0 || ap.failsafe);
 
     // if we change modes, we must clear landed flag
     set_land_complete(false);
 
     // debug to Serial terminal
-    //Serial.println(flight_mode_strings[control_mode]);
+    //cliSerial->println(flight_mode_strings[control_mode]);
 
     ap.loiter_override  = false;
 
@@ -479,9 +402,10 @@ static void set_mode(byte mode)
     case ACRO:
     	ap.manual_throttle = true;
     	ap.manual_attitude = true;
-        set_yaw_mode(YAW_ACRO);
-        set_roll_pitch_mode(ROLL_PITCH_ACRO);
-        set_throttle_mode(THROTTLE_MANUAL);
+        set_yaw_mode(ACRO_YAW);
+        set_roll_pitch_mode(ACRO_RP);
+        set_throttle_mode(ACRO_THR);
+        set_nav_mode(ACRO_NAV);
         // reset acro axis targets to current attitude
 		if(g.axis_enabled){
             roll_axis 	= ahrs.roll_sensor;
@@ -495,7 +419,8 @@ static void set_mode(byte mode)
     	ap.manual_attitude = true;
         set_yaw_mode(YAW_HOLD);
         set_roll_pitch_mode(ROLL_PITCH_STABLE);
-        set_throttle_mode(STABILIZE_THROTTLE);
+        set_throttle_mode(THROTTLE_MANUAL_TILT_COMPENSATED);
+        set_nav_mode(NAV_NONE);
         break;
 
     case ALT_HOLD:
@@ -504,6 +429,7 @@ static void set_mode(byte mode)
         set_yaw_mode(ALT_HOLD_YAW);
         set_roll_pitch_mode(ALT_HOLD_RP);
         set_throttle_mode(ALT_HOLD_THR);
+        set_nav_mode(ALT_HOLD_NAV);
         break;
 
     case AUTO:
@@ -512,7 +438,7 @@ static void set_mode(byte mode)
         set_yaw_mode(AUTO_YAW);
         set_roll_pitch_mode(AUTO_RP);
         set_throttle_mode(AUTO_THR);
-
+        // we do not set nav mode for auto because it will be overwritten when first command runs
         // loads the commands from where we left off
         init_commands();
         break;
@@ -520,17 +446,12 @@ static void set_mode(byte mode)
     case CIRCLE:
     	ap.manual_throttle = false;
     	ap.manual_attitude = false;
-
-        // start circling around current location
-        set_next_WP(&current_loc);
-        circle_WP       = next_WP;
-
         // set yaw to point to center of circle
         yaw_look_at_WP = circle_WP;
-        set_yaw_mode(YAW_LOOK_AT_LOCATION);
+        set_yaw_mode(CIRCLE_YAW);
         set_roll_pitch_mode(CIRCLE_RP);
         set_throttle_mode(CIRCLE_THR);
-        circle_angle    = 0;
+        set_nav_mode(CIRCLE_NAV);
         break;
 
     case LOITER:
@@ -540,15 +461,17 @@ static void set_mode(byte mode)
         set_roll_pitch_mode(LOITER_RP);
         set_throttle_mode(LOITER_THR);
         set_next_WP(&current_loc);
+        set_nav_mode(LOITER_NAV);
         break;
 
     case POSITION:
     	ap.manual_throttle = true;
     	ap.manual_attitude = false;
-        set_yaw_mode(YAW_HOLD);
-        set_roll_pitch_mode(LOITER_RP);
-        set_throttle_mode(THROTTLE_MANUAL);
+        set_yaw_mode(POSITION_YAW);
+        set_roll_pitch_mode(POSITION_RP);
+        set_throttle_mode(POSITION_THR);
         set_next_WP(&current_loc);
+        set_nav_mode(POSITION_NAV);
         break;
 
     case GUIDED:
@@ -557,7 +480,7 @@ static void set_mode(byte mode)
         set_yaw_mode(GUIDED_YAW);
         set_roll_pitch_mode(GUIDED_RP);
         set_throttle_mode(GUIDED_THR);
-        wp_control = WP_MODE;
+        set_nav_mode(GUIDED_NAV);
         wp_verify_byte = 0;
         set_next_WP(&guided_WP);
         break;
@@ -590,6 +513,7 @@ static void set_mode(byte mode)
         set_yaw_mode(OF_LOITER_YAW);
         set_roll_pitch_mode(OF_LOITER_RP);
         set_throttle_mode(OF_LOITER_THR);
+        set_nav_mode(OF_LOITER_NAV);
         set_next_WP(&current_loc);
         break;
 
@@ -602,11 +526,10 @@ static void set_mode(byte mode)
         set_yaw_mode(YAW_TOY);
         set_roll_pitch_mode(ROLL_PITCH_TOY);
         set_throttle_mode(THROTTLE_AUTO);
-        wp_control      = NO_NAV_MODE;
+        set_nav_mode(NAV_NONE);
 
         // save throttle for fast exit of Alt hold
         saved_toy_throttle = g.rc_3.control_in;
-
         break;
 
     case TOY_M:
@@ -614,23 +537,12 @@ static void set_mode(byte mode)
     	ap.manual_attitude = true;
         set_yaw_mode(YAW_TOY);
         set_roll_pitch_mode(ROLL_PITCH_TOY);
-        wp_control          = NO_NAV_MODE;
+        set_nav_mode(NAV_NONE);
         set_throttle_mode(THROTTLE_HOLD);
         break;
 
     default:
         break;
-    }
-
-    if(ap.failsafe) {
-        // this is to allow us to fly home without interactive throttle control
-        set_throttle_mode(THROTTLE_AUTO);
-    	ap.manual_throttle = false;
-
-        // does not wait for us to be in high throttle, since the
-        // Receiver will be outputting low throttle
-        motors.auto_armed(true);
-    	set_auto_armed(true);
     }
 
     if(ap.manual_attitude) {
@@ -648,14 +560,15 @@ static void
 init_simple_bearing()
 {
     initial_simple_bearing = ahrs.yaw_sensor;
-    Log_Write_Data(DATA_INIT_SIMPLE_BEARING, initial_simple_bearing);
+    if (g.log_bitmask != 0) {
+        Log_Write_Data(DATA_INIT_SIMPLE_BEARING, initial_simple_bearing);
+    }
 }
 
 #if CLI_SLIDER_ENABLED == ENABLED && CLI_ENABLED == ENABLED
-static boolean
-check_startup_for_CLI()
+static bool check_startup_for_CLI()
 {
-    return (digitalRead(SLIDE_SWITCH_PIN) == 0);
+    return (digitalReadFast(SLIDE_SWITCH_PIN) == 0);
 }
 #endif // CLI_ENABLED
 
@@ -675,14 +588,14 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
     case 111:  return 111100;
     case 115:  return 115200;
     }
-    //Serial.println_P(PSTR("Invalid SERIAL3_BAUD"));
+    //cliSerial->println_P(PSTR("Invalid SERIAL3_BAUD"));
     return default_baud;
 }
 
 #if USB_MUX_PIN > 0
 static void check_usb_mux(void)
 {
-    bool usb_check = SerialUSB.usb_present;
+    bool usb_check = !digitalReadFast(USB_MUX_PIN);
     if (usb_check == ap_system.usb_connected) {
         return;
     }
@@ -690,9 +603,9 @@ static void check_usb_mux(void)
     // the user has switched to/from the telemetry port
     ap_system.usb_connected = usb_check;
     if (ap_system.usb_connected) {
-        cliSerial->begin(115200,256,256);
+        hal.uartA->begin(SERIAL0_BAUD);
     } else {
-        cliSerial->begin(map_baudrate(g.serial_cli_baud, SERIAL_CLI_BAUD), 256, 256);
+        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 }
 #endif
@@ -707,43 +620,19 @@ void flash_leds(bool on)
     digitalWrite(C_LED_PIN, on ? LED_ON : LED_OFF);
 }
 
-
-void resetPerfData(void) {
-	//mainLoop_count 		= 0;
-	//G_Dt_max 			= 0;
-	//gps_fix_count 		= 0;
-	//perf_mon_timer 		= millis();
-}
-
-
-/* This function gets the current value of the heap and stack pointers.
-* The stack pointer starts at the top of RAM and grows downwards. The heap pointer
-* starts just above the static variables etc. and grows upwards. SP should always
-* be larger than HP or you'll be in big trouble! The smaller the gap, the more
-* careful you need to be. Julian Gall 6 - Feb - 2009.
-*/
-unsigned long freeRAM() {
-	uint8_t * heapptr, * stackptr;
-	stackptr = (uint8_t *)malloc(4); // use stackptr temporarily
-	heapptr = stackptr; // save value of heap pointer
-	free(stackptr); // free up the memory again (sets stackptr to 0)
-	//stackptr = (uint8_t *)(SP); // save value of stack pointer
-	return stackptr - heapptr;
+/*
+ * Read Vcc vs 1.1v internal reference
+ */
+uint16_t board_voltage(void)
+{
+    return board_vcc_analog_source->read_latest();
 }
 
 /*
   force a software reset of the APM
  */
-static void reboot_apm(void)
-{
-    cliSerial->printf_P(PSTR("REBOOTING\n"));
-    delay(100); // let serial flush
-    // see http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1250663814/
-    // for the method
-#if CONFIG_APM_HARDWARE == VRBRAINF4
-	NVIC_SystemReset();
-#endif
-    while (1);
+static void reboot_apm(void) {
+    hal.scheduler->reboot();
 }
 
 //

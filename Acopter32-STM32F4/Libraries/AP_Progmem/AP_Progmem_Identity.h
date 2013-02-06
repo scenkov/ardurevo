@@ -4,7 +4,6 @@
 
 #include <string.h>
 #include <stdint.h>
-#include <stdio.h>
 
 typedef char prog_char_t;
 typedef char prog_char;

@@ -17,7 +17,6 @@ static void process_nav_command()
         break;
 
     case MAV_CMD_NAV_LAND:              // 21 LAND to Waypoint
-        set_yaw_mode(YAW_HOLD);
         do_land();
         break;
 
@@ -227,10 +226,10 @@ static void do_RTL(void)
     set_throttle_mode(RTL_THR);
 
     // set navigation mode
-    wp_control = LOITER_MODE;
+    set_nav_mode(NAV_LOITER);
 
     // initial climb starts at current location
-    next_WP = current_loc;
+    set_next_WP(&current_loc);
 
     // override altitude to RTL altitude
     set_new_altitude(get_RTL_alt());
@@ -243,7 +242,7 @@ static void do_RTL(void)
 // do_takeoff - initiate takeoff navigation command
 static void do_takeoff()
 {
-    wp_control = LOITER_MODE;
+    set_nav_mode(NAV_LOITER);
 
     // Start with current location
     Location temp = current_loc;
@@ -251,17 +250,20 @@ static void do_takeoff()
     // alt is always relative
     temp.alt = command_nav_queue.alt;
 
-    // prevent flips
-    reset_I_all();
-
     // Set our waypoint
     set_next_WP(&temp);
+
+    // set our yaw mode
+    set_yaw_mode(YAW_HOLD);
+
+    // prevent flips
+    reset_I_all();    
 }
 
 // do_nav_wp - initiate move to next waypoint
 static void do_nav_wp()
 {
-    wp_control = WP_MODE;
+    set_nav_mode(NAV_WP);
 
     set_next_WP(&command_nav_queue);
 
@@ -290,29 +292,32 @@ static void do_land()
 {
     // hold at our current location
     set_next_WP(&current_loc);
-    wp_control = LOITER_MODE;
+    set_nav_mode(NAV_LOITER);
+
+    // hold current heading
+    set_yaw_mode(YAW_HOLD);
 
     set_throttle_mode(THROTTLE_LAND);
 }
 
 static void do_loiter_unlimited()
 {
-    wp_control = LOITER_MODE;
+    set_nav_mode(NAV_LOITER);
 
     //cliSerial->println("dloi ");
     if(command_nav_queue.lat == 0) {
         set_next_WP(&current_loc);
-        wp_control = LOITER_MODE;
+        set_nav_mode(NAV_LOITER);
     }else{
         set_next_WP(&command_nav_queue);
-        wp_control = WP_MODE;
+        set_nav_mode(NAV_WP);
     }
 }
 
 // do_loiter_turns - initiate moving in a circle
 static void do_loiter_turns()
 {
-    wp_control = CIRCLE_MODE;
+    set_nav_mode(NAV_CIRCLE);
 
     if(command_nav_queue.lat == 0) {
         // allow user to specify just the altitude
@@ -339,11 +344,11 @@ static void do_loiter_turns()
 static void do_loiter_time()
 {
     if(command_nav_queue.lat == 0) {
-        wp_control              = LOITER_MODE;
+        set_nav_mode(NAV_LOITER);
         loiter_time     = millis();
         set_next_WP(&current_loc);
     }else{
-        wp_control              = WP_MODE;
+        set_nav_mode(NAV_WP);
         set_next_WP(&command_nav_queue);
     }
 
@@ -362,7 +367,7 @@ static bool verify_takeoff()
         return false;
     }
     // are we above our target altitude?
-    return (current_loc.alt > next_WP.alt);
+    return (alt_change_flag == REACHED_ALT);
 }
 
 // verify_land - returns true if landing has been completed
@@ -386,14 +391,10 @@ static bool verify_nav_wp()
     }
 
     // Did we pass the WP?	// Distance checking
-    if((wp_distance <= (g.waypoint_radius * 100)) || check_missed_wp()) {
-        // if we have a distance calc error, wp_distance may be less than 0
-        if(wp_distance > 0) {
-            wp_verify_byte |= NAV_LOCATION;
-
-            if(loiter_time == 0) {
-                loiter_time = millis();
-            }
+    if((wp_distance <= (uint32_t)max((g.waypoint_radius * 100),0)) || check_missed_wp()) {
+        wp_verify_byte |= NAV_LOCATION;
+        if(loiter_time == 0) {
+            loiter_time = millis();
         }
     }
 
@@ -402,7 +403,7 @@ static bool verify_nav_wp()
         // we have reached our goal
 
         // loiter at the WP
-        wp_control      = LOITER_MODE;
+        set_nav_mode(NAV_LOITER);
 
         if ((millis() - loiter_time) > loiter_time_max) {
             wp_verify_byte |= NAV_DELAY;
@@ -423,9 +424,9 @@ static bool verify_nav_wp()
 
 static bool verify_loiter_unlimited()
 {
-    if(wp_control == WP_MODE &&  wp_distance <= (g.waypoint_radius * 100)) {
+    if(nav_mode == NAV_WP &&  wp_distance <= (uint32_t)max((g.waypoint_radius * 100),0)) {
         // switch to position hold
-        wp_control      = LOITER_MODE;
+        set_nav_mode(NAV_LOITER);
     }
     return false;
 }
@@ -433,16 +434,16 @@ static bool verify_loiter_unlimited()
 // verify_loiter_time - check if we have loitered long enough
 static bool verify_loiter_time()
 {
-    if(wp_control == LOITER_MODE) {
+    if(nav_mode == NAV_LOITER) {
         if ((millis() - loiter_time) > loiter_time_max) {
             return true;
         }
     }
-    if(wp_control == WP_MODE &&  wp_distance <= (g.waypoint_radius * 100)) {
+    if(nav_mode == NAV_WP &&  wp_distance <= (uint32_t)max((g.waypoint_radius * 100),0)) {
         // reset our loiter time
         loiter_time = millis();
         // switch to position hold
-        wp_control      = LOITER_MODE;
+        set_nav_mode(NAV_LOITER);
     }
     return false;
 }
@@ -474,7 +475,7 @@ static bool verify_RTL()
 
         case RTL_STATE_INITIAL_CLIMB:
             // rely on verify_altitude function to update alt_change_flag when we've reached the target
-            if(alt_change_flag == REACHED_ALT) {
+            if(alt_change_flag == REACHED_ALT || alt_change_flag == DESCENDING) {
                 // Set navigation target to home
                 set_next_WP(&home);
 
@@ -482,7 +483,7 @@ static bool verify_RTL()
                 set_new_altitude(get_RTL_alt());
 
                 // set navigation mode
-                wp_control = WP_MODE;
+                set_nav_mode(NAV_WP);
 
                 // set yaw mode
                 set_yaw_mode(RTL_YAW);
@@ -494,9 +495,9 @@ static bool verify_RTL()
 
         case RTL_STATE_RETURNING_HOME:
             // if we've reached home initiate loiter
-            if (wp_distance <= g.waypoint_radius * 100 || check_missed_wp()) {
+            if (wp_distance <= (uint32_t)max((g.waypoint_radius * 100),0) || check_missed_wp()) {
                 rtl_state = RTL_STATE_LOITERING_AT_HOME;
-                wp_control = LOITER_MODE;
+                set_nav_mode(NAV_LOITER);
 
                 // set loiter timer
                 rtl_loiter_start_time = millis();
@@ -619,7 +620,7 @@ static void do_yaw()
 static bool verify_wait_delay()
 {
     //cliSerial->print("vwd");
-    if ((unsigned)(millis() - condition_start) > (unsigned)condition_value) {
+    if (millis() - condition_start > (uint32_t)max(condition_value,0)) {
         //cliSerial->println("y");
         condition_value = 0;
         return true;
@@ -648,7 +649,7 @@ static bool verify_change_alt()
 static bool verify_within_distance()
 {
     //cliSerial->printf("cond dist :%d\n", (int)condition_value);
-    if (wp_distance < condition_value) {
+    if (wp_distance < max(condition_value,0)) {
         condition_value = 0;
         return true;
     }
@@ -794,8 +795,8 @@ static void do_set_servo()
 
     // send output to channel
     if (channel_num != 0xff) {
-        APM_RC.enable_out(channel_num);
-        APM_RC.OutputCh(channel_num, command_cond_queue.alt);
+        hal.rcout->enable_ch(channel_num);
+        hal.rcout->write(channel_num, command_cond_queue.alt);
     }
 }
 
@@ -819,7 +820,7 @@ static void do_repeat_servo()
         event_timer             = 0;
         event_value             = command_cond_queue.alt;
         event_repeat    = command_cond_queue.lat * 2;
-        event_delay             = command_cond_queue.lng * 500.0;         // /2 (half cycle time) * 1000 (convert to milliseconds)
+        event_delay             = command_cond_queue.lng * 500.0f;         // /2 (half cycle time) * 1000 (convert to milliseconds)
 
         switch(command_cond_queue.p1) {
         case CH_5:
@@ -843,7 +844,7 @@ static void do_repeat_relay()
 {
     event_id                = RELAY_TOGGLE;
     event_timer             = 0;
-    event_delay             = command_cond_queue.lat * 500.0;     // /2 (half cycle time) * 1000 (convert to milliseconds)
+    event_delay             = command_cond_queue.lat * 500.0f;     // /2 (half cycle time) * 1000 (convert to milliseconds)
     event_repeat    = command_cond_queue.alt * 2;
     update_events();
 }

@@ -3,6 +3,9 @@
 #define __AP_HAL_PX4_RCOUTPUT_H__
 
 #include <AP_HAL_PX4.h>
+#include <systemlib/perf_counter.h>
+
+#define PX4_NUM_OUTPUT_CHANNELS 16
 
 class PX4::PX4RCOutput : public AP_HAL::RCOutput 
 {
@@ -19,9 +22,16 @@ public:
     uint16_t read(uint8_t ch);
     void     read(uint16_t* period_us, uint8_t len);
 
+    void _timer_tick(void);
+
 private:
     int _pwm_fd;
     uint16_t _freq_hz;
+    uint16_t _period[PX4_NUM_OUTPUT_CHANNELS];
+    volatile uint8_t _max_channel;
+    volatile bool _need_update;
+    perf_counter_t  _perf_rcout;
+    uint32_t _last_output;
 };
 
 #endif // __AP_HAL_PX4_RCOUTPUT_H__

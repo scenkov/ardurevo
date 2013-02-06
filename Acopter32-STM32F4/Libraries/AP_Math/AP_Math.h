@@ -7,7 +7,7 @@
 
 #include <AP_Common.h>
 #include <AP_Param.h>
-#include <arm_math.h>
+#include <math.h>
 #ifdef __AVR__
 # include <AP_Math_AVR_Compat.h>
 #endif
@@ -30,6 +30,11 @@
 
 #define ROTATION_COMBINATION_SUPPORT 0
 
+// convert a longitude or latitude point to meters or centimeteres.
+// Note: this does not include the longitude scaling which is dependent upon location
+#define LATLON_TO_M  0.01113195f
+#define LATLON_TO_CM 1.113195f
+
 // define AP_Param types AP_Vector3f and Ap_Matrix3f
 AP_PARAMDEFV(Matrix3f, Matrix3f, AP_PARAM_MATRIX3F);
 AP_PARAMDEFV(Vector3f, Vector3f, AP_PARAM_VECTOR3F);
@@ -47,11 +52,15 @@ float           safe_sqrt(float v);
 enum Rotation           rotation_combination(enum Rotation r1, enum Rotation r2, bool *found = NULL);
 #endif
 
+// longitude_scale - returns the scaler to compensate for shrinking longitude as you move north or south from the equator
+// Note: this does not include the scaling to convert longitude/latitude points to meters or centimeters
+float                   longitude_scale(const struct Location *loc);
+
 // return distance in meters between two locations
 float                   get_distance(const struct Location *loc1, const struct Location *loc2);
 
 // return distance in centimeters between two locations
-int32_t                 get_distance_cm(const struct Location *loc1, const struct Location *loc2);
+uint32_t                get_distance_cm(const struct Location *loc1, const struct Location *loc2);
 
 // return bearing in centi-degrees between two locations
 int32_t                 get_bearing_cd(const struct Location *loc1, const struct Location *loc2);

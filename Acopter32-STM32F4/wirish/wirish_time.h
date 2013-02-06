@@ -36,8 +36,8 @@
 #include "systick.h"
 #include "boards.h"
 
-extern uint32 millis(void);
-extern uint32 micros(void) ;
-extern void delay(unsigned long ms);
+//extern uint32 millis(void);
+//extern uint32 micros(void) ;
+//extern void delay(unsigned long ms);
 
 #endif

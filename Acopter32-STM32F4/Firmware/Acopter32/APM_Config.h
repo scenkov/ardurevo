@@ -1,14 +1,11 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// Example config file. Take a look at config.h. Any term define there can be overridden by defining it here.
+// Example config file. Take a look at config.h. Any term define there can be
+// overridden by defining it here.
 
-//#define CONFIG_APM_HARDWARE APM_HARDWARE_APM2
 
-// Ordinary users should please ignore the following define.
-// APM2_BETA_HARDWARE is used to support early (September-October 2011) APM2
-// hardware which had the BMP085 barometer onboard. Only a handful of
-// developers have these boards.
-//#define APM2_BETA_HARDWARE
+// If you used to define your CONFIG_APM_HARDWARE setting here, it is no longer
+// valid! You should switch to using a HAL_BOARD flag in your local config.mk.
 
 //#define MAG_ORIENTATION		AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 //#define HIL_MODE				HIL_MODE_ATTITUDE
@@ -47,13 +44,12 @@
 
 // Inertia based contollers
 //#define INERTIAL_NAV_XY ENABLED
-//#define INERTIAL_NAV_Z ENABLED
+#define INERTIAL_NAV_Z ENABLED
 
 //#define MOTORS_JD880
 //#define MOTORS_JD850
 
 
-// agmatthews USERHOOKS
 // the choice of function names is up to the user and does not have to match these
 // uncomment these hooks and ensure there is a matching function on your "UserCode.pde" file
 //#define USERHOOK_FASTLOOP userhook_FastLoop();
@@ -68,8 +64,3 @@
 #define USERHOOK_VARIABLES "UserVariables.h"
 
 //#define LOGGING_ENABLED		DISABLED
-//define PERFMON_ENABLE
-
-#define LOITER_REPOSITIONING    DISABLED                          // Experimental Do Not Use
-// #define LOITER_RP               ROLL_PITCH_LOITER_PR
-

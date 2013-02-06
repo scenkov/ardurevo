@@ -1,37 +1,50 @@
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+
 /* ************************************************************ */
-/* Test for DataFlash Log library                               */
+/* DataFlash_APM1 Log library                                 */
 /* ************************************************************ */
 #ifndef __DATAFLASH_MP32_H__
 #define __DATAFLASH_MP32_H__
 
+#include <AP_HAL.h>
 #include "DataFlash.h"
-
-//#define DATAFLASH_MP32_DEBUG_ENABLE
 
 class DataFlash_MP32 : public DataFlash_Class
 {
-  private:
-	HardwareSPI * _SPIx;
+private:
+    //Methods
+    void              BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t wait);
+    void              PageToBuffer(uint8_t BufferNum, uint16_t PageAdr);
+    void              WaitReady();
+    uint8_t           ReadStatusReg();
+    uint8_t           ReadStatus();
+    uint16_t          PageSize();
+    void              PageErase (uint16_t PageAdr);
+    void              BlockErase (uint16_t BlockAdr);
+    void              ChipErase();
 
-	//Methods
-	unsigned char BufferRead (unsigned char BufferNum, uint16_t IntPageAdr);
-	void BufferWrite (unsigned char BufferNum, uint16_t IntPageAdr, unsigned char Data);
-	void BufferToPage (unsigned char BufferNum, uint16_t PageAdr, unsigned char wait);
-	void PageToBuffer(unsigned char BufferNum, uint16_t PageAdr);
-	void WaitReady();
-	unsigned char ReadStatusReg();
-	unsigned char ReadStatus();
-	uint16_t PageSize();
-	void PageErase (uint16_t PageAdr);
-	void BlockErase (uint16_t BlockAdr);
-    void                    ChipErase(void (*delay_cb)(unsigned long));
+    // write size bytes of data to a page. The caller must ensure that
+    // the data fits within the page, otherwise it will wrap to the
+    // start of the page
+    // If pHeader is not NULL then write the header bytes before the data
+    void		    BlockWrite(uint8_t BufferNum, uint16_t IntPageAdr, 
+                               const void *pHeader, uint8_t hdr_size,
+                               const void *pBuffer, uint16_t size);
 
-  public:
+    // read size bytes of data to a page. The caller must ensure that
+    // the data fits within the page, otherwise it will wrap to the
+    // start of the page
+    bool 		    BlockRead(uint8_t BufferNum, uint16_t IntPageAdr, 
+                              void *pBuffer, uint16_t size);
+    
+    AP_HAL::SPIDeviceDriver *_spi;
+    AP_HAL::Semaphore *_spi_sem;
+public:
 
-	DataFlash_MP32(HardwareSPI *spi_dev, FastSerial *ser_port);
-	void Init(void);
-	void ReadManufacturerID();
-	bool CardInserted(void);
+    DataFlash_MP32();
+    void        Init();
+    void        ReadManufacturerID();
+    bool        CardInserted();
 };
 
-#endif // __DATAFLASH_MP32_H__
+#endif

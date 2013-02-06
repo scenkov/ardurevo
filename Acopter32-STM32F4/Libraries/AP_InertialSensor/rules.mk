@@ -12,8 +12,10 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_InertialSensor_MPU6000.cpp
-#cppSRCS_$(d) += AP_InertialSensor_Stub.cpp
-cppSRCS_$(d) += AP_InertialSensor_VRIMU.cpp
+cppSRCS_$(d) += AP_InertialSensor_Oilpan.cpp
+cppSRCS_$(d) += AP_InertialSensor_PX4.cpp
+cppSRCS_$(d) += AP_InertialSensor_Stub.cpp
+cppSRCS_$(d) += AP_InertialSensor_UserInteract_Stream.cpp
 cppSRCS_$(d) += AP_InertialSensor.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)

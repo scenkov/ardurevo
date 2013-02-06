@@ -32,24 +32,24 @@ static struct Location get_cmd_with_index(int i)
     }else{
         // we can load a command, we don't process it yet
         // read WP position
-        uintptr_t mem = (WP_START_BYTE) + (i * WP_SIZE);
+        uint16_t mem = (WP_START_BYTE) + (i * WP_SIZE);
 
-        temp.id = eeprom_read_byte((uint8_t*)mem);
-
-        mem++;
-        temp.options = eeprom_read_byte((uint8_t*)mem);
+        temp.id = hal.storage->read_byte(mem);
 
         mem++;
-        temp.p1 = eeprom_read_byte((uint8_t*)mem);
+        temp.options = hal.storage->read_byte(mem);
 
         mem++;
-        temp.alt = eeprom_read_dword((uint32_t*)mem);           // alt is stored in CM! Alt is stored relative!
+        temp.p1 = hal.storage->read_byte(mem);
+
+        mem++;
+        temp.alt = hal.storage->read_dword(mem);           // alt is stored in CM! Alt is stored relative!
 
         mem += 4;
-        temp.lat = eeprom_read_dword((uint32_t*)mem);         // lat is stored in decimal * 10,000,000
+        temp.lat = hal.storage->read_dword(mem);         // lat is stored in decimal * 10,000,000
 
         mem += 4;
-        temp.lng = eeprom_read_dword((uint32_t*)mem);         // lon is stored in decimal * 10,000,000
+        temp.lng = hal.storage->read_dword(mem);         // lon is stored in decimal * 10,000,000
     }
 
     // Add on home altitude if we are a nav command (or other command with altitude) and stored alt is relative
@@ -81,24 +81,24 @@ static void set_cmd_with_index(struct Location temp, int i)
         temp.id = MAV_CMD_NAV_WAYPOINT;
     }
 
-    uintptr_t mem = WP_START_BYTE + (i * WP_SIZE);
+    uint16_t mem = WP_START_BYTE + (i * WP_SIZE);
 
-    eeprom_write_byte((uint8_t *)   mem, temp.id);
-
-    mem++;
-    eeprom_write_byte((uint8_t *)   mem, temp.options);
+    hal.storage->write_byte(mem, temp.id);
 
     mem++;
-    eeprom_write_byte((uint8_t *)   mem, temp.p1);
+    hal.storage->write_byte(mem, temp.options);
 
     mem++;
-    eeprom_write_dword((uint32_t *) mem, temp.alt);     // Alt is stored in CM!
+    hal.storage->write_byte(mem, temp.p1);
+
+    mem++;
+    hal.storage->write_dword(mem, temp.alt);     // Alt is stored in CM!
 
     mem += 4;
-    eeprom_write_dword((uint32_t *) mem, temp.lat);     // Lat is stored in decimal degrees * 10^7
+    hal.storage->write_dword(mem, temp.lat);     // Lat is stored in decimal degrees * 10^7
 
     mem += 4;
-    eeprom_write_dword((uint32_t *) mem, temp.lng);     // Long is stored in decimal degrees * 10^7
+    hal.storage->write_dword(mem, temp.lng);     // Long is stored in decimal degrees * 10^7
 
     // Make sure our WP_total
     if(g.command_total < (i+1))
@@ -129,9 +129,6 @@ static int32_t get_RTL_alt()
 
 static void set_next_WP(struct Location *wp)
 {
-    //SendDebug("MSG <set_next_wp> wp_index: ");
-    //SendDebugln(g.command_index, DEC);
-
     // copy the current WP into the OldWP slot
     // ---------------------------------------
     if (next_WP.lat == 0 || command_nav_index <= 1) {
@@ -143,20 +140,15 @@ static void set_next_WP(struct Location *wp)
             prev_WP = current_loc;
     }
 
-    //cliSerial->printf("set_next_WP #%d, ", command_nav_index);
-    //print_wp(&prev_WP, command_nav_index -1);
-
     // Load the next_WP slot
     // ---------------------
-    next_WP = *wp;
+    next_WP.options = wp->options;
+    next_WP.lat = wp->lat;
+    next_WP.lng = wp->lng;
 
-    // used to control and limit the rate of climb
-    // -------------------------------------------
-    // We don't set next WP below 1m
-    next_WP.alt = max(next_WP.alt, 100);
-
-    // Save new altitude so we can track it for climb_rate
-    set_new_altitude(next_WP.alt);
+    // Set new target altitude so we can track it for climb_rate
+    // To-Do: remove the restriction on negative altitude targets (after testing)
+    set_new_altitude(max(wp->alt,100));
 
     // this is handy for the groundstation
     // -----------------------------------
@@ -196,9 +188,8 @@ static void init_home()
         Log_Write_Cmd(0, &home);
 
     // update navigation scalers.  used to offset the shrinking longitude as we go towards the poles
-    float rads              = (fabs((float)next_WP.lat)/t7) * 0.0174532925;
-    scaleLongDown           = cos(rads);
-    scaleLongUp             = 1.0f/cos(rads);
+    scaleLongDown = longitude_scale(&home);
+    scaleLongUp   = 1.0f/scaleLongDown;
 
     // Save prev loc this makes the calcs look better before commands are loaded
     prev_WP = home;

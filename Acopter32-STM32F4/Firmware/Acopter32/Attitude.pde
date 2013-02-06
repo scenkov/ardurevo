@@ -288,9 +288,9 @@ void init_rate_controllers()
 {
    // initalise low pass filters on rate controller inputs
    // 1st parameter is time_step, 2nd parameter is time_constant
-   rate_roll_filter.set_cutoff_frequency(0.01, 2.0);
-   rate_pitch_filter.set_cutoff_frequency(0.01, 2.0);
-   // rate_yaw_filter.set_cutoff_frequency(0.01, 2.0);
+   rate_roll_filter.set_cutoff_frequency(0.01f, 2.0f);
+   rate_pitch_filter.set_cutoff_frequency(0.01f, 2.0f);
+   // rate_yaw_filter.set_cutoff_frequency(0.01f, 2.0f);
    // other option for initialisation is rate_roll_filter.set_cutoff_frequency(<time_step>,<cutoff_freq>);
 }
 
@@ -592,8 +592,8 @@ get_of_roll(int32_t input_roll)
         // only stop roll if caller isn't modifying roll
         if( input_roll == 0 && current_loc.alt < 1500) {
             p = g.pid_optflow_roll.get_p(-tot_x_cm);
-            i = g.pid_optflow_roll.get_i(-tot_x_cm,1.0);              // we could use the last update time to calculate the time change
-            d = g.pid_optflow_roll.get_d(-tot_x_cm,1.0);
+            i = g.pid_optflow_roll.get_i(-tot_x_cm,1.0f);              // we could use the last update time to calculate the time change
+            d = g.pid_optflow_roll.get_d(-tot_x_cm,1.0f);
             new_roll = p+i+d;
         }else{
             g.pid_optflow_roll.reset_I();
@@ -645,8 +645,8 @@ get_of_pitch(int32_t input_pitch)
         // only stop roll if caller isn't modifying pitch
         if( input_pitch == 0 && current_loc.alt < 1500 ) {
             p = g.pid_optflow_pitch.get_p(tot_y_cm);
-            i = g.pid_optflow_pitch.get_i(tot_y_cm, 1.0);              // we could use the last update time to calculate the time change
-            d = g.pid_optflow_pitch.get_d(tot_y_cm, 1.0);
+            i = g.pid_optflow_pitch.get_i(tot_y_cm, 1.0f);              // we could use the last update time to calculate the time change
+            d = g.pid_optflow_pitch.get_d(tot_y_cm, 1.0f);
             new_pitch = p + i + d;
         }else{
             tot_y_cm = 0;
@@ -708,7 +708,7 @@ static void update_throttle_cruise(int16_t throttle)
     }
     // calc average throttle if we are in a level hover
     if (throttle > g.throttle_min && abs(climb_rate) < 60 && labs(ahrs.roll_sensor) < 500 && labs(ahrs.pitch_sensor) < 500) {
-        throttle_avg = throttle_avg * .99 + (float)throttle * .01;
+        throttle_avg = throttle_avg * 0.99f + (float)throttle * 0.01f;
         g.throttle_cruise = throttle_avg;
     }
 }
@@ -720,7 +720,7 @@ static void update_throttle_cruise(int16_t throttle)
 static int16_t get_angle_boost(int16_t throttle)
 {
     float angle_boost_factor = cos_pitch_x * cos_roll_x;
-    angle_boost_factor = 1.0 - constrain(angle_boost_factor, .5, 1.0);
+    angle_boost_factor = 1.0f - constrain(angle_boost_factor, .5f, 1.0f);
     int16_t throttle_above_mid = max(throttle - motors.throttle_mid,0);
 
     // to allow logging of angle boost
@@ -736,10 +736,9 @@ static int16_t get_angle_boost(int16_t throttle)
     float temp = cos_pitch_x * cos_roll_x;
     int16_t throttle_out;
 
-    temp = constrain(temp, .5, 1.0);
+    temp = constrain(temp, 0.5f, 1.0f);
     temp = constrain(9000-max(labs(roll_axis),labs(pitch_axis)), 0, 3000) / (3000 * temp);
     throttle_out = constrain((float)(throttle-g.throttle_min) * temp + g.throttle_min, g.throttle_min, 1000);
-    //Serial.printf("Thin:%4.2f  sincos:%4.2f  temp:%4.2f  roll_axis:%4.2f  Out:%4.2f   \n", 1.0*throttle, 1.0*cos_pitch_x * cos_roll_x, 1.0*temp, 1.0*roll_axis, 1.0*constrain((float)value * temp, 0, 1000));
 
     // to allow logging of angle boost
     angle_boost = throttle_out - throttle;
@@ -787,15 +786,24 @@ static int16_t
 get_throttle_accel(int16_t z_target_accel)
 {
     static float z_accel_error = 0;     // The acceleration error in cm.
+    static uint32_t last_call_ms = 0;   // the last time this controller was called
     int32_t p,i,d;                      // used to capture pid values for logging
     int16_t output;
     float z_accel_meas;
+    uint32_t now = millis();
 
     // Calculate Earth Frame Z acceleration
-    z_accel_meas = -(ahrs.get_accel_ef().z + gravity) * 100;
+    z_accel_meas = -(ahrs.get_accel_ef().z + GRAVITY_MSS) * 100;
 
-    // calculate accel error and Filter with fc = 2 Hz
-    z_accel_error = z_accel_error + 0.11164 * (constrain(z_target_accel - z_accel_meas, -32000, 32000) - z_accel_error);
+    // reset target altitude if this controller has just been engaged
+    if( now - last_call_ms > 100 ) {
+        // Reset Filter
+        z_accel_error = 0;
+    } else {
+        // calculate accel error and Filter with fc = 2 Hz
+        z_accel_error = z_accel_error + 0.11164f * (constrain(z_target_accel - z_accel_meas, -32000, 32000) - z_accel_error);
+    }
+    last_call_ms = now;
 
     // separately calculate p, i, d values for logging
     p = g.pid_throttle_accel.get_p(z_accel_error);
@@ -803,9 +811,9 @@ get_throttle_accel(int16_t z_target_accel)
     if( motors.reached_limit(AP_MOTOR_THROTTLE_LIMIT) ) {
         i = g.pid_throttle_accel.get_integrator();
     }else{
-        i = g.pid_throttle_accel.get_i(z_accel_error, .01);
+        i = g.pid_throttle_accel.get_i(z_accel_error, .01f);
     }
-    d = g.pid_throttle_accel.get_d(z_accel_error, .01);
+    d = g.pid_throttle_accel.get_d(z_accel_error, .01f);
 
     //
     // limit the rate
@@ -825,10 +833,41 @@ get_throttle_accel(int16_t z_target_accel)
     return output;
 }
 
+// get_pilot_desired_throttle - transform pilot's throttle input to make cruise throttle mid stick
+// used only for manual throttle modes
+// returns throttle output 0 to 1000
+#define THROTTLE_IN_MIDDLE 500          // the throttle mid point
+static int16_t get_pilot_desired_throttle(int16_t throttle_control)
+{
+    int16_t throttle_out;
+
+    // exit immediately in the simple cases
+    if( throttle_control == 0 || g.throttle_mid == 500) {
+        return throttle_control;
+    }
+
+    // ensure reasonable throttle values
+    throttle_control = constrain(throttle_control,0,1000);
+    g.throttle_mid = constrain(g.throttle_mid,300,700);
+
+    // check throttle is above, below or in the deadband
+    if (throttle_control < THROTTLE_IN_MIDDLE) {
+        // below the deadband
+        throttle_out = g.throttle_min + ((float)(throttle_control-g.throttle_min))*((float)(g.throttle_mid - g.throttle_min))/((float)(500-g.throttle_min));
+    }else if(throttle_control > THROTTLE_IN_MIDDLE) {
+        // above the deadband
+        throttle_out = g.throttle_mid + ((float)(throttle_control-500))*(float)(1000-g.throttle_mid)/500.0f;
+    }else{
+        // must be in the deadband
+        throttle_out = g.throttle_mid;
+    }
+
+    return throttle_out;
+}
+
 // get_pilot_desired_climb_rate - transform pilot's throttle input to
 // climb rate in cm/s.  we use radio_in instead of control_in to get the full range
 // without any deadzone at the bottom
-#define THROTTLE_IN_MIDDLE 500          // the throttle mid point
 #define THROTTLE_IN_DEADBAND 100        // the throttle input channel's deadband in PWM
 #define THROTTLE_IN_DEADBAND_TOP (THROTTLE_IN_MIDDLE+THROTTLE_IN_DEADBAND)  // top of the deadband
 #define THROTTLE_IN_DEADBAND_BOTTOM (THROTTLE_IN_MIDDLE-THROTTLE_IN_DEADBAND)  // bottom of the deadband
@@ -916,12 +955,21 @@ static int32_t get_pilot_desired_direct_alt(int16_t throttle_control)
 static void
 get_throttle_rate(int16_t z_target_speed)
 {
+    static uint32_t last_call_ms = 0;
     static float z_rate_error = 0;   // The velocity error in cm.
     int32_t p,i,d;      // used to capture pid values for logging
     int16_t output;     // the target acceleration if the accel based throttle is enabled, otherwise the output to be sent to the motors
+    uint32_t now = millis();
 
-    // calculate rate error and filter with cut off frequency of 2 Hz
-    z_rate_error    = z_rate_error + 0.20085 * ((z_target_speed - climb_rate) - z_rate_error);
+    // reset target altitude if this controller has just been engaged
+    if( now - last_call_ms > 100 ) {
+        // Reset Filter
+        z_rate_error    = 0;
+    } else {
+        // calculate rate error and filter with cut off frequency of 2 Hz
+        z_rate_error    = z_rate_error + 0.20085f * ((z_target_speed - climb_rate) - z_rate_error);
+    }
+    last_call_ms = now;
 
     // separately calculate p, i, d values for logging
     p = g.pid_throttle.get_p(z_rate_error);
@@ -980,9 +1028,9 @@ get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_cli
     if( g.pi_alt_hold.kP() != 0 ) {
         linear_distance = 250/(2*g.pi_alt_hold.kP()*g.pi_alt_hold.kP());
         if( alt_error > 2*linear_distance ) {
-            desired_rate = sqrt(2*250*(alt_error-linear_distance));
+            desired_rate = safe_sqrt(2*250*(alt_error-linear_distance));
         }else if( alt_error < -2*linear_distance ) {
-            desired_rate = -sqrt(2*250*(-alt_error-linear_distance));
+            desired_rate = -safe_sqrt(2*250*(-alt_error-linear_distance));
         }else{
             desired_rate = g.pi_alt_hold.get_p(alt_error);
         }
@@ -1001,44 +1049,45 @@ get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_cli
     // TO-DO: enabled PID logging for this controller
 }
 
+// get_throttle_althold_with_slew - altitude controller with slew to avoid step changes in altitude target
+// calls normal althold controller which updates accel based throttle controller targets
+static void
+get_throttle_althold_with_slew(int16_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate)
+{
+    // limit target altitude change
+    controller_desired_alt += constrain(target_alt-controller_desired_alt, min_climb_rate*0.02f, max_climb_rate*0.02f);
+
+    // do not let target altitude get too far from current altitude
+    controller_desired_alt = constrain(controller_desired_alt,current_loc.alt-750,current_loc.alt+750);
+
+    get_throttle_althold(controller_desired_alt, min_climb_rate-250, max_climb_rate+250);   // 250 is added to give head room to alt hold controller
+}
+
 // get_throttle_rate_stabilized - rate controller with additional 'stabilizer'
 // 'stabilizer' ensure desired rate is being met
 // calls normal throttle rate controller which updates accel based throttle controller targets
 static void
 get_throttle_rate_stabilized(int16_t target_rate)
 {
-    static float target_alt = 0;   // The desired altitude in cm.
-    static uint32_t last_call_ms = 0;
-
-    uint32_t now = millis();
-
-    // reset target altitude if this controller has just been engaged
-    if( now - last_call_ms > 1000 ) {
-        target_alt = current_loc.alt;
-    }
-    last_call_ms = millis();
-
-    target_alt += target_rate * 0.02;
+    controller_desired_alt += target_rate * 0.02f;
 
     // do not let target altitude get too far from current altitude
-    target_alt = constrain(target_alt,current_loc.alt-750,current_loc.alt+750);
+    controller_desired_alt = constrain(controller_desired_alt,current_loc.alt-750,current_loc.alt+750);
 
-    set_new_altitude(target_alt);
+    set_new_altitude(controller_desired_alt);
 
-    get_throttle_althold(target_alt, -g.pilot_velocity_z_max-250, g.pilot_velocity_z_max+250);   // 250 is added to give head room to alt hold controller
+    get_throttle_althold(controller_desired_alt, -g.pilot_velocity_z_max-250, g.pilot_velocity_z_max+250);   // 250 is added to give head room to alt hold controller
 }
 
 // get_throttle_land - high level landing logic
 // sends the desired acceleration in the accel based throttle controller
 // called at 50hz
-#define LAND_START_ALT 1000         // altitude in cm where land controller switches to slow rate of descent
-#define LAND_DETECTOR_TRIGGER 50    // number of 50hz iterations with near zero climb rate and low throttle that triggers landing complete.
 static void
 get_throttle_land()
 {
     // if we are above 10m and the sonar does not sense anything perform regular alt hold descent
-    if (current_loc.alt >= LAND_START_ALT && !(g.sonar_enabled && sonar_alt_ok)) {
-        get_throttle_althold(LAND_START_ALT, g.auto_velocity_z_min, -abs(g.land_speed));
+    if (current_loc.alt >= LAND_START_ALT && !(g.sonar_enabled && sonar_alt_health >= SONAR_ALT_HEALTH_MAX)) {
+        get_throttle_althold_with_slew(LAND_START_ALT, g.auto_velocity_z_min, -abs(g.land_speed));
     }else{
         get_throttle_rate_stabilized(-abs(g.land_speed));
 
@@ -1050,7 +1099,6 @@ get_throttle_land()
                 set_land_complete(true);
                 if( g.rc_3.control_in == 0 || ap.failsafe ) {
                     init_disarm_motors();
-                    reset_throttle_I();
                 }
             }
         }else{
@@ -1069,23 +1117,29 @@ get_throttle_surface_tracking(int16_t target_rate)
 {
     static float target_sonar_alt = 0;   // The desired altitude in cm above the ground
     static uint32_t last_call_ms = 0;
+    float distance_error;
+    float sonar_induced_slew_rate;
 
     uint32_t now = millis();
 
     // reset target altitude if this controller has just been engaged
-    if( now - last_call_ms > 1000 ) {
-        target_sonar_alt = sonar_alt + next_WP.alt - current_loc.alt;
+    if( now - last_call_ms > 200 ) {
+        target_sonar_alt = sonar_alt + controller_desired_alt - current_loc.alt;
     }
-    last_call_ms = millis();
+    last_call_ms = now;
 
-    target_sonar_alt += target_rate * 0.02;
+    target_sonar_alt += target_rate * 0.02f;
+
+    distance_error = (target_sonar_alt-sonar_alt);
+    sonar_induced_slew_rate = constrain(fabs(THR_SURFACE_TRACKING_P * distance_error),0,THR_SURFACE_TRACKING_VELZ_MAX);
 
     // do not let target altitude get too far from current altitude above ground
     // Note: the 750cm limit is perhaps too wide but is consistent with the regular althold limits and helps ensure a smooth transition
     target_sonar_alt = constrain(target_sonar_alt,sonar_alt-750,sonar_alt+750);
-    set_new_altitude(current_loc.alt+(target_sonar_alt-sonar_alt));
+    controller_desired_alt = current_loc.alt+(target_sonar_alt-sonar_alt);
+    set_new_altitude(controller_desired_alt);
 
-    get_throttle_althold(next_WP.alt, -g.pilot_velocity_z_max-250, g.pilot_velocity_z_max+250);   // 250 is added to give head room to alt hold controller
+    get_throttle_althold_with_slew(controller_desired_alt, target_rate-sonar_induced_slew_rate, target_rate+sonar_induced_slew_rate);   // VELZ_MAX limits how quickly we react
 }
 
 /*
@@ -1139,6 +1193,12 @@ static void reset_throttle_I(void)
     g.pi_alt_hold.reset_I();
     g.pid_throttle.reset_I();
     g.pid_throttle_accel.reset_I();
+}
+
+static void set_accel_throttle_I_from_pilot_throttle(int16_t pilot_throttle)
+{
+    // shift difference between pilot's throttle and hover throttle into accelerometer I
+    g.pid_throttle_accel.set_integrator(pilot_throttle-g.throttle_cruise);
 }
 
 static void reset_stability_I(void)

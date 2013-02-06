@@ -8,6 +8,10 @@
  * "LICENSE" for more information.
  */
 
+#include <AP_HAL_Boards.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+
 #include "SPIDriver.h"
 #include <FreeRTOS.h>
 #include <hwf4/spi.h>
@@ -53,6 +57,10 @@ void SMACCMSPIDeviceDriver::cs_release()
 uint8_t SMACCMSPIDeviceDriver::transfer (uint8_t data)
 {
   return 0;
+}
+
+void SMACCMSPIDeviceDriver::transfer (const uint8_t *data, uint16_t len)
+{
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -106,3 +114,5 @@ AP_HAL::SPIDeviceDriver* SMACCMSPIDeviceManager::device(AP_HAL::SPIDevice dev)
       return NULL;
   }
 }
+
+#endif // CONFIG_HAL_BOARD == HAL_BOARD_SMACCM

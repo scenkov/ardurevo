@@ -32,7 +32,7 @@ public:
     //
     // The enumeration defined here is used to ensure that every parameter
     // or parameter group has a unique ID number.	This number is used by
-    // AP_Var to store and locate parameters in EEPROM.
+    // AP_Param to store and locate parameters in EEPROM.
     //
     // Note that entries without a number are assigned the next number after
     // the entry preceding them.	When adding new entries, ensure that they
@@ -43,7 +43,7 @@ public:
     // at the end of the enumeration.
     //
     // WARNING: Care should be taken when editing this enumeration as the
-    //			AP_Var load/save code depends on the values here to identify
+    //			AP_Param load/save code depends on the values here to identify
     //			variables saved in EEPROM.
     //
     //
@@ -57,6 +57,12 @@ public:
 
         // simulation
         k_param_sitl = 10,
+
+        // barometer object (needed for SITL)
+        k_param_barometer,
+
+        // scheduler object (for debugging)
+        k_param_scheduler,
 
         // Misc
         //
@@ -109,21 +115,14 @@ public:
         k_param_gcs3,
         k_param_sysid_this_mav,
         k_param_sysid_my_gcs,
-	k_param_serial_aux_port,
-	k_param_serial_aux_baud,
-	k_param_serial_gps_port,
-	k_param_serial_gps_baud,
-	k_param_serial_cli_port,
-	k_param_serial_cli_baud,
-	k_param_board_id,
-	k_param_motor_config,
+        k_param_serial3_baud,
         k_param_telem_delay,
 
         //
         // 140: Sensor parameters
         //
         k_param_imu = 140, // deprecated - can be deleted
-        k_param_battery_monitoring,
+        k_param_battery_monitoring = 141,
         k_param_volt_div_ratio,
         k_param_curr_amp_per_volt,
         k_param_input_voltage,
@@ -137,8 +136,8 @@ public:
         k_param_ch7_option,
         k_param_auto_slew_rate,
         k_param_sonar_type,
-        k_param_super_simple,
-        k_param_axis_enabled,
+        k_param_super_simple = 155,
+        k_param_axis_enabled = 157,
         k_param_copter_leds_mode,
         k_param_ahrs, // AHRS group
 
@@ -189,7 +188,8 @@ public:
         k_param_radio_tuning_high,
         k_param_radio_tuning_low,
         k_param_rc_speed = 192,
-        k_param_failsafe_battery_enabled, // 193
+        k_param_failsafe_battery_enabled,
+        k_param_throttle_mid, // 194
 
         //
         // 200: flight modes
@@ -220,7 +220,7 @@ public:
         // 220: PI/D Controllers
         //
         k_param_acro_p = 221,
-        k_param_axis_lock_p,
+        k_param_axis_lock_p,    // remove
         k_param_pid_rate_roll,
         k_param_pid_rate_pitch,
         k_param_pid_rate_yaw,
@@ -251,14 +251,7 @@ public:
     //
     AP_Int16        sysid_this_mav;
     AP_Int16        sysid_my_gcs;
-	AP_Int8			serial_aux_port;
-	AP_Int8			serial_aux_baud;
-	AP_Int8			serial_gps_port;
-	AP_Int8			serial_gps_baud;
-	AP_Int8			serial_cli_port;
-	AP_Int8			serial_cli_baud;
-	AP_Int8			board_id;
-	AP_Int8			motor_config;
+    AP_Int8         serial3_baud;
     AP_Int8         telem_delay;
 
     AP_Int16        rtl_altitude;
@@ -313,6 +306,7 @@ public:
     AP_Int8         failsafe_throttle;
     AP_Int16        failsafe_throttle_value;
     AP_Int16        throttle_cruise;
+    AP_Int16        throttle_mid;
 
     // Flight modes
     //

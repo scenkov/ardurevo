@@ -1,11 +1,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Toy Mode - THOR
 ////////////////////////////////////////////////////////////////////////////////
-static boolean CH7_toy_flag;
-//static boolean CH6_toy_flag;
+static bool CH7_toy_flag;
 
+#if TOY_MIXER == TOY_LOOKUP_TABLE
+static const int16_t toy_lookup[] = {
+    186,    373,    558,    745,
+    372,    745,    1117,   1490,
+    558,    1118,   1675,   2235,
+    743,    1490,   2233,   2980,
+    929,    1863,   2792,   3725,
+    1115,   2235,   3350,   4470,
+    1301,   2608,   3908,   4500,
+    1487,   2980,   4467,   4500,
+    1673,   3353,   4500,   4500
+};
+#endif
 
-static void update_toy_throttle()
+//called at 10hz
+void update_toy_throttle()
 {
     /*
      *  // Disabled, now handled by TOY_A (Alt hold) and TOY_M (Manual throttle)
@@ -25,8 +38,6 @@ static void update_toy_throttle()
         throttle_mode   = THROTTLE_MANUAL;
     }
 }
-
-
 
 #define TOY_ALT_SMALL 25
 #define TOY_ALT_LARGE 100
@@ -64,23 +75,6 @@ void update_toy_altitude()
         CH7_toy_flag = false;
     }
 }
-
-
-
-
-#if TOY_MIXER == TOY_LOOKUP_TABLE
-static const int16_t toy_lookup[] = {
-    186,    373,    558,    745,
-    372,    745,    1117,   1490,
-    558,    1118,   1675,   2235,
-    743,    1490,   2233,   2980,
-    929,    1863,   2792,   3725,
-    1115,   2235,   3350,   4470,
-    1301,   2608,   3908,   4500,
-    1487,   2980,   4467,   4500,
-    1673,   3353,   4500,   4500
-};
-#endif
 
 // called at 50 hz from all flight modes
 #if TOY_EDF == ENABLED
@@ -122,7 +116,7 @@ void roll_pitch_toy()
         get_acro_yaw(0);
         yaw_timer--;
 
-        if((yaw_timer == 0) || (fabs(omega.z) < .17)) {
+        if((yaw_timer == 0) || (fabsf(omega.z) < 0.17f)) {
             ap_system.yaw_stopped = true;
             nav_yaw = ahrs.yaw_sensor;
         }
@@ -162,7 +156,7 @@ void roll_pitch_toy()
 
 #elif TOY_MIXER == TOY_LINEAR_MIXER
     roll_rate = -((int32_t)g.rc_2.control_in * (yaw_rate/100)) /30;
-    //Serial.printf("roll_rate: %d\n",roll_rate);
+    //cliSerial->printf("roll_rate: %d\n",roll_rate);
     roll_rate = constrain(roll_rate, -2000, 2000);
 
 #elif TOY_MIXER == TOY_EXTERNAL_MIXER

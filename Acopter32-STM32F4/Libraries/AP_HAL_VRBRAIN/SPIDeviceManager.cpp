@@ -24,6 +24,9 @@ void VRBRAINSPIDeviceManager::init(void* machtnichts) {
     _ms5611 = new VRBRAINSPI1DeviceDriver(94);
     _ms5611->init();
 
+    _dataflash  = new VRBRAINSPI1DeviceDriver(83);
+    _dataflash ->init();
+
 }
 
 AP_HAL::SPIDeviceDriver* VRBRAINSPIDeviceManager::device(enum AP_HAL::SPIDevice d)

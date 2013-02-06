@@ -5,7 +5,7 @@ static void read_control_switch()
 {
     static uint8_t switch_counter = 0;
 
-    byte switchPosition = readSwitch();
+    uint8_t switchPosition = readSwitch();
 
     if (oldSwitchPosition != switchPosition) {
         switch_counter++;
@@ -31,15 +31,15 @@ static void read_control_switch()
     }
 }
 
-static byte readSwitch(void){
-    int16_t pulsewidth = g.rc_5.radio_in;                       // default for Arducopter
+static uint8_t readSwitch(void){
+    int16_t pulsewidth = g.rc_5.radio_in;   // default for Arducopter
 
-    if (pulsewidth > 1230 && pulsewidth <= 1360) return 1;
-    if (pulsewidth > 1360 && pulsewidth <= 1490) return 2;
-    if (pulsewidth > 1490 && pulsewidth <= 1620) return 3;
-    if (pulsewidth > 1620 && pulsewidth <= 1749) return 4;
-    if (pulsewidth >= 1750) return 5;
-    return 0;
+    if (pulsewidth < 1231) return 0;
+    if (pulsewidth < 1361) return 1;
+    if (pulsewidth < 1491) return 2;
+    if (pulsewidth < 1621) return 3;
+    if (pulsewidth < 1750) return 4;        // Software Manual
+    return 5;                               // Hardware Manual
 }
 
 static void reset_control_switch()
@@ -164,6 +164,11 @@ static void read_trim_switch()
             }
             break;
 #endif
+
+        case CH7_SONAR:
+            // enable or disable the sonar
+            g.sonar_enabled = ap_system.CH7_flag;
+            break;
     }
 }
 
@@ -171,8 +176,8 @@ static void read_trim_switch()
 static void save_trim()
 {
     // save roll and pitch trim
-    float roll_trim = ToRad((float)g.rc_1.control_in/100.0);
-    float pitch_trim = ToRad((float)g.rc_2.control_in/100.0);
+    float roll_trim = ToRad((float)g.rc_1.control_in/100.0f);
+    float pitch_trim = ToRad((float)g.rc_2.control_in/100.0f);
     ahrs.add_trim(roll_trim, pitch_trim);
 }
 
@@ -187,10 +192,10 @@ static void auto_trim()
         led_mode = SAVE_TRIM_LEDS;
 
         // calculate roll trim adjustment
-        float roll_trim_adjustment = ToRad((float)-g.rc_1.control_in / 4000.0);
+        float roll_trim_adjustment = ToRad((float)g.rc_1.control_in / 4000.0f);
 
         // calculate pitch trim adjustment
-        float pitch_trim_adjustment = ToRad((float)g.rc_2.control_in / 4000.0);
+        float pitch_trim_adjustment = ToRad((float)g.rc_2.control_in / 4000.0f);
 
         // make sure accelerometer values impact attitude quickly
         ahrs.set_fast_gains(true);
@@ -206,5 +211,4 @@ static void auto_trim()
         }
     }
 }
-
 
