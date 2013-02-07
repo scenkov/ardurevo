@@ -6,11 +6,9 @@
 
 #include <stdint.h>
 
-#define DF_OVERWRITE_DATA 1 // 0: When reach the end page stop, 1: Start overwriting from page 1
-
 // the last page holds the log format in first 4 bytes. Please change
 // this if (and only if!) the low level format changes
-#define DF_LOGGING_FORMAT    0x28122011
+#define DF_LOGGING_FORMAT    0x28122013
 
 // we use an invalie logging format to test the chip erase
 #define DF_LOGGING_FORMAT_INVALID   0x28122012

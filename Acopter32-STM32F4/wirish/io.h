@@ -111,7 +111,7 @@ typedef enum WiringPinMode {
  * @param mode Mode corresponding to desired pin behavior.
  * @see WiringPinMode
  */
-void pinMode(uint8 pin, WiringPinMode mode);
+//void pinMode(uint8 pin, WiringPinMode mode);
 
 #define HIGH 0x1
 #define LOW  0x0
@@ -124,7 +124,7 @@ void pinMode(uint8 pin, WiringPinMode mode);
  * @param value Either LOW (write a 0) or HIGH (write a 1).
  * @see pinMode()
  */
-void digitalWrite(uint8 pin, uint8 value);
+//void digitalWrite(uint8 pin, uint8 value);
 
 /**
  * Read a digital value from a pin.  The pin must have its mode set to
@@ -134,7 +134,7 @@ void digitalWrite(uint8 pin, uint8 value);
  * @return LOW or HIGH.
  * @see pinMode()
  */
-uint32 digitalRead(uint8 pin);
+//uint32 digitalRead(uint8 pin);
 
 /**
  * Read an analog value from pin.  This function blocks during ADC
@@ -174,37 +174,6 @@ void togglePin(uint8 pin);
 static inline void toggleLED() {
     togglePin(BOARD_LED_PIN);
 }
-
-/**
- * If the button is currently pressed, waits until the button is no
- * longer being pressed, and returns true.  Otherwise, returns false.
- *
- * The button pin must have its mode set to INPUT.  This can be
- * accomplished portably over all LeafLabs boards by calling
- * pinMode(BOARD_BUTTON_PIN, INPUT).
- *
- * @see pinMode()
- */
-uint8 isButtonPressed();
-
-/**
- * Wait until the button is pressed and released, timing out if no
- * press occurs.
- *
- * The button pin must have its mode set to INPUT.  This can be
- * accomplished portably over all LeafLabs boards by calling
- * pinMode(BOARD_BUTTON_PIN, INPUT).
- *
- * @param timeout_millis Number of milliseconds to wait until the
- * button is pressed.  If timeout_millis is left out (or 0), wait
- * forever.
- *
- * @return true, if the button was pressed; false, if the timeout was
- * reached.
- *
- * @see pinMode()
- */
-uint8 waitForButtonPress(uint32 timeout_millis);
 
 /**
  * Shift out a byte of data, one bit at a time.

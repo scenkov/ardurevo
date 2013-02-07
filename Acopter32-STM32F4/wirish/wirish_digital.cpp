@@ -103,7 +103,7 @@ void pinMode(uint8 pin, WiringPinMode mode) {
     }
 }
 
-
+/*
 uint32 digitalRead(uint8 pin) {
     if (pin >= BOARD_NR_GPIO_PINS) {
         return 0;
@@ -112,7 +112,8 @@ uint32 digitalRead(uint8 pin) {
     return gpio_read_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit) ?
         HIGH : LOW;
 }
-
+*/
+/*
 void digitalWrite(uint8 pin, uint8 val) {
     if (pin >= BOARD_NR_GPIO_PINS) {
         return;
@@ -120,7 +121,7 @@ void digitalWrite(uint8 pin, uint8 val) {
 
     gpio_write_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, val);
 }
-
+*/
 void togglePin(uint8 pin) {
     if (pin >= BOARD_NR_GPIO_PINS) {
         return;
@@ -131,34 +132,4 @@ void togglePin(uint8 pin) {
 
 #define BUTTON_DEBOUNCE_DELAY 1
 
-uint8 isButtonPressed() {
-	assert_param(0);
-/*
-    if (digitalRead(BOARD_BUTTON_PIN)) {
-        delay(BUTTON_DEBOUNCE_DELAY);
-        while (digitalRead(BOARD_BUTTON_PIN))
-            ;
-        return true;
-    }
-    */
-    return false;
-}
 
-uint8 waitForButtonPress(uint32 timeout) {
-    uint32 start = millis();
-    uint32 time;
-    if (timeout == 0) {
-        while (!isButtonPressed())
-            ;
-        return true;
-    }
-    do {
-        time = millis();
-        /* properly handle wrap-around */
-        if ((start > time && time + (0xffffffffU - start) > timeout) ||
-            time - start > timeout) {
-            return false;
-        }
-    } while (!isButtonPressed());
-    return true;
-}

@@ -941,6 +941,21 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { perf_update,        1000,     500 }
 };
 
+static bool CH7_toy_flag;
+
+#if TOY_MIXER == TOY_LOOKUP_TABLE
+static const int16_t toy_lookup[] = {
+    186,    373,    558,    745,
+    372,    745,    1117,   1490,
+    558,    1118,   1675,   2235,
+    743,    1490,   2233,   2980,
+    929,    1863,   2792,   3725,
+    1115,   2235,   3350,   4470,
+    1301,   2608,   3908,   4500,
+    1487,   2980,   4467,   4500,
+    1673,   3353,   4500,   4500
+};
+#endif
 
 void setup() {
     // this needs to be the first call, as it fills memory with

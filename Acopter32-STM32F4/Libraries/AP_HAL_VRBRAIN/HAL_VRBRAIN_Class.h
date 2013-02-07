@@ -6,6 +6,7 @@
 
 #include "AP_HAL_VRBRAIN_Namespace.h"
 #include "PrivateMember.h"
+#include <wirish.h>
 
 class HAL_VRBRAIN : public AP_HAL::HAL {
 public:

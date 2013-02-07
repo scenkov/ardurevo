@@ -8,6 +8,7 @@
 
 #include <AP_HAL.h>
 #include "DataFlash.h"
+#include <boards.h>
 
 class DataFlash_MP32 : public DataFlash_Class
 {
@@ -41,7 +42,7 @@ private:
     AP_HAL::Semaphore *_spi_sem;
 public:
 
-    DataFlash_MP32();
+    DataFlash_MP32() {}
     void        Init();
     void        ReadManufacturerID();
     bool        CardInserted();

@@ -5,7 +5,7 @@
 #include <AP_HAL.h>
 #include "AP_HAL_VRBRAIN_Namespace.h"
 #include <spi.h>
-#include <laserlab_MP32V1F4.h>
+#include <boards.h>
 
 typedef enum SPIFrequency {
     SPI_18MHZ       = 0, /**< 18 MHz */

@@ -13,6 +13,8 @@ cSRCS_$(d) :=
 cppSRCS_$(d) :=
 cppSRCS_$(d) += DataFlash.cpp
 cppSRCS_$(d) += DataFlash_MP32.cpp
+cppSRCS_$(d) += DataFlash_Empty.cpp
+cppSRCS_$(d) += LogFile.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

@@ -2,6 +2,8 @@
 #include <timer.h>
 #include "RCInput.h"
 
+extern const AP_HAL::HAL& hal;
+
 // MP32F4
 #define PPM_IN_CH1 22
 #define PPM_IN_CH2 63  // PA8
@@ -135,7 +137,7 @@ uint32_t mask, pending;
 	  if (mask & pending){
 		EXTI->PR |= mask; // clear pending
 
-		if (digitalRead(pin)){
+		if (hal.gpio->read(pin)){
           time = currentTime - pinData[channel].fallTime;
           pinData[channel].riseTime = currentTime;
           //Serial4.print("1");
@@ -202,7 +204,7 @@ uint8_t pin;
 	    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 	   	pin=receiverPin[4];
 	   	channel=4;
-	   	if (digitalRead(pin)){
+	   	if (hal.gpio->read(Read(pin)){
 							currentTime = micros();
 							time = currentTime - pinData[channel].fallTime;
 							pinData[channel].riseTime = currentTime;
@@ -242,7 +244,7 @@ uint8_t pin;
 	    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 	   	pin=receiverPin[5];
 	   	channel=5;
-	   	if (digitalRead(pin)){
+	   	if (hal.gpio->read(pin)){
 							currentTime = micros();
 							time = currentTime - pinData[channel].fallTime;
 							pinData[channel].riseTime = currentTime;
@@ -282,7 +284,7 @@ uint8_t pin;
 	    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 	   	pin=receiverPin[6];
 	   	channel=6;
-	   	if (digitalRead(pin)){
+	   	if (hal.gpio->read(pin)){
 							currentTime = micros();
 							time = currentTime - pinData[channel].fallTime;
 							pinData[channel].riseTime = currentTime;
@@ -323,7 +325,7 @@ uint8_t pin;
 	    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 	   	pin=receiverPin[0];
 	   	channel=0;
-	   	if (digitalRead(pin)){
+	   	if (hal.gpio->read(pin)){
 							currentTime = micros();
 							time = currentTime - pinData[channel].fallTime;
 							pinData[channel].riseTime = currentTime;
@@ -395,7 +397,7 @@ static void rxIntPPM10_15(void) {
 		    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 		   	pin=receiverPin[1];
 		   	channel=1;
-		   	if (digitalRead(pin)){
+		   	if (hal.gpio->read(pin)){
 								currentTime = micros();
 								time = currentTime - pinData[channel].fallTime;
 								pinData[channel].riseTime = currentTime;
@@ -440,7 +442,7 @@ static void rxIntPPM10_15(void) {
 		    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 		   	pin=receiverPin[2];
 		   	channel=2;
-		   	if (digitalRead(pin)){
+		   	if (hal.gpio->read(pin)){
 								currentTime = micros();
 								time = currentTime - pinData[channel].fallTime;
 								pinData[channel].riseTime = currentTime;
@@ -480,7 +482,7 @@ static void rxIntPPM10_15(void) {
 		    //PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 		   	pin=receiverPin[3];
 		   	channel=3;
-		   	if (digitalRead(pin)){
+		   	if (hal.gpio->read(pin)){
 								currentTime = micros();
 								time = currentTime - pinData[channel].fallTime;
 								pinData[channel].riseTime = currentTime;
@@ -594,14 +596,14 @@ receiverPin[11]=input_channel_ch12;
 if (input_channel_ch1 != 0)
 {
 attachInterrupt(input_channel_ch1, rxIntPPM5_9, CHANGE);
-//pinMode(input_channel_ch1, INPUT);
+//hal.gpio->pinMode(input_channel_ch1, INPUT);
 delay(100);
 }
 
 if (input_channel_ch2 != 0)
 {
 attachInterrupt(input_channel_ch2, rxIntPPM10_15, CHANGE);
-//pinMode(input_channel_ch2, INPUT);
+//hal.gpio->pinMode(input_channel_ch2, INPUT);
 delay(100);
 }
 
@@ -609,20 +611,20 @@ delay(100);
 if (input_channel_ch3 != 0)
 {
 attachInterrupt(input_channel_ch3, rxIntPPM10_15, CHANGE);
-//pinMode(input_channel_ch3, INPUT);
+//hal.gpio->pinMode(input_channel_ch3, INPUT);
 delay(100);
 }
 if (input_channel_ch4 != 0)
 {
 attachInterrupt(input_channel_ch4, rxIntPPM10_15, CHANGE);
-//pinMode(input_channel_ch4, INPUT);
+//hal.gpio->pinMode(input_channel_ch4, INPUT);
 delay(100);
 }
 
 if (input_channel_ch5 != 0)
 {
 attachInterrupt(input_channel_ch5, rxIntPPM5_9, CHANGE);
-//pinMode(input_channel_ch5, INPUT);
+//hal.gpio->pinMode(input_channel_ch5, INPUT);
 delay(100);
 }
 
@@ -630,7 +632,7 @@ delay(100);
 if (input_channel_ch6 != 0)
 {
 attachInterrupt(input_channel_ch6, rxIntPPM5_9, CHANGE);
-//pinMode(input_channel_ch6, INPUT);
+//hal.gpio->pinMode(input_channel_ch6, INPUT);
 delay(100);
 }
 
@@ -638,7 +640,7 @@ delay(100);
 if (input_channel_ch7 != 0)
 {
 attachInterrupt(input_channel_ch7, rxIntPPM5_9, CHANGE);
-//pinMode(input_channel_ch7, INPUT);
+//hal.gpio->pinMode(input_channel_ch7, INPUT);
 delay(100);
 }
 
@@ -646,21 +648,21 @@ delay(100);
 if (input_channel_ch8 != 0)
 {
 attachInterrupt(input_channel_ch8, rxIntPPM, CHANGE);
-pinMode(input_channel_ch8, INPUT);
+hal.gpio->pinMode(input_channel_ch8, INPUT);
 delay(100);
 }
 #else
 if (input_channel_ch1 != 0)
 {
 attachInterrupt(input_channel_ch1, rxIntPPM, CHANGE);
-pinMode(input_channel_ch1, INPUT);
+hal.gpio->pinMode(input_channel_ch1, INPUT);
 hal.scheduler->delay(100);
 }
 
 if (input_channel_ch2 != 0)
 {
 attachInterrupt(input_channel_ch2, rxIntPPM, CHANGE);
-pinMode(input_channel_ch2, INPUT);
+hal.gpio->pinMode(input_channel_ch2, INPUT);
 hal.scheduler->delay(100);
 }
 
@@ -668,20 +670,20 @@ hal.scheduler->delay(100);
 if (input_channel_ch3 != 0)
 {
 attachInterrupt(input_channel_ch3, rxIntPPM, CHANGE);
-pinMode(input_channel_ch3, INPUT);
+hal.gpio->pinMode(input_channel_ch3, INPUT);
 hal.scheduler->delay(100);
 }
 if (input_channel_ch4 != 0)
 {
 attachInterrupt(input_channel_ch4, rxIntPPM, CHANGE);
-pinMode(input_channel_ch4, INPUT);
+hal.gpio->pinMode(input_channel_ch4, INPUT);
 hal.scheduler->delay(100);
 }
 
 if (input_channel_ch5 != 0)
 {
 attachInterrupt(input_channel_ch5, rxIntPPM, CHANGE);
-pinMode(input_channel_ch5, INPUT);
+hal.gpio->pinMode(input_channel_ch5, INPUT);
 hal.scheduler->delay(100);
 }
 
@@ -689,7 +691,7 @@ hal.scheduler->delay(100);
 if (input_channel_ch6 != 0)
 {
 attachInterrupt(input_channel_ch6, rxIntPPM, CHANGE);
-pinMode(input_channel_ch6, INPUT);
+hal.gpio->pinMode(input_channel_ch6, INPUT);
 hal.scheduler->delay(100);
 }
 
@@ -697,7 +699,7 @@ hal.scheduler->delay(100);
 if (input_channel_ch7 != 0)
 {
 attachInterrupt(input_channel_ch7, rxIntPPM, CHANGE);
-pinMode(input_channel_ch7, INPUT);
+hal.gpio->pinMode(input_channel_ch7, INPUT);
 hal.scheduler->delay(100);
 }
 
@@ -705,7 +707,7 @@ hal.scheduler->delay(100);
 if (input_channel_ch8 != 0)
 {
 attachInterrupt(input_channel_ch8, rxIntPPM, CHANGE);
-pinMode(input_channel_ch8, INPUT);
+hal.gpio->pinMode(input_channel_ch8, INPUT);
 hal.scheduler->delay(100);
 }
 
@@ -818,7 +820,7 @@ break;
 // Public Methods //////////////////////////////////////////////////////////////
 void VRBRAINRCInput::InitPPMSUM(void)
 {
-pinMode(ppm_sum_channel,INPUT);
+hal.gpio->pinMode(ppm_sum_channel,INPUT);
 attachInterrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
 }
 

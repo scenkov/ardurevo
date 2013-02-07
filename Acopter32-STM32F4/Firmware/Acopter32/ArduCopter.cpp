@@ -123,7 +123,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // cliSerial isn't strictly necessary - it is an alias for hal.console. It may
 // be deprecated in favor of hal.console in later releases.
-   void setup() ;
  static void compass_accumulate(void) ;
  static void barometer_accumulate(void) ;
   static void perf_update(void) ;
@@ -272,6 +271,8 @@
  static void Log_Read_Startup() ;
  static void Log_Write_Event(uint8_t id) ;
  static void Log_Read_Event() ;
+ static void Log_Write_Data(uint8_t id, int8_t value) ;
+ static void Log_Read_Int8t() ;
  static void Log_Write_Data(uint8_t id, int16_t value) ;
  static void Log_Read_Int16t() ;
  static void Log_Write_Data(uint8_t id, uint16_t value) ;
@@ -301,6 +302,7 @@
  static void Log_Write_Iterm() ;
  static void Log_Write_Attitude() ;
  static void Log_Write_INAV() ;
+ static void Log_Write_Data(uint8_t id, int8_t value);
  static void Log_Write_Data(uint8_t id, int16_t value);
  static void Log_Write_Data(uint8_t id, uint16_t value);
  static void Log_Write_Data(uint8_t id, int32_t value);
@@ -510,6 +512,7 @@ void userhook_init() ;
  static void print_flight_mode(uint8_t mode) ;
   static void print_hit_enter() ;
   static void print_test_disabled() ;
+ void update_toy_throttle() ;
  void update_toy_altitude() ;
  void edf_toy() ;
  void roll_pitch_toy() ;
@@ -1333,6 +1336,21 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { perf_update,        1000,     500 }
 };
 
+static bool CH7_toy_flag;
+
+#if TOY_MIXER == TOY_LOOKUP_TABLE
+static const int16_t toy_lookup[] = {
+    186,    373,    558,    745,
+    372,    745,    1117,   1490,
+    558,    1118,   1675,   2235,
+    743,    1490,   2233,   2980,
+    929,    1863,   2792,   3725,
+    1115,   2235,   3350,   4470,
+    1301,   2608,   3908,   4500,
+    1487,   2980,   4467,   4500,
+    1673,   3353,   4500,   4500
+};
+#endif
 
 void setup() {
     // this needs to be the first call, as it fills memory with
@@ -7302,6 +7320,34 @@ static void Log_Read_Event()
     cliSerial->printf_P(PSTR("EV, %u\n"), (unsigned)pkt.id);
 }
 
+struct log_Data_Int8t {
+    LOG_PACKET_HEADER;
+    uint8_t id;
+    int8_t data_value;
+};
+
+
+// Write an int16_t data packet
+static void Log_Write_Data(uint8_t id, int8_t value)
+{
+    if (g.log_bitmask != 0) {
+        struct log_Data_Int8t pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_DATA_INT8_MSG),
+            id          : id,
+            data_value  : value
+        };
+        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+
+// Read an int16_t data packet
+static void Log_Read_Int8t()
+{
+    struct log_Data_Int8t pkt;
+    DataFlash.ReadPacket(&pkt, sizeof(pkt));
+    cliSerial->printf_P(PSTR("DATA, %u, %d\n"), (unsigned)pkt.id, (int)pkt.data_value);
+}
+
 struct log_Data_Int16t {
     LOG_PACKET_HEADER;
     uint8_t id;
@@ -7763,6 +7809,7 @@ static void Log_Write_Current() {}
 static void Log_Write_Iterm() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_INAV() {}
+static void Log_Write_Data(uint8_t id, int8_t value){}
 static void Log_Write_Data(uint8_t id, int16_t value){}
 static void Log_Write_Data(uint8_t id, uint16_t value){}
 static void Log_Write_Data(uint8_t id, int32_t value){}
@@ -15299,7 +15346,6 @@ test_ins(uint8_t argc, const Menu::arg *argv)
     return (0);
 #else
     Vector3f gyro, accel;
-    float temp;
     print_hit_enter();
     cliSerial->printf_P(PSTR("INS\n"));
     delay(1000);
@@ -15315,14 +15361,13 @@ test_ins(uint8_t argc, const Menu::arg *argv)
         ins.update();
         gyro = ins.get_gyro();
         accel = ins.get_accel();
-        temp = ins.temperature();
 
         float test = accel.length() / GRAVITY_MSS;
 
         cliSerial->printf_P(PSTR("a %7.4f %7.4f %7.4f g %7.4f %7.4f %7.4f t %74f | %7.4f\n"),
             accel.x, accel.y, accel.z,
             gyro.x, gyro.y, gyro.z,
-            temp, test);
+            test);
 
         delay(40);
         if(cliSerial->available() > 0) {
@@ -15969,21 +16014,7 @@ static void print_test_disabled()
 ////////////////////////////////////////////////////////////////////////////////
 // Toy Mode - THOR
 ////////////////////////////////////////////////////////////////////////////////
-static bool CH7_toy_flag;
 
-#if TOY_MIXER == TOY_LOOKUP_TABLE
-static const int16_t toy_lookup[] = {
-    186,    373,    558,    745,
-    372,    745,    1117,   1490,
-    558,    1118,   1675,   2235,
-    743,    1490,   2233,   2980,
-    929,    1863,   2792,   3725,
-    1115,   2235,   3350,   4470,
-    1301,   2608,   3908,   4500,
-    1487,   2980,   4467,   4500,
-    1673,   3353,   4500,   4500
-};
-#endif
 
 //called at 10hz
 void update_toy_throttle()

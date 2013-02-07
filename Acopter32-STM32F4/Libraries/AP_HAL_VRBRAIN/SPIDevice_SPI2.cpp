@@ -18,8 +18,8 @@ VRBRAINSemaphore VRBRAINSPI2DeviceDriver::_semaphore;
 void VRBRAINSPI2DeviceDriver::init() {
     _dev = _SPI2;
 
-    pinMode(_cs_pin, OUTPUT);
-    digitalWrite(_cs_pin, HIGH);
+    hal.gpio->pinMode(_cs_pin, OUTPUT);
+    hal.gpio->write(_cs_pin, HIGH);
 
     //set frequency
     SPIFrequency freq = SPI_1_125MHZ;
@@ -52,11 +52,11 @@ AP_HAL::Semaphore* VRBRAINSPI2DeviceDriver::get_semaphore() {
 }
 
 inline void VRBRAINSPI2DeviceDriver::_cs_assert() {
-    digitalWrite(_cs_pin, LOW);
+    hal.gpio->write(_cs_pin, LOW);
 }
 
 inline void VRBRAINSPI2DeviceDriver::_cs_release() {
-    digitalWrite(_cs_pin, HIGH);
+    hal.gpio->write(_cs_pin, HIGH);
 }
 
 inline uint8_t VRBRAINSPI2DeviceDriver::_transfer(uint8_t data) {

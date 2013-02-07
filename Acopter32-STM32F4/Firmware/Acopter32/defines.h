@@ -24,6 +24,7 @@
 #define YAW_LOOK_AHEAD					6		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
 #define YAW_TOY                         7       // THOR This is the Yaw mode
 
+#define RADIO_TYPE 0  // 0 Standard Radio 1 PPMSUM  2 OTHER
 
 #define ROLL_PITCH_STABLE           0
 #define ROLL_PITCH_ACRO             1
@@ -296,6 +297,7 @@ enum gcs_severity {
 #define LOG_DATA_INT32_MSG              0x16
 #define LOG_DATA_UINT32_MSG             0x17
 #define LOG_DATA_FLOAT_MSG              0x18
+#define LOG_DATA_INT8_MSG              0x19
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
 
@@ -347,9 +349,13 @@ enum gcs_severity {
 #define DATA_RTL_REACHED_ALT            31
 
 // battery monitoring macros
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/4096.0f))*g.volt_div_ratio
+#define CURRENT_AMPS(x) ((x*(g.input_voltage/4096.0f))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
+#else
 #define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0f))*g.volt_div_ratio
 #define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0f))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
-
+#endif
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
 
@@ -392,7 +398,11 @@ enum gcs_severity {
 #define RELAY_APM1_PIN 47
 #define RELAY_APM2_PIN 13
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#define PIEZO_PIN 68           //Last pin on the back ADC connector
+#else
 #define PIEZO_PIN AN5           //Last pin on the back ADC connector
+#endif
 
 // RADIANS
 #define RADX100 0.000174532925f

@@ -911,6 +911,34 @@ static void Log_Read_Event()
     cliSerial->printf_P(PSTR("EV, %u\n"), (unsigned)pkt.id);
 }
 
+struct log_Data_Int8t {
+    LOG_PACKET_HEADER;
+    uint8_t id;
+    int8_t data_value;
+};
+
+
+// Write an int16_t data packet
+static void Log_Write_Data(uint8_t id, int8_t value)
+{
+    if (g.log_bitmask != 0) {
+        struct log_Data_Int8t pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_DATA_INT8_MSG),
+            id          : id,
+            data_value  : value
+        };
+        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+
+// Read an int16_t data packet
+static void Log_Read_Int8t()
+{
+    struct log_Data_Int8t pkt;
+    DataFlash.ReadPacket(&pkt, sizeof(pkt));
+    cliSerial->printf_P(PSTR("DATA, %u, %d\n"), (unsigned)pkt.id, (int)pkt.data_value);
+}
+
 struct log_Data_Int16t {
     LOG_PACKET_HEADER;
     uint8_t id;
@@ -1372,6 +1400,7 @@ static void Log_Write_Current() {}
 static void Log_Write_Iterm() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_INAV() {}
+static void Log_Write_Data(uint8_t id, int8_t value){}
 static void Log_Write_Data(uint8_t id, int16_t value){}
 static void Log_Write_Data(uint8_t id, uint16_t value){}
 static void Log_Write_Data(uint8_t id, int32_t value){}

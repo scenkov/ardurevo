@@ -5,7 +5,6 @@
 #include <AP_HAL_VRBRAIN.h>
 #include <AP_HAL.h>
 
-extern const AP_HAL::HAL& hal;
 
 class VRBRAIN::VRBRAINRCInput : public AP_HAL::RCInput {
 public:

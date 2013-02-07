@@ -179,7 +179,7 @@ void DataFlash_MP32::WaitReady()
     while(!ReadStatus()) ;
 }
 
-void DataFlash_MP32::PageToBuffer(unsigned char BufferNum, uint16_t PageAdr)
+void DataFlash_MP32::PageToBuffer(uint8_t BufferNum, uint16_t PageAdr)
 {
     if (!_spi_sem->take(1))
         return;
@@ -206,7 +206,7 @@ void DataFlash_MP32::PageToBuffer(unsigned char BufferNum, uint16_t PageAdr)
     _spi_sem->give();
 }
 
-void DataFlash_MP32::BufferToPage (unsigned char BufferNum, uint16_t PageAdr, unsigned char wait)
+void DataFlash_MP32::BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t wait)
 {
     if (!_spi_sem->take(1))
         return;
@@ -293,6 +293,7 @@ bool DataFlash_MP32::BlockRead (uint8_t BufferNum, uint16_t IntPageAdr, void *pB
     _spi_sem->give();
     return true;
 }
+
 // *** END OF INTERNAL FUNCTIONS ***
 
 void DataFlash_MP32::PageErase (uint16_t PageAdr)
@@ -359,7 +360,6 @@ void DataFlash_MP32::BlockErase (uint16_t BlockAdr)
     while(!ReadStatus()) ;
     _spi_sem->give();
 }
-
 
 
 void DataFlash_MP32::ChipErase()

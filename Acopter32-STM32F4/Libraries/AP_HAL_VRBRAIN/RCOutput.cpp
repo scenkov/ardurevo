@@ -1,6 +1,8 @@
 
 #include "RCOutput.h"
 
+extern const AP_HAL::HAL& hal;
+
 static int analogOutPin[20];
 
 static inline long map(long value, long fromStart, long fromEnd,
@@ -70,7 +72,7 @@ unsigned int valout=0;
 		{
 		valout=analogOutPin[i]-200;
 		InitFQUpdate(valout);
-		pinMode(valout,PWM);
+		hal.gpio->pinMode(valout,PWM);
 /*
 		_serial->print("Motor ESC:");
 		_serial->print(i);
@@ -80,7 +82,7 @@ unsigned int valout=0;
 		}
 		else
 		{
-		pinMode(analogOutPin[i],PWM);
+		hal.gpio->pinMode(analogOutPin[i],PWM);
 /*
 		_serial->print("Motor PWM:");
 		_serial->print(i);
