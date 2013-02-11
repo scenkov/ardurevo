@@ -285,9 +285,9 @@ static void Log_Read_GPS()
     cliSerial->printf_P(PSTR("GPS, %ld, %d, "),
                     (long)temp1,                          // 1 time
                     (int)temp2);                          // 2 sats
-    print_latlon(&Serial, temp3);
+    print_latlon(cliSerial, temp3);
     cliSerial->print_P(PSTR(", "));
-    print_latlon(&Serial, temp4);
+    print_latlon(cliSerial, temp4);
     cliSerial->printf_P(PSTR(", %4.4f, %4.4f, %d, %ld\n"),
                     temp5,                                // 5 gps alt
                     temp6,                                // 6 sensor alt

@@ -117,7 +117,6 @@ static void clear_leds()
 //	Piezo Enables Tone on reaching low battery or current alert
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-
 #if COPTER_LEDS == ENABLED
 static void update_copter_leds(void)
 {
@@ -194,8 +193,8 @@ static void update_copter_leds(void)
 static void copter_leds_reset(void) {
     digitalWriteFast(COPTER_LED_1, COPTER_LED_OFF);
     digitalWriteFast(COPTER_LED_2, COPTER_LED_OFF);
+    /*
     digitalWriteFast(COPTER_LED_3, COPTER_LED_OFF);
-/*
     digitalWriteFast(COPTER_LED_4, COPTER_LED_OFF);
     digitalWriteFast(COPTER_LED_5, COPTER_LED_OFF);
     digitalWriteFast(COPTER_LED_6, COPTER_LED_OFF);
@@ -231,7 +230,7 @@ static void copter_leds_off(void) {
     if ( !bitRead(g.copter_leds_mode, 2) ) {
         digitalWriteFast(COPTER_LED_1, COPTER_LED_OFF);
     }
- #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+ #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2 || CONFIG_APM_HARDWARE == VRBRAINF4
     if ( !bitRead(g.copter_leds_mode, 3) ) {
         digitalWriteFast(COPTER_LED_2, COPTER_LED_OFF);
     }
@@ -281,7 +280,7 @@ static void copter_leds_oscillate(void) {
         if ( !bitRead(g.copter_leds_mode, 2) ) {
             digitalWriteFast(COPTER_LED_1, COPTER_LED_ON);
         }
- #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+ #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2 || CONFIG_APM_HARDWARE == VRBRAINF4
         if ( !bitRead(g.copter_leds_mode, 3) ) {
             digitalWriteFast(COPTER_LED_2, COPTER_LED_ON);
         }
@@ -302,7 +301,7 @@ static void copter_leds_oscillate(void) {
         if ( !bitRead(g.copter_leds_mode, 2) ) {
             digitalWriteFast(COPTER_LED_1, COPTER_LED_OFF);
         }
- #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
+ #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2 || CONFIG_APM_HARDWARE == VRBRAINF4
         if ( !bitRead(g.copter_leds_mode, 3) ) {
             digitalWriteFast(COPTER_LED_2, COPTER_LED_OFF);
         }

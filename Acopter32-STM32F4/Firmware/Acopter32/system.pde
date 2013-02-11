@@ -212,7 +212,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 	
 
-    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
+    SPI.begin(SPI_1_125MHZ, MSBFIRST, 0);
 
 
 #if LOGGING_ENABLED == ENABLED
@@ -350,7 +350,7 @@ init_rate_controllers();
     startup_ground();
 
     // now that initialisation of IMU has occurred increase SPI to 2MHz
-    SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
+    //SPI.begin(SPI_2_25MHZ, MSBFIRST, 0);
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();

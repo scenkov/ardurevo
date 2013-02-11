@@ -278,8 +278,8 @@
 
 #if CONFIG_APM_HARDWARE == VRBRAINF4
 #define COPTER_LED_1 65  	// Motor or Aux LED
-#define COPTER_LED_2 68  	// Motor LED or Beeper
-#define COPTER_LED_3 102  	// Motor or GPS LED
+#define COPTER_LED_2 102  	// Motor LED or Beeper
+#define COPTER_LED_3 68  	// Motor or GPS LED
 #else
 // COPTER LEDs
 #define COPTER_LED_1 83  	// Motor LED

@@ -117,18 +117,19 @@ void FastSerial::begin(long baud) {
     {
 	//begin(baud, DEFAULT_TX_TIMEOUT);
 
-    usb_open();
+	usb_open();
 
-    usb_default_attr(&usb_attr);
-	usb_attr.preempt_prio = 1;
-	usb_attr.sub_prio = 3;
-	usb_attr.use_present_pin = 1;
-	usb_attr.present_port = _GPIOD;
-	usb_attr.present_pin = 4;
+	usb_default_attr(&usb_attr);
+	    usb_attr.preempt_prio = 1;
+	    usb_attr.sub_prio = 3;
+	    usb_attr.use_present_pin = 1;
+	    usb_attr.present_port = _GPIOD;
+	    usb_attr.present_pin = 4;
 
-    usb_ioctl(I_USB_SETATTR, &usb_attr);
-    usb_ioctl(I_USB_CONNECTED, &usb_connected);
-    usb_present = usb_connected;
+	usb_ioctl(I_USB_SETATTR, &usb_attr);
+
+	usb_ioctl(I_USB_CONNECTED, &usb_connected);
+	usb_present = usb_connected;
 
     }
 }
