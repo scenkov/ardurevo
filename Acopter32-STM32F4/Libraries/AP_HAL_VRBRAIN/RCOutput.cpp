@@ -14,14 +14,14 @@ static inline long map(long value, long fromStart, long fromEnd,
 using namespace VRBRAIN;
 void VRBRAINRCOutput::InitDefaultPWM(void)
 {
-	output_channel_ch1=48;
-	output_channel_ch2=49;
-	output_channel_ch3=50;
-	output_channel_ch4=36;
-	output_channel_ch5=46;
-	output_channel_ch6=45;
-	output_channel_ch7=301;
-	output_channel_ch8=225;
+	output_channel_ch1=48; //Timer2
+	output_channel_ch2=49; //Timer2
+	output_channel_ch3=50; //Timer2
+	output_channel_ch4=36; //Timer3
+	output_channel_ch5=46; //Timer3
+	output_channel_ch6=45; //Timer3
+	output_channel_ch7=301; //Timer4
+	output_channel_ch8=225; //Timer4
 	/*
 	output_channel_ch9=23;
 	output_channel_ch10=24;
