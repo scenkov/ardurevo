@@ -25,11 +25,13 @@ VRBRAINScheduler::VRBRAINScheduler()
 
 void VRBRAINScheduler::init(void* machtnichts)
 {
-    Timer8.pause();
-    Timer8.setPeriod(1000);
-    Timer8.setCount(1);
-    Timer8.attachInterrupt(TIMER_CH1, _timer_isr_event);
-    Timer8.resume();
+    timer_pause(TIMER5);
+    timer_set_prescaler(TIMER5,41);
+    timer_set_count(TIMER5,0);
+    timer_set_reload(TIMER5,999);
+    timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer_isr_event);
+    timer_resume(TIMER5);
+
 }
 
 void VRBRAINScheduler::delay(uint16_t ms)
