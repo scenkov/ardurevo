@@ -15,14 +15,14 @@ AP_HAL::DigitalSource *c_led;
 
 void loop (void) {
     hal.scheduler->delay(1000);
-    hal.gpio->write(13, 1);
+    hal.gpio->write(19, 1);
 
     a_led->write(1);
     b_led->write(0);
     c_led->write(1);
 
     hal.scheduler->delay(1000);
-    hal.gpio->write(13, 0);
+    hal.gpio->write(19, 0);
 
     a_led->write(0);
     b_led->write(1);
@@ -30,16 +30,16 @@ void loop (void) {
 }
 
 void setup (void) {
-    hal.gpio->pinMode(13, GPIO_OUTPUT);
-    hal.gpio->write(13, 0);
+    hal.gpio->pinMode(19, OUTPUT);
+    hal.gpio->write(19, 0);
 
     a_led = hal.gpio->channel(19);
     b_led = hal.gpio->channel(20);
     c_led = hal.gpio->channel(21);
 
-    a_led->mode(GPIO_OUTPUT);
-    b_led->mode(GPIO_OUTPUT);
-    c_led->mode(GPIO_OUTPUT);
+    a_led->mode(OUTPUT);
+    b_led->mode(OUTPUT);
+    c_led->mode(OUTPUT);
 
     a_led->write(0);
     b_led->write(0);

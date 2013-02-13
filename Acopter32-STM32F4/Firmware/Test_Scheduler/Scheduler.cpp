@@ -66,7 +66,7 @@ void schedule_toggle_hang(uint32_t machtnichts) {
 
 void setup_pin(int pin_num) {
     hal.console->printf_P(PSTR("Setup pin %d\r\n"), pin_num);
-    hal.gpio->pinMode(pin_num,GPIO_OUTPUT);
+    hal.gpio->pinMode(pin_num,OUTPUT);
     /* Blink so we can see setup on the logic analyzer.*/
     hal.gpio->write(pin_num,1);
     hal.scheduler->delay(1000);
