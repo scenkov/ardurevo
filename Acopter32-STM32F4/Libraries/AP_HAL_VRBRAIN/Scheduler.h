@@ -6,6 +6,10 @@
 #include <delay.h>
 #include <systick.h>
 #include <boards.h>
+#include <timer.h>
+
+#define AVR_SCHEDULER_MAX_TIMER_PROCS 4
+
 
 class VRBRAIN::VRBRAINScheduler : public AP_HAL::Scheduler {
 public:
@@ -30,6 +34,26 @@ public:
 
     void     panic(const prog_char_t *errormsg);
     void     reboot();
+
+private:
+
+    static volatile bool _in_timer_proc;
+
+    AP_HAL::Proc _delay_cb;
+    uint16_t _min_delay_cb_ms;
+    bool _initialized;
+
+    /* _timer_isr_event() and _run_timer_procs are static so they can be
+     * called from an interrupt. */
+    static void _timer_isr_event();
+    static void _run_timer_procs(bool called_from_isr);
+
+    static AP_HAL::TimedProc _failsafe;
+
+    static volatile bool _timer_suspended;
+    static volatile bool _timer_event_missed;
+    static AP_HAL::TimedProc _timer_proc[AVR_SCHEDULER_MAX_TIMER_PROCS];
+    static uint8_t _num_timer_procs;
 
 };
 

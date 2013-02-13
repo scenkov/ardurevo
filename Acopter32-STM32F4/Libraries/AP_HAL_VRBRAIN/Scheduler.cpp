@@ -1,16 +1,36 @@
 
 #include "Scheduler.h"
 #include <delay.h>
+#include <timer.h>
+#include <HardwareTimer.h>
 
 using namespace VRBRAIN;
 
 extern const AP_HAL::HAL& hal;
 
+AP_HAL::TimedProc VRBRAINScheduler::_failsafe = NULL;
+volatile bool VRBRAINScheduler::_timer_suspended = false;
+volatile bool VRBRAINScheduler::_timer_event_missed = false;
+volatile bool VRBRAINScheduler::_in_timer_proc = false;
+AP_HAL::TimedProc VRBRAINScheduler::_timer_proc[AVR_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
+uint8_t VRBRAINScheduler::_num_timer_procs = 0;
+
+
 VRBRAINScheduler::VRBRAINScheduler()
+:
+	    _delay_cb(NULL),
+	    _min_delay_cb_ms(65535),
+	    _initialized(false)
 {}
 
 void VRBRAINScheduler::init(void* machtnichts)
-{}
+{
+    Timer8.pause();
+    Timer8.setPeriod(1000);
+    Timer8.setCount(1);
+    Timer8.attachInterrupt(TIMER_CH1, _timer_isr_event);
+    Timer8.resume();
+}
 
 void VRBRAINScheduler::delay(uint16_t ms)
 {
@@ -47,14 +67,14 @@ void VRBRAINScheduler::delay_microseconds(uint16_t us)
     delay_us((uint32_t)us);
 }
 
-void VRBRAINScheduler::register_delay_callback(AP_HAL::Proc k,
+void VRBRAINScheduler::register_delay_callback(AP_HAL::Proc proc,
             uint16_t min_time_ms)
 {
     _delay_cb = proc;
     _min_delay_cb_ms = min_time_ms;
 }
 
-void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc k)
+void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc proc)
 {
     for (int i = 0; i < _num_timer_procs; i++) {
         if (_timer_proc[i] == proc) {
@@ -73,10 +93,15 @@ void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc k)
         interrupts();
     }
 }
+
+void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc,
+            uint32_t period_us)
+{}
 void VRBRAINScheduler::suspend_timer_procs()
 {
     _timer_suspended = true;
 }
+
 
 void VRBRAINScheduler::resume_timer_procs()
 {
@@ -92,9 +117,61 @@ bool VRBRAINScheduler::in_timerprocess()
     return _in_timer_proc;
 }
 
-void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc,
-            uint32_t period_us)
-{}
+
+
+void VRBRAINScheduler::_timer_isr_event() {
+    // we enable the interrupt again immediately and also enable
+    // interrupts. This allows other time critical interrupts to
+    // run (such as the serial receive interrupt). We catch the
+    // timer calls taking too long using _in_timer_call.
+    // This approach also gives us a nice uniform spacing between
+    // timer calls
+
+    //TCNT2 = RESET_TCNT2_VALUE;
+    interrupts();
+    _run_timer_procs(true);
+}
+
+void VRBRAINScheduler::_run_timer_procs(bool called_from_isr) {
+
+    uint32_t tnow = hal.scheduler->micros();
+    if (_in_timer_proc) {
+        // the timer calls took longer than the period of the
+        // timer. This is bad, and may indicate a serious
+        // driver failure. We can't just call the drivers
+        // again, as we could run out of stack. So we only
+        // call the _failsafe call. It's job is to detect if
+        // the drivers or the main loop are indeed dead and to
+        // activate whatever failsafe it thinks may help if
+        // need be.  We assume the failsafe code can't
+        // block. If it does then we will recurse and die when
+        // we run out of stack
+        if (_failsafe != NULL) {
+            _failsafe(tnow);
+        }
+        return;
+    }
+
+    _in_timer_proc = true;
+
+    if (!_timer_suspended) {
+        // now call the timer based drivers
+        for (int i = 0; i < _num_timer_procs; i++) {
+            if (_timer_proc[i] != NULL) {
+                _timer_proc[i](tnow);
+            }
+        }
+    } else if (called_from_isr) {
+        _timer_event_missed = true;
+    }
+
+    // and the failsafe, if one is setup
+    if (_failsafe != NULL) {
+        _failsafe(tnow);
+    }
+
+    _in_timer_proc = false;
+}
 
 
 
@@ -112,7 +189,7 @@ void VRBRAINScheduler::system_initialized()
     _initialized = true;
 }
 
-void VRBRAINScheduler::panic(const prog_char_t *errormsg) {
+void VRBRAINScheduler::panic(const prog_char_t* errormsg) {
    hal.console->println_P(errormsg);
     for(;;);
 }
