@@ -1,5 +1,6 @@
 
 #include "GPIO.h"
+#include <gpio.h>
 #include "ext_interrupts.h"
 #include "exti.h"
 #include "boards.h"
