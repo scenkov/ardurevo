@@ -18,7 +18,8 @@ const AP_HAL::HAL& hal = AP_HAL_VRBRAIN;
 #define FAILSAFE_TOGGLE_PIN 20     /* A1 */
 #define SCHEDULED_TOGGLE_PIN_1 21  /* A2 */
 #define SCHEDULED_TOGGLE_PIN_2 19  /* A3 */
-
+static int32_t toggle_1_time;
+static int32_t toggle_2_time;
 
 void delay_toggle() {
     volatile int i;
@@ -36,17 +37,24 @@ void failsafe_toggle(uint32_t machtnichts) {
 
 
 void schedule_toggle_1(uint32_t machtnichts) {
-    volatile int i;
-    hal.gpio->write(SCHEDULED_TOGGLE_PIN_1, 1);
-    for (i = 0; i < 10; i++);
-    hal.gpio->write(SCHEDULED_TOGGLE_PIN_1, 0);
+    if((hal.scheduler->millis() - toggle_1_time) >= 1000){
+	if(hal.gpio->read(SCHEDULED_TOGGLE_PIN_1)){
+	    hal.gpio->write(SCHEDULED_TOGGLE_PIN_1, 0);
+	} else {
+	    hal.gpio->write(SCHEDULED_TOGGLE_PIN_1, 1);
+	}
+    }
 }
 
 void schedule_toggle_2(uint32_t machtnichts) {
-    volatile int i;
-    hal.gpio->write(SCHEDULED_TOGGLE_PIN_2, 1);
-    for (i = 0; i < 10; i++);
-    hal.gpio->write(SCHEDULED_TOGGLE_PIN_2, 0);
+    if((hal.scheduler->millis() - toggle_2_time) >= 1000){
+	toggle_2_time = hal.scheduler->millis();
+	if(hal.gpio->read(SCHEDULED_TOGGLE_PIN_2)){
+	    hal.gpio->write(SCHEDULED_TOGGLE_PIN_2, 0);
+	} else {
+	    hal.gpio->write(SCHEDULED_TOGGLE_PIN_2, 1);
+	}
+    }
 }
 
 void schedule_toggle_hang(uint32_t machtnichts) {
@@ -73,7 +81,7 @@ void setup (void) {
     setup_pin(SCHEDULED_TOGGLE_PIN_1);
     hal.scheduler->delay(1000);
     setup_pin(SCHEDULED_TOGGLE_PIN_2);
-
+    /*
     hal.console->printf_P(PSTR("Testing delay callback. "
                 "Pin %d should toggle at 1khz:\r\n"),
             (int) DELAY_TOGGLE_PIN);
@@ -89,24 +97,25 @@ void setup (void) {
     hal.scheduler->register_timer_failsafe(failsafe_toggle, 1000);
 
     hal.scheduler->delay(100);
-
+*/
     hal.console->printf_P(PSTR("Testing running timer processes.\r\n"));
-    hal.console->printf_P(PSTR("Pin %d should toggle at 1khz.\r\n"),
+    hal.console->printf_P(PSTR("Pin %d should toggle at 1hz.\r\n"),
             (int) SCHEDULED_TOGGLE_PIN_1);
-    hal.console->printf_P(PSTR("Pin %d should toggle at 1khz.\r\n"),
+    hal.console->printf_P(PSTR("Pin %d should toggle at 1hz.\r\n"),
             (int) SCHEDULED_TOGGLE_PIN_2);
 
     hal.scheduler->register_timer_process(schedule_toggle_1);
     hal.scheduler->register_timer_process(schedule_toggle_2);
 
     hal.scheduler->delay(100);
-
+/*
     hal.console->printf_P(PSTR("Test running a pathological timer process.\r\n"
                 "Failsafe should continue even as pathological process "
                 "dominates the processor."));
     hal.console->printf_P(PSTR("Pin %d should toggle then go high forever.\r\n"),
             (int) SCHEDULED_TOGGLE_PIN_2);
     hal.scheduler->register_timer_process(schedule_toggle_hang);
+    */
 }
 
 void loop (void) { }
