@@ -113,7 +113,7 @@ void VRBRAINGPIO::write(uint8_t pin, uint8_t value)
 /* Alternative interface: */
 AP_HAL::DigitalSource* VRBRAINGPIO::channel(uint16_t pin) {
     uint8_t bit;
-    gpio_dev device;
+    gpio_dev *device;
     bit = PIN_MAP[pin].gpio_bit;
     device = PIN_MAP[pin].gpio_device;
 
@@ -140,18 +140,18 @@ bool VRBRAINGPIO::attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
 
 void VRBRAINDigitalSource::mode(uint8_t output)
 {
-    gpio_set_mode(&_device, _bit, output);
+    gpio_set_mode(_device, _bit, output);
 }
 
 uint8_t VRBRAINDigitalSource::read()
 {
-    return gpio_read_bit(&_device, _bit) ?
+    return gpio_read_bit(_device, _bit) ?
         HIGH : LOW;
 }
 
 void VRBRAINDigitalSource::write(uint8_t value)
 {
-    gpio_write_bit(&_device, _bit, value);
+    gpio_write_bit(_device, _bit, value);
 }
 
 
