@@ -4,6 +4,8 @@
 
 #include <AP_HAL_VRBRAIN.h>
 #include <io.h>
+#include <gpio.h>
+
 class VRBRAIN::VRBRAINGPIO : public AP_HAL::GPIO {
 public:
     VRBRAINGPIO();
@@ -23,12 +25,13 @@ public:
 
 class VRBRAIN::VRBRAINDigitalSource : public AP_HAL::DigitalSource {
 public:
-    VRBRAINDigitalSource(uint8_t v);
+    VRBRAINDigitalSource(uint8_t device, uint8_t bit): _device(device), _bit(bit){}
     void    mode(uint8_t output);
     uint8_t read();
     void    write(uint8_t value); 
 private:
-    uint8_t _v;
+    uint8_t _device;
+    uint8_t _bit;
 };
 
 #endif // __AP_HAL_VRBRAIN_GPIO_H__
