@@ -25,12 +25,12 @@ public:
 
 class VRBRAIN::VRBRAINDigitalSource : public AP_HAL::DigitalSource {
 public:
-    VRBRAINDigitalSource(uint8_t device, uint8_t bit): _device(device), _bit(bit){}
+    VRBRAINDigitalSource(gpio_dev device, uint8_t bit): _device(device), _bit(bit){}
     void    mode(uint8_t output);
     uint8_t read();
     void    write(uint8_t value); 
 private:
-    uint8_t _device;
+    gpio_dev *_device;
     uint8_t _bit;
 };
 
