@@ -64,8 +64,7 @@
 
  # define CONFIG_MAG MP32NAVYSENSOR
  # define LOGGING_ENABLED ENABLED
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
@@ -280,14 +279,14 @@
  #define COPTER_LED_7 AN10      // Motor LED
  #define COPTER_LED_8 AN11      // Motor LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-#define COPTER_LED_1 65  	// Motor or Aux LED
-#define COPTER_LED_2 68  	// Motor LED or Beeper
-#define COPTER_LED_3 102  	// Motor or GPS LED
-#define COPTER_LED_4 0  	// Motor or GPS LED
-#define COPTER_LED_5 0  	// Motor or GPS LED
-#define COPTER_LED_6 0  	// Motor or GPS LED
-#define COPTER_LED_7 0  	// Motor or GPS LED
-#define COPTER_LED_8 0  	// Motor or GPS LED
+ #define COPTER_LED_1 65  	// Motor or Aux LED
+ #define COPTER_LED_2 68  	// Motor LED or Beeper
+ #define COPTER_LED_3 102  	// Motor or GPS LED
+ #define COPTER_LED_4 0  	// Motor or GPS LED
+ #define COPTER_LED_5 0  	// Motor or GPS LED
+ #define COPTER_LED_6 0  	// Motor or GPS LED
+ #define COPTER_LED_7 0  	// Motor or GPS LED
+ #define COPTER_LED_8 0  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || HAL_BOARD_SMACCM
  #define COPTER_LED_1 AN8       // Motor or Aux LED
  #define COPTER_LED_2 AN9       // Motor LED

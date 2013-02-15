@@ -16,7 +16,7 @@
 
 #define EEPROM_MAX_ADDR		4096
 
-const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
+const AP_HAL::HAL& hal = AP_HAL_VRBRAIN;
 int abs1;
 float abs2;
 const prog_char_t *msg;

@@ -7,15 +7,10 @@ extern const AP_HAL::HAL& hal;
 
 using namespace VRBRAIN;
 
-VRBRAINStorage::VRBRAINStorage()
-{
-    Status = 0x0000;
-    //init();
-}
 
 void VRBRAINStorage::init(void*)
 {
-    //Status = 0x0000;
+    Status = 0x0000;
 }
 
 uint8_t VRBRAINStorage::read_byte(uint16_t loc){
@@ -109,7 +104,7 @@ uint16_t VRBRAINStorage::read(uint16_t Address, uint16_t *Data)
 
 uint16_t VRBRAINStorage::write(uint16_t Address, uint16_t Data)
 {
-	int8_t xret = hal.i2c->write(EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
+	int8_t xret = hal.i2c->write((uint8_t)EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
 	hal.scheduler->delay(5);
 
 	if (xret != 0)

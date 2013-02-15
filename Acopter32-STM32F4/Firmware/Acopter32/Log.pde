@@ -1276,6 +1276,8 @@ static void Log_Read(int16_t start_page, int16_t end_page)
     cliSerial->printf_P(PSTR("APM 1\n"));
  #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
     cliSerial->printf_P(PSTR("APM 2\n"));
+ #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+   cliSerial->printf_P(PSTR("VRBRAIN\n"));
  #endif
 
 #if CLI_ENABLED == ENABLED

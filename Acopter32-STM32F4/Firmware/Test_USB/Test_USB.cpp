@@ -22,7 +22,7 @@
  void setup()  ;
   void loop() ;
 #line 19 "./Firmware/Test_USB/Test_USB.pde"
-const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
+const AP_HAL::HAL& hal = AP_HAL_VRBRAIN;
 int abs1;
 float abs2;
 const prog_char_t *msg;
@@ -36,7 +36,7 @@ void test_erase() {
     hal.console->printf_P(PSTR("erasing... "));
     hal.console->println();
     for(int i = 0; i < 100; i++) {
-        hal.storage->write_byte(i, 0);
+        hal.storage->write_byte(i, 1);
     }
     hal.console->printf_P(PSTR(" done.\r\n"));
     hal.console->println();

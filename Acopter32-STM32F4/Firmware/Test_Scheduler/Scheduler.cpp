@@ -47,7 +47,8 @@ void failsafe_toggle(uint32_t machtnichts) {
 
 
 void schedule_toggle_1(uint32_t machtnichts) {
-    if((hal.scheduler->millis() - toggle_1_time) >= 1000){
+    if((hal.scheduler->millis() - toggle_1_time) >= 500){
+	toggle_1_time = hal.scheduler->millis();
 	if(hal.gpio->read(SCHEDULED_TOGGLE_PIN_1)){
 	    hal.gpio->write(SCHEDULED_TOGGLE_PIN_1, 0);
 	} else {

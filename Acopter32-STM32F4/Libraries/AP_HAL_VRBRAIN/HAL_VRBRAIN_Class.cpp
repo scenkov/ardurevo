@@ -49,9 +49,10 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   scheduler->init(NULL);
   uartA->begin(115200);
-  _member->init();
-  i2c->begin();
+  _member->init();  i2c->begin();
   spi->init(NULL);
+  //storage->init(void);
+
 }
 
 const HAL_VRBRAIN AP_HAL_VRBRAIN;

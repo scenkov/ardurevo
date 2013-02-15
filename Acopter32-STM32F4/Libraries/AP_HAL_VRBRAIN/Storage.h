@@ -15,6 +15,7 @@
 #define __AP_HAL_VRBRAIN_STORAGE_H__
 
 #include <AP_HAL_VRBRAIN.h>
+#include <i2c.h>
 
 #define MC24C64		//Defines the EEPROM MC24C64
 #define EEPROM_ADDRESS	0xA0
@@ -25,8 +26,8 @@
 class VRBRAIN::VRBRAINStorage : public AP_HAL::Storage
 {
 public:
-  VRBRAINStorage();
-  void init(void *);
+  VRBRAINStorage():Status(0){}
+  void init(void*);
   uint8_t  read_byte(uint16_t loc);
   uint16_t read_word(uint16_t loc);
   uint32_t read_dword(uint16_t loc);
@@ -44,7 +45,6 @@ private:
   uint16_t write(uint16_t Address, uint16_t Data);
 
   uint16_t Status;
-
 };
 
 #endif // __AP_HAL_VRBRAIN_STORAGE_H__
