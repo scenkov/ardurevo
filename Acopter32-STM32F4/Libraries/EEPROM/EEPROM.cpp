@@ -73,7 +73,7 @@ uint16_t EEPROMClass::read(uint16_t Address, uint16_t *Data)
 uint16_t EEPROMClass::write(uint16_t Address, uint16_t Data)
 {
 	int8_t xret = _I2Cx->write(EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
-	delay(5);
+	//delay(5);
 
 	if (xret != 0)
 		return 0x0001;

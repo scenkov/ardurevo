@@ -176,7 +176,8 @@ static void init_home()
 
     // Save Home to EEPROM
     // -------------------
-    // no need to save this to EPROM
+    // no need to save this to EEPROM unless we are on the ground
+    if(!motors.armed())
     set_cmd_with_index(home, 0);
 
 #if INERTIAL_NAV_XY == ENABLED
