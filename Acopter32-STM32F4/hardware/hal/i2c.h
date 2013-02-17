@@ -12,8 +12,13 @@
    not remain stuck if the I2C communication is corrupted.
    You may modify these timeout values depending on CPU frequency and application
    conditions (interrupts routines ...). */   
+
 #define I2C_TIMEOUT         ((uint32_t)0x1000)
 #define I2C_LONG_TIMEOUT    ((uint32_t)(10 * I2C_TIMEOUT))
+
+
+/* Maximum number of trials for sEE_WaitEepromStandbyState() function */
+#define sEE_MAX_TRIALS_NUMBER     300
 
 /**
  * @brief I2C device type.
@@ -55,6 +60,7 @@ uint8_t i2c_start_wait(i2c_dev *dev, uint8_t Address);
 uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *tx_buffer, uint8_t len);
 uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buffer, uint8_t txlen, uint8_t *rx_buffer, uint8_t rxlen);
 uint8_t i2c_is_busy();
+uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr);
 
 extern i2c_dev* const _I2C1;
 extern i2c_dev* const _I2C2;

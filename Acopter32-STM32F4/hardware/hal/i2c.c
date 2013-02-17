@@ -1,6 +1,7 @@
 #include "i2c.h"
 #include "gpiopins.h"
 #include "systick.h"
+#include "stm32f4xx_i2c.h"
 
 #define TIMEOUT 500
 
@@ -45,6 +46,10 @@ __IO uint8_t i2c_reg_len = 0;
 __IO uint8_t tx_buffer[I2C_BUF_SIZE];
 __IO uint8_t *rx_buffer_ptr;
 
+__IO uint32_t  sEETimeout = I2C_LONG_TIMEOUT;
+__IO uint16_t* sEEDataReadPointer;
+__IO uint8_t*  sEEDataWritePointer;
+__IO uint8_t   sEEDataNum;
 
 /**
   * @brief  DeInitializes peripherals used by the I2C EEPROM driver.
@@ -215,6 +220,7 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                          * we get here after transmitting address + write bit
                          */
                 case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:
+                    break;
                 case I2C_EVENT_MASTER_BYTE_TRANSMITTING:  
 						if( tx_buffer_ix < tx_buffer_len ) {
 							I2C_SendData(I2Cx, tx_buffer[tx_buffer_ix++]);
@@ -434,5 +440,94 @@ uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uin
 uint8_t i2c_is_busy()
 {
         return I2C_BLOCKED;
+}
+
+
+/**
+  * @brief  Wait for EEPROM Standby state.
+  *
+  * @note  This function allows to wait and check that EEPROM has finished the
+  *        last operation. It is mostly used after Write operation: after receiving
+  *        the buffer to be written, the EEPROM may need additional time to actually
+  *        perform the write operation. During this time, it doesn't answer to
+  *        I2C packets addressed to it. Once the write operation is complete
+  *        the EEPROM responds to its address.
+  *
+  * @param  None
+  * @retval sEE_OK (0) if operation is correctly performed, else return value
+  *         different from sEE_OK (0) or the timeout user callback.
+  */
+uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
+{
+  __IO uint16_t tmpSR1 = 0;
+  __IO uint32_t sEETrials = 0;
+
+  I2CADDRESS = addr;
+
+  /*!< While the bus is busy */
+  sEETimeout = I2C_LONG_TIMEOUT;
+  while(I2C_GetFlagStatus(dev->I2Cx, I2C_FLAG_BUSY))
+  {
+    if((sEETimeout--) == 0) return ERROR;
+  }
+
+  /* Keep looping till the slave acknowledge his address or maximum number
+     of trials is reached (this number is defined by sEE_MAX_TRIALS_NUMBER define
+     in STM324x7I_eval_i2c_ee.h file) */
+  while (1)
+  {
+    /*!< Send START condition */
+    I2C_GenerateSTART(dev->I2Cx, ENABLE);
+
+    /*!< Test on EV5 and clear it */
+    sEETimeout = I2C_TIMEOUT;
+    while(!I2C_CheckEvent(dev->I2Cx, I2C_EVENT_MASTER_MODE_SELECT))
+    {
+      if((sEETimeout--) == 0) return ERROR;
+    }
+
+    /*!< Send EEPROM address for write */
+    I2C_Send7bitAddress(dev->I2Cx, I2CADDRESS, I2C_Direction_Transmitter);
+
+    /* Wait for ADDR flag to be set (Slave acknowledged his address) */
+    sEETimeout = I2C_LONG_TIMEOUT;
+    do
+    {
+      /* Get the current value of the SR1 register */
+      tmpSR1 = dev->I2Cx->SR1;
+
+      /* Update the timeout value and exit if it reach 0 */
+      if((sEETimeout--) == 0) return ERROR;
+    }
+    /* Keep looping till the Address is acknowledged or the AF flag is
+       set (address not acknowledged at time) */
+    while((tmpSR1 & (I2C_SR1_ADDR | I2C_SR1_AF)) == 0);
+
+    /* Check if the ADDR flag has been set */
+    if (tmpSR1 & I2C_SR1_ADDR)
+    {
+      /* Clear ADDR Flag by reading SR1 then SR2 registers (SR1 have already
+         been read) */
+      (void)dev->I2Cx->SR2;
+
+      /*!< STOP condition */
+      I2C_GenerateSTOP(dev->I2Cx, ENABLE);
+
+      /* Exit the function */
+      return OK;
+    }
+    else
+    {
+      /*!< Clear AF flag */
+      I2C_ClearFlag(dev->I2Cx, I2C_FLAG_AF);
+    }
+
+    /* Check if the maximum allowed number of trials has bee reached */
+    if (sEETrials++ == sEE_MAX_TRIALS_NUMBER)
+    {
+      /* If the maximum number of trials has been reached, exit the function */
+      return ERROR;
+    }
+  }
 }
 
