@@ -476,6 +476,9 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
      in STM324x7I_eval_i2c_ee.h file) */
   while (1)
   {
+    //Disable interrupts
+      I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, DISABLE);
+
     /*!< Send START condition */
     I2C_GenerateSTART(dev->I2Cx, ENABLE);
 
@@ -483,8 +486,13 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
     sEETimeout = I2C_TIMEOUT;
     while(!I2C_CheckEvent(dev->I2Cx, I2C_EVENT_MASTER_MODE_SELECT))
     {
-      if((sEETimeout--) == 0) return ERROR;
+
     }
+      if((sEETimeout--) == 0)
+	  {
+	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	  return ERROR;
+	  }
 
     /*!< Send EEPROM address for write */
     I2C_Send7bitAddress(dev->I2Cx, I2CADDRESS, I2C_Direction_Transmitter);
@@ -497,7 +505,11 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       tmpSR1 = dev->I2Cx->SR1;
 
       /* Update the timeout value and exit if it reach 0 */
-      if((sEETimeout--) == 0) return ERROR;
+      if((sEETimeout--) == 0)
+	  {
+	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	  return ERROR;
+	  }
     }
     /* Keep looping till the Address is acknowledged or the AF flag is
        set (address not acknowledged at time) */
@@ -513,6 +525,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       /*!< STOP condition */
       I2C_GenerateSTOP(dev->I2Cx, ENABLE);
 
+      //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
       /* Exit the function */
       return OK;
     }
@@ -525,6 +538,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
     /* Check if the maximum allowed number of trials has bee reached */
     if (sEETrials++ == sEE_MAX_TRIALS_NUMBER)
     {
+	//I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
       /* If the maximum number of trials has been reached, exit the function */
       return ERROR;
     }
