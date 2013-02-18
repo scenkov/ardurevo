@@ -36,7 +36,7 @@ void test_erase() {
     hal.console->printf_P(PSTR("erasing... "));
     hal.console->println();
     for(int i = 0; i < 100; i++) {
-        hal.storage->write_byte(i, 1);
+        hal.storage->write_byte(i, 0);
     }
     hal.console->printf_P(PSTR(" done.\r\n"));
     hal.console->println();
@@ -68,7 +68,8 @@ void test_readback() {
         hal.console->printf_P(PSTR("all bytes read successfully\r\n"));
         hal.console->println();
     }
-    hal.console->printf_P(PSTR("done reading back.\r\n"));
+    uint8_t aa = hal.storage->read_byte(10);
+    hal.console->printf_P(PSTR("done reading back %d.\r\n"),aa);
 }
 void setup() 
 {

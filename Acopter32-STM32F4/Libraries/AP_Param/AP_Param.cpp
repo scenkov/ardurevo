@@ -765,7 +765,7 @@ bool AP_Param::load(void)
     }
 
     // found it
-    hal.storage->read_block(ap, ofs+sizeof(phdr), type_size((enum ap_var_type)phdr.type));
+    hal.storage->read_block(ap, (ofs+sizeof(phdr)), type_size((enum ap_var_type)phdr.type));
     return true;
 }
 

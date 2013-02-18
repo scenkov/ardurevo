@@ -28,11 +28,8 @@ void VRBRAINI2CDriver::setHighSpeed(bool active) {}
 uint8_t VRBRAINI2CDriver::write(uint8_t address, uint8_t len, uint8_t* tx_buffer)
 {
 	uint8_t ret = i2c_write(this->_dev, address, tx_buffer, len);
+	sEE_WaitEepromStandbyState(this->_dev, address);
 
-	//uint8_t ret = i2c_Write(this->i2c_d, address, len, data);
-	#ifdef DELAYI2C
-		delay(I2CDELAY);
-	#endif
 	return ret;
 }
 
@@ -45,7 +42,7 @@ int8_t VRBRAINI2CDriver::write(uint8_t address, uint16_t registerAddress, uint8_
 	ibuff[2] = (uint8_t)databyte;
 
 	uint8_t ret = i2c_write(this->_dev, address, ibuff, 3);
-	//uint8_t ret = i2c_write(this->i2c_d, address, registerAddress, databyte);
+	sEE_WaitEepromStandbyState(this->_dev, address);
 
 	return ret;
 }
@@ -61,10 +58,7 @@ uint8_t VRBRAINI2CDriver::writeRegister(uint8_t address, uint8_t registerAddress
 	ibuff[1] = databyte;
 
 	uint8_t ret = i2c_write(this->_dev, address, ibuff, 2);
-
-	#ifdef DELAYI2C
-		delay(I2CDELAY);
-	#endif
+	sEE_WaitEepromStandbyState(this->_dev, address);
 
 	return ret;
 }

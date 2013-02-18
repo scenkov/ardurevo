@@ -235,11 +235,13 @@ private:
  *
  *  - type: the ap_var_type value for the variable
  */
+
     struct Param_header {
         uint32_t key : 8;
         uint32_t type : 6;
         uint32_t group_element : 18;
     };
+
 
     // number of bits in each level of nesting of groups
     static const uint8_t        _group_level_shift = 6;
@@ -290,7 +292,7 @@ private:
     bool                        scan(
                                     const struct Param_header *phdr,
                                     uint16_t *pofs);
-    static uint8_t				type_size(enum ap_var_type type);
+    static uint8_t        type_size(enum ap_var_type type);
     static void                 eeprom_write_check(
                                     const void *ptr,
                                     uint16_t ofs,

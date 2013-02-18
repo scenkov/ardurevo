@@ -62,7 +62,8 @@ void test_readback() {
         hal.console->printf_P(PSTR("all bytes read successfully\r\n"));
         hal.console->println();
     }
-    hal.console->printf_P(PSTR("done reading back.\r\n"));
+    uint8_t aa = hal.storage->read_byte(10);
+    hal.console->printf_P(PSTR("done reading back %d.\r\n"),aa);
 }
 void setup() 
 {

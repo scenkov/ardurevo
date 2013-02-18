@@ -1,5 +1,6 @@
 #include <systick.h>
 #include <hal.h>
+#include <timer.h>
 
 
 volatile uint32_t systick_uptime_millis;
@@ -81,12 +82,12 @@ void SysTick_Handler(void)
 
 void HardFault_Handler(void)
 {
-  /* Go to infinite loop when Hard Fault exception occurs */
-  while (1)
-  {
-	  LED_YLW = 1;
-	  LED_RED = 1;
-  }
+    timer_disable_all();
+    /* Go to infinite loop when Hard Fault exception occurs */
+    while (1) {
+	LED_YLW = 1;
+        LED_RED = 1;
+    }
 }
 /**
   * @brief  This function handles Memory Manage exception.
@@ -95,6 +96,7 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
+    timer_disable_all();
   /* Go to infinite loop when Memory Manage exception occurs */
   while (1)
   {
@@ -110,6 +112,7 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
+    timer_disable_all();
   /* Go to infinite loop when Bus Fault exception occurs */
   while (1)
   {
@@ -126,6 +129,7 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
+    timer_disable_all();
   /* Go to infinite loop when Usage Fault exception occurs */
   while (1)
   {

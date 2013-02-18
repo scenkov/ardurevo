@@ -34,7 +34,7 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
     //memset(dst, 0, n);
     //serPort->println("enter read block");
 	uint8_t * buff = (uint8_t *)dst;
-	uint16_t addr16 = (uint16_t)(uint32_t)src;
+	uint16_t addr16 = src;
 	for (uint16_t i = 0; i < (uint16_t)n; i++)
 	{
 		buff[i] = (uint8_t)read(addr16 + i);
@@ -45,7 +45,7 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
 void VRBRAINStorage::write_byte(uint16_t loc, uint8_t value)
 {
 	uint16_t addr16 = (uint16_t)(uint32_t)loc;
-	return write(addr16, (uint16_t) value );
+	write(addr16, (uint16_t) value );
 }
 
 void VRBRAINStorage::write_word(uint16_t loc, uint16_t value)
@@ -63,7 +63,7 @@ void VRBRAINStorage::write_dword(uint16_t loc, uint32_t value)
 void VRBRAINStorage::write_block(uint16_t loc, void* src, size_t n)
 {
 	uint8_t * buff = (uint8_t *)src;
-	uint16_t addr16 = (uint16_t)(uint32_t)loc;
+	uint16_t addr16 = loc;
 
 	for (uint16_t i = 0; i < (uint16_t)n; i++)
 	{
