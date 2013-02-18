@@ -51,13 +51,13 @@ void VRBRAINStorage::write_byte(uint16_t loc, uint8_t value)
 void VRBRAINStorage::write_word(uint16_t loc, uint16_t value)
 {
 	uint16_t val = value;
-	write_block(&val, loc, sizeof(val));
+	write_block(loc,&val, sizeof(val));
 }
 
 void VRBRAINStorage::write_dword(uint16_t loc, uint32_t value)
 {
 	uint32_t val = value;
-	write_block(&val, loc, sizeof(val));
+	write_block(loc, &val, sizeof(val));
 }
 
 void VRBRAINStorage::write_block(uint16_t loc, void* src, size_t n)
