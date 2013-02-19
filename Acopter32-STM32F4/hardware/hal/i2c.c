@@ -491,7 +491,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       if((sEETimeout--) == 0)
 	  {
 	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
-	  return ERROR;
+	  return I2C_ERROR;
 	  }
 
     /*!< Send EEPROM address for write */

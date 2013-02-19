@@ -172,12 +172,19 @@ AP_Compass_HMC5843::init()
     }
 
     // determine if we are using 5843 or 5883L
-    if (!write_register(ConfigRegA, SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation) ||
-        !read_register(ConfigRegA, &_base_config)) {
-        healthy = false;
+    if (!write_register(ConfigRegA, SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)){
+	healthy = false;
         _i2c_sem->give();
+        hal.scheduler->panic(PSTR("Compass could not write register"));
         return false;
     }
+    if(!read_register(ConfigRegA, &_base_config)) {
+	healthy = false;
+        _i2c_sem->give();
+        hal.scheduler->panic(PSTR("Compass could not read register"));
+        return false;
+    }
+
     if ( _base_config == (SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)) {
         // a 5883L supports the sample averaging config
         product_id = AP_COMPASS_TYPE_HMC5883L;
@@ -190,6 +197,7 @@ AP_Compass_HMC5843::init()
     } else {
         // not behaving like either supported compass type
         _i2c_sem->give();
+        hal.scheduler->panic(PSTR("Compass: not behaving like either supported compass type"));
         return false;
     }
 
@@ -234,20 +242,21 @@ AP_Compass_HMC5843::init()
             calibration[2] += cal[2];
         }
 
-#if 0
+#if 1
         /* useful for debugging */
-        Serial.print("mag_x: ");
-        Serial.print(_mag_x);
-        Serial.print(" mag_y: ");
-        Serial.print(_mag_y);
-        Serial.print(" mag_z: ");
-        Serial.println(_mag_z);
-        Serial.print("CalX: ");
-        Serial.print(calibration[0]/good_count);
-        Serial.print(" CalY: ");
-        Serial.print(calibration[1]/good_count);
-        Serial.print(" CalZ: ");
-        Serial.println(calibration[2]/good_count);
+        hal.console->printf_P("mag_x: ");
+        hal.console->printf_P("%d",_mag_x);
+        hal.console->printf_P(" mag_y: ");
+        hal.console->printf_P("%d",_mag_y);
+        hal.console->printf_P(" mag_z: ");
+        hal.console->printf_P("%d",_mag_z);
+        hal.console->println();
+        hal.console->printf_P("CalX: ");
+        hal.console->printf_P("%f",(float)(calibration[0]/good_count));
+        hal.console->printf_P(" CalY: ");
+        hal.console->printf_P("%f",(float)(calibration[1]/good_count));
+        hal.console->printf_P(" CalZ: ");
+        hal.console->printf_P("%f",(float)(calibration[2]/good_count));
 #endif
     }
 
