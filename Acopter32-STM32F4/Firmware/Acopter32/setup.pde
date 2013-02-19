@@ -999,7 +999,7 @@ static void zero_eeprom(void)
         hal.storage->write_byte(i, 0);
     }
 
-    cliSerial->printf_P(PSTR("done\n"));
+    cliSerial->printf_P(PSTR("Done Erasing EEPROM\n"));
 }
 
 static void

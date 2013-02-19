@@ -115,14 +115,14 @@ static void init_ardupilot()
     report_version();
 
     // setup IO pins
-    pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    digitalWrite(A_LED_PIN, LED_OFF);
+    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
+    hal.gpio->write(A_LED_PIN, LED_ON);
 
-    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    digitalWrite(B_LED_PIN, LED_OFF);
+    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(B_LED_PIN, LED_ON);
 
-    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    digitalWrite(C_LED_PIN, LED_OFF);
+    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(C_LED_PIN, LED_ON);
 
 #if SLIDE_SWITCH_PIN > 0
     pinMode(SLIDE_SWITCH_PIN, INPUT);           // To enter interactive mode
@@ -131,7 +131,10 @@ static void init_ardupilot()
     pinMode(PUSHBUTTON_PIN, INPUT);                     // unused
 #endif
 
-    relay.init(); 
+    //relay.init();
+
+    // load parameters from EEPROM
+    load_parameters();
 
 #if COPTER_LEDS == ENABLED
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
@@ -148,10 +151,6 @@ static void init_ardupilot()
     }
 
 #endif
-
-
-    // load parameters from EEPROM
-    load_parameters();
 
     // init the GCS
     gcs0.init(hal.uartA);
@@ -256,6 +255,8 @@ static void init_ardupilot()
 #endif
 #endif // CLI_ENABLED
 
+    cliSerial->printf_P("Init Baro");
+
 #if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
     //-----------------------------
@@ -264,6 +265,7 @@ static void init_ardupilot()
 
     // initialise sonar
 #if CONFIG_SONAR == ENABLED
+    cliSerial->printf_P("Init Sonar");
     init_sonar();
 #endif
 
@@ -274,19 +276,22 @@ init_rate_controllers();
 
     // initialize commands
     // -------------------
+cliSerial->printf_P("Init Commands");
     init_commands();
 
     // set the correct flight mode
     // ---------------------------
+    cliSerial->printf_P("Reset Control Switch");
     reset_control_switch();
 
-
+    cliSerial->printf_P("StartUp Ground");
     startup_ground();
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
 #endif
 
+    cliSerial->printf_P("Init ap_limits");
     init_ap_limits();
 
     cliSerial->print_P(PSTR("\nReady to FLY "));
@@ -332,12 +337,13 @@ static void init_ap_limits() {
 static void startup_ground(void)
 {
     gcs_send_text_P(SEVERITY_LOW,PSTR("GROUND START"));
-
+    cliSerial->printf_P("Start Up Ground");
     // initialise ahrs (may push imu calibration into the mpu6000 if using that device).
     ahrs.init();
 
     // Warm up and read Gyro offsets
     // -----------------------------
+    cliSerial->printf_P("Ins Init");
     ins.init(AP_InertialSensor::COLD_START,
              ins_sample_rate,
              flash_leds);

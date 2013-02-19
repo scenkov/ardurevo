@@ -9,7 +9,7 @@
 #include "stm32.h"
 #include "stopwatch.h"
 #include "util.h"
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "delay.h"
 #include "adc.h"
 

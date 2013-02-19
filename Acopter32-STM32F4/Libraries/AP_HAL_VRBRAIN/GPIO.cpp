@@ -1,6 +1,6 @@
 
 #include "GPIO.h"
-#include <gpio.h>
+#include <gpio_hal.h>
 #include "ext_interrupts.h"
 #include "exti.h"
 #include "boards.h"
@@ -125,10 +125,10 @@ bool VRBRAINGPIO::attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
                                   uint8_t mode)
 {
     if (interrupt_num >= BOARD_NR_GPIO_PINS || !p) {
-        return;
+        return false;
     }
 
-    exti_trigger_mode outMode = exti_out_mode(mode);
+    exti_trigger_mode outMode = exti_out_mode((ExtIntTriggerMode)mode);
 
     exti_attach_interrupt((afio_exti_num)(PIN_MAP[interrupt_num].gpio_bit),
                           gpio_exti_port(PIN_MAP[interrupt_num].gpio_device),
@@ -140,7 +140,33 @@ bool VRBRAINGPIO::attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
 
 void VRBRAINDigitalSource::mode(uint8_t output)
 {
-    gpio_set_mode(_device, _bit, output);
+    gpio_pin_mode outputMode;
+
+       switch(output) {
+       case OUTPUT:
+           outputMode = GPIO_OUTPUT_PP;
+           break;
+       case OUTPUT_OPEN_DRAIN:
+           outputMode = GPIO_OUTPUT_OD;
+           break;
+       case INPUT:
+       case INPUT_FLOATING:
+           outputMode = GPIO_INPUT_FLOATING;
+           break;
+       case INPUT_ANALOG:
+           outputMode = GPIO_INPUT_ANALOG;
+           break;
+       case INPUT_PULLUP:
+           outputMode = GPIO_INPUT_PU;
+           break;
+       case INPUT_PULLDOWN:
+           outputMode = GPIO_INPUT_PD;
+           break;
+       default:
+           assert_param(0);
+           return;
+       }
+    gpio_set_mode(_device, _bit, outputMode);
 }
 
 uint8_t VRBRAINDigitalSource::read()

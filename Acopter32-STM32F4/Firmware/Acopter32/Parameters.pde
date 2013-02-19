@@ -1039,34 +1039,13 @@ const AP_Param::Info var_info[] PROGMEM = {
 
 static void load_parameters(void)
 {
-    // change the default for the AHRS_GPS_GAIN for ArduCopter
-    // if it hasn't been set by the user
-    if (!ahrs.gps_gain.load()) {
-        ahrs.gps_gain.set_and_save(1.0);
-    }
+    cliSerial->printf_P("Load Parameters!");
+/*
 
-    // setup different AHRS gains for ArduCopter than the default
-    // but allow users to override in their config
-    if (!ahrs._kp.load()) {
-        ahrs._kp.set_and_save(0.1);
-    }
-    if (!ahrs._kp_yaw.load()) {
-        ahrs._kp_yaw.set_and_save(0.1);
-    }
-
-#if SECONDARY_DMP_ENABLED == ENABLED
-    if (!ahrs2._kp.load()) {
-        ahrs2._kp.set(0.1);
-    }
-    if (!ahrs2._kp_yaw.load()) {
-        ahrs2._kp_yaw.set(0.1);
-    }
-#endif
-
-
+*/
     if (!g.format_version.load() ||
         g.format_version != Parameters::k_format_version) {
-
+	cliSerial->printf_P(PSTR("g version: %d, actual version:%d \n"),g.format_version,Parameters::k_format_version );
         // erase all parameters
         cliSerial->printf_P(PSTR("Firmware change: erasing EEPROM...\n"));
         AP_Param::erase_all();
@@ -1074,12 +1053,37 @@ static void load_parameters(void)
         // save the current format version
         g.format_version.set_and_save(Parameters::k_format_version);
         default_dead_zones();
-        cliSerial->println_P(PSTR("done."));
+        cliSerial->println_P(PSTR("...Done."));
     } else {
+	cliSerial->printf_P("starting load of vars...");
         uint32_t before = micros();
         // Load all auto-loaded EEPROM variables
         AP_Param::load_all();
 
-        cliSerial->printf_P(PSTR("load_all took %luus\n"), micros() - before);
+        cliSerial->printf_P(PSTR("...load_all took %luus\n"), micros() - before);
     }
+    // change the default for the AHRS_GPS_GAIN for ArduCopter
+       // if it hasn't been set by the user
+       if (!ahrs.gps_gain.load()) {
+           ahrs.gps_gain.set_and_save(1.0);
+       }
+
+       // setup different AHRS gains for ArduCopter than the default
+       // but allow users to override in their config
+       if (!ahrs._kp.load()) {
+           ahrs._kp.set_and_save(0.1);
+       }
+       if (!ahrs._kp_yaw.load()) {
+           ahrs._kp_yaw.set_and_save(0.1);
+       }
+
+   #if SECONDARY_DMP_ENABLED == ENABLED
+       if (!ahrs2._kp.load()) {
+           ahrs2._kp.set(0.1);
+       }
+       if (!ahrs2._kp_yaw.load()) {
+           ahrs2._kp_yaw.set(0.1);
+       }
+   #endif
+
 }

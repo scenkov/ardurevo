@@ -1,7 +1,7 @@
 #ifndef _EXTI_H_
 #define _EXTI_H_
 
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "hal_types.h"
 
 #ifdef __cplusplus

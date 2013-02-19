@@ -31,7 +31,7 @@
 #include "FastSerial.h"
 #include "usb.h"
 #include <usart.h>
-#include <gpio.h>
+#include <gpio_hal.h>
 
 //#define TX1 BOARD_USART1_TX_PIN
 //#define RX1 BOARD_USART1_RX_PIN

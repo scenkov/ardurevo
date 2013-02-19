@@ -13,6 +13,14 @@
 #define ENABLE ENABLED
 #define DISABLE DISABLED
 
+
+#ifndef HIGH
+ #define HIGH 1
+#endif
+#ifndef LOW
+ #define LOW 0
+#endif
+
 // Flight modes
 // ------------
 #define YAW_HOLD                        0       // heading hold at heading in nav_yaw but allow input from pilot

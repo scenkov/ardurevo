@@ -1,7 +1,7 @@
 #ifndef _SPI_H_
 #define _SPI_H_
 
-#include <gpio.h>
+#include <gpio_hal.h>
 #include <stm32f4xx.h>
 #include "ring_buffer.h"
 

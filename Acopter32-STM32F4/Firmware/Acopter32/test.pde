@@ -913,17 +913,17 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
         cliSerial->printf_P(PSTR("Sonar disabled\n"));
         return (0);
     }
-
+#if CONFIG_SONAR == ENABLED
     // make sure sonar is initialised
     init_sonar();
-
+#endif
     print_hit_enter();
     while(1) {
         delay(100);
-
+#if CONFIG_SONAR == ENABLED
         cliSerial->printf_P(PSTR("Sonar: %d cm\n"), sonar->read());
         //cliSerial->printf_P(PSTR("Sonar, %d, %d\n"), sonar.read(), sonar.raw_value);
-
+#endif
         if(cliSerial->available() > 0) {
             return (0);
         }

@@ -6,7 +6,7 @@
 
 #include <usart.h>
 #include <usb.h>
-#include <gpio.h>
+#include <gpio_hal.h>
 
 #define DEFAULT_TX_TIMEOUT 10000
 

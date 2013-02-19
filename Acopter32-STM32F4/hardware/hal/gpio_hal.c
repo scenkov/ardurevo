@@ -1,4 +1,4 @@
-#include <gpio.h>
+#include <gpio_hal.h>
 #include <hal.h>
 
 /*

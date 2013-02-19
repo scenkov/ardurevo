@@ -22,7 +22,7 @@
 
 extern const AP_HAL::HAL &hal;
 
-#define ENABLE_FASTSERIAL_DEBUG
+//#define ENABLE_FASTSERIAL_DEBUG
 
 #ifdef ENABLE_FASTSERIAL_DEBUG
  # define serialDebug(fmt, args ...)  do {hal.console->printf_P("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(0); } while(0)
@@ -98,7 +98,7 @@ void AP_Param::erase_all(void)
 {
     struct EEPROM_header hdr;
 
-    serialDebug("erase_all");
+    serialDebug("AP_Param: erase_all");
 
     // write the header
     hdr.magic[0] = k_EEPROM_magic0;
@@ -225,8 +225,9 @@ bool AP_Param::setup(void)
         // the header and setup the sentinal directly after the header
         serialDebug("bad header in setup - erasing");
         erase_all();
+    }else{
+	serialDebug("Good header in setup!");
     }
-
     return true;
 }
 
@@ -816,6 +817,7 @@ void AP_Param::setup_sketch_defaults(void)
     for (uint8_t i=0; i<_num_vars; i++) {
         uint8_t type = PGM_UINT8(&_var_info[i].type);
         if (type <= AP_PARAM_FLOAT) {
+            serialDebug("%s type <= AP_PARAM_FLOAT",_var_info[i].name);
             void *ptr = (void*)PGM_POINTER(&_var_info[i].ptr);
             set_value((enum ap_var_type)type, ptr, PGM_FLOAT(&_var_info[i].def_value));
         }
@@ -829,6 +831,8 @@ bool AP_Param::load_all(void)
 {
     struct Param_header phdr;
     uint16_t ofs = sizeof(AP_Param::EEPROM_header);
+
+    serialDebug("Load_all!");
 
     while (ofs < _eeprom_size) {
         hal.storage->read_block(&phdr, ofs, sizeof(phdr));

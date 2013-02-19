@@ -3,8 +3,15 @@
 #define __AP_HAL_VRBRAIN_GPIO_H__
 
 #include <AP_HAL_VRBRAIN.h>
-#include <io.h>
-#include <gpio.h>
+#include <gpio_hal.h>
+
+#ifndef HIGH
+ #define HIGH 0x1
+#endif
+
+#ifndef LOW
+ #define LOW  0x0
+#endif
 
 class VRBRAIN::VRBRAINGPIO : public AP_HAL::GPIO {
 public:
@@ -33,5 +40,8 @@ private:
     gpio_dev *_device;
     uint8_t _bit;
 };
+
+
+
 
 #endif // __AP_HAL_VRBRAIN_GPIO_H__

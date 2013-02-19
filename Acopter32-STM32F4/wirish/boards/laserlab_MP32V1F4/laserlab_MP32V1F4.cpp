@@ -2,7 +2,7 @@
 #define BOARD_STM32V1F4
 
 #include "laserlab_MP32V1F4.h"
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "adc.h"
 #include "timer.h"
 #include "wirish_types.h"

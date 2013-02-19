@@ -44,7 +44,7 @@
 
 #include "BetterStream.h"
 #include <usb.h>
-#include <gpio.h>
+#include <gpio_hal.h>
 #include <wirish.h>
 
 #define DEFAULT_TX_TIMEOUT 10000 // 10 ms

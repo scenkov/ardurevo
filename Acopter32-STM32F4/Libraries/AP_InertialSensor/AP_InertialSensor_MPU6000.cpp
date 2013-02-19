@@ -167,7 +167,7 @@ extern const AP_HAL::HAL& hal;
  *  RM-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
  *  gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
  */
-const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 16.4);
+const float AP_InertialSensor_MPU6000::_gyro_scale = (0.017453292519f / 16.4f);
 
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
@@ -180,10 +180,14 @@ const uint8_t AP_InertialSensor_MPU6000::_accel_data_index[3] = { 1, 0, 2 };
 #if CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 const int8_t AP_InertialSensor_MPU6000::_gyro_data_sign[3]  = { 1, -1, 1 };
 const int8_t AP_InertialSensor_MPU6000::_accel_data_sign[3] = { 1, -1, 1 };
+#elif  CONFIG_HAL_BOARD == HAL_VRBRAIN
+const int8_t  AP_InertialSensor_MPU6000::_gyro_data_sign[3]   = { -1, -1, -1 };
+const int8_t  AP_InertialSensor_MPU6000::_accel_data_sign[3]  = { -1, -1, -1 };
 #else
 const int8_t AP_InertialSensor_MPU6000::_gyro_data_sign[3]   = { 1, 1, -1 };
 const int8_t AP_InertialSensor_MPU6000::_accel_data_sign[3]  = { 1, 1, -1 };
 #endif
+
 
 const uint8_t AP_InertialSensor_MPU6000::_temp_data_index = 3;
 
@@ -233,7 +237,7 @@ uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
     /* Pin 70 defined especially to hook
        up PE6 to the hal.gpio abstraction.
        (It is not a valid pin under Arduino.) */
-    _drdy_pin = hal.gpio->channel(70);
+    _drdy_pin = hal.gpio->channel(99);
 
     hal.scheduler->suspend_timer_procs();
 

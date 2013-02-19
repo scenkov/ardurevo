@@ -3,7 +3,7 @@
 
 #include <stm32f4xx.h>
 #include "ring_buffer.h"
-#include <gpio.h>
+#include <gpio_hal.h>
 #include <usart.h>
 
 #define USB_IRQ		OTG_FS_IRQn

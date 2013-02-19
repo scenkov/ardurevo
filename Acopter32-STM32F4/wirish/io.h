@@ -33,11 +33,10 @@
 #ifndef _IO_H_
 #define _IO_H_
 
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "hal_types.h"
 #include "boards.h"
 #include <wirish_time.h>
-
 
 /**
  * Specifies a GPIO pin behavior.
@@ -103,6 +102,11 @@ typedef enum WiringPinMode {
                        consists of alternating cycles of LOW and
                        floating (disconnected). */
 } WiringPinMode;
+/**
+ * Specifies a GPIO pin behavior.
+ * @see pinMode()
+ */
+
 
 /**
  * Configure behavior of a GPIO pin.
@@ -113,8 +117,6 @@ typedef enum WiringPinMode {
  */
 //void pinMode(uint8 pin, WiringPinMode mode);
 
-#define HIGH 0x1
-#define LOW  0x0
 
 /**
  * Writes a (digital) value to a pin.  The pin must have its

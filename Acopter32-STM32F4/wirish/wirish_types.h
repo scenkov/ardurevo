@@ -31,7 +31,7 @@
  */
 
 #include "hal_types.h"
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "timer.h"
 
 #ifndef _WIRISH_TYPES_H_

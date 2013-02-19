@@ -17,7 +17,7 @@
 
 #include <usart.h>
 #include <usb.h>
-#include <gpio.h>
+#include <gpio_hal.h>
 
 using namespace VRBRAIN;
 

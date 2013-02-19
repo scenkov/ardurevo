@@ -34,7 +34,7 @@
 
 #include "boards.h"
 #include "systick.h"
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "timer.h"
 #include "adc.h"
 

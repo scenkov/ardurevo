@@ -2,8 +2,12 @@
 #ifndef __COMPAT_H__
 #define __COMPAT_H__
 
-#define OUTPUT GPIO_OUTPUT
-#define INPUT GPIO_INPUT
+#ifndef OUTPUT
+//#define OUTPUT GPIO_OUTPUT
+#endif
+#ifndef INPUT
+//#define INPUT GPIO_INPUT
+#endif
 
 //#define HIGH 1
 //#define LOW 0

@@ -32,7 +32,7 @@
 
 #include "ext_interrupts.h"
 
-#include "gpio.h"
+#include "gpio_hal.h"
 #include "exti.h"
 
 #include "boards.h"
