@@ -18,7 +18,7 @@ extern const AP_HAL::HAL& hal;
 using namespace VRBRAIN;
 
 void VRBRAINI2CDriver::begin() {
-    i2c_init(this->_dev, 0, I2C_400KHz_SPEED);
+    i2c_init(this->_dev, 0, I2C_100KHz_SPEED);
     hal.scheduler->delay(I2CDELAY);
 }
 void VRBRAINI2CDriver::end() {}
@@ -107,7 +107,7 @@ uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
 {
 	uint8_t ibuff[1];
 
-	ibuff[0] = (uint8_t)reg;
+	ibuff[0] = reg;
 
 	uint8_t ret = i2c_read(this->_dev, addr, ibuff, 1, data, 1);
 
@@ -121,7 +121,7 @@ uint8_t VRBRAINI2CDriver::readRegisters(uint8_t address, uint8_t registerAddress
 {
 	uint8_t ibuff[1];
 
-	ibuff[0] = (uint8_t)registerAddress;
+	ibuff[0] = registerAddress;
 
 	uint8_t ret = i2c_read(this->_dev, address, ibuff, 1, dataBuffer, numberBytes);
 	//uint8_t ret = i2c_8bitaddr_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);

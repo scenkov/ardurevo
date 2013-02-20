@@ -21,7 +21,7 @@ BUILD_PATH       := $(SRCROOT)/build
 
 HARDWARE_PATH    := $(SRCROOT)/hardware
 HAL_PATH         := $(SRCROOT)/hardware/hal
-STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
+STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.0.0
 STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
 WIRISH_PATH      := $(SRCROOT)/wirish

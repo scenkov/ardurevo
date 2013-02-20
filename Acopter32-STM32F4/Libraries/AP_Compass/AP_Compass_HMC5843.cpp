@@ -50,7 +50,7 @@ extern const AP_HAL::HAL& hal;
 // read_register - read a register value
 bool AP_Compass_HMC5843::read_register(uint8_t address, uint8_t *value)
 {
-    if (hal.i2c->readRegister((uint8_t)COMPASS_ADDRESS, address, value) != 0) {
+    if (hal.i2c->readRegisters((uint8_t)COMPASS_ADDRESS, address, 1, value) != 0) {
         healthy = false;
         return false;
     }
@@ -172,13 +172,8 @@ AP_Compass_HMC5843::init()
     }
 
     // determine if we are using 5843 or 5883L
-    if (!write_register(ConfigRegA, SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)){
-	healthy = false;
-        _i2c_sem->give();
-        hal.scheduler->panic(PSTR("Compass could not write register"));
-        return false;
-    }
-    if(!read_register(ConfigRegA, &_base_config)) {
+    if (!write_register(ConfigRegA, SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation) ||
+	!read_register(ConfigRegA, &_base_config)) {
 	healthy = false;
         _i2c_sem->give();
         hal.scheduler->panic(PSTR("Compass could not read register"));

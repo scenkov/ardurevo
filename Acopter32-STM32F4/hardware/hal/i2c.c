@@ -136,14 +136,14 @@ void i2c_init(i2c_dev *dev, uint16_t address, uint32_t speed)
   I2C_Init(dev->I2Cx, &I2C_InitStructure);    
 
   NVIC_InitTypeDef        NVIC_InitStructure;
-  //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
   NVIC_InitStructure.NVIC_IRQChannel = I2C2_EV_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
   NVIC_InitStructure.NVIC_IRQChannel = I2C2_ER_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
   NVIC_Init(&NVIC_InitStructure);
 	  
   I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
@@ -490,7 +490,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
     }
       if((sEETimeout--) == 0)
 	  {
-	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	  I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
 	  return I2C_ERROR;
 	  }
 
@@ -507,7 +507,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       /* Update the timeout value and exit if it reach 0 */
       if((sEETimeout--) == 0)
 	  {
-	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	  I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
 	  return I2C_ERROR;
 	  }
     }
@@ -525,7 +525,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       /*!< STOP condition */
       I2C_GenerateSTOP(dev->I2Cx, ENABLE);
 
-      //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+      I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
       /* Exit the function */
       return I2C_OK;
     }
@@ -538,7 +538,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
     /* Check if the maximum allowed number of trials has bee reached */
     if (sEETrials++ == sEE_MAX_TRIALS_NUMBER)
     {
-	//I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
       /* If the maximum number of trials has been reached, exit the function */
       return I2C_ERROR;
     }
