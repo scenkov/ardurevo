@@ -105,7 +105,7 @@ uint16_t VRBRAINStorage::read(uint16_t Address, uint16_t *Data)
 uint16_t VRBRAINStorage::write(uint16_t Address, uint16_t Data)
 {
 	int8_t xret = hal.i2c->write((uint8_t)EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
-	hal.scheduler->delay(5);
+	//hal.scheduler->delay(5);
 
 	if (xret != 0)
 		return 0x0001;
