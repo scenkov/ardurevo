@@ -5,6 +5,7 @@
 #include "HAL_VRBRAIN_Class.h"
 #include "AP_HAL_VRBRAIN_Private.h"
 #include <usart.h>
+#include <i2c.h>
 
 using namespace VRBRAIN;
 
@@ -38,8 +39,8 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &rcinDriver,
       &rcoutDriver,
       &schedulerInstance,
-      &utilInstance),
-    _member(new VRBRAINPrivateMember(123))
+      &utilInstance)//,
+    //_member(new VRBRAINPrivateMember(123))
 {}
 
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
@@ -49,7 +50,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   scheduler->init(NULL);
   uartA->begin(115200);
-  _member->init();
+  //_member->init();
   i2c->begin();
   spi->init(NULL);
   //storage->init();

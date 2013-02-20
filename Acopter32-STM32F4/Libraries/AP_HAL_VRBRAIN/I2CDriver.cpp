@@ -18,7 +18,7 @@ extern const AP_HAL::HAL& hal;
 using namespace VRBRAIN;
 
 void VRBRAINI2CDriver::begin() {
-    i2c_init(this->_dev, 0, I2C_100KHz_SPEED);
+    i2c_init(this->_dev, 0, I2C_400KHz_SPEED);
     hal.scheduler->delay(I2CDELAY);
 }
 void VRBRAINI2CDriver::end() {}

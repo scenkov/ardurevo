@@ -44,6 +44,15 @@ private:
   uint16_t read(uint16_t Address, uint16_t *Data);
   uint16_t write(uint16_t Address, uint16_t Data);
 
+  void eeprom_read_block (void *pointer_ram, const void *pointer_eeprom, size_t n);
+  void eeprom_write_block (const void *pointer_ram, void *pointer_eeprom, size_t n);
+  uint8_t eeprom_read_byte (const uint8_t *addr);
+  uint16_t eeprom_write_byte (uint8_t *addr, uint8_t value);
+  uint16_t eeprom_read_word (const uint16_t *addr);
+  void eeprom_write_word (uint16_t *addr, uint16_t value);
+  uint32_t eeprom_read_dword (const uint32_t *addr);
+  void eeprom_write_dword (uint32_t *addr, uint32_t value);
+
   uint16_t Status;
 };
 

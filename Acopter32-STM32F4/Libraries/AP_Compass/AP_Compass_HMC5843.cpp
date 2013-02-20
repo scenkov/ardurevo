@@ -176,7 +176,7 @@ AP_Compass_HMC5843::init()
 	!read_register(ConfigRegA, &_base_config)) {
 	healthy = false;
         _i2c_sem->give();
-        hal.scheduler->panic(PSTR("Compass could not read register"));
+        //hal.scheduler->panic(PSTR("Compass could not read register"));
         return false;
     }
 
@@ -192,7 +192,7 @@ AP_Compass_HMC5843::init()
     } else {
         // not behaving like either supported compass type
         _i2c_sem->give();
-        hal.scheduler->panic(PSTR("Compass: not behaving like either supported compass type"));
+        //hal.scheduler->panic(PSTR("Compass: not behaving like either supported compass type"));
         return false;
     }
 
