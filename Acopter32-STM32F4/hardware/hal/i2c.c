@@ -122,6 +122,8 @@ void i2c_init(i2c_dev *dev, uint16_t address, uint32_t speed)
 { 
   I2C_InitTypeDef  I2C_InitStructure;
   
+  //i2c_deinit(dev);
+
   i2c_lowLevel_init(dev);
   
   /* I2C configuration */
@@ -136,7 +138,7 @@ void i2c_init(i2c_dev *dev, uint16_t address, uint32_t speed)
   I2C_Init(dev->I2Cx, &I2C_InitStructure);    
 
   NVIC_InitTypeDef        NVIC_InitStructure;
-  //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+  //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
   NVIC_InitStructure.NVIC_IRQChannel = I2C2_EV_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
@@ -220,7 +222,7 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                          * we get here after transmitting address + write bit
                          */
                 case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:
-                case I2C_EVENT_MASTER_BYTE_TRANSMITTING:  
+                case I2C_EVENT_MASTER_BYTE_TRANSMITTED:
 						if( tx_buffer_ix < tx_buffer_len ) {
 							I2C_SendData(I2Cx, tx_buffer[tx_buffer_ix++]);
 						}  
@@ -243,9 +245,6 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                         }
 				break;
 				  
-                case I2C_EVENT_MASTER_BYTE_TRANSMITTED:
-                break;
-
                 case I2C_EVENT_MASTER_MODE_ADDRESS10:
                 break;
 
@@ -373,7 +372,10 @@ uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *buffer, uint8_t len)
     while(I2C_BLOCKED == 1)
     {
        if ((systick_uptime() - startime) > TIMEOUT)
+	   {
+	   I2C_BLOCKED = 0;
           break;
+	   }
     }
     return I2C_OK;
 }
@@ -429,8 +431,11 @@ uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uin
 
     while(I2C_BLOCKED == 1)
     {
-       if ((systick_uptime() - startime) > TIMEOUT)
-          break;
+       if ((systick_uptime() - startime) > TIMEOUT){
+	   I2C_BLOCKED = 0;
+	   break;
+       }
+
     }
   
     return I2C_OK;

@@ -132,9 +132,11 @@ static void init_ardupilot()
 #endif
 
     //relay.init();
-
+    //hal.i2c->begin();
     // load parameters from EEPROM
     load_parameters();
+
+
 
 #if COPTER_LEDS == ENABLED
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
@@ -203,6 +205,8 @@ static void init_ardupilot()
      */
     hal.scheduler->register_timer_failsafe(failsafe_check, 1000);
 
+
+
 #if HIL_MODE != HIL_MODE_ATTITUDE
  #if CONFIG_ADC == ENABLED
     // begin filtering the ADC Gyros
@@ -213,13 +217,16 @@ static void init_ardupilot()
 
 #endif // HIL_MODE
 
+
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
     g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
 
+    hal.i2c->begin();
+
     if(g.compass_enabled)
-        init_compass();
+       init_compass();
 
     // init the optical flow sensor
     if(g.optflow_enabled) {

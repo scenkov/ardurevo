@@ -15,20 +15,18 @@ void VRBRAINStorage::init(void*)
 }
 
 uint8_t VRBRAINStorage::read_byte(uint16_t loc){
-	uint16_t addr16 = (uint16_t)(uint32_t)loc;
-	return (uint8_t) read(addr16);
+	uint8_t buf;
+	uint16_t addr16 = loc;
+	buf = (uint8_t)read(addr16);
+	return buf;
 }
 
 uint16_t VRBRAINStorage::read_word(uint16_t loc){
-	uint16_t val = 0;
-	read_block(&val, loc, sizeof(val));
-	return val;
+
 }
 
 uint32_t VRBRAINStorage::read_dword(uint16_t loc){
-	uint32_t val = 0;
-	read_block(&val, loc, sizeof(val));
-	return val;
+
 }
 
 void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
@@ -45,20 +43,18 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
 
 void VRBRAINStorage::write_byte(uint16_t loc, uint8_t value)
 {
-	uint16_t addr16 = (uint16_t)(uint32_t)loc;
-	write(addr16, (uint16_t) value );
+	uint16_t addr16 = loc;
+	write(addr16, value );
 }
 
 void VRBRAINStorage::write_word(uint16_t loc, uint16_t value)
 {
-	uint16_t val = value;
-	write_block(loc,&val, sizeof(val));
+
 }
 
 void VRBRAINStorage::write_dword(uint16_t loc, uint32_t value)
 {
-	uint32_t val = value;
-	write_block(loc, &val, sizeof(val));
+
 }
 
 void VRBRAINStorage::write_block(uint16_t loc, void* src, size_t n)
@@ -68,7 +64,7 @@ void VRBRAINStorage::write_block(uint16_t loc, void* src, size_t n)
 
 	for (uint16_t i = 0; i < (uint16_t)n; i++)
 	{
-		write(addr16 + i, (uint16_t) buff[i] );
+		write(addr16 + i, buff[i] );
 	}
 }
 
@@ -103,7 +99,7 @@ uint16_t VRBRAINStorage::read(uint16_t Address, uint16_t *Data)
 
 }
 
-uint16_t VRBRAINStorage::write(uint16_t Address, uint16_t Data)
+uint16_t VRBRAINStorage::write(uint16_t Address, uint8_t Data)
 {
 	int8_t xret = hal.i2c->write((uint8_t)EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
 	hal.scheduler->delay(5);

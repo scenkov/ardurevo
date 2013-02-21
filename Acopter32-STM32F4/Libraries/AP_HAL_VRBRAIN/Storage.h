@@ -42,7 +42,7 @@ private:
   uint16_t format(void);
   uint16_t read(uint16_t Address);
   uint16_t read(uint16_t Address, uint16_t *Data);
-  uint16_t write(uint16_t Address, uint16_t Data);
+  uint16_t write(uint16_t Address, uint8_t Data);
 
   uint16_t Status;
 };
