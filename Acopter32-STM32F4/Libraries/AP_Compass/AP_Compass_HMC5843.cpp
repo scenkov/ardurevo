@@ -21,7 +21,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define COMPASS_ADDRESS       0x3C
+#define COMPASS_ADDRESS      0x3C
 #define ConfigRegA           0x00
 #define ConfigRegB           0x01
 #define magGain              0x20
@@ -50,7 +50,7 @@ extern const AP_HAL::HAL& hal;
 // read_register - read a register value
 bool AP_Compass_HMC5843::read_register(uint8_t address, uint8_t *value)
 {
-    if (hal.i2c->readRegisters((uint8_t)COMPASS_ADDRESS, address, 1, value) != 0) {
+    if (hal.i2c->readRegister((uint8_t)COMPASS_ADDRESS, address, value) != 0) {
         healthy = false;
         return false;
     }
@@ -183,6 +183,7 @@ AP_Compass_HMC5843::init()
     if ( _base_config == (SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)) {
         // a 5883L supports the sample averaging config
         product_id = AP_COMPASS_TYPE_HMC5883L;
+        hal.console->printf_P("TYPE: HMC5883L" );
         calibration_gain = 0x60;
         expected_x = 766;
         expected_yz  = 713;

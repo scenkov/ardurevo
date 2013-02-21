@@ -116,14 +116,13 @@ uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
 
 	return ret;
 }
-uint8_t VRBRAINI2CDriver::readRegisters(uint8_t address, uint8_t registerAddress,
-                              uint8_t numberBytes, uint8_t* dataBuffer)
+uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numberBytes, uint8_t* data)
 {
 	uint8_t ibuff[1];
 
-	ibuff[0] = registerAddress;
+	ibuff[0] = reg;
 
-	uint8_t ret = i2c_read(this->_dev, address, ibuff, 1, dataBuffer, numberBytes);
+	uint8_t ret = i2c_read(this->_dev, addr, ibuff, 1, data, numberBytes);
 	//uint8_t ret = i2c_8bitaddr_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
 	//uint8_t ret = i2c_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
 

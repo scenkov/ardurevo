@@ -12,13 +12,16 @@
 #include <AP_HAL.h>
 #include <AP_HAL_VRBRAIN.h>
 
-//#include <EEPROM.h>
+#include <EEPROM.h>
 //#include <AP_Compass.h>
 
 #define EEPROM_MAX_ADDR		4096
 
   void test_write() ;
   void test_readback() ;
+ void e2p_erase() ;
+  void e2p_write() ;
+  void e2p_readback() ;
  void setup()  ;
   void loop() ;
 #line 19 "./Firmware/Test_USB/Test_USB.pde"
@@ -71,12 +74,52 @@ void test_readback() {
     uint8_t aa = hal.storage->read_byte(10);
     hal.console->printf_P(PSTR("done reading back %d.\r\n"),aa);
 }
+void e2p_erase() {
+    hal.console->printf_P(PSTR("erasing... "));
+    hal.console->println();
+    for(int i = 0; i < 100; i++) {
+        hal.storage->write_byte(i, 0);
+    }
+    hal.console->printf_P(PSTR(" done.\r\n"));
+    hal.console->println();
+}
+
+void e2p_write() {
+    hal.console->printf_P(PSTR("writing... "));
+    hal.console->println();
+    hal.storage->write_block(0, fibs, 12);
+    hal.console->printf_P(PSTR(" done.\r\n"));
+    hal.console->println();
+}
+
+void e2p_readback() {
+    hal.console->printf_P(PSTR("reading back...\r\n"));
+    hal.console->println();
+    uint8_t readback[12];
+    bool success = true;
+    hal.storage->read_block(readback, 0, 12);
+    for (int i = 0; i < 12; i++) {
+        if (readback[i] != fibs[i]) {
+            success = false;
+            hal.console->printf_P(PSTR("At index %d expected %d got %d\r\n"),
+                    i, (int) fibs[i], (int) readback[i]);
+            hal.console->println();
+        }
+    }
+    if (success) {
+        hal.console->printf_P(PSTR("all bytes read successfully\r\n"));
+        hal.console->println();
+    }
+    uint8_t aa = hal.storage->read_byte(10);
+    hal.console->printf_P(PSTR("done reading back %d.\r\n"),aa);
+}
 void setup() 
 {
     hal.console->printf_P(PSTR("Starting AP_HAL_AVR::Storage test\r\n"));
     test_erase();
     test_write();
     test_readback();
+
 }
 
 void loop()

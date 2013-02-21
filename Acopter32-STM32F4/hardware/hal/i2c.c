@@ -220,7 +220,6 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                          * we get here after transmitting address + write bit
                          */
                 case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:
-                    break;
                 case I2C_EVENT_MASTER_BYTE_TRANSMITTING:  
 						if( tx_buffer_ix < tx_buffer_len ) {
 							I2C_SendData(I2Cx, tx_buffer[tx_buffer_ix++]);
@@ -238,8 +237,8 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
 								/*
 								* Generate second start and switch to receiver mode
 								*/
-                                I2C_DIR = RX;
-                                I2C_GenerateSTART(I2Cx,ENABLE);
+								I2C_DIR = RX;
+								I2C_GenerateSTART(I2Cx,ENABLE);
 							}
                         }
 				break;
