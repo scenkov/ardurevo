@@ -104,10 +104,7 @@ version 2.1 of the License, or (at your option) any later version.
 #include <SITL.h>
 #include <stdarg.h>
 
-#include <AP_HAL_AVR.h>
-#include <AP_HAL_AVR_SITL.h>
-#include <AP_HAL_PX4.h>
-#include <AP_HAL_Empty.h>
+#include <AP_HAL_VRBRAIN.h>
 #include "compat.h"
 
 // Configuration
@@ -157,6 +154,8 @@ DataFlash_APM1 DataFlash;
 DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 DataFlash_SITL DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+DataFlash_MP32 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
 DataFlash_Empty DataFlash;
 #endif
@@ -226,7 +225,7 @@ AP_GPS_None     g_gps_driver();
 # elif CONFIG_INS_TYPE == CONFIG_INS_SITL
   AP_InertialSensor_Stub ins;
 #else
-  AP_InertialSensor_Oilpan ins( &adc );
+ AP_InertialSensor_MPU6000 ins;
 #endif // CONFIG_INS_TYPE
 
 AP_AHRS_DCM  ahrs(&ins, g_gps);
@@ -236,11 +235,12 @@ AP_AHRS_DCM  ahrs(&ins, g_gps);
 AP_ADC_HIL              adc;
 AP_Compass_HIL          compass;
 AP_GPS_HIL              g_gps_driver(NULL);
-AP_InertialSensor_Oilpan ins( &adc );
+AP_InertialSensor_Stub  ins;
 AP_AHRS_DCM  ahrs(&ins, g_gps);
 
 #elif HIL_MODE == HIL_MODE_ATTITUDE
 AP_ADC_HIL              adc;
+AP_InertialSensor_Stub  ins;
 AP_AHRS_HIL             ahrs(&ins, g_gps);
 AP_GPS_HIL              g_gps_driver(NULL);
 AP_Compass_HIL          compass; // never used

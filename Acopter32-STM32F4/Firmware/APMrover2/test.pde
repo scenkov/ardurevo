@@ -344,6 +344,7 @@ test_modeswitch(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_logging(uint8_t argc, const Menu::arg *argv)
 {
+/*
 	cliSerial->println_P(PSTR("Testing dataflash logging"));
     if (!DataFlash.CardInserted()) {
         cliSerial->println_P(PSTR("ERR: No dataflash inserted"));
@@ -360,6 +361,7 @@ test_logging(uint8_t argc, const Menu::arg *argv)
     cliSerial->printf_P(PSTR("Format version: %lx  Expected format version: %lx\n"),
                     (unsigned long)DataFlash.ReadLong(), (unsigned long)DF_LOGGING_FORMAT);
     return 0;
+*/
 }
 
 

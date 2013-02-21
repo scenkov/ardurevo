@@ -63,6 +63,11 @@
 //////////////////////////////////////////////////////////////////////////////
 // LED and IO Pins
 //
+
+////////////////////////////////////////////////////////
+// LED and IO Pins
+//
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 # define CONFIG_INS_TYPE   CONFIG_INS_OILPAN
 # define A_LED_PIN        37
@@ -76,6 +81,35 @@
 # define CONFIG_RELAY     ENABLED
 # define BATTERY_PIN_1	  0
 # define CURRENT_PIN_1	  1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ # define A_LED_PIN        19
+ # define B_LED_PIN        20
+ # define C_LED_PIN        21
+ # define LED_ON           HIGH
+ # define LED_OFF          LOW
+ # define SLIDE_SWITCH_PIN (-1)
+ # define PUSHBUTTON_PIN   (-1)
+ #if USB == ENABLED
+   # define USB_MUX_PIN      1
+  #else
+   # define USB_MUX_PIN      (-1)
+#endif
+# define CLI_SLIDER_ENABLED DISABLED
+# define OPTFLOW_CS_PIN   (-1)
+# define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
+# define BATTERY_CURR_PIN      1      // Battery current on A1
+# define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
+# define CURRENT_PIN_1      1
+# define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+# define CONFIG_PUSHBUTTON DISABLED
+# define CONFIG_RELAY      DISABLED
+# define MAG_ORIENTATION	ROTATION_YAW_270
+# define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+# define MAGNETOMETER ENABLED
+# define CONFIG_BARO     AP_BARO_MS5611
+# define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
+# define CONFIG_MAG MP32NAVYSENSOR
+# define LOGGING_ENABLED DISABLED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_PUSHBUTTON DISABLED
@@ -422,7 +456,7 @@
 // Dataflash logging control
 //
 #ifndef LOGGING_ENABLED
-# define LOGGING_ENABLED		ENABLED
+# define LOGGING_ENABLED		DISABLED
 #endif
 
 #ifndef LOG_ATTITUDE_FAST
