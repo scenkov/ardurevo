@@ -57,8 +57,8 @@ uint8_t i2c_start(i2c_dev *dev, uint8_t Address);
 uint8_t i2c_start_wait(i2c_dev *dev, uint8_t Address);
 */
 
-uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *tx_buffer, uint8_t len);
-uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buffer, uint8_t txlen, uint8_t *rx_buffer, uint8_t rxlen);
+uint32_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *tx_buffer, uint8_t len);
+uint32_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buffer, uint8_t txlen, uint8_t *rx_buffer, uint8_t rxlen);
 uint8_t i2c_is_busy();
 uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr);
 

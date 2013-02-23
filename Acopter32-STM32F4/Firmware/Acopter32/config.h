@@ -182,19 +182,19 @@
  # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN (-1)
- # define PUSHBUTTON_PIN   (-1)
+ # define SLIDE_SWITCH_PIN 999
+ # define PUSHBUTTON_PIN   999
   #if USB == ENABLED
-   # define USB_MUX_PIN      1
+   # define USB_MUX_PIN      999
   #else
-   # define USB_MUX_PIN      (-1)
+   # define USB_MUX_PIN      999
   #endif
  # define CLI_SLIDER_ENABLED DISABLED
- # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
- # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      1
+ # define OPTFLOW_CS_PIN   999
+ # define BATTERY_VOLT_PIN     999      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      999      // Battery current on A1
+ # define BATTERY_PIN_1      999 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      999
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define A_LED_PIN        37
  # define B_LED_PIN        36
@@ -263,7 +263,7 @@
 //
 
 #ifndef COPTER_LEDS
- #define COPTER_LEDS ENABLED
+ #define COPTER_LEDS DISABLED
 #endif
 
 #define COPTER_LED_ON           HIGH
@@ -282,11 +282,11 @@
  #define COPTER_LED_1 65  	// Motor or Aux LED
  #define COPTER_LED_2 68  	// Motor LED or Beeper
  #define COPTER_LED_3 102  	// Motor or GPS LED
- #define COPTER_LED_4 0  	// Motor or GPS LED
- #define COPTER_LED_5 0  	// Motor or GPS LED
- #define COPTER_LED_6 0  	// Motor or GPS LED
- #define COPTER_LED_7 0  	// Motor or GPS LED
- #define COPTER_LED_8 0  	// Motor or GPS LED
+ #define COPTER_LED_4 999  	// Motor or GPS LED
+ #define COPTER_LED_5 999  	// Motor or GPS LED
+ #define COPTER_LED_6 999  	// Motor or GPS LED
+ #define COPTER_LED_7 999  	// Motor or GPS LED
+ #define COPTER_LED_8 999  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || HAL_BOARD_SMACCM
  #define COPTER_LED_1 AN8       // Motor or Aux LED
  #define COPTER_LED_2 AN9       // Motor LED

@@ -138,7 +138,7 @@ void i2c_init(i2c_dev *dev, uint16_t address, uint32_t speed)
   I2C_Init(dev->I2Cx, &I2C_InitStructure);    
 
   NVIC_InitTypeDef        NVIC_InitStructure;
-  //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
+  //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
   NVIC_InitStructure.NVIC_IRQChannel = I2C2_EV_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
@@ -152,6 +152,8 @@ void i2c_init(i2c_dev *dev, uint16_t address, uint32_t speed)
       
   /* I2C Peripheral Enable */
   I2C_Cmd(dev->I2Cx, ENABLE);
+
+  I2C_BLOCKED = 0;
 }
 
 /**
@@ -222,7 +224,7 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                          * we get here after transmitting address + write bit
                          */
                 case I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED:
-                case I2C_EVENT_MASTER_BYTE_TRANSMITTED:
+                case I2C_EVENT_MASTER_BYTE_TRANSMITTING:
 						if( tx_buffer_ix < tx_buffer_len ) {
 							I2C_SendData(I2Cx, tx_buffer[tx_buffer_ix++]);
 						}  
@@ -245,6 +247,9 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                         }
 				break;
 				  
+                case I2C_EVENT_MASTER_BYTE_TRANSMITTED:
+                break;
+
                 case I2C_EVENT_MASTER_MODE_ADDRESS10:
                 break;
 
@@ -252,6 +257,7 @@ void I2C_Serve(I2C_TypeDef *I2Cx)
                 * we received a byte...
                 */
                 case I2C_EVENT_MASTER_BYTE_RECEIVED:
+						//while(I2C_GetFlagStatus(I2Cx, I2C_FLAG_BTF));
 						/* Store I2C received data */
 						rx_buffer_ptr[rx_buffer_ix++] = I2C_ReceiveData(I2Cx);
 						/* Request NACK and send I2C1 STOP condition before receiving the last data */
@@ -319,7 +325,7 @@ void I2C1_ER_IRQHandler(void)
 
 
 
-uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *buffer, uint8_t len)
+uint32_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *buffer, uint8_t len)
 {
 	assert_param(len <= I2C_BUF_SIZE && len > 0);
 	
@@ -373,14 +379,14 @@ uint8_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *buffer, uint8_t len)
     {
        if ((systick_uptime() - startime) > TIMEOUT)
 	   {
-	   I2C_BLOCKED = 0;
-          break;
+	   uint32_t event = I2C_GetLastEvent(dev->I2Cx);
+	   return event;
 	   }
     }
     return I2C_OK;
 }
 
-uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uint8_t *rx_buffer, uint8_t rxlen)
+uint32_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uint8_t *rx_buffer, uint8_t rxlen)
 {
 	assert_param(len <= I2C_BUF_SIZE && rxlen > 0);
 	assert_param(txlen <= 2);
@@ -431,11 +437,12 @@ uint8_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buf, uint8_t txlen, uin
 
     while(I2C_BLOCKED == 1)
     {
-       if ((systick_uptime() - startime) > TIMEOUT){
-	   I2C_BLOCKED = 0;
-	   break;
-       }
-
+       if ((systick_uptime() - startime) > TIMEOUT)
+	   {
+	   uint32_t event = I2C_GetLastEvent(dev->I2Cx);
+	   return event;
+          //break;
+	   }
     }
   
     return I2C_OK;
@@ -494,7 +501,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
     }
       if((sEETimeout--) == 0)
 	  {
-	  I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
 	  return I2C_ERROR;
 	  }
 
@@ -511,7 +518,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       /* Update the timeout value and exit if it reach 0 */
       if((sEETimeout--) == 0)
 	  {
-	  I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	  //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
 	  return I2C_ERROR;
 	  }
     }
@@ -529,7 +536,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
       /*!< STOP condition */
       I2C_GenerateSTOP(dev->I2Cx, ENABLE);
 
-      I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+      //I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
       /* Exit the function */
       return I2C_OK;
     }
@@ -542,7 +549,7 @@ uint32_t sEE_WaitEepromStandbyState(i2c_dev *dev, uint8_t addr)
     /* Check if the maximum allowed number of trials has bee reached */
     if (sEETrials++ == sEE_MAX_TRIALS_NUMBER)
     {
-	I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
+	//I2C_ITConfig(dev->I2Cx, I2C_IT_EVT | I2C_IT_BUF | I2C_IT_ERR, ENABLE);
       /* If the maximum number of trials has been reached, exit the function */
       return I2C_ERROR;
     }
