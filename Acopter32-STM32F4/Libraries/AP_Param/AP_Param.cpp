@@ -22,7 +22,7 @@
 
 extern const AP_HAL::HAL &hal;
 
-//#define ENABLE_FASTSERIAL_DEBUG
+#define ENABLE_FASTSERIAL_DEBUG
 
 #ifdef ENABLE_FASTSERIAL_DEBUG
  # define serialDebug(fmt, args ...)  do {hal.console->printf_P("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(0); } while(0)
@@ -648,6 +648,8 @@ bool AP_Param::save(void)
     const struct AP_Param::Info *info = find_var_info(&group_element, &ginfo, &idx);
     const AP_Param *ap;
 
+    serialDebug("Save....");
+
     if (info == NULL) {
         // we don't have any info on how to store it
         return false;
@@ -677,10 +679,12 @@ bool AP_Param::save(void)
     uint16_t ofs;
     if (scan(&phdr, &ofs)) {
         // found an existing copy of the variable
+	serialDebug("Write Check");
         eeprom_write_check(ap, ofs+sizeof(phdr), type_size((enum ap_var_type)phdr.type));
         return true;
     }
     if (ofs == (uint16_t) ~0) {
+	serialDebug("Save False...");
         return false;
     }
 
@@ -706,12 +710,16 @@ bool AP_Param::save(void)
 
     if (ofs+type_size((enum ap_var_type)phdr.type)+2*sizeof(phdr) >= _eeprom_size) {
         // we are out of room for saving variables
+	serialDebug("Out of room");
         return false;
     }
 
     // write a new sentinal, then the data, then the header
+    serialDebug("Write Sentinel");
     write_sentinal(ofs + sizeof(phdr) + type_size((enum ap_var_type)phdr.type));
+    serialDebug("Write Check1");
     eeprom_write_check(ap, ofs+sizeof(phdr), type_size((enum ap_var_type)phdr.type));
+    serialDebug("WriteCheck 2");
     eeprom_write_check(&phdr, ofs, sizeof(phdr));
     return true;
 }
@@ -832,7 +840,7 @@ bool AP_Param::load_all(void)
     struct Param_header phdr;
     uint16_t ofs = sizeof(AP_Param::EEPROM_header);
 
-    serialDebug("Load_all!");
+    serialDebug("Load_all! size par hdr: %d - size E2P hdr:%d", sizeof(phdr), sizeof(AP_Param::EEPROM_header));
 
     while (ofs < _eeprom_size) {
         hal.storage->read_block(&phdr, ofs, sizeof(phdr));
