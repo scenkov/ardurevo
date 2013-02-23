@@ -141,12 +141,12 @@ static void init_ardupilot()
 #if COPTER_LEDS == ENABLED
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
     pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
-    pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
-    pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
-    pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
-    pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
-    pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
-    pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
+    //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
+    //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
+    //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
+    //pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
+    //pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
+    //pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
 
     if ( !bitRead(g.copter_leds_mode, 3) ) {
         piezo_beep();
@@ -223,7 +223,8 @@ static void init_ardupilot()
     // GPS Initialization
     g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
 
-    hal.i2c->begin();
+
+cliSerial->println("compass init");
 
     if(g.compass_enabled)
        init_compass();
