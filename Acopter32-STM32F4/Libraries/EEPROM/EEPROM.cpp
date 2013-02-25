@@ -73,6 +73,7 @@ uint16_t EEPROMClass::read(uint16_t Address, uint16_t *Data)
 uint16_t EEPROMClass::write(uint16_t Address, uint16_t Data)
 {
 	int8_t xret = _I2Cx->write(EEPROM_ADDRESS, (uint16_t)Address, (uint8_t)Data);
+	_I2Cx->WaitEepromStandbyState(EEPROM_ADDRESS);
 
 	if (xret != 0)
 		return 0x0001;
@@ -149,3 +150,4 @@ void EEPROMClass::eeprom_write_dword (uint32_t *addr, uint32_t value)
 	uint32_t val = value;
 	eeprom_write_block(&val, addr, sizeof(val));
 }
+

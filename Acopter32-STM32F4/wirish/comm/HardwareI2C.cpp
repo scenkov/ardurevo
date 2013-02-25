@@ -47,7 +47,7 @@ int8_t HardwareI2C::write(uint8_t address, uint8_t len, uint8_t *tx_buffer)
 {
 
 	uint8_t ret = i2c_write(this->i2c_d, address, tx_buffer, len);
-	sEE_WaitEepromStandbyState(this->i2c_d, address);
+	//sEE_WaitEepromStandbyState(this->i2c_d, address);
 	//uint8_t ret = i2c_Write(this->i2c_d, address, len, data);
 	#ifdef DELAYI2C
 		delay(I2CDELAY);
@@ -66,7 +66,7 @@ int8_t HardwareI2C::write(uint8_t address, uint8_t registerAddress, uint8_t data
 	ibuff[1] = databyte;
 	
 	uint8_t ret = i2c_write(this->i2c_d, address, ibuff, 2);
-	sEE_WaitEepromStandbyState(this->i2c_d, address);
+	//sEE_WaitEepromStandbyState(this->i2c_d, address);
 	#ifdef DELAYI2C
 		delay(I2CDELAY);
 	#endif
@@ -84,7 +84,7 @@ int8_t HardwareI2C::write(uint8_t address, uint16_t registerAddress, uint8_t dat
 		
 	uint8_t ret = i2c_write(this->i2c_d, address, ibuff, 3);
 	//uint8_t ret = i2c_write(this->i2c_d, address, registerAddress, databyte);
-	sEE_WaitEepromStandbyState(this->i2c_d, address);
+	//sEE_WaitEepromStandbyState(this->i2c_d, address);
 	#ifdef DELAYI2C
 		delay(I2CDELAY);
 	#endif
@@ -128,4 +128,7 @@ int8_t HardwareI2C::read(uint8_t address, uint16_t registerAddress, uint8_t numb
 
 	return ret;
 }
-
+uint8_t HardwareI2C::WaitEepromStandbyState(uint8_t address){
+    uint32_t ret = sEE_WaitEepromStandbyState(this->i2c_d, address);
+    return (uint8_t)ret;
+}
