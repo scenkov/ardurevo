@@ -39,7 +39,7 @@ private:
     unsigned int input_channel_ch12;
 
     unsigned char iboard;
-
+    static volatile uint8_t  _valid;
 };
 
 #endif // __AP_HAL_VRBRAIN_RCINPUT_H__

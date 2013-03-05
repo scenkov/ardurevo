@@ -654,14 +654,14 @@ delay(100);
 #else
 if (input_channel_ch1 != 0)
 {
-attachInterrupt(input_channel_ch1, rxIntPPM, CHANGE);
+hal.gpio->attach_interrupt(input_channel_ch1, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch1, INPUT);
 hal.scheduler->delay(100);
 }
 
 if (input_channel_ch2 != 0)
 {
-attachInterrupt(input_channel_ch2, rxIntPPM, CHANGE);
+    hal.gpio->attach_interrupt(input_channel_ch2, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch2, INPUT);
 hal.scheduler->delay(100);
 }
@@ -669,13 +669,13 @@ hal.scheduler->delay(100);
 
 if (input_channel_ch3 != 0)
 {
-attachInterrupt(input_channel_ch3, rxIntPPM, CHANGE);
+hal.gpio->attach_interrupt(input_channel_ch3, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch3, INPUT);
 hal.scheduler->delay(100);
 }
 if (input_channel_ch4 != 0)
 {
-attachInterrupt(input_channel_ch4, rxIntPPM, CHANGE);
+    hal.gpio->attach_interrupt(input_channel_ch4, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch4, INPUT);
 hal.scheduler->delay(100);
 }
@@ -690,7 +690,7 @@ hal.scheduler->delay(100);
 
 if (input_channel_ch6 != 0)
 {
-attachInterrupt(input_channel_ch6, rxIntPPM, CHANGE);
+    hal.gpio->attach_interrupt(input_channel_ch6, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch6, INPUT);
 hal.scheduler->delay(100);
 }
@@ -698,7 +698,7 @@ hal.scheduler->delay(100);
 
 if (input_channel_ch7 != 0)
 {
-attachInterrupt(input_channel_ch7, rxIntPPM, CHANGE);
+    hal.gpio->attach_interrupt(input_channel_ch7, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch7, INPUT);
 hal.scheduler->delay(100);
 }
@@ -706,7 +706,7 @@ hal.scheduler->delay(100);
 
 if (input_channel_ch8 != 0)
 {
-attachInterrupt(input_channel_ch8, rxIntPPM, CHANGE);
+    hal.gpio->attach_interrupt(input_channel_ch8, rxIntPPM, CHANGE);
 hal.gpio->pinMode(input_channel_ch8, INPUT);
 hal.scheduler->delay(100);
 }
@@ -803,8 +803,8 @@ input_channel_ch3=86;
 input_channel_ch4=89;
 input_channel_ch5=12;
 input_channel_ch6=13;
-input_channel_ch7=0;
-input_channel_ch8=0;
+input_channel_ch7=14;
+input_channel_ch8=15;
 
 //input_channel_ch5=12;
 //input_channel_ch6=13;
@@ -821,7 +821,7 @@ break;
 void VRBRAINRCInput::InitPPMSUM(void)
 {
 hal.gpio->pinMode(ppm_sum_channel,INPUT);
-attachInterrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
+hal.gpio->attach_interrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
 }
 
 uint16_t VRBRAINRCInput::InputCh(unsigned char ch)
@@ -847,7 +847,7 @@ VRBRAINRCInput::VRBRAINRCInput()
 
 void VRBRAINRCInput::init(void* machtnichts)
 {
-    iboard=11;
+    iboard=2;
     if (iboard < 10)
     {
     // Init Radio In
@@ -870,7 +870,7 @@ void VRBRAINRCInput::init(void* machtnichts)
 }
 
 uint8_t VRBRAINRCInput::valid() {
-    return 0;
+    return 1;
 }
 
 uint16_t VRBRAINRCInput::read(uint8_t ch) {
@@ -881,6 +881,7 @@ uint16_t VRBRAINRCInput::read(uint8_t ch) {
    {
      data = rcValue[rcChannel[ch+1]];
    }
+
      return data; // We return the value correctly copied when the IRQ's where disabled
 }
 
