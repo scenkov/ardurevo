@@ -131,14 +131,12 @@ static void init_ardupilot()
     pinMode(PUSHBUTTON_PIN, INPUT);                     // unused
 #endif
 
-    //relay.init();
-    //hal.i2c->begin();
-    // load parameters from EEPROM
+    relay.init(); 
+
     load_parameters();
 
-
-
 #if COPTER_LEDS == ENABLED
+    cliSerial->println("LEDS init");
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
     pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
@@ -155,6 +153,7 @@ static void init_ardupilot()
 #endif
 
     // init the GCS
+    cliSerial->println("GCS0 init");
     gcs0.init(hal.uartA);
 
     // Register the mavlink service callback. This will run
@@ -169,6 +168,7 @@ static void init_ardupilot()
         hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 #else
+    cliSerial->println("GCS3 init");
     // we have a 2nd serial port for telemetry
     hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
     gcs3.init(hal.uartC);
@@ -179,6 +179,7 @@ static void init_ardupilot()
     mavlink_system.type = 2; //MAV_QUADROTOR;
 
 #if LOGGING_ENABLED == ENABLED
+    cliSerial->println("DataFlash init");
     DataFlash.Init();
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash inserted"));
@@ -197,6 +198,7 @@ static void init_ardupilot()
     motors.init_swash();              // heli initialisation
 #endif
 
+    cliSerial->println("RC init");
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
     /*
@@ -212,12 +214,13 @@ static void init_ardupilot()
     // begin filtering the ADC Gyros
     adc.Init();           // APM ADC library initialization
  #endif // CONFIG_ADC
-
+    cliSerial->println("Baro init");
     barometer.init();
 
 #endif // HIL_MODE
 
 
+    cliSerial->println("GPS init");
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
@@ -234,10 +237,8 @@ cliSerial->println("compass init");
         init_optflow();
     }
 
-#if INERTIAL_NAV_XY == ENABLED || INERTIAL_NAV_Z == ENABLED
     // initialise inertial nav
     inertial_nav.init();
-#endif
 
 #ifdef USERHOOK_INIT
     USERHOOK_INIT
@@ -403,11 +404,6 @@ static void set_mode(uint8_t mode)
     // if we change modes, we must clear landed flag
     set_land_complete(false);
 
-    // debug to Serial terminal
-    //cliSerial->println(flight_mode_strings[control_mode]);
-
-    ap.loiter_override  = false;
-
     // report the GPS and Motor arming status
     led_mode = NORMAL_LEDS;
 
@@ -419,7 +415,7 @@ static void set_mode(uint8_t mode)
         set_yaw_mode(ACRO_YAW);
         set_roll_pitch_mode(ACRO_RP);
         set_throttle_mode(ACRO_THR);
-        set_nav_mode(ACRO_NAV);
+        set_nav_mode(NAV_NONE);
         // reset acro axis targets to current attitude
 		if(g.axis_enabled){
             roll_axis 	= ahrs.roll_sensor;
@@ -443,7 +439,7 @@ static void set_mode(uint8_t mode)
         set_yaw_mode(ALT_HOLD_YAW);
         set_roll_pitch_mode(ALT_HOLD_RP);
         set_throttle_mode(ALT_HOLD_THR);
-        set_nav_mode(ALT_HOLD_NAV);
+        set_nav_mode(NAV_NONE);
         break;
 
     case AUTO:
@@ -500,16 +496,13 @@ static void set_mode(uint8_t mode)
         break;
 
     case LAND:
+        // To-Do: it is messy to set manual_attitude here because the do_land function is reponsible for setting the roll_pitch_mode
         if( ap.home_is_set ) {
             // switch to loiter if we have gps
             ap.manual_attitude = false;
-            set_yaw_mode(LOITER_YAW);
-            set_roll_pitch_mode(LOITER_RP);
         }else{
             // otherwise remain with stabilize roll and pitch
             ap.manual_attitude = true;
-            set_yaw_mode(YAW_HOLD);
-            set_roll_pitch_mode(ROLL_PITCH_STABLE);
         }
     	ap.manual_throttle = false;
         do_land();

@@ -182,19 +182,19 @@
  # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 999
- # define PUSHBUTTON_PIN   999
+ # define SLIDE_SWITCH_PIN 200
+ # define PUSHBUTTON_PIN   200
   #if USB == ENABLED
-   # define USB_MUX_PIN      999
+   # define USB_MUX_PIN      200
   #else
-   # define USB_MUX_PIN      999
+   # define USB_MUX_PIN      200
   #endif
  # define CLI_SLIDER_ENABLED DISABLED
- # define OPTFLOW_CS_PIN   999
- # define BATTERY_VOLT_PIN     999      // Battery voltage on A0
- # define BATTERY_CURR_PIN      999      // Battery current on A1
- # define BATTERY_PIN_1      999 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      999
+ # define OPTFLOW_CS_PIN   200
+ # define BATTERY_VOLT_PIN     200      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      200      // Battery current on A1
+ # define BATTERY_PIN_1      200 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      200
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define A_LED_PIN        37
  # define B_LED_PIN        36
@@ -263,7 +263,7 @@
 //
 
 #ifndef COPTER_LEDS
- #define COPTER_LEDS DISABLED
+ #define COPTER_LEDS ENABLED
 #endif
 
 #define COPTER_LED_ON           HIGH
@@ -282,11 +282,11 @@
  #define COPTER_LED_1 65  	// Motor or Aux LED
  #define COPTER_LED_2 68  	// Motor LED or Beeper
  #define COPTER_LED_3 102  	// Motor or GPS LED
- #define COPTER_LED_4 999  	// Motor or GPS LED
- #define COPTER_LED_5 999  	// Motor or GPS LED
- #define COPTER_LED_6 999  	// Motor or GPS LED
- #define COPTER_LED_7 999  	// Motor or GPS LED
- #define COPTER_LED_8 999  	// Motor or GPS LED
+ #define COPTER_LED_4 200  	// Motor or GPS LED
+ #define COPTER_LED_5 200  	// Motor or GPS LED
+ #define COPTER_LED_6 200  	// Motor or GPS LED
+ #define COPTER_LED_7 200  	// Motor or GPS LED
+ #define COPTER_LED_8 200  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || HAL_BOARD_SMACCM
  #define COPTER_LED_1 AN8       // Motor or Aux LED
  #define COPTER_LED_2 AN9       // Motor LED
@@ -340,7 +340,7 @@
  # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
  # ifndef CONFIG_SONAR_SOURCE_ANALOG_PIN
-  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 0
+  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 200
  # endif
 #else
  # warning Invalid value for CONFIG_SONAR_SOURCE, disabling sonar
@@ -418,7 +418,7 @@
 // Battery monitoring
 //
 #ifndef LOW_VOLTAGE
- # define LOW_VOLTAGE                    9.6f
+ # define LOW_VOLTAGE                    10.5f
 #endif
 #ifndef VOLT_DIV_RATIO
  # define VOLT_DIV_RATIO                 3.56f
@@ -663,10 +663,6 @@
  # define ACRO_THR           	    THROTTLE_MANUAL
 #endif
 
-#ifndef ACRO_NAV
- # define ACRO_NAV           	    NAV_NONE
-#endif
-
 // Alt Hold Mode
 #ifndef ALT_HOLD_YAW
  # define ALT_HOLD_YAW           	YAW_HOLD
@@ -678,10 +674,6 @@
 
 #ifndef ALT_HOLD_THR
  # define ALT_HOLD_THR           	THROTTLE_HOLD
-#endif
-
-#ifndef ALT_HOLD_NAV
- # define ALT_HOLD_NAV           	NAV_NONE
 #endif
 
 // AUTO Mode
@@ -737,7 +729,7 @@
 #endif
 
 #ifndef LOITER_RP
- # define LOITER_RP                 ROLL_PITCH_AUTO
+ # define LOITER_RP                 ROLL_PITCH_LOITER
 #endif
 
 #ifndef LOITER_THR
@@ -971,10 +963,10 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Loiter control gains
+// Loiter position control gains
 //
 #ifndef LOITER_P
- # define LOITER_P             		.20f
+ # define LOITER_P             		2.0f
 #endif
 #ifndef LOITER_I
  # define LOITER_I             		0.0f
@@ -984,16 +976,16 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Loiter Navigation control gains
+// Loiter rate control gains
 //
 #ifndef LOITER_RATE_P
- # define LOITER_RATE_P          	5.0f            //
+ # define LOITER_RATE_P          	2.0f
 #endif
 #ifndef LOITER_RATE_I
- # define LOITER_RATE_I          	0.04f           // Wind control
+ # define LOITER_RATE_I          	1.0f
 #endif
 #ifndef LOITER_RATE_D
- # define LOITER_RATE_D          	0.40f           // try 2 or 3 for LOITER_RATE 1
+ # define LOITER_RATE_D          	0.50f
 #endif
 #ifndef LOITER_RATE_IMAX
  # define LOITER_RATE_IMAX       	30                     // degrees
@@ -1016,7 +1008,7 @@
 #endif
 
 #ifndef AUTO_SLEW_RATE
- # define AUTO_SLEW_RATE         	30                     // degrees/sec
+ # define AUTO_SLEW_RATE         	45                     // degrees/sec
 #endif
 
 #ifndef AUTO_YAW_SLEW_RATE
@@ -1191,8 +1183,8 @@
 #ifndef LOG_PID
  # define LOG_PID                       DISABLED
 #endif
-#ifndef LOG_ITERM
- # define LOG_ITERM                     DISABLED
+#ifndef LOG_COMPASS
+ # define LOG_COMPASS                   DISABLED
 #endif
 #ifndef LOG_INAV
  # define LOG_INAV                      DISABLED
@@ -1218,7 +1210,7 @@
     LOGBIT(MOTORS)          | \
     LOGBIT(OPTFLOW)         | \
     LOGBIT(PID)             | \
-    LOGBIT(ITERM)           | \
+    LOGBIT(COMPASS)         | \
     LOGBIT(INAV)
 
 // if we are using fast, Disable Medium
@@ -1307,14 +1299,6 @@
 // experimental mpu6000 DMP code
 #ifndef SECONDARY_DMP_ENABLED
  # define SECONDARY_DMP_ENABLED DISABLED
-#endif
-
-// Inertia based contollers.
-#ifndef INERTIAL_NAV_XY
- # define INERTIAL_NAV_XY DISABLED
-#endif
-#ifndef INERTIAL_NAV_Z
- # define INERTIAL_NAV_Z ENABLED
 #endif
 
 #endif // __ARDUCOPTER_CONFIG_H__
