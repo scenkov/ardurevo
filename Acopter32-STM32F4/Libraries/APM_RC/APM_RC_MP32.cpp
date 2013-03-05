@@ -28,6 +28,8 @@
 #define MINCHECK 900
 #define MAXCHECK 2100
 
+#define MICRO
+
 // STANDARD PPM VARIABLE
 
 volatile uint16_t rcPinValue[12] = {0,0,1000,0,1500,1500,1500,1000,0,0,0,0};; // interval [1000;2000]
@@ -1050,7 +1052,28 @@ attachInterrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
 
 void APM_RC_MP32::OutputCh(unsigned char ch, uint16_t pwm)
 {
-	
+#ifdef MICRO
+    if (analogOutPin[ch]>200)
+    	{
+    		if (pwm>1000){
+		pwm = map(pwm, 1000, 2000, 0, 14000); // PATCH FOR GIMBAL CONTROLL 69 HZ
+    		analogWrite(analogOutPin[ch]-200, pwm);
+    		}
+    		else
+    		analogWrite(analogOutPin[ch]-200, 0);
+    	}
+    	else
+    	{
+    	if (pwm>1000){
+    		pwm = map(pwm, 1000, 2000, 0, 14000);	// MP32F4 PWM 490 HZ
+    		analogWrite(analogOutPin[ch], pwm);
+    		}
+    		else
+    	    	analogWrite(analogOutPin[ch], 0);
+
+    	}
+
+#else
 	if (analogOutPin[ch]>200)
 	{
 		pwm = map(pwm, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
@@ -1061,6 +1084,7 @@ void APM_RC_MP32::OutputCh(unsigned char ch, uint16_t pwm)
 		pwm = map(pwm, 1000, 2000, 28000, 57141);	// MP32F4 PWM 490 HZ 
 		analogWrite(analogOutPin[ch], pwm);
 	}
+#endif
 }
 uint16_t APM_RC_MP32::OutputCh_current(uint8_t ch)
 {
