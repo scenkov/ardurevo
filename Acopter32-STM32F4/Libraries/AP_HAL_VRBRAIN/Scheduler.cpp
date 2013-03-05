@@ -12,7 +12,7 @@ AP_HAL::TimedProc VRBRAINScheduler::_failsafe = NULL;
 volatile bool VRBRAINScheduler::_timer_suspended = false;
 volatile bool VRBRAINScheduler::_timer_event_missed = false;
 volatile bool VRBRAINScheduler::_in_timer_proc = false;
-AP_HAL::TimedProc VRBRAINScheduler::_timer_proc[AVR_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
+AP_HAL::TimedProc VRBRAINScheduler::_timer_proc[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
 uint8_t VRBRAINScheduler::_num_timer_procs = 0;
 
 
@@ -84,7 +84,7 @@ void VRBRAINScheduler::register_timer_process(AP_HAL::TimedProc proc)
         }
     }
 
-    if (_num_timer_procs < AVR_SCHEDULER_MAX_TIMER_PROCS) {
+    if (_num_timer_procs < VRBRAIN_SCHEDULER_MAX_TIMER_PROCS) {
         /* this write to _timer_proc can be outside the critical section
          * because that memory won't be used until _num_timer_procs is
          * incremented. */

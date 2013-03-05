@@ -8,7 +8,7 @@
 #include <boards.h>
 #include <timer.h>
 
-#define AVR_SCHEDULER_MAX_TIMER_PROCS 4
+#define VRBRAIN_SCHEDULER_MAX_TIMER_PROCS 8
 
 
 class VRBRAIN::VRBRAINScheduler : public AP_HAL::Scheduler {
@@ -52,7 +52,7 @@ private:
 
     static volatile bool _timer_suspended;
     static volatile bool _timer_event_missed;
-    static AP_HAL::TimedProc _timer_proc[AVR_SCHEDULER_MAX_TIMER_PROCS];
+    static AP_HAL::TimedProc _timer_proc[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS];
     static uint8_t _num_timer_procs;
 
 };

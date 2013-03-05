@@ -45,7 +45,7 @@ const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // @Description: Enable or disable the use of the compass (instead of the GPS) for determining heading
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("USE",    4, Compass, _use_for_yaw, 0), // true if used for DCM yaw
+    AP_GROUPINFO("USE",    4, Compass, _use_for_yaw, 1), // true if used for DCM yaw
 
 #if !defined( __AVR_ATmega1280__ )
     // @Param: AUTODEC

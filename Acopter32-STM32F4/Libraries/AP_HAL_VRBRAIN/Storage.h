@@ -16,6 +16,7 @@
 
 #include <AP_HAL_VRBRAIN.h>
 #include <i2c.h>
+#include <hal.h>
 
 #define MC24C64		//Defines the EEPROM MC24C64
 #define EEPROM_ADDRESS	0xA0
