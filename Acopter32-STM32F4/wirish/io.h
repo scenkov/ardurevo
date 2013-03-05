@@ -43,7 +43,7 @@
  * @see pinMode()
  */
 typedef enum WiringPinMode {
-    OUTPUT, /**< Basic digital output: when the pin is HIGH, the
+    OUTPUT, /* Basic digital output: when the pin is HIGH, the
                voltage is held at +3.3v (Vcc) and when it is LOW, it
                is pulled down to ground. */
 

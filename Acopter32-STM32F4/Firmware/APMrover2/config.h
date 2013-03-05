@@ -100,6 +100,7 @@
 # define BATTERY_CURR_PIN      1      // Battery current on A1
 # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
 # define CURRENT_PIN_1      1
+# define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
 # define CONFIG_PUSHBUTTON DISABLED
 # define CONFIG_RELAY      DISABLED

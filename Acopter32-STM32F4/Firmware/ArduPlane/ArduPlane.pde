@@ -51,6 +51,7 @@
 #include <AP_Declination.h> // ArduPilot Mega Declination Helper Library
 #include <DataFlash.h>
 #include <SITL.h>
+#include <wirish.h>
 
 // optional new controller library
 #if APM_CONTROL == ENABLED
@@ -110,6 +111,8 @@ static void update_events(void);
 DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 DataFlash_APM2 DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+DataFlash_MP32 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 DataFlash_SITL DataFlash;
 #else

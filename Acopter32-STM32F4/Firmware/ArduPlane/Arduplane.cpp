@@ -52,6 +52,7 @@
 #include <AP_Declination.h> // ArduPilot Mega Declination Helper Library
 #include <DataFlash.h>
 #include <SITL.h>
+#include <wirish.h>
 
 // optional new controller library
 #if APM_CONTROL == ENABLED
@@ -306,7 +307,7 @@
   static void print_comma(void) ;
   static void print_hit_enter() ;
   static void test_wp_print(struct Location *cmd, uint8_t wp_index) ;
-#line 76 "./Firmware/Arduplane/ArduPlane.pde"
+#line 77 "./Firmware/Arduplane/ArduPlane.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -344,6 +345,8 @@ static void update_events(void);
 DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 DataFlash_APM2 DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+DataFlash_MP32 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 DataFlash_SITL DataFlash;
 #else
@@ -8274,7 +8277,7 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
              ins_sample_rate,
              flash_leds);
     AP_InertialSensor_UserInteractStream interact(hal.console);
-    bool success = ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch);
+    bool success = ins.calibrate_accel(flash_leds, &interact);
     if (success) {
         // reset ahrs's trim to suggested values from calibration routine
         ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
