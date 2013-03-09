@@ -197,7 +197,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
     uint8_t switchPosition, mode = 0;
 
     cliSerial->printf_P(PSTR("\nMove RC toggle switch to each position to edit, move aileron stick to select modes."));
-    print_hit_enter();
+    //print_hit_enter();
     trim_radio();
 
     while(1) {
