@@ -92,7 +92,6 @@
  # define MAG_ORIENTATION   ROTATION_NONE
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
- # define SERIAL0_BAUD 57600
 #elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_BARO       AP_BARO_MS5611
@@ -133,7 +132,6 @@
   # define HELI_PITCH_FF				0
   # define HELI_ROLL_FF					0
   # define HELI_YAW_FF					0  
-  # define RC_FAST_SPEED 				125
   # define STABILIZE_THROTTLE			THROTTLE_MANUAL
   # define MPU6K_FILTER                 10
 #endif
@@ -440,15 +438,6 @@
 #endif
 
 
-
-//////////////////////////////////////////////////////////////////////////////
-// INPUT_VOLTAGE
-//
-#ifndef INPUT_VOLTAGE
- # define INPUT_VOLTAGE                  5.0f
-#endif
-
-
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
@@ -647,6 +636,7 @@
 // used to specify frame to rate controllers
 #define EARTH_FRAME     0
 #define BODY_FRAME      1
+
 
 // Flight mode roll, pitch, yaw, throttle and navigation definitions
 

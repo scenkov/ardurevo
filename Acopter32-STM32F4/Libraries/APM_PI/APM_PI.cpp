@@ -16,12 +16,12 @@ const AP_Param::GroupInfo APM_PI::var_info[] PROGMEM = {
 
 int32_t APM_PI::get_p(int32_t error)
 {
-	return (int32_t)((float)error * _kp);
+    return (float)error * _kp;
 }
 
 int32_t APM_PI::get_i(int32_t error, float dt)
 {
-	if((dt > 0.0) || (dt < 0.0)) {
+    if(dt != 0) {
         _integrator += ((float)error * _ki) * dt;
 
         if (_integrator < -_imax) {
@@ -30,7 +30,7 @@ int32_t APM_PI::get_i(int32_t error, float dt)
             _integrator = _imax;
         }
     }
-	return (int32_t)_integrator;
+    return _integrator;
 }
 
 int32_t APM_PI::get_pi(int32_t error, float dt)
@@ -41,7 +41,7 @@ int32_t APM_PI::get_pi(int32_t error, float dt)
 void
 APM_PI::reset_I()
 {
-	_integrator = 0.0;
+    _integrator = 0;
 }
 
 void

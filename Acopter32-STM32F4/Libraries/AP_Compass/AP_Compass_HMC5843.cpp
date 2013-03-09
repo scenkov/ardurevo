@@ -173,13 +173,11 @@ AP_Compass_HMC5843::init()
 
     // determine if we are using 5843 or 5883L
     if (!write_register(ConfigRegA, SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation) ||
-	!read_register(ConfigRegA, &_base_config)) {
-	healthy = false;
+        !read_register(ConfigRegA, &_base_config)) {
+        healthy = false;
         _i2c_sem->give();
-        //hal.scheduler->panic(PSTR("Compass could not read register"));
         return false;
     }
-
     if ( _base_config == (SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)) {
         // a 5883L supports the sample averaging config
         product_id = AP_COMPASS_TYPE_HMC5883L;
@@ -194,7 +192,6 @@ AP_Compass_HMC5843::init()
     } else {
         // not behaving like either supported compass type
         _i2c_sem->give();
-        //hal.scheduler->panic(PSTR("Compass: not behaving like either supported compass type"));
         return false;
     }
 
@@ -336,17 +333,21 @@ bool AP_Compass_HMC5843::read()
     rot_mag.rotate(_board_orientation);
 
     rot_mag += _offset.get();
+
+    // apply motor compensation
+    if(_motor_comp_type != AP_COMPASS_MOT_COMP_DISABLED && _thr_or_curr != 0.0f) {
+        _motor_offset = _motor_compensation.get() * _thr_or_curr;
+        rot_mag += _motor_offset;
+    }else{
+        _motor_offset.x = 0;
+        _motor_offset.y = 0;
+        _motor_offset.z = 0;
+    }
+
     mag_x = rot_mag.x;
     mag_y = rot_mag.y;
     mag_z = rot_mag.z;
     healthy = true;
 
     return true;
-}
-
-// set orientation
-void
-AP_Compass_HMC5843::set_orientation(enum Rotation rotation)
-{
-    _orientation = rotation;
 }

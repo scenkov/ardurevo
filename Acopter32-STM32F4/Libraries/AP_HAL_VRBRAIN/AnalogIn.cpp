@@ -15,6 +15,13 @@ float VRBRAINAnalogSource::read_latest() {
     return _v;
 }
 
+/*
+  return voltage in Volts
+ */
+float VRBRAINAnalogSource::voltage_average()
+{
+    return (5.0f/4096.0f) * read_average();
+}
 void VRBRAINAnalogSource::set_pin(uint8_t p)
 {}
 

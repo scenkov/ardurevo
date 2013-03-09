@@ -242,7 +242,7 @@ void rxIntPPM(void)
  6 PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
  7 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
  */
-#define NEWEXTI
+//#define NEWEXTI
 
 #ifdef NEWEXTI
 static void rxIntPPM5_9(void)
@@ -660,55 +660,55 @@ static void rxIntPPM5_9(void)
 
 	    if (input_channel_ch1 != 0)
 		{
-		attachInterrupt(input_channel_ch1, rxIntPPM5_9, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch1, rxIntPPM5_9, CHANGE);
 //hal.gpio->pinMode(input_channel_ch1, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch2 != 0)
 		{
-		attachInterrupt(input_channel_ch2, rxIntPPM10_15, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch2, rxIntPPM10_15, CHANGE);
 //hal.gpio->pinMode(input_channel_ch2, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch3 != 0)
 		{
-		attachInterrupt(input_channel_ch3, rxIntPPM10_15, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch3, rxIntPPM10_15, CHANGE);
 //hal.gpio->pinMode(input_channel_ch3, INPUT);
 		hal.scheduler->delay(100);
 		}
 	    if (input_channel_ch4 != 0)
 		{
-		attachInterrupt(input_channel_ch4, rxIntPPM10_15, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch4, rxIntPPM10_15, CHANGE);
 //hal.gpio->pinMode(input_channel_ch4, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch5 != 0)
 		{
-		attachInterrupt(input_channel_ch5, rxIntPPM5_9, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch5, rxIntPPM5_9, CHANGE);
 //hal.gpio->pinMode(input_channel_ch5, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch6 != 0)
 		{
-		attachInterrupt(input_channel_ch6, rxIntPPM5_9, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch6, rxIntPPM5_9, CHANGE);
 //hal.gpio->pinMode(input_channel_ch6, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch7 != 0)
 		{
-		attachInterrupt(input_channel_ch7, rxIntPPM5_9, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch7, rxIntPPM5_9, CHANGE);
 //hal.gpio->pinMode(input_channel_ch7, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch8 != 0)
 		{
-		attachInterrupt(input_channel_ch8, rxIntPPM, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch8, rxIntPPM, CHANGE);
 		hal.gpio->pinMode(input_channel_ch8, INPUT);
 		hal.scheduler->delay(100);
 		}
@@ -742,7 +742,7 @@ static void rxIntPPM5_9(void)
 
 	    if (input_channel_ch5 != 0)
 		{
-		attachInterrupt(input_channel_ch5, rxIntPPM, CHANGE);
+		hal.gpio->attach_interrupt(input_channel_ch5, rxIntPPM, CHANGE);
 		hal.gpio->pinMode(input_channel_ch5, INPUT);
 		hal.scheduler->delay(100);
 		}
@@ -842,14 +842,14 @@ static void rxIntPPM5_9(void)
 		//input_channel_ch4=15;
 		//PIN 13 freeze board (was USB DISC)
 		/*
-		 PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
-		 PE11	80	PWM_IN1		 IRQ 10-15			  PPM2
-		 PE13	86	PWM_IN2		 IRQ 10-15			  PPM3
-		 PE14	89	PWM_IN3		 IRQ 10-15			  PPM4
-		 PC6		12	PWM_IN4		 IRQ 5-9			  PPM5
-		 PC7		13	PWM_IN5		 IRQ 5-9			  PPM6
-		 PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
-		 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
+		 PE9		75	PWM_IN0		IRQ 5-9  * Conflict  PPM1
+		 PE11		80	PWM_IN1		IRQ 10-15			  PPM2
+		 PE13		86	PWM_IN2		IRQ 10-15			  PPM3
+		 PE14		89	PWM_IN3		IRQ 10-15			  PPM4
+		 PC6		12	PWM_IN4		IRQ 5-9			  PPM5
+		 PC7		13	PWM_IN5		IRQ 5-9			  PPM6
+		 PC8		14	PWM_IN6		IRQ 5-9			  PPM7
+		 PC9		15	PWM_IN7	     	IRQ 5-9   * Conflict (PPMSUM)
 		 */
 
 		input_channel_ch1 = 75;
@@ -859,7 +859,7 @@ static void rxIntPPM5_9(void)
 		input_channel_ch5 = 12;
 		input_channel_ch6 = 13;
 		input_channel_ch7 = 14;
-		input_channel_ch8 = 15;
+		input_channel_ch8 = 0;
 
 //input_channel_ch5=12;
 //input_channel_ch6=13;

@@ -34,10 +34,10 @@
 
 #define RADIO_TYPE 0  // 0 Standard Radio 1 PPMSUM  2 OTHER
 
-#define ROLL_PITCH_STABLE           0
-#define ROLL_PITCH_ACRO             1
-#define ROLL_PITCH_AUTO             2
-#define ROLL_PITCH_STABLE_OF        3
+#define ROLL_PITCH_STABLE           0       // pilot input roll, pitch angles
+#define ROLL_PITCH_ACRO             1       // pilot inputs roll, pitch rotation rates
+#define ROLL_PITCH_AUTO             2       // no pilot input.  autopilot roll, pitch is sent to stabilize controller inputs
+#define ROLL_PITCH_STABLE_OF        3       // pilot inputs roll, pitch angles which are mixed with optical flow based position controller lean anbles
 #define ROLL_PITCH_TOY              4       // THOR This is the Roll and Pitch mode
 #define ROLL_PITCH_LOITER           5       // pilot inputs the desired horizontal velocities
 
@@ -358,12 +358,16 @@ enum gcs_severity {
 
 // battery monitoring macros
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/4096.0f))*g.volt_div_ratio
-#define CURRENT_AMPS(x) ((x*(g.input_voltage/4096.0f))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
+#define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
+#define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
 #else
-#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0f))*g.volt_div_ratio
-#define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0f))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
+#define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
+#define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
 #endif
+
+#define BATT_MONITOR_DISABLED               0
+#define BATT_MONITOR_VOLTAGE_ONLY           3
+#define BATT_MONITOR_VOLTAGE_AND_CURRENT    4
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
 
@@ -375,17 +379,17 @@ enum gcs_severity {
 // AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
 // next to SW2 switch
 // Look more ArduCopter Wiki for voltage dividers and other ports
-#define AN0  999  // resistor, vdiv use, divider 1 closest to relay
-#define AN1  999  // resistor, vdiv use, divider 2
-#define AN2  999  // resistor, vdiv use, divider 3
-#define AN3  999  // resistor, vdiv use, divider 4 closest to SW2
-#define AN4  999  // direct GPIO pin, default as analog input, next to SW2
+#define AN0  200  // resistor, vdiv use, divider 1 closest to relay
+#define AN1  200  // resistor, vdiv use, divider 2
+#define AN2  200  // resistor, vdiv use, divider 3
+#define AN3  200  // resistor, vdiv use, divider 4 closest to SW2
+#define AN4  200  // direct GPIO pin, default as analog input, next to SW2
                  // switch
-#define AN5  999  // direct GPIO pin, default as analog input, next to SW2
+#define AN5  200  // direct GPIO pin, default as analog input, next to SW2
                  // switch
-#define AN6  999  // direct GPIO pin, default as analog input, close to
+#define AN6  200  // direct GPIO pin, default as analog input, close to
                  // Pressure sensor, Expansion Ports
-#define AN7  999  // direct GPIO pin, default as analog input, close to
+#define AN7  200  // direct GPIO pin, default as analog input, close to
                  // Pressure sensor, Expansion Ports
 
 // AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and
@@ -394,17 +398,17 @@ enum gcs_severity {
 // on edge of the board above Expansion Ports
 // even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on
 // inner row
-#define AN8  999  // NC
-#define AN9  999  // NC
-#define AN10  999 // NC
-#define AN11  999 // NC
-#define AN12  999 // NC
-#define AN13  999 // NC
-#define AN14  999 // NC
-#define AN15  999 // NC
+#define AN8  200  // NC
+#define AN9  200  // NC
+#define AN10  200 // NC
+#define AN11  200 // NC
+#define AN12  200 // NC
+#define AN13  200 // NC
+#define AN14  200 // NC
+#define AN15  200 // NC
 
-#define RELAY_APM1_PIN 999
-#define RELAY_APM2_PIN 999
+#define RELAY_APM1_PIN 200
+#define RELAY_APM2_PIN 200
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector
