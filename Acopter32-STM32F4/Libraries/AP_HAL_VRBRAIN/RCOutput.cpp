@@ -222,11 +222,13 @@ void VRBRAINRCOutput::write(uint8_t ch, uint16_t period_us)
 {
 	if (analogOutPin[ch]>200)
 	{
+		output_channel_raw[ch]=period_us;
 		period_us = map(period_us, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
 		analogWrite(analogOutPin[ch]-200, period_us);
 	}
 	else
 	{
+		output_channel_raw[ch]=period_us;
 		period_us = map(period_us, 1000, 2000, 28000, 57141);	// MP32F4 PWM 490 HZ
 		analogWrite(analogOutPin[ch], period_us);
 	}
@@ -237,7 +239,7 @@ void VRBRAINRCOutput::write(uint8_t ch, uint16_t* period_us, uint8_t len)
 {}
 
 uint16_t VRBRAINRCOutput::read(uint8_t ch) {
-    return 900;
+    return output_channel_raw[ch];
 }
 
 void VRBRAINRCOutput::read(uint16_t* period_us, uint8_t len)

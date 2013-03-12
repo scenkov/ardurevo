@@ -178,7 +178,7 @@ enum LIMIT_MODULE
 #include "./mavlink_msg_data32.h"
 #include "./mavlink_msg_data64.h"
 #include "./mavlink_msg_data96.h"
-#include "./mavlink_msg_rangefinder.h"
+//#include "./mavlink_msg_rangefinder.h"
 
 #ifdef __cplusplus
 }

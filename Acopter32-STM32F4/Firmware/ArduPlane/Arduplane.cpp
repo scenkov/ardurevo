@@ -8152,7 +8152,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
     uint8_t switchPosition, mode = 0;
 
     cliSerial->printf_P(PSTR("\nMove RC toggle switch to each position to edit, move aileron stick to select modes."));
-    print_hit_enter();
+    //print_hit_enter();
     trim_radio();
 
     while(1) {
@@ -8263,7 +8263,6 @@ setup_level(uint8_t argc, const Menu::arg *argv)
 /*
   handle full accelerometer calibration via user dialog
  */
-
 static int8_t
 setup_accel_scale(uint8_t argc, const Menu::arg *argv)
 {
@@ -8277,7 +8276,7 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
              ins_sample_rate,
              flash_leds);
     AP_InertialSensor_UserInteractStream interact(hal.console);
-    bool success = ins.calibrate_accel(flash_leds, &interact);
+    bool success = ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch);
     if (success) {
         // reset ahrs's trim to suggested values from calibration routine
         ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
@@ -8726,6 +8725,15 @@ static void init_ardupilot()
     //
     load_parameters();
 
+    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
+    hal.gpio->write(A_LED_PIN, LED_ON);
+
+    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(B_LED_PIN, LED_ON);
+
+    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(C_LED_PIN, LED_ON);
+
     // reset the uartA baud rate after parameter load
     hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
@@ -8813,9 +8821,10 @@ static void init_ardupilot()
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
 
-    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
-    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+//    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
+//    pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
+//    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+  
     relay.init();
 
 #if FENCE_TRIGGERED_PIN > 0

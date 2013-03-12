@@ -52,7 +52,7 @@ private:
     unsigned int output_channel_ch10;
     unsigned int output_channel_ch11;
     unsigned int output_channel_ch12;
-
+    unsigned int output_channel_raw[12];
 
 };
 

@@ -308,7 +308,6 @@ setup_level(uint8_t argc, const Menu::arg *argv)
 /*
   handle full accelerometer calibration via user dialog
  */
-
 static int8_t
 setup_accel_scale(uint8_t argc, const Menu::arg *argv)
 {
@@ -322,7 +321,7 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
              ins_sample_rate,
              flash_leds);
     AP_InertialSensor_UserInteractStream interact(hal.console);
-    bool success = ins.calibrate_accel(flash_leds, &interact);
+    bool success = ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch);
     if (success) {
         // reset ahrs's trim to suggested values from calibration routine
         ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));

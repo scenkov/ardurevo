@@ -900,7 +900,7 @@ static void rxIntPPM5_9(void)
 
 	void VRBRAINRCInput::init(void* machtnichts)
 	    {
-	    iboard = 2;
+	    iboard = 11;
 	    if (iboard < 10)
 		{
 		// Init Radio In
