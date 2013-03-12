@@ -1,3 +1,4 @@
+#line 1 "./Firmware/DataFlash_test/DataFlash_test_MP32.pde"
 /*
 	Example of DataFlash library.
 	Code by Jordi MuÒoz and Jose Julio. DIYDrones.com
@@ -8,15 +9,19 @@
 #include <AP_Param.h>
 #include <AP_Progmem.h>
 #include <AP_Math.h>            // ArduPilot Mega Vector/Matrix math Library
-#include <DataFlash.h>
+
 
 #include <AP_HAL.h>
 #include <AP_HAL_VRBRAIN.h>
 
+#include <DataFlash.h>
 
 #define HEAD_BYTE1 0xA3
 #define HEAD_BYTE2 0x95
 
+   void setup() ;
+  void loop() ;
+#line 21 "./Firmware/DataFlash_test/DataFlash_test_MP32.pde"
 const AP_HAL::HAL& hal = AP_HAL_VRBRAIN;
 
 DataFlash_MP32  DataFlash;
