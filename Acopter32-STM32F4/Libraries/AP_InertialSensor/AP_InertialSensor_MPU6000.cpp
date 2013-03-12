@@ -597,7 +597,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
     hal.scheduler->delay(1);
 
-    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
+    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
     hal.scheduler->delay(1);
 
     // read the product ID rev c has 1/2 the sensitivity of rev d

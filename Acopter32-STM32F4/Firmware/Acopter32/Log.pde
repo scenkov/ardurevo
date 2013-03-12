@@ -93,16 +93,11 @@ dump_log(uint8_t argc, const Menu::arg *argv)
     last_log_num = DataFlash.find_last_log();
 
     if (dump_log == -2) {
-        for(uint16_t count=1; count<=DataFlash.df_NumPages; count++) {
-            DataFlash.StartRead(count);
-            cliSerial->printf_P(PSTR("DF page, log file #, log page: %d,\t"), (int)count);
-            cliSerial->printf_P(PSTR("%d,\t"), (int)DataFlash.GetFileNumber());
-            cliSerial->printf_P(PSTR("%d\n"), (int)DataFlash.GetFilePage());
-        }
+        DataFlash.DumpPageInfo(cliSerial);
         return(-1);
     } else if (dump_log <= 0) {
         cliSerial->printf_P(PSTR("dumping all\n"));
-        Log_Read(1, DataFlash.df_NumPages);
+        Log_Read(0, 1, 0);
         return(-1);
     } else if ((argc != 2) || (dump_log <= (last_log_num - DataFlash.get_num_logs())) || (dump_log > last_log_num)) {
         cliSerial->printf_P(PSTR("bad log number\n"));
@@ -115,7 +110,7 @@ dump_log(uint8_t argc, const Menu::arg *argv)
      *                         dump_log_start,
      *                         dump_log_end);
      */
-    Log_Read(dump_log_start, dump_log_end);
+    Log_Read((uint8_t)dump_log, dump_log_start, dump_log_end);
     //cliSerial->printf_P(PSTR("Done\n"));
     return (0);
 }
@@ -250,8 +245,8 @@ static void Log_Read_GPS()
 
     // need to fix printf formatting
 
-    cliSerial->printf_P(PSTR("GPS, %ld, %u, "),
-                        (long)pkt.gps_time,
+    cliSerial->printf_P(PSTR("GPS, %lu, %u, "),
+                        (unsigned long)pkt.gps_time,
                         (unsigned)pkt.num_sats);
     print_latlon(cliSerial, pkt.latitude);
     cliSerial->print_P(PSTR(", "));
@@ -866,7 +861,6 @@ struct log_Startup {
 // Write Startup packet. Total length : 4 bytes
 static void Log_Write_Startup()
 {
-    DataFlash.WriteByte(LOG_STARTUP_MSG);
     struct log_Startup pkt = {
         LOG_PACKET_HEADER_INIT(LOG_STARTUP_MSG)
     };
@@ -905,6 +899,36 @@ static void Log_Read_Event()
     DataFlash.ReadPacket(&pkt, sizeof(pkt));
     cliSerial->printf_P(PSTR("EV, %u\n"), (unsigned)pkt.id);
 }
+
+
+struct log_Data_Int8t {
+    LOG_PACKET_HEADER;
+    uint8_t id;
+    int8_t data_value;
+};
+
+
+// Write an int8_t data packet
+static void Log_Write_Data(uint8_t id, int8_t value)
+{
+    if (g.log_bitmask != 0) {
+        struct log_Data_Int8t pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_DATA_INT8_MSG),
+            id          : id,
+            data_value  : value
+        };
+        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+
+// Read an int8_t data packet
+static void Log_Read_Int8t()
+{
+    struct log_Data_Int8t pkt;
+    DataFlash.ReadPacket(&pkt, sizeof(pkt));
+    cliSerial->printf_P(PSTR("DATA, %u, %d\n"), (unsigned)pkt.id, (int)pkt.data_value);
+}
+
 
 struct log_Data_Int16t {
     LOG_PACKET_HEADER;
@@ -1228,7 +1252,7 @@ static void Log_Read_Error()
 }
 
 // Read the DataFlash log memory
-static void Log_Read(int16_t start_page, int16_t end_page)
+static void Log_Read(uint8_t log_num, int16_t start_page, int16_t end_page)
 {
  #ifdef AIRFRAME_NAME
     cliSerial->printf_P(PSTR((AIRFRAME_NAME)));
@@ -1244,7 +1268,7 @@ static void Log_Read(int16_t start_page, int16_t end_page)
 	setup_show(0, NULL);
 #endif
 
-    DataFlash.log_read_process(start_page, end_page, log_callback);
+    DataFlash.log_read_process(log_num, start_page, end_page, log_callback);
 }
 
 // read one packet from the dataflash

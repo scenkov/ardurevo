@@ -8,11 +8,12 @@
 #include <AP_Param.h>
 #include <AP_Progmem.h>
 #include <AP_Math.h>            // ArduPilot Mega Vector/Matrix math Library
-#include <DataFlash.h>
+
 
 #include <AP_HAL.h>
 #include <AP_HAL_VRBRAIN.h>
 
+#include <DataFlash.h>
 
 #define HEAD_BYTE1 0xA3
 #define HEAD_BYTE2 0x95

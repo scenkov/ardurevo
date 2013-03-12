@@ -278,8 +278,8 @@
  #define COPTER_LED_8 AN11      // Motor LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  #define COPTER_LED_1 65  	// Motor or Aux LED
- #define COPTER_LED_2 68  	// Motor LED or Beeper
- #define COPTER_LED_3 102  	// Motor or GPS LED
+ #define COPTER_LED_2 71  	// Motor LED or Beeper
+ #define COPTER_LED_3 200  	// Motor or GPS LED
  #define COPTER_LED_4 200  	// Motor or GPS LED
  #define COPTER_LED_5 200  	// Motor or GPS LED
  #define COPTER_LED_6 200  	// Motor or GPS LED
