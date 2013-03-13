@@ -1,4 +1,4 @@
-#line 1 "./Firmware/Arduplane/ArduPlane.pde"
+#line 1 "./Arduplane/ArduPlane.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #define THISFIRMWARE "ArduPlane V2.69"
@@ -307,7 +307,7 @@
   static void print_comma(void) ;
   static void print_hit_enter() ;
   static void test_wp_print(struct Location *cmd, uint8_t wp_index) ;
-#line 77 "./Firmware/Arduplane/ArduPlane.pde"
+#line 77 "./Arduplane/ArduPlane.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -1511,7 +1511,7 @@ static void update_alt()
 }
 
 AP_HAL_MAIN();
-#line 1 "./Firmware/Arduplane/Attitude.pde"
+#line 1 "./Arduplane/Attitude.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 //****************************************************************
@@ -2148,7 +2148,7 @@ static bool alt_control_airspeed(void)
 {
     return airspeed.use() && g.alt_control_algorithm == ALT_CONTROL_DEFAULT;
 }
-#line 1 "./Firmware/Arduplane/GCS_Mavlink.pde"
+#line 1 "./Arduplane/GCS_Mavlink.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 // use this to prevent recursion during sensor init
@@ -4259,7 +4259,7 @@ void gcs_send_text_fmt(const prog_char_t *fmt, ...)
     }
 }
 
-#line 1 "./Firmware/Arduplane/Log.pde"
+#line 1 "./Arduplane/Log.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if LOGGING_ENABLED == ENABLED
@@ -4935,7 +4935,7 @@ static int8_t process_logs(uint8_t argc, const Menu::arg *argv) {
 
 
 #endif // LOGGING_ENABLED
-#line 1 "./Firmware/Arduplane/Parameters.pde"
+#line 1 "./Arduplane/Parameters.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
 /*
@@ -5663,7 +5663,7 @@ static void load_parameters(void)
         cliSerial->printf_P(PSTR("load_all took %luus\n"), micros() - before);
     }
 }
-#line 1 "./Firmware/Arduplane/climb_rate.pde"
+#line 1 "./Arduplane/climb_rate.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if 0 // currently unused
@@ -5724,7 +5724,7 @@ void add_altitude_data(unsigned long xl, long y)
 }
 #endif
 
-#line 1 "./Firmware/Arduplane/commands.pde"
+#line 1 "./Arduplane/commands.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
  *  logic for dealing with the current command in the mission and home location
@@ -6009,7 +6009,7 @@ void init_home()
 
 
 
-#line 1 "./Firmware/Arduplane/commands_logic.pde"
+#line 1 "./Arduplane/commands_logic.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /********************************************************************************/
@@ -6654,7 +6654,7 @@ static void do_repeat_relay()
     event_state.repeat          = next_nonnav_command.alt * 2;
     update_events();
 }
-#line 1 "./Firmware/Arduplane/commands_process.pde"
+#line 1 "./Arduplane/commands_process.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 // For changing active command mid-mission
@@ -6800,7 +6800,7 @@ static void process_non_nav_command()
         }
     }
 }
-#line 1 "./Firmware/Arduplane/compat.pde"
+#line 1 "./Arduplane/compat.pde"
 
 
 void delay(uint32_t ms)
@@ -6838,7 +6838,7 @@ uint8_t digitalRead(uint8_t pin)
     return hal.gpio->read(pin);
 }
 
-#line 1 "./Firmware/Arduplane/control_modes.pde"
+#line 1 "./Arduplane/control_modes.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 
@@ -6909,7 +6909,7 @@ static void reset_control_switch()
     read_control_switch();
 }
 
-#line 1 "./Firmware/Arduplane/events.pde"
+#line 1 "./Arduplane/events.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 
@@ -7037,7 +7037,7 @@ static void update_events(void)
         }
     }
 }
-#line 1 "./Firmware/Arduplane/failsafe.pde"
+#line 1 "./Arduplane/failsafe.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
  *  failsafe support
@@ -7091,7 +7091,7 @@ void failsafe_check(uint32_t tnow)
         RC_Channel_aux::copy_radio_in_out(RC_Channel_aux::k_elevator_with_input, true);
     }
 }
-#line 1 "./Firmware/Arduplane/geofence.pde"
+#line 1 "./Arduplane/geofence.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
  *  geo-fencing support
@@ -7436,7 +7436,7 @@ static bool geofence_enabled(void) {
 }
 
 #endif // GEOFENCE_ENABLED
-#line 1 "./Firmware/Arduplane/navigation.pde"
+#line 1 "./Arduplane/navigation.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 //****************************************************************
@@ -7645,7 +7645,7 @@ static void reset_crosstrack()
     crosstrack_bearing_cd   = get_bearing_cd(&prev_WP, &next_WP);       // Used for track following
 }
 
-#line 1 "./Firmware/Arduplane/radio.pde"
+#line 1 "./Arduplane/radio.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 //Function that will read the radio data, limit servos and trigger a failsafe
@@ -7867,7 +7867,7 @@ static void trim_radio()
 
     trim_control_surfaces();
 }
-#line 1 "./Firmware/Arduplane/sensors.pde"
+#line 1 "./Arduplane/sensors.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 // filter altitude from the barometer with a low pass filter
@@ -7952,7 +7952,7 @@ static int32_t adjusted_altitude_cm(void)
 {
     return current_loc.alt - (g.alt_offset*100);
 }
-#line 1 "./Firmware/Arduplane/setup.pde"
+#line 1 "./Arduplane/setup.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if CLI_ENABLED == ENABLED
@@ -8612,7 +8612,7 @@ print_gyro_offsets(void)
 
 
 #endif // CLI_ENABLED
-#line 1 "./Firmware/Arduplane/system.pde"
+#line 1 "./Arduplane/system.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*****************************************************************************
 *   The init_ardupilot function processes everything we need for an in - air restart
@@ -9260,7 +9260,7 @@ static void print_comma(void)
 }
 
 
-#line 1 "./Firmware/Arduplane/test.pde"
+#line 1 "./Arduplane/test.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if CLI_ENABLED == ENABLED

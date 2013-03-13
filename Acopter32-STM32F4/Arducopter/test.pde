@@ -997,7 +997,7 @@ test_logging(uint8_t argc, const Menu::arg *argv)
     return (0);
 #else
     cliSerial->println_P(PSTR("Testing dataflash logging"));
-    DataFlash.ShowDeviceInfo(cliSerial);
+    //DataFlash.ShowDeviceInfo(cliSerial);
     return 0;
 #endif
 }
