@@ -1,4 +1,4 @@
-#line 1 "./Firmware/APMRover2/APMrover2.pde"
+#line 1 "./APMRover2/APMrover2.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #define THISFIRMWARE "ArduRover v2.30"
@@ -291,7 +291,7 @@ version 2.1 of the License, or (at your option) any later version.
  static void reboot_apm(void) ;
   static void print_hit_enter() ;
   static void test_wp_print(struct Location *cmd, uint8_t wp_index) ;
-#line 120 "./Firmware/APMRover2/APMrover2.pde"
+#line 120 "./APMRover2/APMrover2.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -1141,7 +1141,7 @@ static void update_navigation()
 }
 
 AP_HAL_MAIN();
-#line 1 "./Firmware/APMRover2/GCS_Mavlink.pde"
+#line 1 "./APMRover2/GCS_Mavlink.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 // use this to prevent recursion during sensor init
@@ -3057,7 +3057,7 @@ void gcs_send_text_fmt(const prog_char_t *fmt, ...)
     }
 }
 
-#line 1 "./Firmware/APMRover2/Log.pde"
+#line 1 "./APMRover2/Log.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if LITE == DISABLED
@@ -3745,7 +3745,7 @@ static void Log_Write_IMU() {}
 
 #endif // LOGGING_ENABLED
 #endif
-#line 1 "./Firmware/APMRover2/Parameters.pde"
+#line 1 "./APMRover2/Parameters.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
 
 /*
@@ -4099,7 +4099,7 @@ static void load_parameters(void)
 	    cliSerial->printf_P(PSTR("load_all took %luus\n"), micros() - before);
 	}
 }
-#line 1 "./Firmware/APMRover2/Steering.pde"
+#line 1 "./APMRover2/Steering.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /*****************************************
@@ -4219,7 +4219,7 @@ static void demo_servos(uint8_t i) {
         i--;
     }
 }
-#line 1 "./Firmware/APMRover2/commands.pde"
+#line 1 "./APMRover2/commands.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /* Functions in this file:
@@ -4414,7 +4414,7 @@ static void restart_nav()
     nav_command_index = 0;
     process_next_command();
 }
-#line 1 "./Firmware/APMRover2/commands_logic.pde"
+#line 1 "./APMRover2/commands_logic.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /********************************************************************************/
@@ -4814,7 +4814,7 @@ static void do_repeat_relay()
 	update_events();
 }
 
-#line 1 "./Firmware/APMRover2/commands_process.pde"
+#line 1 "./APMRover2/commands_process.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 // For changing active command mid-mission
@@ -4955,7 +4955,7 @@ static void process_non_nav_command()
 }
 
 
-#line 1 "./Firmware/APMRover2/compat.pde"
+#line 1 "./APMRover2/compat.pde"
 
 
 void delay(uint32_t ms)
@@ -4993,7 +4993,7 @@ uint8_t digitalRead(uint8_t pin)
     return hal.gpio->read(pin);
 }
 
-#line 1 "./Firmware/APMRover2/control_modes.pde"
+#line 1 "./APMRover2/control_modes.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 static void read_control_switch()
@@ -5105,7 +5105,7 @@ static void read_trim_switch()
     }
 }
 
-#line 1 "./Firmware/APMRover2/events.pde"
+#line 1 "./APMRover2/events.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 
@@ -5159,7 +5159,7 @@ static void update_events(void)	// Used for MAV_CMD_DO_REPEAT_SERVO and MAV_CMD_
 		}
 	}
 }
-#line 1 "./Firmware/APMRover2/failsafe.pde"
+#line 1 "./APMRover2/failsafe.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
   failsafe support
@@ -5211,7 +5211,7 @@ void failsafe_check(uint32_t tnow)
         RC_Channel_aux::copy_radio_in_out(RC_Channel_aux::k_manual, true);
     }
 }
-#line 1 "./Firmware/APMRover2/navigation.pde"
+#line 1 "./APMRover2/navigation.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 //****************************************************************
@@ -5295,7 +5295,7 @@ void reached_waypoint()
 
 }
 
-#line 1 "./Firmware/APMRover2/radio.pde"
+#line 1 "./APMRover2/radio.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 //Function that will read the radio data, limit servos and trigger a failsafe
@@ -5445,7 +5445,7 @@ static void trim_radio()
 	}
     trim_control_surfaces();
 }
-#line 1 "./Firmware/APMRover2/sensors.pde"
+#line 1 "./APMRover2/sensors.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #if CONFIG_SONAR == ENABLED
 static void init_sonar(void)
@@ -5489,7 +5489,7 @@ static void read_battery(void)
     }
 }
 
-#line 1 "./Firmware/APMRover2/setup.pde"
+#line 1 "./APMRover2/setup.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if CLI_ENABLED == ENABLED
@@ -6075,7 +6075,7 @@ static void print_enabled(bool b)
 }
 
 #endif // CLI_ENABLED
-#line 1 "./Firmware/APMRover2/system.pde"
+#line 1 "./APMRover2/system.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*****************************************************************************
 The init_ardupilot function processes everything we need for an in - air restart
@@ -6634,7 +6634,7 @@ static void reboot_apm(void)
     hal.scheduler->reboot();
     while (1);
 }
-#line 1 "./Firmware/APMRover2/test.pde"
+#line 1 "./APMRover2/test.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #if CLI_ENABLED == ENABLED

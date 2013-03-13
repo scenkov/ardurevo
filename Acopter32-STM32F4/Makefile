@@ -19,12 +19,12 @@ MEMORY_TARGET    ?= flash
 SRCROOT := .
 BUILD_PATH       := $(SRCROOT)/build
 
-HARDWARE_PATH    := $(SRCROOT)/hardware
-HAL_PATH         := $(SRCROOT)/hardware/hal
+HARDWARE_PATH    := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/hardware
+HAL_PATH         := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/hardware/hal
 STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
 STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
-WIRISH_PATH      := $(SRCROOT)/wirish
+WIRISH_PATH      := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/wirish
 LIBRARIES_PATH   := $(SRCROOT)/Libraries
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/test_RCInputOutput
 #SKETCH           := RC_Channel.pde
@@ -41,11 +41,11 @@ LIBRARIES_PATH   := $(SRCROOT)/Libraries
 #SKETCH           := Blink
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_USB
 #SKETCH           := Test_USB
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/ACopter32
+#FIRMWARE_PATH    := $(SRCROOT)/Arducopter
 #SKETCH          := ArduCopter
-FIRMWARE_PATH    := $(SRCROOT)/Firmware/APMRover2
+FIRMWARE_PATH    := $(SRCROOT)/APMRover2
 SKETCH          := APMRover2
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/Arduplane
+#FIRMWARE_PATH    := $(SRCROOT)/Arduplane
 #SKETCH          := Arduplane
 
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)
@@ -60,7 +60,7 @@ SKETCHCPP_SRC   := $(SKETCHPDE) $(sort $(filter-out $(SKETCHPDE),$(SKETCHPDESRCS
 
 LIBRARY_INCLUDES := 
 
-SUPPORT_PATH     := $(SRCROOT)/support
+SUPPORT_PATH     := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/support
 # Support files for linker
 LDDIR            := $(SUPPORT_PATH)/ld
 # Support files for this Makefile
