@@ -5,6 +5,9 @@ extern const AP_HAL::HAL& hal;
 
 static int analogOutPin[20];
 
+#define AC32PLANE
+//#define AC32COPTER
+
 static inline long map(long value, long fromStart, long fromEnd,
                 long toStart, long toEnd) {
     return (value - fromStart) * (toEnd - toStart) / (fromEnd - fromStart) +
@@ -14,7 +17,20 @@ static inline long map(long value, long fromStart, long fromEnd,
 using namespace VRBRAIN;
 void VRBRAINRCOutput::InitDefaultPWM(void)
 {
-	output_channel_ch1=48; //Timer2
+
+#ifdef AC32PLANE
+        output_channel_ch1=248; //Timer2
+	output_channel_ch2=249; //Timer2
+	output_channel_ch3=250; //Timer2
+	output_channel_ch4=236; //Timer3
+	output_channel_ch5=246; //Timer3
+	output_channel_ch6=245; //Timer3
+	output_channel_ch7=301; //Timer4
+	output_channel_ch8=225; //Timer4
+#endif
+
+#ifdef AC32COPTER
+        output_channel_ch1=48; //Timer2
 	output_channel_ch2=49; //Timer2
 	output_channel_ch3=50; //Timer2
 	output_channel_ch4=36; //Timer3
@@ -22,6 +38,21 @@ void VRBRAINRCOutput::InitDefaultPWM(void)
 	output_channel_ch6=45; //Timer3
 	output_channel_ch7=301; //Timer4
 	output_channel_ch8=225; //Timer4
+#endif
+
+#ifdef AC32ROVER
+
+        output_channel_ch1=48; //Timer2
+	output_channel_ch2=49; //Timer2
+	output_channel_ch3=50; //Timer2
+	output_channel_ch4=36; //Timer3
+	output_channel_ch5=46; //Timer3
+	output_channel_ch6=45; //Timer3
+	output_channel_ch7=301; //Timer4
+	output_channel_ch8=225; //Timer4
+
+#endif
+
 	/*
 	output_channel_ch9=23;
 	output_channel_ch10=24;
@@ -73,22 +104,22 @@ unsigned int valout=0;
 		valout=analogOutPin[i]-200;
 		InitFQUpdate(valout);
 		hal.gpio->pinMode(valout,PWM);
-/*
-		_serial->print("Motor ESC:");
-		_serial->print(i);
-		_serial->print(":");
-		_serial->println(analogOutPin[i]);
-*/
+
+		hal.console->_printf_P(PSTR("PWM OUT 50 HZ: "));
+		hal.console->_printf_P("%d",i);
+		hal.console->_printf_P(PSTR(":"));
+		hal.console->_printf_P(PSTR("%d\n\r"),analogOutPin[i]);
+
 		}
 		else
 		{
 		hal.gpio->pinMode(analogOutPin[i],PWM);
-/*
-		_serial->print("Motor PWM:");
-		_serial->print(i);
-		_serial->print(":");
-		_serial->println(analogOutPin[i]);
-*/
+
+		hal.console->_printf_P(PSTR("PWM OUT 490 HZ: "));
+		hal.console->_printf_P("%d",i);
+		hal.console->_printf_P(PSTR(":"));
+		hal.console->_printf_P(PSTR("%d\n\r"),analogOutPin[i]);
+
 		}
 	}
 
@@ -130,8 +161,6 @@ void VRBRAINRCOutput::InitFQUpdate(unsigned char channel)
 		//_serial->println("Motor SERVO: TIMER 8");
 		timer_select=8;
 	}
-
-	timer_select=4;
 
 	switch (timer_select)
 	{
