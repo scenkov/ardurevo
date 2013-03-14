@@ -19,13 +19,13 @@ MEMORY_TARGET    ?= flash
 SRCROOT := .
 BUILD_PATH       := $(SRCROOT)/build
 
-HARDWARE_PATH    := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/hardware
-HAL_PATH         := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/hardware/hal
+HARDWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/hardware
+HAL_PATH         := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/hardware/hal
 STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
 STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
-WIRISH_PATH      := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/wirish
-LIBRARIES_PATH   := $(SRCROOT)/Libraries
+WIRISH_PATH      := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/wirish
+LIBRARIES_PATH   := $(SRCROOT)/libraries
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/test_RCInputOutput
 #SKETCH           := RC_Channel.pde
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/SPIDriver_MS5611
@@ -41,12 +41,12 @@ LIBRARIES_PATH   := $(SRCROOT)/Libraries
 #SKETCH           := Blink
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_USB
 #SKETCH           := Test_USB
-FIRMWARE_PATH    := $(SRCROOT)/Arducopter
+FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
 SKETCH          := ArduCopter
 #FIRMWARE_PATH    := $(SRCROOT)/APMRover2
 #SKETCH          := APMRover2
-#FIRMWARE_PATH    := $(SRCROOT)/Arduplane
-#SKETCH          := Arduplane
+#FIRMWARE_PATH    := $(SRCROOT)/ArduPlane
+#SKETCH          := ArduPlane
 
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)
 SKETCHSRCS      := $(wildcard $(addprefix $(SRCROOT)/,$(SRCSUFFIXES)))
