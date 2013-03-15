@@ -6,10 +6,12 @@
 
 // Libraries
 #include <AP_HAL.h>
-#include <AP_HAL_AVR.h>
-#include <AP_HAL_AVR_SITL.h>
+//#include <AP_HAL_AVR.h>
+//#include <AP_HAL_AVR_SITL.h>
 #include <AP_HAL_Empty.h>
-#include <AP_HAL_PX4.h>
+//#include <AP_HAL_PX4.h>
+
+#include <AP_HAL_VRBRAIN.h>
 
 #include <AP_Common.h>
 #include <AP_Param.h>
@@ -21,10 +23,13 @@
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
 DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
 DataFlash_APM1 DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+DataFlash_MP32  DataFlash;
 #else
 DataFlash_Empty DataFlash;
 #endif

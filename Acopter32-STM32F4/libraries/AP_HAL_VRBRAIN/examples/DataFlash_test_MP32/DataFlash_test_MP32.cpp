@@ -1,3 +1,4 @@
+#line 1 "./libraries/AP_HAL_VRBRAIN/examples/DataFlash_test_MP32/DataFlash_test_MP32.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
  *       Example of DataFlash library.
@@ -6,10 +7,12 @@
 
 // Libraries
 #include <AP_HAL.h>
-#include <AP_HAL_AVR.h>
-#include <AP_HAL_AVR_SITL.h>
+//#include <AP_HAL_AVR.h>
+//#include <AP_HAL_AVR_SITL.h>
 #include <AP_HAL_Empty.h>
-#include <AP_HAL_PX4.h>
+//#include <AP_HAL_PX4.h>
+
+#include <AP_HAL_VRBRAIN.h>
 
 #include <AP_Common.h>
 #include <AP_Param.h>
@@ -19,12 +22,19 @@
 
 
 
+  void setup() ;
+  static void callback(uint8_t msgid) ;
+  void loop() ;
+#line 24 "./libraries/AP_HAL_VRBRAIN/examples/DataFlash_test_MP32/DataFlash_test_MP32.pde"
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
+
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
 DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
 DataFlash_APM1 DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+DataFlash_MP32  DataFlash;
 #else
 DataFlash_Empty DataFlash;
 #endif
