@@ -1,7 +1,7 @@
 
 #include <string.h>
 #include "Storage.h"
-#include <AP_Hal.h>
+#include <AP_HAL.h>
 #include <i2c.h>
 
 extern const AP_HAL::HAL& hal;
