@@ -14,18 +14,18 @@ void boardInit(void) {
      * anzichè a 550 così i servi non bruciano.
      */
 
-    unsigned short Reload;
-    unsigned short uFreq = MOTOR_PWM_FREQ;
-    if (uFreq > 550) uFreq = 550;
-    if (uFreq < 50) uFreq = 50;
-    Reload = (unsigned short)(0xFFFF * 50 / uFreq);
+    //unsigned short Reload;
+    //unsigned short uFreq = MOTOR_PWM_FREQ;
+    //if (uFreq > 550) uFreq = 550;
+    //if (uFreq < 50) uFreq = 50;
+    //Reload = (unsigned short)(0xFFFF * 50 / uFreq);
     // SI USA CON HEXA
-    timer_pause(TIMER4);
-    timer_set_prescaler(TIMER4, 21);    // 60 Hz nel caso di conf quad
+    //timer_pause(TIMER4);
+    //timer_set_prescaler(TIMER4, 21);    // 60 Hz nel caso di conf quad
     //timer_set_prescaler(TIMER4, 1);     // 550 Hz nel caso di conf hexa
-    timer_set_count(TIMER4, 0);
-    timer_set_reload(TIMER4, Reload);
-    timer_resume(TIMER4);
+    //timer_set_count(TIMER4, 0);
+    //timer_set_reload(TIMER4, Reload);
+    //timer_resume(TIMER4);
 
 //    afio_remap(AFIO_REMAP_USART2);
 //    afio_remap(AFIO_REMAP_USART3);
