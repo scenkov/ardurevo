@@ -156,7 +156,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     pinMode(PIEZO_PIN, OUTPUT);
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
     pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
-    pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
+    //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
     //pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED

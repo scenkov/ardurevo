@@ -41,8 +41,8 @@
 //#define PREPORT
 
 /* USING USB for serial?*/
-//#define USB ENABLED
-#define USB DISABLED
+#define USB ENABLED
+//#define USB DISABLED
 
 // KIND OF FRAME
 
@@ -61,9 +61,8 @@
 //#define PPMSUM60
 
 // MULTIPILOT MODELS
-//#define CONFIG_APM_HARDWARE MP32V1F1
-#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
-//#define CONFIG_APM_HARDWARE VRBRAINF4
+//#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
+#define CONFIG_APM_HARDWARE VRBRAINF4
 
 
 
@@ -277,9 +276,8 @@
 #define COPTER_LED_OFF          LOW
 
 #if CONFIG_APM_HARDWARE == VRBRAINF4
-#define COPTER_LED_1 65  	// Motor or Aux LED
-#define COPTER_LED_2 102  	// Motor LED or Beeper
-#define COPTER_LED_3 68  	// Motor or GPS LED
+#define COPTER_LED_1 102  	// Motor or Aux LED
+#define COPTER_LED_2 65  	// Motor LED or Beeper
 #else
 // COPTER LEDs
 #define COPTER_LED_1 83  	// Motor LED

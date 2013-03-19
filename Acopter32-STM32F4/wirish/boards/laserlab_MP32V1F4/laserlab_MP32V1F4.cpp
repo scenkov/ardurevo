@@ -147,6 +147,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOD,   NULL, NULL, 10, 0, ADCx}, /* D99/PD10 */
     {_GPIOB,   NULL, NULL, 11, 0, ADCx}, /* D100/PB11 */
     {_GPIOB, TIMER4, NULL,  8, 3, ADCx}, /* D101/PB8 */
+    {_GPIOE,   NULL, NULL,  2, 0, ADCx}  /* D102/PE2 */
 };
 
 extern const uint8_t boardPWMPins[BOARD_NR_PWM_PINS] __FLASH__ = {

@@ -538,8 +538,16 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	output_channel_ch4=36;
 	output_channel_ch5=46;
 	output_channel_ch6=45;
+
+	/*IF FRAME IS <= HEXA
 	output_channel_ch7=301;
 	output_channel_ch8=225;
+	*/
+
+	/*IF FRAME IS OCTO*/
+	output_channel_ch7=101;
+	output_channel_ch8=25;
+	/**/
 	/*
 	output_channel_ch9=23;
 	output_channel_ch10=24;
@@ -585,6 +593,7 @@ void APM_RC_MP32::InitPWM(FastSerial * _serial, bool esc_passthrough)
 {
 unsigned int valout=0;
 bool esc_pass = esc_passthrough;
+esc_pass = 0;
 
     //check if we are in esc_passthrough mode. If yes add 200 to the pin numeber so it gets recognised as a 60 Hz frequency PWM*/
   analogOutPin[MOTORID1] = (esc_pass && (output_channel_ch1 < 200)) ? output_channel_ch1 + 200 : output_channel_ch1;
@@ -604,10 +613,10 @@ bool esc_pass = esc_passthrough;
 		InitFQUpdate(valout, _serial);
 		pinMode(valout,PWM);
 		
-		_serial->print("Servo 50Hz: ");
-		_serial->print(i);
-		_serial->print(": ");
-		_serial->println(analogOutPin[i]);
+		//_serial->print("Servo 50Hz: ");
+		//_serial->print(i);
+		//_serial->print(": ");
+		//_serial->println(analogOutPin[i]);
 		
 		}
 		else
@@ -676,7 +685,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 		timer_select=8;
 	}
 	
-	//timer_select=4;
+	timer_select=4;
 
 	switch (timer_select)
 	{
