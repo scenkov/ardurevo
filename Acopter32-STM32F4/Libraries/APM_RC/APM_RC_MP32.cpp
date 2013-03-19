@@ -178,7 +178,7 @@ uint32_t mask, pending;
 	6 PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
 	7 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
 */
-#define NEWEXTI
+//#define NEWEXTI
 
 #ifdef NEWEXTI
 static void rxIntPPM5_9(void) {
@@ -613,10 +613,10 @@ bool esc_pass = esc_passthrough;
 		else
 		{
 		pinMode(analogOutPin[i],PWM);
-		_serial->print("Motor 490Hz: ");
-		_serial->print(i);
-		_serial->print(": ");
-		_serial->println(analogOutPin[i]);
+		//_serial->print("Motor 490Hz: ");
+		//_serial->print(i);
+		//_serial->print(": ");
+		//_serial->println(analogOutPin[i]);
 		}
 	}
 }
