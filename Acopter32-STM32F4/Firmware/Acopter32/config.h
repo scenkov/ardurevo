@@ -46,9 +46,9 @@
 
 // KIND OF FRAME
 
-#define FRAME_CONFIG QUAD_FRAME
+//#define FRAME_CONFIG QUAD_FRAME
 //#define FRAME_CONFIG HEXA_FRAME
-//#define FRAME_CONFIG OCTA_FRAME
+#define FRAME_CONFIG OCTA_FRAME
 //#define FRAME_CONFIG Y6_FRAME
 //#define FRAME_CONFIG OCTA_QUAD_FRAME
 
@@ -224,10 +224,10 @@
   #endif
  # define CLI_SLIDER_ENABLED DISABLED
  # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
- # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      1
+ # define BATTERY_VOLT_PIN      6      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      301      // Battery current on A1
+ # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      301
 #elif CONFIG_APM_HARDWARE == MP32V3F1
  # define A_LED_PIN 69
  # define B_LED_PIN 74
@@ -243,10 +243,10 @@
    # define USB_MUX_PIN      (-1)
   #endif
  # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
- # define BATTERY_CURR_PIN      0      // Battery current on A1
- # define BATTERY_PIN_1      0 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      0
+ # define BATTERY_VOLT_PIN      300      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      300      // Battery current on A1
+ # define BATTERY_PIN_1      300 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      300
 #else
  # define A_LED_PIN 69
  # define B_LED_PIN 74
@@ -332,7 +332,7 @@
  # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
  # ifndef CONFIG_SONAR_SOURCE_ANALOG_PIN
-  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN A0
+  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
  # endif
 #else
  # warning Invalid value for CONFIG_SONAR_SOURCE, disabling sonar
@@ -341,7 +341,7 @@
 #endif
 
 #ifndef CONFIG_SONAR
-# define CONFIG_SONAR DISABLED
+# define CONFIG_SONAR ENABLED
 #endif
 
 #ifndef SONAR_ALT_HEALTH_MAX

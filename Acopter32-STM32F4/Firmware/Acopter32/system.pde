@@ -154,8 +154,11 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 #if COPTER_LEDS == ENABLED
     pinMode(PIEZO_PIN, OUTPUT);
+    digitalWrite(PIEZO_PIN, LED_ON);
     pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
+    digitalWrite(COPTER_LED_1, LED_ON);
     pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
+    digitalWrite(COPTER_LED_2, LED_ON);
     //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
     //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
