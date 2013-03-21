@@ -622,10 +622,10 @@ esc_pass = 0;
 		else
 		{
 		pinMode(analogOutPin[i],PWM);
-		_serial->print("Motor 490Hz: ");
-		_serial->print(i);
-		_serial->print(": ");
-		_serial->println(analogOutPin[i]);
+		//_serial->print("Motor 490Hz: ");
+		//_serial->print(i);
+		//_serial->print(": ");
+		//_serial->println(analogOutPin[i]);
 		}
 	}
 }

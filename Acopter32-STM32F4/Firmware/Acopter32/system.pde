@@ -53,7 +53,12 @@ static void run_cli(FastSerial *port)
     cliSerial = port;
     Menu::set_port(port);
     port->set_blocking_writes(true);
-
+    // cut the engines
+    if(motors.armed()) {
+        motors.armed(false);
+        motors.output();
+    }
+    
     while (1) {
         main_menu.run();
     }
@@ -166,6 +171,12 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     //pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
     //pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
 
+    delay(500);
+    digitalWrite(PIEZO_PIN, LED_OFF);
+    digitalWrite(COPTER_LED_1, LED_OFF);
+    digitalWrite(COPTER_LED_2, LED_OFF);
+
+
     if ( !bitRead(g.copter_leds_mode, 3) ) {
         piezo_beep();
     }
@@ -226,6 +237,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     } else if (DataFlash.NeedErase()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("ERASING LOGS"));
         do_erase_logs();
+        gcs0.reset_cli_timeout();
     }
     if (g.log_bitmask != 0) {
         DataFlash.start_new_log();
@@ -264,7 +276,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
      *  setup the 'main loop is dead' check. Note that this relies on
      *  the RC library being initialised.
      */
-	    cliSerial->println("Timer scheduler");
+	    //cliSerial->println("Timer scheduler");
 		pScheduler->init( &isr_registry );
         }
           //TEO 2012_02_01 test timer
@@ -278,7 +290,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 	adc.Init(pScheduler);       // APM ADC library initialization
  #endif // CONFIG_ADC
 
-	cliSerial->println("barometer init");
+	//cliSerial->println("barometer init");
 	barometer.init(pScheduler);
 
 #endif // HIL_MODE
@@ -288,7 +300,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     // GPS Initialization
     g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);
 
-    cliSerial->println("compass init");
+    //cliSerial->println("compass init");
     if(g.compass_enabled)
         init_compass();
 
@@ -306,7 +318,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 #ifdef USERHOOK_INIT
     USERHOOK_INIT
 #endif
-cliSerial->println("Fine init");
+//cliSerial->println("Fine init");
 
 #if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
     // If the switch is in 'menu' mode, run the main menu.
@@ -323,7 +335,7 @@ cliSerial->println("Fine init");
 #else
     cliSerial->printf_P(PSTR("\nPress ENTER 3 times to start interactive setup\n"));
 #endif // CLI_ENABLED
-    cliSerial->println("Gps Check live END");
+    //cliSerial->println("Gps Check live END");
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground

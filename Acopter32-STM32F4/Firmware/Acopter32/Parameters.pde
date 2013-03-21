@@ -31,6 +31,11 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Description: Allows reconising the mavlink version
     // @User: Advanced
     GSCALAR(sysid_this_mav, "SYSID_THISMAV",   MAV_SYSTEM_ID),
+
+    // @Param: SYSID_MYGCS
+    // @DisplayName: My ground station number
+    // @Description: Allows restricting radio overrides to only come from my ground station
+    // @User: Advanced
     GSCALAR(sysid_my_gcs,   "SYSID_MYGCS",     255),
 
     // @Param: SER_AUX_PORT
@@ -88,7 +93,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 1
     GSCALAR(telem_delay,            "TELEM_DELAY",     0),
 
-    // @Param: ALT_RTL
+    // @Param: RTL_ALT
     // @DisplayName: RTL Altitude
     // @Description: The minimum altitude the model will move to before Returning to Launch.  Set to zero to return at current altitude.
     // @Units: Centimeters
@@ -180,7 +185,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: RTL_ALT_FINAL
     // @DisplayName: RTL Final Altitude
-    // @Description: This is the altitude the vehicle will move to as the final stage of Returning to Launch or after completing a mission.  Set to -1 to disable, zero to land.
+    // @Description: This is the altitude the vehicle will move to as the final stage of Returning to Launch or after completing a mission.  Set to zero to land.
     // @Units: Centimeters
     // @Range: -1 1000
     // @Increment: 1
@@ -205,7 +210,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: BATT_CURR_PIN
     // @DisplayName: Battery Current sensing pin
     // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13.
-    // @Values: -1:Disabled, 1:A1, 2:A2, 13:A13
+    // @Values: -1:Disabled, 1:A1, 2:A2, 12:A12
     // @User: Standard
     GSCALAR(battery_curr_pin,    "BATT_CURR_PIN",    BATTERY_CURR_PIN),
 
@@ -284,7 +289,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(crosstrack_min_distance, "XTRK_MIN_DIST",  CROSSTRACK_MIN_DISTANCE),
 
-    // @Param: RTL_LOITER_TIME
+    // @Param: RTL_LOIT_TIME
     // @DisplayName: RTL loiter time
     // @Description: Time (in milliseconds) to loiter above home before begining final descent
     // @Units: ms
@@ -362,7 +367,9 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: TRIM_THROTTLE
     // @DisplayName: Throttle Trim
-    // @Description: The PWM level on channel 3 below which throttle sailsafe triggers
+    // @Description: The autopilot's estimate of the throttle required to maintain a level hover.  Calculated automatically from the pilot's throttle input while in stabilize mode
+    // @Range: 0 1000
+    // @Units: PWM
     // @User: Standard
     GSCALAR(throttle_cruise,        "TRIM_THROTTLE",    THROTTLE_CRUISE),
 
@@ -458,8 +465,9 @@ const AP_Param::Info var_info[] PROGMEM = {
     GSCALAR(radio_tuning_high, "TUNE_HIGH",         1000),
 
     // @Param: FRAME
-    // @DisplayName: Frame Orientation
-    // @Description: Congrols motor mixing The maximum value that will be applied to the parameter currently being tuned with the transmitter's channel 6 knob
+    // @DisplayName: Frame Orientation (+, X or V)
+    // @Description: Controls motor mixing for multicopters.  Not used for Tri or Traditional Helicopters.
+    // @Values: 0:Plus, 1:X, 2:V
     // @User: Standard
     // @Range: 0 32767
     GSCALAR(frame_orientation, "FRAME",             FRAME_ORIENTATION),
@@ -467,7 +475,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: CH7_OPT
     // @DisplayName: Channel 7 option
     // @Description: Select which function if performed when CH7 is above 1800 pwm
-    // @Values: 0:Do Nothing, 2:Flip, 3:Simple Mode, 4:RTL, 5:Save Trim, 7:Save WP, 9:Camera Trigger
+    // @Values: 0:Do Nothing, 2:Flip, 3:Simple Mode, 4:RTL, 5:Save Trim, 7:Save WP, 9:Camera Trigger, 10:Sonar
     // @User: Standard
     GSCALAR(ch7_option, "CH7_OPT",                  CH7_OPTION),
 
@@ -475,7 +483,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @DisplayName: Auto Slew Rate
     // @Description: This restricts the rate of change of the roll and pitch attitude commanded by the auto pilot
     // @Units: Degrees/Second
-	// @Range: 1 45
+	// @Range: 1 90
     // @Increment: 1
     // @User: Advanced
     GSCALAR(auto_slew_rate, "AUTO_SLEW",            AUTO_SLEW_RATE),
@@ -713,7 +721,7 @@ static void load_parameters(void)
 
         // erase all parameters
         cliSerial->printf_P(PSTR("Firmware change: erasing EEPROM...\n"));
-        zero_eeprom();
+        //zero_eeprom();
         AP_Param::erase_all();
 
         // save the current format version

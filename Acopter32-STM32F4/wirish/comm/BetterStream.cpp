@@ -56,8 +56,8 @@ BetterStream::printf(const char *fmt, ...)
 		while (c != 0)
 		{
 			/* emit cr before lf to make most terminals happy */
-			if (c == '\n')
-					write('\r');
+			//if (c == '\n' && )
+			//		write('\r');
 			write(c);
 			i++;
 			c = buf[i];
@@ -87,8 +87,8 @@ BetterStream::_printf_P(const prog_char *fmt, ...)
 		while (c != 0)
 		{
 			/* emit cr before lf to make most terminals happy */
-			if (c == '\n')
-					write('\r');
+			//if (c == '\n')
+			//		write('\r');
 			write(c);
 			i++;
 			c = buf[i];
@@ -114,8 +114,8 @@ BetterStream::vprintf_P(const prog_char *fmt, va_list ap)
 	while (c != 0)
 	{
 		/* emit cr before lf to make most terminals happy */
-		if (c == '\n')
-				write('\r');
+		//if (c == '\n')
+		//		write('\r');
 		write(c);
 		i++;
 		c = buf[i];

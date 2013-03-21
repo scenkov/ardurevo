@@ -59,6 +59,8 @@ static inline void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
 	}
 }
 
+void comm_send_buffer(mavlink_channel_t chan, const uint8_t *buf, uint8_t len);
+
 /// Read a byte from the nominated MAVLink channel
 ///
 /// @param chan		Channel to receive on
@@ -87,7 +89,7 @@ static inline uint8_t comm_receive_ch(mavlink_channel_t chan)
 /// @returns		Number of bytes available
 static inline uint16_t comm_get_available(mavlink_channel_t chan)
 {
-    uint16_t bytes = 0;
+    int16_t bytes = 0;
     switch(chan) {
 	case MAVLINK_COMM_0:
 		bytes = mavlink_comm_0_port->available();
@@ -98,7 +100,10 @@ static inline uint16_t comm_get_available(mavlink_channel_t chan)
 	default:
 		break;
 	}
-    return bytes;
+	if (bytes == -1) {
+		return 0;
+	}
+    return (uint16_t)bytes;
 }
 
 
@@ -133,6 +138,12 @@ static inline void crc_accumulate(uint8_t data, uint16_t *crcAccum)
 	*crcAccum = _crc_ccitt_update(*crcAccum, data);
 }
 #endif
+
+/*
+  return true if the MAVLink parser is idle, so there is no partly parsed
+  MAVLink message being processed
+ */
+bool comm_is_idle(mavlink_channel_t chan);
 
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 #include "include/mavlink/v1.0/ardupilotmega/mavlink.h"

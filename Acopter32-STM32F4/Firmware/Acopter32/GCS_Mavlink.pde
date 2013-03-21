@@ -786,6 +786,7 @@ GCS_MAVLINK::init(FastSerial * port)
         chan = MAVLINK_COMM_1;
     }
     _queued_parameter = NULL;
+    reset_cli_timeout();
 }
 
 void
@@ -797,20 +798,20 @@ GCS_MAVLINK::update(void)
     status.packet_rx_drop_count = 0;
 
     // process received bytes
-    while(comm_get_available(chan))
-    {
+    uint16_t nbytes = comm_get_available(chan);
+    for (uint16_t i=0; i<nbytes; i++) {
         uint8_t c = comm_receive_ch(chan);
 
 #if CLI_ENABLED == ENABLED
         /* allow CLI to be started by hitting enter 3 times, if no
          *  heartbeat packets have been received */
-        if (mavlink_active == false) {
+        if (mavlink_active == 0 && (millis() - _cli_timeout) < 20000) {
             if (c == '\n' || c == '\r') {
                 crlf_count++;
             } else {
                 crlf_count = 0;
             }
-            if (crlf_count == 3) {
+            if (crlf_count == 3 && !motors.armed()) {
                 run_cli(_port);
             }
         }
@@ -2046,6 +2047,10 @@ GCS_MAVLINK::queued_waypoint_send()
             waypoint_dest_compid,
             waypoint_request_i);
     }
+}
+
+void GCS_MAVLINK::reset_cli_timeout() {
+      _cli_timeout = millis();
 }
 
 /*
