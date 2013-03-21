@@ -241,13 +241,13 @@ AP_Compass_HMC5843::init(void)
 	 calibration[1] = calibration[1] * gain_multiple / good_count;
 	 calibration[2] = calibration[2] * gain_multiple / good_count;
 	 success = true;
-	 serPort->println("Calibrazione OK");
+	// serPort->println("Calibrazione OK");
   } else {
 	 /* best guess */
 	 calibration[0] = 1.0;
 	 calibration[1] = 1.0;
 	 calibration[2] = 1.0;
-	 serPort->println("best guess :\\");
+	 //serPort->println("best guess :\\");
   }
 
   // leave test mode

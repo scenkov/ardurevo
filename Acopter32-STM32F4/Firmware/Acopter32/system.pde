@@ -59,6 +59,8 @@ static void run_cli(FastSerial *port)
         motors.output();
     }
     
+    digitalWrite(B_LED_PIN, LED_ON);
+
     while (1) {
         main_menu.run();
     }
@@ -117,13 +119,13 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
     // setup IO pins
     pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    digitalWrite(A_LED_PIN, LED_OFF);
+    digitalWrite(A_LED_PIN, LED_ON);
 
     pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    digitalWrite(B_LED_PIN, LED_OFF);
+    digitalWrite(B_LED_PIN, LED_ON);
 
     pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    digitalWrite(C_LED_PIN, LED_OFF);
+    digitalWrite(C_LED_PIN, LED_ON);
 
     pinMode(BATTERY_PIN_1,INPUT_ANALOG);
 
@@ -142,9 +144,6 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     pinMode(PUSHBUTTON_PIN, INPUT);                     // unused
 #endif
 	
-	
-
-	
     //
     // Initialize Wire and SPI libraries
     //
@@ -154,8 +153,6 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 
     EEPROM.init(&I2C2x,cliSerial);
-	
-
 
 #if COPTER_LEDS == ENABLED
     pinMode(PIEZO_PIN, OUTPUT);
@@ -171,18 +168,21 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     //pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
     //pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
 
-    delay(500);
+    delay(300);
+
+    /*test on leds, switch all OFF*/
     digitalWrite(PIEZO_PIN, LED_OFF);
     digitalWrite(COPTER_LED_1, LED_OFF);
     digitalWrite(COPTER_LED_2, LED_OFF);
-
 
     if ( !bitRead(g.copter_leds_mode, 3) ) {
         piezo_beep();
     }
 
 #endif
-
+    digitalWrite(A_LED_PIN, LED_OFF);
+    digitalWrite(B_LED_PIN, LED_OFF);
+    digitalWrite(C_LED_PIN, LED_OFF);
 
     // load parameters from EEPROM
     load_parameters();
