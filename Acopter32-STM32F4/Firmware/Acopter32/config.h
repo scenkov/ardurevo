@@ -46,11 +46,11 @@
 
 // KIND OF FRAME
 
-//#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG QUAD_FRAME
 //#define FRAME_CONFIG HEXA_FRAME
 //#define FRAME_CONFIG OCTA_FRAME
 //#define FRAME_CONFIG Y6_FRAME
-#define FRAME_CONFIG OCTA_QUAD_FRAME
+//#define FRAME_CONFIG OCTA_QUAD_FRAME
 
 //#define FRAME_ORIENTATION PLUS_FRAME
 #define FRAME_ORIENTATION X_FRAME
@@ -58,7 +58,7 @@
 
 // Kind of RADIO
 //#define CONFIG_APM_HARDWARE MP32PPMSUM22
-#define PPMSUM60
+//#define PPMSUM60
 
 // MULTIPILOT MODELS
 //#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
@@ -821,7 +821,7 @@
 
 // Good for smaller payload motors.
 #ifndef STABILIZE_ROLL_P
- # define STABILIZE_ROLL_P          4.5
+ # define STABILIZE_ROLL_P          4.2
 #endif
 #ifndef STABILIZE_ROLL_I
  # define STABILIZE_ROLL_I          0.0
@@ -831,7 +831,7 @@
 #endif
 
 #ifndef STABILIZE_PITCH_P
- # define STABILIZE_PITCH_P         4.5
+ # define STABILIZE_PITCH_P         4.2
 #endif
 #ifndef STABILIZE_PITCH_I
  # define STABILIZE_PITCH_I         0.0
@@ -841,7 +841,7 @@
 #endif
 
 #ifndef  STABILIZE_YAW_P
- # define STABILIZE_YAW_P           4.5            // increase for more aggressive Yaw Hold, decrease if it's bouncy
+ # define STABILIZE_YAW_P           4.2            // increase for more aggressive Yaw Hold, decrease if it's bouncy
 #endif
 #ifndef  STABILIZE_YAW_I
  # define STABILIZE_YAW_I           0.0
@@ -959,7 +959,7 @@
 // Loiter Navigation control gains
 //
 #ifndef LOITER_RATE_P
- # define LOITER_RATE_P          	5.0            //
+ # define LOITER_RATE_P          	4.0            //
 #endif
 #ifndef LOITER_RATE_I
  # define LOITER_RATE_I          	0.04           // Wind control
@@ -992,16 +992,16 @@
 #endif
 
 #ifndef AUTO_YAW_SLEW_RATE
- # define AUTO_YAW_SLEW_RATE        60                     // degrees/sec
+ # define AUTO_YAW_SLEW_RATE        15                     // degrees/sec
 #endif
 
 
 #ifndef WAYPOINT_SPEED_MAX
- # define WAYPOINT_SPEED_MAX        500                    // 6m/s error = 13mph
+ # define WAYPOINT_SPEED_MAX        400                    // 6m/s error = 13mph
 #endif
 
 #ifndef WAYPOINT_SPEED_MIN
- # define WAYPOINT_SPEED_MIN        150                    // 1m/s
+ # define WAYPOINT_SPEED_MIN        100                    // 1m/s
 #endif
 
 #ifndef TILT_COMPENSATION

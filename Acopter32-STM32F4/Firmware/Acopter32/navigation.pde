@@ -123,8 +123,10 @@ static void calc_velocity_and_position(){
     lat_speed  = (float)(g_gps->latitude  - last_gps_latitude)  * tmp;
 
     // calculate position from gps + expected travel during gps_lag
-    current_loc.lng = xLeadFilter.get_position(g_gps->longitude, lon_speed, g_gps->get_lag());
-    current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  lat_speed, g_gps->get_lag());
+    //current_loc.lng = xLeadFilter.get_position(g_gps->longitude, lon_speed, g_gps->get_lag());
+    //current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  lat_speed, g_gps->get_lag());
+    current_loc.lng = g_gps->longitude;
+    current_loc.lat = g_gps->latitude;
 #endif
 
     // store gps lat and lon values for next iteration

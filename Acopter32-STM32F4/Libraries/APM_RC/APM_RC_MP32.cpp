@@ -539,15 +539,15 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	output_channel_ch5=46;
 	output_channel_ch6=45;
 
-	/*IF FRAME IS <= HEXA
+	/*IF FRAME IS <= HEXA*/
 	output_channel_ch7=301;
 	output_channel_ch8=225;
-	*/
+	/**/
 
-	/*IF FRAME IS OCTO*/
+	/*IF FRAME IS OCTO
 	output_channel_ch7=101;
 	output_channel_ch8=25;
-	/**/
+	*/
 	/*
 	output_channel_ch9=23;
 	output_channel_ch10=24;
