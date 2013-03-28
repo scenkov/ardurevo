@@ -28,7 +28,7 @@
 #define MINCHECK 900
 #define MAXCHECK 2100
 
-#define MICRO
+//#define MICRO
 
 // STANDARD PPM VARIABLE
 
