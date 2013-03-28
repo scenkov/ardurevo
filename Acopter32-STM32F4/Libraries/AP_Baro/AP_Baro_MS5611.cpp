@@ -258,10 +258,10 @@ uint8_t AP_Baro_MS5611::read()
         _updated = false;
         interrupts();
         if (d1count != 0) {
-            D1 = (sD1) / d1count;
+            D1 = ((float)sD1) / d1count;
         }
         if (d2count != 0) {
-            D2 = (sD2) / d2count;
+            D2 = ((float)sD2) / d2count;
         }
         _pressure_samples = d1count;
         _raw_press = D1;

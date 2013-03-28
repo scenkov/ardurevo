@@ -441,7 +441,7 @@ enum gcs_severity {
 # define MPU6K_20HZ_FILTER      20
 # define MPU6K_42HZ_FILTER      42
 # define MPU6K_98HZ_FILTER      98
-# define MPU6K_188HZ_FILTER      98
+# define MPU6K_188HZ_FILTER     188
 # define MPU6K_256HZ_FILTER     256
 
 

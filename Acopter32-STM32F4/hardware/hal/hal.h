@@ -16,6 +16,9 @@
 #define OK		1
 #define ERROR	0
 
+#define I2C_OK		0
+#define I2C_ERROR	1
+
 /*
  * Where to put usercode, based on space reserved for bootloader.
  *

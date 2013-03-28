@@ -66,7 +66,7 @@ AP_Compass_HMC5843::AP_Compass_HMC5843(HardwareI2C *i2c_d, FastSerial *ser_port)
 // read_register - read a register value
 bool AP_Compass_HMC5843::read_register(uint8_t address, uint8_t *value)
 {
-   if (_I2Cx->read((uint8_t)COMPASS_ADDRESS, address, 1, value) != OK) {
+   if (_I2Cx->read((uint8_t)COMPASS_ADDRESS, address, 1, value) != 0) {
 	  healthy = false;
 	  return false;
    }
@@ -74,9 +74,9 @@ bool AP_Compass_HMC5843::read_register(uint8_t address, uint8_t *value)
 }
 
 // write_register - update a register value
-bool AP_Compass_HMC5843::write_register(uint8_t address, byte value)
+bool AP_Compass_HMC5843::write_register(uint8_t address, uint8_t value)
 {
-   if (_I2Cx->write((uint8_t)COMPASS_ADDRESS, address, value) != OK) {
+   if (_I2Cx->write((uint8_t)COMPASS_ADDRESS, address, value) != 0) {
 	  healthy = false;
 	  return false;
    }
@@ -88,7 +88,7 @@ bool AP_Compass_HMC5843::read_raw()
 {
    uint8_t buff[6];
 
-   if (_I2Cx->read((uint8_t)COMPASS_ADDRESS, (uint8_t)0x03, (uint8_t)6, (uint8_t *)buff) != OK) {
+   if (_I2Cx->read(COMPASS_ADDRESS, 0x03, 6, buff) != 0) {
 	  healthy = false;
 	  return false;
    }

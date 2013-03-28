@@ -51,9 +51,7 @@ class HardwareI2C
     ///////////////////////////////////////////
     int8_t write(uint8_t, uint8_t, uint8_t*);
     int8_t write(uint8_t, uint8_t, uint8_t);
-    int8_t write(uint8_t, uint16_t, uint8_t);
     int8_t read(uint8_t, uint8_t, uint8_t, uint8_t*);
-    int8_t read(uint8_t, uint16_t, uint8_t, uint8_t*);
     uint8_t WaitEepromStandbyState(uint8_t address);
   private:
     i2c_dev *i2c_d;

@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <wirish.h>
+#include <i2c.h>
 
 #define EEPROM_FLASH 0					//Defines the type of Flash EEPROM
 #define EEPROM_I2C   1					//Defines the type of EEPROM via I2C

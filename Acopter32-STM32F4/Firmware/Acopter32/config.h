@@ -959,7 +959,7 @@
 // Loiter Navigation control gains
 //
 #ifndef LOITER_RATE_P
- # define LOITER_RATE_P          	4.0            //
+ # define LOITER_RATE_P          	5.0            //
 #endif
 #ifndef LOITER_RATE_I
  # define LOITER_RATE_I          	0.04           // Wind control
@@ -992,7 +992,7 @@
 #endif
 
 #ifndef AUTO_YAW_SLEW_RATE
- # define AUTO_YAW_SLEW_RATE        15                     // degrees/sec
+ # define AUTO_YAW_SLEW_RATE        30                     // degrees/sec
 #endif
 
 
@@ -1001,7 +1001,7 @@
 #endif
 
 #ifndef WAYPOINT_SPEED_MIN
- # define WAYPOINT_SPEED_MIN        100                    // 1m/s
+ # define WAYPOINT_SPEED_MIN        150                    // 1m/s
 #endif
 
 #ifndef TILT_COMPENSATION
