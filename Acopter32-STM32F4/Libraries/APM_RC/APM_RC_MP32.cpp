@@ -86,7 +86,7 @@ if(diff>4000  &&  diff<21000) // Sincro del frame
       currentChannel = 0;
 	  radio_status_rc=0;
 	  if (uiRcErrCnt1==0) {					// if the frame is error free, copy it to rcValue Array
-		  for (i=0;i<10;i++) {
+		  for (i=0;i<9;i++) {
 			  rcValue[i] =rcTmpValue[i]; // THE PPMSUM VALUE START FROM 10 ' STANDARD PPM channel < 10
 		  }
 	  }
@@ -104,7 +104,7 @@ if(diff>4000  &&  diff<21000) // Sincro del frame
           currentChannel++;
 		  if(diff<=MAXCHECK && diff>=MINCHECK)radio_status_rc++;
 	}
-	 if (currentChannel>9)
+	 if (currentChannel>9)  // ADD 1 Channel was 9 not 10
 	 {
 		 //currentChannel=0;	
 		 sync=0;
@@ -541,15 +541,13 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	output_channel_ch5=46;
 	output_channel_ch6=45;
 
+
 	/*IF FRAME IS <= HEXA*/
 	output_channel_ch7=301;
 	output_channel_ch8=225;
 	/**/
 
-	/*IF FRAME IS OCTO
-	output_channel_ch7=101;
-	output_channel_ch8=25;
-	*/
+
 	/*
 	output_channel_ch9=23;
 	output_channel_ch10=24;
@@ -606,8 +604,17 @@ esc_pass = 0;
   analogOutPin[MOTORID6] = (esc_pass && (output_channel_ch6 < 200)) ? output_channel_ch6 + 200 : output_channel_ch6;
   analogOutPin[MOTORID7] = (esc_pass && (output_channel_ch7 < 200)) ? output_channel_ch7 + 200 : output_channel_ch7;
   analogOutPin[MOTORID8] = (esc_pass && (output_channel_ch8 < 200)) ? output_channel_ch8 + 200 : output_channel_ch8;
+  if (output_channel_ch9>0)
+  analogOutPin[MOTORID9] = (esc_pass && (output_channel_ch9 < 200)) ? output_channel_ch9 + 200 : output_channel_ch9;
+  if (output_channel_ch10>0)
+  analogOutPin[MOTORID10] = (esc_pass && (output_channel_ch10 < 200)) ? output_channel_ch10 + 200 : output_channel_ch10;
+  if (output_channel_ch11>0)
+  analogOutPin[MOTORID11] = (esc_pass && (output_channel_ch11 < 200)) ? output_channel_ch11 + 200 : output_channel_ch11;
+  if (output_channel_ch12>0)
+  analogOutPin[MOTORID12] = (esc_pass && (output_channel_ch12 < 200)) ? output_channel_ch12 + 200 : output_channel_ch12;
 
-  for(int i=MOTORID1;i<MOTORID8+1;i++)
+  // ADD 4 Output if PPMSUM is active
+  for(int i=MOTORID1;i<MOTORID12+1;i++)
 	{
 	if ((analogOutPin[i] > 200) || esc_pass)
 		{
@@ -658,41 +665,41 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 	ccr_select = PIN_MAP[channel].timer_device;
 	if (ccr_select == TIMER1)
 	{
-		//_serial->println("Motor SERVO: TIMER 1");
+		_serial->println("Motor SERVO: TIMER 1");
 		timer_select=1;
 	}
 	if (ccr_select == TIMER2)
 	{
-		//_serial->println("Motor SERVO: TIMER 2");
+		_serial->println("Motor SERVO: TIMER 2");
 		timer_select=2;
 	}
 	if (ccr_select == TIMER3)
 	{
-		//_serial->println("Motor SERVO: TIMER 3");
+		_serial->println("Motor SERVO: TIMER 3");
 		timer_select=3;
 	}
 	if (ccr_select == TIMER4)
 	{
-		//_serial->println("Motor SERVO: TIMER 4");
+		_serial->println("Motor SERVO: TIMER 4");
 		timer_select=4;
 	}
 	if (ccr_select == TIMER5)
 	{
-		//_serial->println("Motor SERVO: TIMER 5");
+		_serial->println("Motor SERVO: TIMER 5");
 		timer_select=5;
 	}
 	if (ccr_select == TIMER8)
 	{
-		//_serial->println("Motor SERVO: TIMER 8");
+		_serial->println("Motor SERVO: TIMER 8");
 		timer_select=8;
 	}
 	
-	timer_select=4;
+	//timer_select=4;
 
 	switch (timer_select)
 	{
 		case 1:
-			//_serial->println("Motor ESC: TIMER 1");
+			_serial->println("Motor ESC: TIMER 1");
 			//timer_init(TIMER1);
 			timer_pause(TIMER1);
 			timer_set_prescaler(TIMER1, 21);
@@ -702,7 +709,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER1);
 			break;
 		case 2:
-			//_serial->println("Motor ESC: TIMER 2");
+			_serial->println("Motor ESC: TIMER 2");
 			//timer_init(TIMER2);
 			timer_pause(TIMER2);
 			timer_set_prescaler(TIMER2, 21);
@@ -712,7 +719,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER2);
 			break;
 		case 3:
-			//_serial->println("Motor ESC: TIMER 3");
+			_serial->println("Motor ESC: TIMER 3");
 			//timer_init(TIMER3);
 			timer_pause(TIMER3);
 			timer_set_prescaler(TIMER3, 21);
@@ -722,7 +729,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER3);
 			break;
 		case 4:
-			//_serial->println("Motor ESC: TIMER 4");
+			_serial->println("Motor ESC: TIMER 4");
 			//timer_init(TIMER4);
 			timer_pause(TIMER4);
 			timer_set_prescaler(TIMER4, 21);
@@ -732,7 +739,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER4);
 			break;
 		case 5:
-			//_serial->println("Motor ESC: TIMER 5");
+			_serial->println("Motor ESC: TIMER 5");
 			//timer_init(TIMER5);
 			timer_pause(TIMER5);
 			timer_set_prescaler(TIMER5, 21);
@@ -742,7 +749,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER5);
 			break;
 		case 8:
-			//_serial->println("Motor ESC: TIMER 8");
+			_serial->println("Motor ESC: TIMER 8");
 			//timer_init(TIMER8);
 			timer_pause(TIMER8);
 			timer_set_prescaler(TIMER8, 21);
@@ -866,6 +873,24 @@ rcChannel[4]=4;
 rcChannel[5]=5;
 rcChannel[6]=6;
 rcChannel[7]=7;
+rcChannel[8]=8;
+/*
+ * PC6- 7- 8- 9 ( Work only if PPMSUM ACTIVATED USE TIMER8 )
+ * D12-13-14-15
+ */
+	/*IF PPMSUM */
+
+output_channel_ch9= 12; // SET AT 60 HZ
+output_channel_ch10=13;
+output_channel_ch11=14;
+output_channel_ch12=15;
+
+
+//output_channel_ch9=275; //PE9 SET AT 60 HZ
+//output_channel_ch10=280; //PE11
+//output_channel_ch11=286; //
+//output_channel_ch12=289;
+
 break;
 
 case 11:
@@ -878,7 +903,24 @@ rcChannel[4]=4;
 rcChannel[5]=5;
 rcChannel[6]=6;
 rcChannel[7]=7;
+rcChannel[8]=8;
 
+/*
+ * PC6- 7- 8- 9 ( Work only if PPMSUM ACTIVATED USE TIMER8 )
+ * D12-13-14-15
+ */
+	/*IF PPMSUM */
+
+output_channel_ch9=12; // SET AT 60 HZ
+output_channel_ch10=13;
+output_channel_ch11=14;
+output_channel_ch12=15;
+
+
+//output_channel_ch9=275; //PE9 SET AT 60 HZ
+//output_channel_ch10=280; //PE11
+//output_channel_ch11=286; //
+//output_channel_ch12=289;
 
 break;
 }
@@ -1074,15 +1116,23 @@ void APM_RC_MP32::OutputCh(unsigned char ch, uint16_t pwm)
     	}
 
 #else
-	if (analogOutPin[ch]>200)
-	{
-		pwm = map(pwm, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
-		analogWrite(analogOutPin[ch]-200, pwm);
-	}
+	if (ch>8 ) // Use Timer8 on channel >8
+	    {
+	    pwm = map(pwm, 1000, 2000, 4000, 7800); // PATCH FOR GIMBAL CONTROLL 69 HZ
+	    analogWrite(analogOutPin[ch], pwm);
+	    }
 	else
 	{
+	if (analogOutPin[ch]>200)
+		{
+		pwm = map(pwm, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
+		analogWrite(analogOutPin[ch]-200, pwm);
+		}
+	    else
+		{
 		pwm = map(pwm, 1000, 2000, 28000, 57141);	// MP32F4 PWM 490 HZ 
 		analogWrite(analogOutPin[ch], pwm);
+		}
 	}
 #endif
 }

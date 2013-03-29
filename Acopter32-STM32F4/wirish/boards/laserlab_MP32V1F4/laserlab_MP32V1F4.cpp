@@ -120,21 +120,21 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOE,   NULL, NULL,  8, 0, ADCx}, /* D72/PE8 */
     {_GPIOF,   NULL, NULL, 12, 0, ADCx}, /* D73/PF12 */
     {_GPIOE,   NULL, NULL,  6, 0, ADCx}, /* D74/PE6 */
-    {_GPIOE,   NULL, NULL,  9, 0, ADCx}, /* D75/PE9 */
+    {_GPIOE,   TIMER1, NULL,  9, 1, ADCx}, /* D75/PE9 */
     {_GPIOF,   NULL, NULL, 13, 0, ADCx}, /* D76/PF13 */
     {_GPIOE,   NULL, NULL, 10, 0, ADCx}, /* D77/PE10 */
     {_GPIOF,   NULL, NULL, 14, 0, ADCx}, /* D78/PF14 */
     {_GPIOG,   NULL, NULL,  9, 0, ADCx}, /* D79/PG9 */
-    {_GPIOE,   NULL, NULL, 11, 0, ADCx}, /* D80/PE11 */
+    {_GPIOE,   TIMER1, NULL, 11, 2, ADCx}, /* D80/PE11 */
     {_GPIOF,   NULL, NULL, 15, 0, ADCx}, /* D81/PF15 */
     {_GPIOG,   NULL, NULL, 10, 0, ADCx}, /* D82/PG10 */
     {_GPIOE,   NULL, NULL, 12, 0, ADCx}, /* D83/PE12 */
     {_GPIOG,   NULL, NULL,  0, 0, ADCx}, /* D84/PG0 */
     {_GPIOD,   NULL, NULL,  5, 0, ADCx}, /* D85/PD5 */
-    {_GPIOE,   NULL, NULL, 13, 0, ADCx}, /* D86/PE13 */
+    {_GPIOE,   TIMER1, NULL, 13, 3, ADCx}, /* D86/PE13 */
     {_GPIOG,   NULL, NULL,  1, 0, ADCx}, /* D87/PG1 */
     {_GPIOD,   NULL, NULL,  4, 0, ADCx}, /* D88/PD4 */
-    {_GPIOE,   NULL, NULL, 14, 0, ADCx}, /* D89/PE14 */
+    {_GPIOE,   TIMER1, NULL, 14, 4, ADCx}, /* D89/PE14 */
     {_GPIOG,   NULL, NULL,  2, 0, ADCx}, /* D90/PG2 */
     {_GPIOE,   NULL, NULL,  1, 0, ADCx}, /* D91/PE1 */
     {_GPIOE,   NULL, NULL, 15, 0, ADCx}, /* D92/PE15 */

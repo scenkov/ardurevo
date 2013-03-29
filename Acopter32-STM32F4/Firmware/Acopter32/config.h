@@ -41,7 +41,7 @@
 //#define PREPORT
 
 /* USING USB for serial?*/
-#define USB ENABLED
+//#define USB ENABLED
 //#define USB DISABLED
 
 // KIND OF FRAME
@@ -58,7 +58,7 @@
 
 // Kind of RADIO
 //#define CONFIG_APM_HARDWARE MP32PPMSUM22
-//#define PPMSUM60
+#define PPMSUM60
 
 // MULTIPILOT MODELS
 //#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS

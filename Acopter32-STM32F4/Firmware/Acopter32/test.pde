@@ -9,6 +9,7 @@ static int8_t   test_radio(uint8_t argc,                const Menu::arg *argv);
 //static int8_t	test_failsafe(uint8_t argc,     const Menu::arg *argv);
 //static int8_t	test_stabilize(uint8_t argc,    const Menu::arg *argv);
 static int8_t   test_gps(uint8_t argc,                  const Menu::arg *argv);
+static int8_t	test_timer8(uint8_t argc, const Menu::arg *argv);
 //static int8_t	test_tri(uint8_t argc,          const Menu::arg *argv);
 //static int8_t	test_adc(uint8_t argc,          const Menu::arg *argv);
 static int8_t   test_ins(uint8_t argc,                  const Menu::arg *argv);
@@ -66,6 +67,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
     {"gps",                 test_gps},
 //	{"adc",         test_adc},
     {"ins",                 test_ins},
+	{"test_timer8",			test_timer8},
 //	{"dcm",			test_dcm_eulers},
     //{"omega",		test_omega},
 //	{"stab_d",		test_stab_d},
@@ -864,6 +866,23 @@ test_mag(uint8_t argc, const Menu::arg *argv)
     }
     return (0);
 #endif
+}
+
+
+static int8_t
+test_timer8(uint8_t argc, const Menu::arg *argv)
+{
+int i ;
+for (i=0;i<65000;i++)
+	{
+	cliSerial->printf(PSTR("raw value %i Output on Channel 9-10-11-12\n\r"),i);
+	analogWrite(12, i);
+	analogWrite(13, i);
+	analogWrite(14, i);
+	analogWrite(15, i);
+	delay(10);
+	}
+
 }
 
 /*
