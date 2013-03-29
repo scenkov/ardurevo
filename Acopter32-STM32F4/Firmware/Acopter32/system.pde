@@ -128,6 +128,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     digitalWrite(C_LED_PIN, LED_ON);
 
     pinMode(BATTERY_PIN_1,INPUT_ANALOG);
+    pinMode(CONFIG_SONAR_SOURCE_ANALOG_PIN, INPUT_ANALOG);
 
 #if CONFIG_APM_HARDWARE == APM_HARDWARE_APM2
   // Set Port B, pin 7 as output for an external relay (A9 Enclosure's label)
