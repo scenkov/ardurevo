@@ -168,16 +168,13 @@ private:
 	unsigned int output_channel_ch11;
 	unsigned int output_channel_ch12;
 
-	
-	public:
-	
 	unsigned char motors;
 	unsigned char motorread,MissingMotor;
 	unsigned char motor_rx[16],motor_rx2[16];
 	unsigned char MotorPresent[8];
 	unsigned char MotorError[8];
 	unsigned char radio_mode;
-	unsigned char iboard;
+	unsigned char _iboard;
 
 
 

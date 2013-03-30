@@ -13,7 +13,7 @@ static void init_sonar(void)
   #if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
     sonar.calculate_scaler(g.sonar_type, 3.3);
   #else
-    sonar.calculate_scaler(g.sonar_type, 5.0);
+    sonar.calculate_scaler(g.sonar_type, 3.3);
   #endif
 #endif
 }

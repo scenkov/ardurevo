@@ -559,13 +559,13 @@ void APM_RC_MP32::InitDefaultPWM(void)
 void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough )
 {
     bool esc_pass = esc_passthrough;
-    iboard=board;
+    _iboard=board;
 
-    if (board < 10)
+    if (_iboard < 10)
     {
     // Init Radio In
     _serial->println("Init Default PPM");
-    InitDefaultPPM(board);
+    InitDefaultPPM(_iboard);
     //_serial->println("Init PPM HWD");
     InitPPM();
     }
@@ -573,7 +573,7 @@ void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSer
     {
     // Init Radio In
     _serial->println("Init Default PPMSUM");
-    InitDefaultPPMSUM(board);
+    InitDefaultPPMSUM(_iboard);
     //_serial->println("Init PPMSUM HWD");
     InitPPMSUM();
 
@@ -594,6 +594,7 @@ void APM_RC_MP32::InitPWM(FastSerial * _serial, bool esc_passthrough)
 unsigned int valout=0;
 bool esc_pass = esc_passthrough;
 esc_pass = 0;
+int num_motors = 8;
 
     //check if we are in esc_passthrough mode. If yes add 200 to the pin numeber so it gets recognised as a 60 Hz frequency PWM*/
   analogOutPin[MOTORID1] = (esc_pass && (output_channel_ch1 < 200)) ? output_channel_ch1 + 200 : output_channel_ch1;
@@ -604,37 +605,41 @@ esc_pass = 0;
   analogOutPin[MOTORID6] = (esc_pass && (output_channel_ch6 < 200)) ? output_channel_ch6 + 200 : output_channel_ch6;
   analogOutPin[MOTORID7] = (esc_pass && (output_channel_ch7 < 200)) ? output_channel_ch7 + 200 : output_channel_ch7;
   analogOutPin[MOTORID8] = (esc_pass && (output_channel_ch8 < 200)) ? output_channel_ch8 + 200 : output_channel_ch8;
-  if (output_channel_ch9>0)
-  analogOutPin[MOTORID9] = (esc_pass && (output_channel_ch9 < 200)) ? output_channel_ch9 + 200 : output_channel_ch9;
-  if (output_channel_ch10>0)
-  analogOutPin[MOTORID10] = (esc_pass && (output_channel_ch10 < 200)) ? output_channel_ch10 + 200 : output_channel_ch10;
-  if (output_channel_ch11>0)
-  analogOutPin[MOTORID11] = (esc_pass && (output_channel_ch11 < 200)) ? output_channel_ch11 + 200 : output_channel_ch11;
-  if (output_channel_ch12>0)
-  analogOutPin[MOTORID12] = (esc_pass && (output_channel_ch12 < 200)) ? output_channel_ch12 + 200 : output_channel_ch12;
+  if (_iboard > 9){
+      if (output_channel_ch9 > 0)
+        analogOutPin[MOTORID9] = (esc_pass && (output_channel_ch9 < 200)) ? output_channel_ch9 + 200 : output_channel_ch9;
+        if (output_channel_ch10 > 0)
+        analogOutPin[MOTORID10] = (esc_pass && (output_channel_ch10 < 200)) ? output_channel_ch10 + 200 : output_channel_ch10;
+        if (output_channel_ch11 > 0)
+        analogOutPin[MOTORID11] = (esc_pass && (output_channel_ch11 < 200)) ? output_channel_ch11 + 200 : output_channel_ch11;
+        if (output_channel_ch12 > 0)
+        analogOutPin[MOTORID12] = (esc_pass && (output_channel_ch12 < 200)) ? output_channel_ch12 + 200 : output_channel_ch12;
+        num_motors = 12;
+  }
 
   // ADD 4 Output if PPMSUM is active
-  for(int i=MOTORID1;i<MOTORID12+1;i++)
+  for(int i = MOTORID1; i < num_motors ; i++)
 	{
+
 	if ((analogOutPin[i] > 200) || esc_pass)
 		{
 		valout= (analogOutPin[i]>200) ? analogOutPin[i]-200 : analogOutPin[i];
 		InitFQUpdate(valout, _serial);
 		pinMode(valout,PWM);
 		
-		//_serial->print("Servo 50Hz: ");
-		//_serial->print(i);
-		//_serial->print(": ");
-		//_serial->println(analogOutPin[i]);
+		_serial->print("Servo 50Hz: ");
+		_serial->print(i);
+		_serial->print(": ");
+		_serial->println(analogOutPin[i]);
 		
 		}
 		else
 		{
 		pinMode(analogOutPin[i],PWM);
-		//_serial->print("Motor 490Hz: ");
-		//_serial->print(i);
-		//_serial->print(": ");
-		//_serial->println(analogOutPin[i]);
+		_serial->print("Motor 490Hz: ");
+		_serial->print(i);
+		_serial->print(": ");
+		_serial->println(analogOutPin[i]);
 		}
 	}
 }
@@ -785,6 +790,11 @@ input_channel_ch5=59;
 input_channel_ch6=62;
 input_channel_ch7=60;
 input_channel_ch8=0;
+
+output_channel_ch9 = 300;
+output_channel_ch10 = 300;
+output_channel_ch11 = 300;
+output_channel_ch12 = 300;
 break;
 case 1:
 
@@ -809,6 +819,11 @@ input_channel_ch7=60;
 input_channel_ch7=12;
 input_channel_ch8=60;
 */
+
+output_channel_ch9 = 300;
+output_channel_ch10 = 300;
+output_channel_ch11 = 300;
+output_channel_ch12 = 300;
 
 break;
 case 2:
@@ -853,6 +868,11 @@ input_channel_ch8=0;
 //input_channel_ch6=13;
 //input_channel_ch7=14;
 //input_channel_ch8=15;
+
+output_channel_ch9 = 300;
+output_channel_ch10 = 300;
+output_channel_ch11 = 300;
+output_channel_ch12 = 300;
 break;
 
 
@@ -1155,7 +1175,7 @@ void APM_RC_MP32::SetFastOutputChannels(uint32_t chmask, uint16_t speed_hz)
 uint16_t APM_RC_MP32::InputCh(unsigned char ch)
 {
   uint16_t data;
-  if (iboard <10)
+  if (_iboard <10)
   data = rcPinValue[ch]; 
   else
 {  
