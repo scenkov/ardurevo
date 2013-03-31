@@ -430,7 +430,7 @@
 // Battery monitoring
 //
 #ifndef BATTERY_EVENT
- # define BATTERY_EVENT                  DISABLED
+ # define BATTERY_EVENT                  ENABLED
 #endif
 #ifndef LOW_VOLTAGE
  # define LOW_VOLTAGE                    9.6
