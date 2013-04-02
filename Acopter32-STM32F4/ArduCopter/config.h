@@ -55,7 +55,7 @@
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION	ROTATION_YAW_90
+ # define MAG_ORIENTATION	ROTATION_YAW_180
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
  #  define CONFIG_BARO     AP_BARO_MS5611
@@ -405,7 +405,7 @@
 // Serial port speeds.
 //
 #ifndef SERIAL0_BAUD
- # define SERIAL0_BAUD                   115200
+ # define SERIAL0_BAUD                   57600
 #endif
 #ifndef SERIAL3_BAUD
  # define SERIAL3_BAUD                    57600
