@@ -21,27 +21,6 @@ static bool	gcs_out_of_time;
 // prototype this for use inside the GCS class
 static void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 
-
-
-// gcs_check_delay - keep GCS communications going
-// in our delay callback
-static void gcs_check_delay()
-{
-    static uint32_t last_1hz, last_50hz;
-
-    uint32_t tnow = millis();
-    if (tnow - last_1hz > 1000) {
-        last_1hz = tnow;
-        gcs_send_heartbeat();
-    }
-    if (tnow - last_50hz > 20) {
-        last_50hz = tnow;
-        gcs_check_input();
-        gcs_data_stream_send();
-        gcs_send_deferred();
-    }
-    }
-
 static void gcs_send_heartbeat(void)
 {
     gcs_send_message(MSG_HEARTBEAT);
@@ -68,7 +47,7 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
     uint8_t system_status = MAV_STATE_ACTIVE;
     uint32_t custom_mode = control_mode;
     
-    if (ap.failsafe == true)  {
+    if (ap.failsafe_radio == true)  {
         system_status = MAV_STATE_CRITICAL;
     }
     
@@ -153,7 +132,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
         control_sensors_present |= (1<<2); // compass present
     }
     control_sensors_present |= (1<<3); // absolute pressure sensor present
-    if (g_gps != NULL && g_gps->status() == GPS::GPS_OK) {
+    if (g_gps != NULL && g_gps->status() >= GPS::NO_FIX) {
         control_sensors_present |= (1<<5); // GPS present
     }
     control_sensors_present |= (1<<10); // 3D angular rate control
@@ -246,7 +225,7 @@ static void NOINLINE send_location(mavlink_channel_t chan)
     // positions.
     // If we don't have a GPS fix then we are dead reckoning, and will
     // use the current boot time as the fix time.    
-    if (g_gps->status() == GPS::GPS_OK) {
+    if (g_gps->status() >= GPS::GPS_OK_FIX_2D) {
         fix_time = g_gps->last_fix_time;
     } else {
         fix_time = millis();
@@ -275,7 +254,7 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
         wp_distance / 1.0e2f,
         altitude_error / 1.0e2f,
         0,
-        crosstrack_error);      // was 0
+        0);
 }
 
 static void NOINLINE send_ahrs(mavlink_channel_t chan)
@@ -310,15 +289,10 @@ static void NOINLINE send_hwstatus(mavlink_channel_t chan)
 
 static void NOINLINE send_gps_raw(mavlink_channel_t chan)
 {
-    uint8_t fix = g_gps->status();
-    if (fix == GPS::GPS_OK) {
-        fix = 3;
-    }
-
     mavlink_msg_gps_raw_int_send(
         chan,
         g_gps->last_fix_time*(uint64_t)1000,
-        fix,
+        g_gps->status(),
         g_gps->latitude,      // in 1E7 degrees
         g_gps->longitude,     // in 1E7 degrees
         g_gps->altitude * 10, // in mm
@@ -548,7 +522,7 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
     // if we don't have at least 1ms remaining before the main loop
     // wants to fire then don't send a mavlink message. We want to
     // prioritise the main flight control loop over communications
-    if (scheduler.time_available_usec() < 800) {
+    if (scheduler.time_available_usec() < 800 && motors.armed()) {
         gcs_out_of_time = true;
         return false;
     }
@@ -870,6 +844,7 @@ GCS_MAVLINK::init(AP_HAL::UARTDriver* port)
         chan = MAVLINK_COMM_1;
     }
     _queued_parameter = NULL;
+    reset_cli_timeout();
 }
 
 void
@@ -888,7 +863,8 @@ GCS_MAVLINK::update(void)
 #if CLI_ENABLED == ENABLED
         /* allow CLI to be started by hitting enter 3 times, if no
          *  heartbeat packets have been received */
-        if (mavlink_active == false) {
+        if (mavlink_active == 0 && (millis() - _cli_timeout) < 20000 && 
+            !motors.armed() && comm_is_idle(chan)) {
             if (c == '\n' || c == '\r') {
                 crlf_count++;
             } else {
@@ -1905,7 +1881,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         mavlink_msg_hil_state_decode(msg, &packet);
 
         float vel = pythagorous2(packet.vx, packet.vy);
-        float cog = wrap_360(ToDeg(atan2f(packet.vx, packet.vy)) * 100);
+        float cog = wrap_360_cd(ToDeg(atan2f(packet.vx, packet.vy)) * 100);
 
         // set gps hil sensor
         g_gps->setHIL(packet.time_usec/1000,
@@ -1914,10 +1890,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         if (gps_base_alt == 0) {
             gps_base_alt = g_gps->altitude;
+            current_loc.alt = 0;
         }
-        current_loc.lng = g_gps->longitude;
-        current_loc.lat = g_gps->latitude;
-        current_loc.alt = g_gps->altitude - gps_base_alt;
+
         if (!ap.home_is_set) {
             init_home();
         }
@@ -1928,20 +1903,50 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         gyros.x = packet.rollspeed;
         gyros.y = packet.pitchspeed;
         gyros.z = packet.yawspeed;
+
         // m/s/s
         Vector3f accels;
-        accels.x = (float)packet.xacc / 1000.0;
-        accels.y = (float)packet.yacc / 1000.0;
-        accels.z = (float)packet.zacc / 1000.0;
+        accels.x = packet.xacc * (GRAVITY_MSS/1000.0);
+        accels.y = packet.yacc * (GRAVITY_MSS/1000.0);
+        accels.z = packet.zacc * (GRAVITY_MSS/1000.0);
 
-        ins.set_gyro_offsets(gyros);
+        ins.set_gyro(gyros);
 
-        ins.set_accel_offsets(accels);
+        ins.set_accel(accels);
 
+        // approximate a barometer
+        const float Temp = 312;
 
+        float y = (packet.alt - 584000.0) / 29271.267;
+        y /= (Temp / 10.0) + 273.15;
+        y = 1.0/exp(y);
+        y *= 95446.0;
+
+        barometer.setHIL(Temp, y);
+  
+        Vector3f Bearth, m;
+        Matrix3f R;
+
+        // Bearth is the magnetic field in Canberra. We need to adjust
+        // it for inclination and declination
+        Bearth(400, 0, 0);
+        R.from_euler(0, 0, 0);
+        Bearth = R * Bearth;
+
+        // create a rotation matrix for the given attitude
+        R.from_euler(packet.roll, packet.pitch, packet.yaw);
+
+        // convert the earth frame magnetic vector to body frame, and
+        // apply the offsets
+        m = R.transposed() * Bearth - Vector3f(0, 0, 0);
+       
+        compass.setHIL(m.x,m.y,m.z);
+
+ #if HIL_MODE == HIL_MODE_ATTITUDE
         // set AHRS hil sensor
         ahrs.setHil(packet.roll,packet.pitch,packet.yaw,packet.rollspeed,
                     packet.pitchspeed,packet.yawspeed);
+ #endif
 
 
 
@@ -1994,15 +1999,16 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         gyros.x = (float)packet.xgyro / 1000.0;
         gyros.y = (float)packet.ygyro / 1000.0;
         gyros.z = (float)packet.zgyro / 1000.0;
+
         // m/s/s
         Vector3f accels;
-        accels.x = (float)packet.xacc / 1000.0;
-        accels.y = (float)packet.yacc / 1000.0;
-        accels.z = (float)packet.zacc / 1000.0;
+        accels.x = packet.xacc * (GRAVITY_MSS/1000.0);
+        accels.y = packet.yacc * (GRAVITY_MSS/1000.0);
+        accels.z = packet.zacc * (GRAVITY_MSS/1000.0);
 
-        ins.set_gyro_offsets(gyros);
+        ins.set_gyro(gyros);
 
-        ins.set_accel_offsets(accels);
+        ins.set_accel(accels);
 
         compass.setHIL(packet.xmag,packet.ymag,packet.zmag);
         break;
@@ -2183,6 +2189,10 @@ GCS_MAVLINK::queued_waypoint_send()
             waypoint_dest_compid,
             waypoint_request_i);
     }
+}
+
+void GCS_MAVLINK::reset_cli_timeout() {
+      _cli_timeout = millis();
 }
 
 /*

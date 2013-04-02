@@ -13,14 +13,6 @@
 #define ENABLE ENABLED
 #define DISABLE DISABLED
 
-
-#ifndef HIGH
- #define HIGH 1
-#endif
-#ifndef LOW
- #define LOW 0
-#endif
-
 // Flight modes
 // ------------
 #define YAW_HOLD                        0       // heading hold at heading in nav_yaw but allow input from pilot
@@ -52,11 +44,7 @@
 #define THROTTLE_LAND                       8   // landing throttle controller
 
 
-// active altitude sensor
-// ----------------------
-#define SONAR 0
-#define BARO 1
-
+// sonar - for use with CONFIG_SONAR_SOURCE
 #define SONAR_SOURCE_ADC 1
 #define SONAR_SOURCE_ANALOG_PIN 2
 
@@ -357,17 +345,13 @@ enum gcs_severity {
 #define DATA_RTL_REACHED_ALT            31
 
 // battery monitoring macros
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
 #define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
-#else
-#define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
-#define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
-#endif
 
 #define BATT_MONITOR_DISABLED               0
 #define BATT_MONITOR_VOLTAGE_ONLY           3
 #define BATT_MONITOR_VOLTAGE_AND_CURRENT    4
+
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
 
@@ -460,16 +444,17 @@ enum gcs_severity {
 #define ERROR_SUBSYSTEM_RADIO               2
 #define ERROR_SUBSYSTEM_COMPASS             3
 #define ERROR_SUBSYSTEM_OPTFLOW             4
-#define ERROR_SUBSYSTEM_FAILSAFE            5
+#define ERROR_SUBSYSTEM_FAILSAFE_RADIO      5
+#define ERROR_SUBSYSTEM_FAILSAFE_BATT       6
+#define ERROR_SUBSYSTEM_FAILSAFE_GPS        7
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
 // subsystem specific error codes -- radio
 #define ERROR_CODE_RADIO_LATE_FRAME         2
-// subsystem specific error codes -- failsafe
-#define ERROR_CODE_FAILSAFE_THROTTLE  2
-#define ERROR_CODE_FAILSAFE_BATTERY   3
-#define ERROR_CODE_FAILSAFE_WATCHDOG  4
+// subsystem specific error codes -- failsafe_thr, batt, gps
+#define ERROR_CODE_FAILSAFE_RESOLVED        0
+#define ERROR_CODE_FAILSAFE_OCCURRED        1
 
 
 

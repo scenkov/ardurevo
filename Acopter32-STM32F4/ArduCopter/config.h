@@ -125,7 +125,6 @@
 #if FRAME_CONFIG == HELI_FRAME
   # define RC_FAST_SPEED 				125
   # define RTL_YAW                  	YAW_LOOK_AT_HOME
-  # define TILT_COMPENSATION 			5
   # define RATE_INTEGRATOR_LEAK_RATE 	0.02f
   # define RATE_ROLL_D    				0
   # define RATE_PITCH_D       			0
@@ -180,18 +179,16 @@
  # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 200
  # define PUSHBUTTON_PIN   200
   #if USB == ENABLED
    # define USB_MUX_PIN      200
   #else
    # define USB_MUX_PIN      200
   #endif
- # define CLI_SLIDER_ENABLED DISABLED
  # define OPTFLOW_CS_PIN   200
- # define BATTERY_VOLT_PIN     200      // Battery voltage on A0
+ # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
  # define BATTERY_CURR_PIN      200      // Battery current on A1
- # define BATTERY_PIN_1      200 // INPUT PC0 on VBRAIN
+ # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
  # define CURRENT_PIN_1      200
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define A_LED_PIN        37
@@ -199,10 +196,8 @@
  # define C_LED_PIN        35
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 40
  # define PUSHBUTTON_PIN   41
  # define USB_MUX_PIN      -1
- # define CLI_SLIDER_ENABLED DISABLED
  # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
  # define BATTERY_CURR_PIN      1      // Battery current on A1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
@@ -211,9 +206,7 @@
  # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
- # define CLI_SLIDER_ENABLED DISABLED
  # define USB_MUX_PIN      23
  # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
  # define BATTERY_CURR_PIN      2      // Battery current on A2
@@ -223,9 +216,7 @@
  # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
- # define CLI_SLIDER_ENABLED DISABLED
  # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN 1      // Battery voltage on A1
  # define BATTERY_CURR_PIN 2      // Battery current on A2
@@ -235,9 +226,7 @@
  # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
- # define CLI_SLIDER_ENABLED DISABLED
  # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN -1
  # define BATTERY_CURR_PIN -1
@@ -248,9 +237,7 @@
  # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
- # define CLI_SLIDER_ENABLED DISABLED
  # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN -1
  # define BATTERY_CURR_PIN -1
@@ -277,8 +264,8 @@
  #define COPTER_LED_7 AN10      // Motor LED
  #define COPTER_LED_8 AN11      // Motor LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- #define COPTER_LED_1 65  	// Motor or Aux LED
- #define COPTER_LED_2 71  	// Motor LED or Beeper
+ #define COPTER_LED_1 102  	// Motor or Aux LED
+ #define COPTER_LED_2 65  	// Motor LED or Beeper
  #define COPTER_LED_3 200  	// Motor or GPS LED
  #define COPTER_LED_4 200  	// Motor or GPS LED
  #define COPTER_LED_5 200  	// Motor or GPS LED
@@ -338,12 +325,11 @@
  # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
  # ifndef CONFIG_SONAR_SOURCE_ANALOG_PIN
-  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 200
+  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
  # endif
 #else
  # warning Invalid value for CONFIG_SONAR_SOURCE, disabling sonar
- # undef SONAR_ENABLED
- # define SONAR_ENABLED DISABLED
+ # define CONFIG_SONAR DISABLED
 #endif
 
 #ifndef CONFIG_SONAR
@@ -437,6 +423,13 @@
  # define FS_BATTERY              DISABLED
 #endif
 
+// GPS failsafe
+#ifndef FS_GPS
+ # define FS_GPS                        DISABLED
+#endif
+#ifndef FAILSAFE_GPS_TIMEOUT_MS
+ # define FAILSAFE_GPS_TIMEOUT_MS       5000    // gps failsafe triggers after 5 seconds with no GPS
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
@@ -911,7 +904,7 @@
 #endif
 
 #ifndef RATE_YAW_P
- # define RATE_YAW_P              	0.25f
+ # define RATE_YAW_P              	0.200f
 #endif
 #ifndef RATE_YAW_I
  # define RATE_YAW_I              	0.015f
@@ -1014,10 +1007,6 @@
  # define WAYPOINT_SPEED_MIN        150                    // 1m/s
 #endif
 
-#ifndef TILT_COMPENSATION
-  #   define TILT_COMPENSATION 54
-#endif
-
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1071,6 +1060,15 @@
 #endif
 #define ACCELERATION_MAX_Z  750     // maximum veritcal acceleration in cm/s/s
 
+// max distance in cm above or below current location that will be used for the alt target when transitioning to alt-hold mode
+#ifndef ALT_HOLD_INIT_MAX_OVERSHOOT
+ # define ALT_HOLD_INIT_MAX_OVERSHOOT 200
+#endif
+// the acceleration used to define the distance-velocity curve
+#ifndef ALT_HOLD_ACCEL_MAX
+ # define ALT_HOLD_ACCEL_MAX 250
+#endif
+
 // Throttle Accel control
 #ifndef THROTTLE_ACCEL_P
  # define THROTTLE_ACCEL_P  0.75f
@@ -1084,19 +1082,6 @@
 #ifndef THROTTLE_ACCEL_IMAX
  # define THROTTLE_ACCEL_IMAX 500
 #endif
-
-
-//////////////////////////////////////////////////////////////////////////////
-// Crosstrack compensation
-//
-#ifndef CROSSTRACK_GAIN
- # define CROSSTRACK_GAIN       .2f
-#endif
-#ifndef CROSSTRACK_MIN_DISTANCE
- # define CROSSTRACK_MIN_DISTANCE       15
-#endif
-
-
 
 
 //////////////////////////////////////////////////////////////////////////////

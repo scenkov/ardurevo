@@ -24,15 +24,6 @@ static void update_navigation()
             Log_Write_Nav_Tuning();
         }
     }
-
-    // To-Do: replace below with proper GPS failsafe
-    // reduce nav outputs to zero if we have not seen a position update in 2 seconds
-    if( millis() - nav_last_update > 2000 ) {
-        // after 12 reads we guess we may have lost GPS signal, stop navigating
-        // we have lost GPS signal for a moment. Reduce our error to avoid flyaways
-        auto_roll  >>= 1;
-        auto_pitch >>= 1;
-    }
 }
 
 // run_nav_updates - top level call for the autopilot
@@ -218,7 +209,7 @@ static bool check_missed_wp()
 {
     int32_t temp;
     temp = wp_bearing - original_wp_bearing;
-    temp = wrap_180(temp);
+    temp = wrap_180_cd(temp);
     return (labs(temp) > 9000);         // we passed the waypoint by 90 degrees
 }
 
@@ -271,9 +262,6 @@ static void verify_altitude()
 // Keeps old data out of our calculation / logs
 static void reset_nav_params(void)
 {
-    // We must be heading to a new WP, so XTrack must be 0
-    crosstrack_error                = 0;
-
     // Will be set by new command
     wp_bearing                      = 0;
 
@@ -291,25 +279,11 @@ static void reset_nav_params(void)
     auto_pitch 						= 0;
 }
 
-static int32_t wrap_360(int32_t error)
-{
-    if (error > 36000) error -= 36000;
-    if (error < 0) error += 36000;
-    return error;
-}
-
-static int32_t wrap_180(int32_t error)
-{
-    if (error > 18000) error -= 36000;
-    if (error < -18000) error += 36000;
-    return error;
-}
-
 // get_yaw_slew - reduces rate of change of yaw to a maximum
 // assumes it is called at 100hz so centi-degrees and update rate cancel each other out
 static int32_t get_yaw_slew(int32_t current_yaw, int32_t desired_yaw, int16_t deg_per_sec)
 {
-    return wrap_360(current_yaw + constrain(wrap_180(desired_yaw - current_yaw), -deg_per_sec, deg_per_sec));
+    return wrap_360_cd(current_yaw + constrain(wrap_180_cd(desired_yaw - current_yaw), -deg_per_sec, deg_per_sec));
 }
 
 // valid_waypoint - checks if a waypoint has been initialised or not
