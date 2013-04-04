@@ -100,7 +100,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 #endif
     cliSerial->printf_P("Start...");
 
-    delay(5000);
+    delay(2000);
 
     cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE "\n\nFree RAM: %u\n"), freeRAM());
 	
