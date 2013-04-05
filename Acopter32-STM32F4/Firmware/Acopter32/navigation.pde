@@ -87,6 +87,8 @@ static void update_navigation()
 static void calc_velocity_and_position(){
     static int32_t last_gps_longitude = 0;
     static int32_t last_gps_latitude  = 0;
+    static int16_t lon_speed_old;
+    static int16_t lat_speed_old;
 
     // initialise last_longitude and last_latitude
     if( last_gps_longitude == 0 && last_gps_latitude == 0 ) {
@@ -122,6 +124,11 @@ static void calc_velocity_and_position(){
     lon_speed  = (float)(g_gps->longitude - last_gps_longitude)  * scaleLongDown * tmp;
     lat_speed  = (float)(g_gps->latitude  - last_gps_latitude)  * tmp;
 
+    lat_speed = (float)lat_speed * 0.8 + (float)lat_speed_old * 0.2;
+    lon_speed = (float)lon_speed * 0.8 + (float)lon_speed_old * 0.2;
+
+    lat_speed_old = lon_speed;
+    lon_speed_old = lon_speed;
     // calculate position from gps + expected travel during gps_lag
     //current_loc.lng = xLeadFilter.get_position(g_gps->longitude, lon_speed, g_gps->get_lag());
     //current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  lat_speed, g_gps->get_lag());
@@ -427,7 +434,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+    if( g.log_bitmask & MASK_LOG_PID && motors.armed() ) {
         Log_Write_PID(CH6_LOITER_KP+100, y_error, y_target_speed, 0, 0, y_target_speed, tuning_value);
     }
 #endif
@@ -473,7 +480,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+    if( g.log_bitmask & MASK_LOG_PID && motors.armed() ) {
         Log_Write_PID(CH6_LOITER_KP, x_error, x_target_speed, 0, 0, x_target_speed, tuning_value);
     }
 #endif
@@ -496,7 +503,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
+    if( g.log_bitmask & MASK_LOG_PID && motors.armed()  ) {
         Log_Write_PID(CH6_LOITER_RATE_KP, x_rate_error, p, i, d, nav_lon, tuning_value);
     }
 #endif
@@ -506,7 +513,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_KP || g.radio_tuning == CH6_LOITER_KI) ) {
+    if( g.log_bitmask & MASK_LOG_PID && motors.armed()) {
         Log_Write_PID(CH6_LOITER_KP+100, y_error, y_target_speed, 0, 0, y_target_speed, tuning_value);
     }
 #endif
@@ -529,7 +536,7 @@ static void calc_loiter(int16_t x_error, int16_t y_error)
 
 #if LOGGING_ENABLED == ENABLED
     // log output if PID logging is on and we are tuning the yaw
-    if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_LOITER_RATE_KP || g.radio_tuning == CH6_LOITER_RATE_KI || g.radio_tuning == CH6_LOITER_RATE_KD) ) {
+    if( g.log_bitmask & MASK_LOG_PID && motors.armed()) {
         Log_Write_PID(CH6_LOITER_RATE_KP+100, y_rate_error, p, i, d, nav_lat, tuning_value);
     }
 #endif

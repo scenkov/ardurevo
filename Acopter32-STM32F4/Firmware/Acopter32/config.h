@@ -41,7 +41,7 @@
 //#define PREPORT
 
 /* USING USB for serial?*/
-//#define USB ENABLED
+#define USB ENABLED
 //#define USB DISABLED
 
 // KIND OF FRAME
@@ -682,7 +682,7 @@
 
 // AUTO Mode
 #ifndef AUTO_YAW
- # define AUTO_YAW                  YAW_LOOK_AT_NEXT_WP
+ # define AUTO_YAW                  YAW_HOLD
 #endif
 
 #ifndef AUTO_RP
@@ -735,7 +735,7 @@
 
 // RTL Mode
 #ifndef RTL_YAW
- # define RTL_YAW                   YAW_LOOK_AT_NEXT_WP
+ # define RTL_YAW                   YAW_HOLD
 #endif
 
 #ifndef RTL_RP
