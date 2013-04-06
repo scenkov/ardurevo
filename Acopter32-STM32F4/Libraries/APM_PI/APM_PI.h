@@ -50,6 +50,10 @@ public:
     int32_t         get_p(int32_t error);
     int32_t         get_i(int32_t error, float dt);
 
+    float         get_pi_f(float error, float dt);
+    float         get_p_f(float error);
+    float         get_i_f(float error, float dt);
+
 
     /// Reset the PI integrator
     ///

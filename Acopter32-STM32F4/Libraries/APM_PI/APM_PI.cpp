@@ -38,6 +38,31 @@ int32_t APM_PI::get_pi(int32_t error, float dt)
     return get_p(error) + get_i(error, dt);
 }
 
+
+float APM_PI::get_p_f(float error)
+{
+	return (error * _kp);
+}
+
+float APM_PI::get_i_f(float error, float dt)
+{
+	if((dt > 0.0) || (dt < 0.0)) {
+        _integrator += (error * _ki) * dt;
+
+        if (_integrator < -_imax) {
+            _integrator = -_imax;
+        } else if (_integrator > _imax) {
+            _integrator = _imax;
+        }
+    }
+	return _integrator;
+}
+
+float APM_PI::get_pi_f(float error, float dt)
+{
+    return get_p(error) + get_i(error, dt);
+}
+
 void
 APM_PI::reset_I()
 {

@@ -41,8 +41,8 @@
 //#define PREPORT
 
 /* USING USB for serial?*/
-#define USB ENABLED
-//#define USB DISABLED
+//#define USB ENABLED
+#define USB DISABLED
 
 // KIND OF FRAME
 
@@ -64,7 +64,8 @@
 //#define CONFIG_APM_HARDWARE MP32V3F1 // BUILD YOUR DREAMS
 #define CONFIG_APM_HARDWARE VRBRAINF4
 
-
+//SimonK ESC
+//#define SINOMK_ESC
 
 #ifdef MP32
   #define VRIMU

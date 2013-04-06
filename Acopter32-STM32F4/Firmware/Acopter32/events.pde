@@ -94,7 +94,7 @@ static void low_battery_event(void)
     set_low_battery(true);
 
     // warn the ground station and log to dataflash
-    gcs_send_text_P(SEVERITY_LOW,PSTR("Low Battery!"));
+    //gcs_send_text_P(SEVERITY_LOW,PSTR("Low Battery!"));
     Log_Write_Error(ERROR_SUBSYSTEM_FAILSAFE, ERROR_CODE_FAILSAFE_BATTERY);
 
 #if COPTER_LEDS == ENABLED

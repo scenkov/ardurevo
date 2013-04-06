@@ -79,7 +79,11 @@ int type;
         type=11;
 #endif
 
-    APM_RC.Init(type, &isr_registry,cliSerial, g.esc_calibrate );		// APM Radio initialization
+#ifdef SIMONK_ESC
+    APM_RC.Init(type, &isr_registry,cliSerial, g.esc_calibrate, true );		// APM Radio initialization
+#else
+    APM_RC.Init(type, &isr_registry,cliSerial, g.esc_calibrate, false );
+#endif
 
     motors.set_update_rate(g.rc_speed);
     motors.set_frame_orientation(g.frame_orientation);

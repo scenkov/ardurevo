@@ -186,7 +186,7 @@ private:
 
 	APM_RC_MP32();
 	
-	void Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough);
+	void Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough, bool simonk);
 	
 	void InitDefaultPPM(char board);
 	void InitDefaultPPMSUM(char board);

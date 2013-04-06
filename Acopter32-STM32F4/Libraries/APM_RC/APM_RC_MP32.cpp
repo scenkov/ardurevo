@@ -556,7 +556,7 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	*/
 }
 
-void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough )
+void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough, bool simonk )
 {
     bool esc_pass = esc_passthrough;
     _iboard=board;
@@ -585,15 +585,19 @@ void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSer
     InitDefaultPWM();
 
     //_serial->println("Init PWM HWD");
+    if(simonk){
+	InitPWM(_serial, esc_pass);
+    }else{
+	InitPWM(_serial, 0);
+    }
 
-    InitPWM(_serial, 0);
 }
 
 void APM_RC_MP32::InitPWM(FastSerial * _serial, bool esc_passthrough)
 {
 unsigned int valout=0;
 bool esc_pass = esc_passthrough;
-esc_pass = 0;
+//esc_pass = 0;
 int num_motors = 8;
 
     //check if we are in esc_passthrough mode. If yes add 200 to the pin numeber so it gets recognised as a 60 Hz frequency PWM*/

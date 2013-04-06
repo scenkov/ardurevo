@@ -60,7 +60,11 @@ public:
 	int32_t get_d(int32_t error, float dt);
 	int32_t 		get_leaky_i(int32_t error, float dt, float leak_rate);
 
-
+	float get_p_f(float error);
+	float get_i_f(float error, float dt);
+	float get_d_f(float error, float dt);
+	float get_pid_f(float error, float dt);
+	float get_pi_f(float error, float dt);
 	/// Reset the PID integrator
 	///
 	void	reset_I();

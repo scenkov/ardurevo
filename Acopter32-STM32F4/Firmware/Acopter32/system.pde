@@ -96,7 +96,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         cliSerial = &SerialUSB;
 	cliSerial->begin(115200,256,256);
     }
-    
+    delay(2000);
 #endif
     cliSerial->printf_P("Start...");
 
