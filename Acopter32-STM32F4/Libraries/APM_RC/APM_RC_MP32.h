@@ -131,8 +131,6 @@
 
 class APM_RC_MP32 : public APM_RC_Class
 {
-private:
-  public:
 	/// Constructor
 	///
 	/// @param key      EEPROM storage key for the channel trim parameters.
@@ -174,7 +172,7 @@ private:
 	unsigned char MotorPresent[8];
 	unsigned char MotorError[8];
 	unsigned char radio_mode;
-	unsigned char _iboard;
+
 
 
 
@@ -186,7 +184,7 @@ private:
 
 	APM_RC_MP32();
 	
-	void Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough, bool simonk);
+	void Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough);
 	
 	void InitDefaultPPM(char board);
 	void InitDefaultPPMSUM(char board);
@@ -218,7 +216,7 @@ private:
     static volatile uint16_t _PWM_RAW[NUM_CHANNELS];
     static volatile uint8_t _radio_status;
     int16_t _HIL_override[NUM_CHANNELS];
-
+	unsigned char _iboard;
 };
 
 

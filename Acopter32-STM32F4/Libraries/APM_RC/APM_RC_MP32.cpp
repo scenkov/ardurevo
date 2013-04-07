@@ -33,7 +33,7 @@
 // STANDARD PPM VARIABLE
 
 volatile uint16_t rcPinValue[12] = {0,0,1000,0,1500,1500,1500,1000,0,0,0,0};; // interval [1000;2000]
-static byte receiverPin[12] = {PPM_IN_CH1,PPM_IN_CH2,PPM_IN_CH3,PPM_IN_CH4,PPM_IN_CH5,PPM_IN_CH6,PPM_IN_CH7,PPM_IN_CH8};
+static byte receiverPin[8] = {PPM_IN_CH1,PPM_IN_CH2,PPM_IN_CH3,PPM_IN_CH4,PPM_IN_CH5,PPM_IN_CH6,PPM_IN_CH7,PPM_IN_CH8};
 
 // ***PPM SUM SIGNAL***
 	static uint8_t rcChannel[12];
@@ -60,7 +60,7 @@ typedef struct {
   unsigned long fallTime;
   unsigned int  lastGoodWidth;
 } tPinTimingData;
-volatile static tPinTimingData pinData[9];
+volatile static tPinTimingData pinData[8];
 
 
 // PE5 is PIN69
@@ -74,14 +74,14 @@ volatile static tPinTimingData pinData[9];
 #define PIN70OUT	(*((unsigned long int *) 0x42420298))
 
 void rxIntPPMSUM(void) {
-volatile unsigned int now;
-volatile unsigned int diff;
-int i;
+ volatile unsigned int now;
+ volatile unsigned int diff;
+ int i;
 
   now = micros();
   diff = now - last;
   last = now;
-if(diff>4000  &&  diff<21000) // Sincro del frame 
+ if(diff>4000  &&  diff<21000) // Sincro del frame 
       {
       currentChannel = 0;
 	  radio_status_rc=0;
@@ -541,13 +541,15 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	output_channel_ch5=46;
 	output_channel_ch6=45;
 
-
 	/*IF FRAME IS <= HEXA*/
 	output_channel_ch7=301;
 	output_channel_ch8=225;
 	/**/
 
-
+	/*IF FRAME IS OCTO
+	output_channel_ch7=101;
+	output_channel_ch8=25;
+	*/
 	/*
 	output_channel_ch9=23;
 	output_channel_ch10=24;
@@ -556,7 +558,7 @@ void APM_RC_MP32::InitDefaultPWM(void)
 	*/
 }
 
-void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough, bool simonk )
+void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSerial * _serial, bool esc_passthrough )
 {
     bool esc_pass = esc_passthrough;
     _iboard=board;
@@ -585,19 +587,15 @@ void APM_RC_MP32::Init( char board,Arduino_Mega_ISR_Registry * isr_reg , FastSer
     InitDefaultPWM();
 
     //_serial->println("Init PWM HWD");
-    if(simonk){
-	InitPWM(_serial, esc_pass);
-    }else{
-	InitPWM(_serial, 0);
-    }
 
+    InitPWM(_serial, 0);
 }
 
 void APM_RC_MP32::InitPWM(FastSerial * _serial, bool esc_passthrough)
 {
 unsigned int valout=0;
 bool esc_pass = esc_passthrough;
-//esc_pass = 0;
+esc_pass = 0;
 int num_motors = 8;
 
     //check if we are in esc_passthrough mode. If yes add 200 to the pin numeber so it gets recognised as a 60 Hz frequency PWM*/
@@ -674,41 +672,41 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 	ccr_select = PIN_MAP[channel].timer_device;
 	if (ccr_select == TIMER1)
 	{
-		_serial->println("Motor SERVO: TIMER 1");
+		//_serial->println("Motor SERVO: TIMER 1");
 		timer_select=1;
 	}
 	if (ccr_select == TIMER2)
 	{
-		_serial->println("Motor SERVO: TIMER 2");
+		//_serial->println("Motor SERVO: TIMER 2");
 		timer_select=2;
 	}
 	if (ccr_select == TIMER3)
 	{
-		_serial->println("Motor SERVO: TIMER 3");
+		//_serial->println("Motor SERVO: TIMER 3");
 		timer_select=3;
 	}
 	if (ccr_select == TIMER4)
 	{
-		_serial->println("Motor SERVO: TIMER 4");
+		//_serial->println("Motor SERVO: TIMER 4");
 		timer_select=4;
 	}
 	if (ccr_select == TIMER5)
 	{
-		_serial->println("Motor SERVO: TIMER 5");
+		//_serial->println("Motor SERVO: TIMER 5");
 		timer_select=5;
 	}
 	if (ccr_select == TIMER8)
 	{
-		_serial->println("Motor SERVO: TIMER 8");
+		//_serial->println("Motor SERVO: TIMER 8");
 		timer_select=8;
 	}
 	
-	//timer_select=4;
+	timer_select=4;
 
 	switch (timer_select)
 	{
 		case 1:
-			_serial->println("Motor ESC: TIMER 1");
+			//_serial->println("Motor ESC: TIMER 1");
 			//timer_init(TIMER1);
 			timer_pause(TIMER1);
 			timer_set_prescaler(TIMER1, 21);
@@ -718,7 +716,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER1);
 			break;
 		case 2:
-			_serial->println("Motor ESC: TIMER 2");
+			//_serial->println("Motor ESC: TIMER 2");
 			//timer_init(TIMER2);
 			timer_pause(TIMER2);
 			timer_set_prescaler(TIMER2, 21);
@@ -728,7 +726,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER2);
 			break;
 		case 3:
-			_serial->println("Motor ESC: TIMER 3");
+			//_serial->println("Motor ESC: TIMER 3");
 			//timer_init(TIMER3);
 			timer_pause(TIMER3);
 			timer_set_prescaler(TIMER3, 21);
@@ -738,7 +736,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER3);
 			break;
 		case 4:
-			_serial->println("Motor ESC: TIMER 4");
+			//_serial->println("Motor ESC: TIMER 4");
 			//timer_init(TIMER4);
 			timer_pause(TIMER4);
 			timer_set_prescaler(TIMER4, 21);
@@ -748,7 +746,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER4);
 			break;
 		case 5:
-			_serial->println("Motor ESC: TIMER 5");
+			//_serial->println("Motor ESC: TIMER 5");
 			//timer_init(TIMER5);
 			timer_pause(TIMER5);
 			timer_set_prescaler(TIMER5, 21);
@@ -758,7 +756,7 @@ void APM_RC_MP32::InitFQUpdate(unsigned char channel, FastSerial * _serial)
 			timer_resume(TIMER5);
 			break;
 		case 8:
-			_serial->println("Motor ESC: TIMER 8");
+			//_serial->println("Motor ESC: TIMER 8");
 			//timer_init(TIMER8);
 			timer_pause(TIMER8);
 			timer_set_prescaler(TIMER8, 21);
@@ -963,10 +961,12 @@ receiverPin[4]=input_channel_ch5;
 receiverPin[5]=input_channel_ch6;
 receiverPin[6]=input_channel_ch7;
 receiverPin[7]=input_channel_ch8;
+/*
 receiverPin[8]=input_channel_ch9;
 receiverPin[9]=input_channel_ch10;
 receiverPin[10]=input_channel_ch11;
 receiverPin[11]=input_channel_ch12;
+ */
 /*
 	PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 	PE11	80	PWM_IN1		 IRQ 10-15			  PPM2
@@ -1100,9 +1100,10 @@ delay(100);
 
 #endif
 
-for(byte channel = 0; channel < 11; channel++) 
+for(byte channel = 0; channel < 8; channel++){
+    if(receiverPin[channel] != 0)
        pinData[receiverPin[channel]].edge = FALLING_EDGE;
-
+}
 
 }
 

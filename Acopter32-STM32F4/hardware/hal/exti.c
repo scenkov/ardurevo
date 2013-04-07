@@ -84,7 +84,7 @@ void exti_attach_interrupt(afio_exti_num num,
 
 	/* Enable and set EXTI Line Interrupt to the lowest priority */
 	NVIC_InitStructure.NVIC_IRQChannel = exti_channels[num].irq_type;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);  	

@@ -96,11 +96,11 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
         cliSerial = &SerialUSB;
 	cliSerial->begin(115200,256,256);
     }
-    delay(2000);
+    
 #endif
     cliSerial->printf_P("Start...");
 
-    delay(2000);
+    delay(5000);
 
     cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE "\n\nFree RAM: %u\n"), freeRAM());
 	
@@ -291,7 +291,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 	adc.Init(pScheduler);       // APM ADC library initialization
  #endif // CONFIG_ADC
 
-	//cliSerial->println("barometer init");
+	cliSerial->println("barometer init");
 	barometer.init(pScheduler);
 
 #endif // HIL_MODE
@@ -301,7 +301,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     // GPS Initialization
     g_gps->init(GPS::GPS_ENGINE_AIRBORNE_1G);
 
-    //cliSerial->println("compass init");
+    cliSerial->println("compass init");
     if(g.compass_enabled)
         init_compass();
 
@@ -319,7 +319,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 #ifdef USERHOOK_INIT
     USERHOOK_INIT
 #endif
-//cliSerial->println("Fine init");
+cliSerial->println("Fine init");
 
 #if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
     // If the switch is in 'menu' mode, run the main menu.

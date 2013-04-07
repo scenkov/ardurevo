@@ -123,14 +123,14 @@ static void i2c_lowLevel_init(i2c_dev *dev)
 
     /* Configure and enable I2C DMA TX Channel interrupt */
     NVIC_InitStructure.NVIC_IRQChannel = sEE_I2C_DMA_TX_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
 
     /* Configure and enable I2C DMA RX Channel interrupt */
     NVIC_InitStructure.NVIC_IRQChannel = sEE_I2C_DMA_RX_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_Init(&NVIC_InitStructure);
 

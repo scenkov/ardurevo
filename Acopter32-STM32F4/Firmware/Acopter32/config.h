@@ -41,8 +41,8 @@
 //#define PREPORT
 
 /* USING USB for serial?*/
-//#define USB ENABLED
-#define USB DISABLED
+#define USB ENABLED
+//#define USB DISABLED
 
 // KIND OF FRAME
 
@@ -431,7 +431,7 @@
 // Battery monitoring
 //
 #ifndef BATTERY_EVENT
- # define BATTERY_EVENT                  ENABLED
+ # define BATTERY_EVENT                  DISABLED
 #endif
 #ifndef LOW_VOLTAGE
  # define LOW_VOLTAGE                    9.6
