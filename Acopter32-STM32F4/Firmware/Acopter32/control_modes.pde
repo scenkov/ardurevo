@@ -212,4 +212,3 @@ static void auto_trim()
     }
 }
 
-

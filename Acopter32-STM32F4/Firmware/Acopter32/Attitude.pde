@@ -129,7 +129,7 @@ get_roll_rate_stabilized_ef(int32_t stick_angle)
     roll_axis = wrap_180(roll_axis);
 
     // ensure that we don't reach gimbal lock
-    if (labs(roll_axis > 4500) && g.acro_trainer_enabled) {
+    if (labs(roll_axis) > 4500 && g.acro_trainer_enabled) {
         roll_axis	= constrain(roll_axis, -4500, 4500);
         angle_error = wrap_180(roll_axis - ahrs.roll_sensor);
     } else {
@@ -737,9 +737,12 @@ static int16_t get_angle_boost(int16_t throttle)
     int16_t throttle_out;
 
     temp = constrain(temp, .5, 1.0);
-    temp = constrain(9000-max(labs(roll_axis),labs(pitch_axis)), 0, 3000) / (3000 * temp);
+
+    // reduce throttle if we go inverted
+    temp = constrain(9000-max(labs(ahrs.roll_sensor),labs(ahrs.pitch_sensor)), 0, 3000) / (3000 * temp);
+
+    // apply scale and constrain throttle
     throttle_out = constrain((float)(throttle-g.throttle_min) * temp + g.throttle_min, g.throttle_min, 1000);
-    //Serial.printf("Thin:%4.2f  sincos:%4.2f  temp:%4.2f  roll_axis:%4.2f  Out:%4.2f   \n", 1.0*throttle, 1.0*cos_pitch_x * cos_roll_x, 1.0*temp, 1.0*roll_axis, 1.0*constrain((float)value * temp, 0, 1000));
 
     // to allow logging of angle boost
     angle_boost = throttle_out - throttle;
@@ -1053,7 +1056,7 @@ get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_cli
 // get_throttle_althold_with_slew - altitude controller with slew to avoid step changes in altitude target
 // calls normal althold controller which updates accel based throttle controller targets
 static void
-get_throttle_althold_with_slew(int16_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate)
+get_throttle_althold_with_slew(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate)
 {
     // limit target altitude change
     controller_desired_alt += constrain(target_alt-controller_desired_alt, min_climb_rate*0.02, max_climb_rate*0.02);

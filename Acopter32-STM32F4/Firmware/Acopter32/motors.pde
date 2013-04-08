@@ -104,7 +104,7 @@ static void init_arm_motors()
     static bool did_ground_start = false;
 
     // disable failsafe because initialising everything takes a while
-    //failsafe_disable();
+    failsafe_disable();
 
     //cliSerial->printf("\nARM\n");
 #if HIL_MODE != HIL_MODE_DISABLED || defined(DESKTOP_BUILD)
@@ -167,7 +167,7 @@ static void init_arm_motors()
     set_armed(true);
 
     // reenable failsafe
-    //failsafe_enable();
+    failsafe_enable();
 }
 
 

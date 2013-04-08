@@ -683,7 +683,7 @@
 
 // AUTO Mode
 #ifndef AUTO_YAW
- # define AUTO_YAW                  YAW_HOLD
+ # define AUTO_YAW                  YAW_LOOK_AT_NEXT_WP
 #endif
 
 #ifndef AUTO_RP
