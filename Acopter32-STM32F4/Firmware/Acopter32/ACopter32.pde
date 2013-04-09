@@ -436,13 +436,13 @@ static struct AP_System{
 ////////////////////////////////////////////////////////////////////////////////
 // velocity in lon and lat directions calculated from GPS position and accelerometer data
 // updated after GPS read - 5-10hz
-static float lon_speed;       // expressed in cm/s.  positive numbers mean moving east
-static float lat_speed;       // expressed in cm/s.  positive numbers when moving north
+static int16_t lon_speed;       // expressed in cm/s.  positive numbers mean moving east
+static int16_t lat_speed;       // expressed in cm/s.  positive numbers when moving north
 
 // The difference between the desired rate of travel and the actual rate of travel
 // updated after GPS read - 5-10hz
-static float x_rate_error;
-static float y_rate_error;
+static int16_t x_rate_error;
+static int16_t y_rate_error;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Radio
@@ -1032,7 +1032,7 @@ void loop()
             update_GPS();
 
             // run navigation routines
-            //update_navigation();
+            update_navigation();
 
             // perform 10hz tasks
             // ------------------
@@ -1172,9 +1172,6 @@ static void medium_loop()
     case 1:
         medium_loopCounter++;
         //read_receiver_rssi();
-
-        // run navigation routines
-        update_navigation();
         break;
 
     // command processing
@@ -2111,9 +2108,8 @@ static void update_trig(void){
     // 270 = cos_yaw: -1.00, sin_yaw:  0.00,
 }
 
-/* updated at 10hz */
-
-static void update_altitude()
+// updated at 10hz
+     static void update_altitude()
 {
     int32_t old_baro_alt    = baro_alt;
     int16_t old_sonar_alt   = sonar_alt;
@@ -2139,8 +2135,10 @@ static void update_altitude()
     baro_rate			= constrain(baro_rate, -500, 500);
 
     // read in sonar altitude and calculate sonar rate
-    if(g.sonar_enabled) {
-        sonar_alt       = read_sonar();
+    sonar_alt           = read_sonar();
+    // start calculating the sonar_rate as soon as valid sonar readings start coming in so that we are ready when the sonar_alt_health becomes 3
+    // Note: post 2.9.1 release we will remove the sonar_rate variable completely
+    if(sonar_alt_health > 1) {
         sonar_rate      = (sonar_alt - old_sonar_alt) * 10;
         sonar_rate      = constrain(sonar_rate, -150, 150);
     }

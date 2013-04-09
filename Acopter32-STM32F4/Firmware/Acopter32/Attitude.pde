@@ -77,7 +77,7 @@ get_stabilize_yaw(int32_t target_angle)
     // log output if PID logging is on and we are tuning the yaw
     if( g.log_bitmask & MASK_LOG_PID && g.radio_tuning == CH6_YAW_KP ) {
         pid_log_counter++;
-        if( pid_log_counter >= 10 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
             pid_log_counter = 0;
             Log_Write_PID(CH6_YAW_KP, angle_error, target_rate, i_term, 0, output, tuning_value);
         }
@@ -335,7 +335,7 @@ get_heli_rate_roll(int32_t target_rate)
     // log output if PID logging is on and we are tuning the rate P, I or D gains
     if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_RATE_KP || g.radio_tuning == CH6_RATE_KI || g.radio_tuning == CH6_RATE_KD) ) {
         pid_log_counter++;
-        if( pid_log_counter >= 10 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
             pid_log_counter = 0;
             Log_Write_PID(CH6_RATE_KP, rate_error, p, i, d, output, tuning_value);
         }
@@ -429,7 +429,7 @@ get_heli_rate_yaw(int32_t target_rate)
     // log output if PID loggins is on and we are tuning the yaw
     if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_YAW_RATE_KP || g.radio_tuning == CH6_YAW_RATE_KD) ) {
         pid_log_counter++;
-        if( pid_log_counter >= 10 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
             pid_log_counter = 0;
             Log_Write_PID(CH6_YAW_RATE_KP, rate_error, p, i, d, output, tuning_value);
         }
@@ -475,7 +475,7 @@ get_rate_roll(int32_t target_rate)
     // log output if PID logging is on and we are tuning the rate P, I or D gains
     if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_RATE_KP || g.radio_tuning == CH6_RATE_KI || g.radio_tuning == CH6_RATE_KD) ) {
         pid_log_counter++;                          // Note: get_rate_pitch pid logging relies on this function to update pid_log_counter so if you change the line above you must change the equivalent line in get_rate_pitch
-        if( pid_log_counter >= 10 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
             pid_log_counter = 0;
             Log_Write_PID(CH6_RATE_KP, rate_error, p, i, d, output, tuning_value);
         }
@@ -552,7 +552,7 @@ get_rate_yaw(int32_t target_rate)
     // log output if PID loggins is on and we are tuning the yaw
     if( g.log_bitmask & MASK_LOG_PID && g.radio_tuning == CH6_YAW_RATE_KP ) {
         pid_log_counter++;
-        if( pid_log_counter >= 10 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (100hz / 10hz) = 10
             pid_log_counter = 0;
             Log_Write_PID(CH6_YAW_RATE_KP, rate_error, p, i, d, output, tuning_value);
         }
@@ -827,7 +827,7 @@ get_throttle_accel(int16_t z_target_accel)
     // log output if PID loggins is on and we are tuning the yaw
     if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_THR_ACCEL_KP || g.radio_tuning == CH6_THR_ACCEL_KI || g.radio_tuning == CH6_THR_ACCEL_KD) ) {
         pid_log_counter++;
-        if( pid_log_counter >= 20 ) {               // (update rate / desired output rate) = (50hz / 10hz) = 5hz
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (50hz / 10hz) = 5hz
             pid_log_counter = 0;
             Log_Write_PID(CH6_THR_ACCEL_KP, z_accel_error, p, i, d, output, tuning_value);
         }
@@ -993,7 +993,7 @@ get_throttle_rate(int16_t z_target_speed)
     // log output if PID loggins is on and we are tuning the yaw
     if( g.log_bitmask & MASK_LOG_PID && (g.radio_tuning == CH6_THROTTLE_KP || g.radio_tuning == CH6_THROTTLE_KI || g.radio_tuning == CH6_THROTTLE_KD) ) {
         pid_log_counter++;
-        if( pid_log_counter >= 10 ) {               // (update rate / desired output rate) = (50hz / 10hz) = 5hz
+        if( pid_log_counter >= 25 ) {               // (update rate / desired output rate) = (50hz / 10hz) = 5hz
             pid_log_counter = 0;
             Log_Write_PID(CH6_THROTTLE_KP, z_rate_error, p, i, d, output, tuning_value);
         }

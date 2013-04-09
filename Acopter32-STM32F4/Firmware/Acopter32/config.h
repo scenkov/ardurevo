@@ -46,8 +46,8 @@
 
 // KIND OF FRAME
 
-#define FRAME_CONFIG QUAD_FRAME
-//#define FRAME_CONFIG HEXA_FRAME
+//#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG HEXA_FRAME
 //#define FRAME_CONFIG OCTA_FRAME
 //#define FRAME_CONFIG Y6_FRAME
 //#define FRAME_CONFIG OCTA_QUAD_FRAME
@@ -75,6 +75,7 @@
   //# define HMC5843
 #endif 
 
+//#define ROBUSTINI_CONFIG
 
 //////////////////////////////////////////////////////////////////////////////
 // APM HARDWARE
@@ -431,7 +432,7 @@
 // Battery monitoring
 //
 #ifndef BATTERY_EVENT
- # define BATTERY_EVENT                  DISABLED
+ # define BATTERY_EVENT                  ENABLED
 #endif
 #ifndef LOW_VOLTAGE
  # define LOW_VOLTAGE                    9.6
@@ -683,7 +684,7 @@
 
 // AUTO Mode
 #ifndef AUTO_YAW
- # define AUTO_YAW                  YAW_LOOK_AT_NEXT_WP
+ # define AUTO_YAW                  YAW_HOLD
 #endif
 
 #ifndef AUTO_RP
@@ -696,7 +697,7 @@
 
 // Guided Mode
 #ifndef GUIDED_YAW
- # define GUIDED_YAW                YAW_LOOK_AT_NEXT_WP
+ # define GUIDED_YAW                YAW_HOLD
 #endif
 
 #ifndef GUIDED_RP
@@ -859,13 +860,23 @@
 //////////////////////////////////////////////////////////////////////////////
 // Stabilize Rate Control
 //
+#ifdef ROBUSTINI_CONFIG
+ #ifndef MAX_INPUT_ROLL_ANGLE
+  # define MAX_INPUT_ROLL_ANGLE      6000
+ #endif
+ #ifndef MAX_INPUT_PITCH_ANGLE
+  # define MAX_INPUT_PITCH_ANGLE     6000
+ #endif
+ #else
+ #ifndef MAX_INPUT_ROLL_ANGLE
+  # define MAX_INPUT_ROLL_ANGLE      4500
+ #endif
+ #ifndef MAX_INPUT_PITCH_ANGLE
+  # define MAX_INPUT_PITCH_ANGLE     4500
+ #endif
+#endif
 
-#ifndef MAX_INPUT_ROLL_ANGLE
- # define MAX_INPUT_ROLL_ANGLE      4500
-#endif
-#ifndef MAX_INPUT_PITCH_ANGLE
- # define MAX_INPUT_PITCH_ANGLE     4500
-#endif
+
 #ifndef RATE_ROLL_P
  # define RATE_ROLL_P        		0.135
 #endif
