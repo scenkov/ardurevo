@@ -13,7 +13,7 @@
    You may modify these timeout values depending on CPU frequency and application
    conditions (interrupts routines ...). */   
 
-#define I2C_TIMEOUT         ((uint32_t)0x1000)
+#define I2C_TIMEOUT         ((uint32_t)0x10000)
 #define I2C_LONG_TIMEOUT    ((uint32_t)(10 * I2C_TIMEOUT))
 
 
@@ -26,7 +26,7 @@
    Make sure that this define is not already declared in other files (ie.
   stm324xg_eval.h file). It can be used in parallel by other modules. */
 #ifndef I2C_SPEED
- #define I2C_SPEED                        100000
+ #define I2C_SPEED                        400000
 #endif /* I2C_SPEED */
 
 #define I2C_SLAVE_ADDRESS7      0xA0
@@ -38,7 +38,7 @@
    not remain stuck if the I2C communication is corrupted.
    You may modify these timeout values depending on CPU frequency and application
    conditions (interrupts routines ...). */
-#define sEE_FLAG_TIMEOUT         ((uint32_t)0x1000)
+#define sEE_FLAG_TIMEOUT         ((uint32_t)0x10000)
 #define sEE_LONG_TIMEOUT         ((uint32_t)(10 * sEE_FLAG_TIMEOUT))
 
 /* Maximum number of trials for sEE_WaitEepromStandbyState() function */

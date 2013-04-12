@@ -402,6 +402,7 @@ uint32_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *tx_buff, uint8_t *len)
 
     // Send address for write
     I2C_Send7bitAddress(dev->I2Cx, addr, I2C_Direction_Transmitter );
+
     sTimeout = sEE_FLAG_TIMEOUT;
     // Test on EV6 and clear it
     while (!I2C_CheckEvent(dev->I2Cx,
@@ -442,15 +443,15 @@ uint32_t i2c_write(i2c_dev *dev, uint8_t addr, uint8_t *tx_buff, uint8_t *len)
 	}
     else
 	{
-	/* Configure the DMA Tx Channel with the buffer address and the buffer size */
-	sEE_LowLevel_DMAConfig((uint32_t) buffer, (uint8_t)(*len),
+    /* Configure the DMA Tx Channel with the buffer address and the buffer size */
+    sEE_LowLevel_DMAConfig((uint32_t) buffer, (uint8_t)(*len),
 		sEE_DIRECTION_TX);
 
-	/* Enable the DMA Tx Stream */
-	DMA_Cmd(sEE_I2C_DMA_STREAM_TX, ENABLE);
+    /* Enable the DMA Tx Stream */
+    DMA_Cmd(sEE_I2C_DMA_STREAM_TX, ENABLE);
 
-	/* Enable the sEE_I2C peripheral DMA requests */
-	I2C_DMACmd(dev->I2Cx, ENABLE);
+    /* Enable the sEE_I2C peripheral DMA requests */
+    I2C_DMACmd(dev->I2Cx, ENABLE);
 	}
 
     return I2C_OK;
@@ -569,7 +570,7 @@ uint32_t i2c_read(i2c_dev *dev, uint8_t addr, uint8_t *tx_buff, uint8_t txlen, u
 	// Re-Enable Acknowledgement to be ready for another reception
 	I2C_AcknowledgeConfig(dev->I2Cx, ENABLE);
 	}
-    else
+    else/* More than one Byte Master Reception procedure (DMA) -----------------*/
 	{
 	/*!< Test on EV6 and clear it */
 	sEETimeout = sEE_FLAG_TIMEOUT;
@@ -710,8 +711,8 @@ uint32_t sEE_ReadBuffer(uint8_t* pBuffer, uint16_t ReadAddr,
 	(void) sEE_I2C ->SR2;
 
 	/*!< STOP condition */
-	I2C_GenerateSTOP(sEE_I2C, DISABLE);
-	I2C_ClearFlag(sEE_I2C, I2C_FLAG_STOPF );
+	//I2C_GenerateSTOP(sEE_I2C, DISABLE);
+	//I2C_ClearFlag(sEE_I2C, I2C_FLAG_STOPF );
 	/* Send STOP condition */
 	I2C_GenerateSTOP(sEE_I2C, ENABLE);
 
@@ -796,8 +797,7 @@ uint32_t sEE_ReadBuffer(uint8_t* pBuffer, uint16_t ReadAddr,
  * @retval sEE_OK (0) if operation is correctly performed, else return value
  *         different from sEE_OK (0) or the timeout user callback.
  */
-uint32_t sEE_WritePage(uint8_t* pBuffer, uint16_t WriteAddr,
-	uint8_t* NumByteToWrite)
+uint32_t sEE_WritePage(uint8_t* pBuffer, uint16_t WriteAddr, uint8_t* NumByteToWrite)
     {
     /* Set the pointer to the Number of data to be written. This pointer will be used
      by the DMA Transfer Completer interrupt Handler in order to reset the
@@ -825,9 +825,9 @@ uint32_t sEE_WritePage(uint8_t* pBuffer, uint16_t WriteAddr,
 	}
 
     /*!< Send EEPROM address for write */
-    sEETimeout = sEE_FLAG_TIMEOUT;
     I2C_Send7bitAddress(sEE_I2C, sEEAddress, I2C_Direction_Transmitter );
 
+	sEETimeout = sEE_FLAG_TIMEOUT;
     /*!< Test on EV6 and clear it */
     sEETimeout = sEE_FLAG_TIMEOUT;
     while (!I2C_CheckEvent(sEE_I2C, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED ))
@@ -841,7 +841,7 @@ uint32_t sEE_WritePage(uint8_t* pBuffer, uint16_t WriteAddr,
 
     /*!< Test on EV8 and clear it */
     sEETimeout = sEE_FLAG_TIMEOUT;
-    while (!I2C_CheckEvent(sEE_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED ))
+    while (!I2C_CheckEvent(sEE_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTING ))
 	{
 	if ((sEETimeout--) == 0)
 	    return I2C_ERROR;
@@ -852,47 +852,24 @@ uint32_t sEE_WritePage(uint8_t* pBuffer, uint16_t WriteAddr,
 
     /*!< Test on EV8 and clear it */
     sEETimeout = sEE_FLAG_TIMEOUT;
-    while (!I2C_CheckEvent(sEE_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED ))
+    while (!I2C_CheckEvent(sEE_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTING ))
 	{
 	if ((sEETimeout--) == 0)
 	    return I2C_ERROR;
 	}
-    if ((uint16_t)(*NumByteToWrite) > 1)
-	{
-	/* Configure the DMA Tx Channel with the buffer address and the buffer size */
+    /* Configure the DMA Tx Channel with the buffer address and the buffer size */
 	sEE_LowLevel_DMAConfig((uint32_t) pBuffer, (uint8_t)(*NumByteToWrite),
 		sEE_DIRECTION_TX);
 
-	/* Enable the DMA Tx Stream */
-	DMA_Cmd(sEE_I2C_DMA_STREAM_TX, ENABLE);
+    /* Enable the DMA Tx Stream */
+    DMA_Cmd(sEE_I2C_DMA_STREAM_TX, ENABLE);
 
-	/* Enable the sEE_I2C peripheral DMA requests */
-	I2C_DMACmd(sEE_I2C, ENABLE);
+    /* Enable the sEE_I2C peripheral DMA requests */
+    I2C_DMACmd(sEE_I2C, ENABLE);
 
-	/* If all operations OK, return sEE_OK (0) */
-	return I2C_OK;
-	}
-    else
-	{
-	I2C_SendData(sEE_I2C, pBuffer[0]);
-	while (!I2C_CheckEvent(sEE_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED ))
-	    {
-	    if ((sEETimeout--) == 0)
-		return I2C_ERROR;
-	    }
-	/*!< STOP condition */
-	I2C_GenerateSTOP(sEE_I2C, DISABLE);
-	I2C_ClearFlag(sEE_I2C, I2C_FLAG_STOPF );
-	/* Send STOP condition */
-	I2C_GenerateSTOP(sEE_I2C, ENABLE);
-
-	while (I2C_GetFlagStatus(sEE_I2C, I2C_FLAG_STOPF ))
-	    ; // stop bit flag
-
-	return I2C_OK;
-	}
-
-    }
+    /* If all operations OK, return sEE_OK (0) */
+    return I2C_OK;
+}
 
 /**
  * @brief  Writes buffer of data to the I2C EEPROM.
