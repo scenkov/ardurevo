@@ -12,10 +12,6 @@ static FastSerial *serPort;
 #endif
 #define notify(fmt, args...) do { if (serPort != NULL) { serPort->printf(fmt, ##args); delay(100); } } while(0)
 
-#if EEPROM_TYPE_ENABLE == EEPROM_FLASH
-
-#elif EEPROM_TYPE_ENABLE == EEPROM_I2C
-
 #define I2C_TIMEOUT         ((uint32_t)0x1000)
 __IO uint32_t  timeout = I2C_TIMEOUT;
 
@@ -85,7 +81,6 @@ uint16_t EEPROMClass::write(uint16_t Address, uint16_t Data)
 		return 0x0000;
 }
 
-#endif
 
 //static functions - access to utilities to emulate EEPROM
 void EEPROMClass::eeprom_read_block (void *pointer_ram, const void *pointer_eeprom, size_t n)
@@ -112,11 +107,11 @@ void EEPROMClass::eeprom_read_block (void *pointer_ram, const void *pointer_eepr
 
 void EEPROMClass::eeprom_write_block (const void *pointer_ram, void *pointer_eeprom, size_t n)
 {
-
-
 	uint8_t * buff = (uint8_t *)pointer_ram;
 	uint16_t addr16 = (uint16_t)(uint32_t)pointer_eeprom;
-	uint32_t ret = sEE_WriteBuffer(buff,addr16,(uint16_t)n);
+	uint16_t numbytes = (uint16_t)n;
+
+	uint32_t ret = sEE_WriteBuffer(buff,addr16,numbytes);
 	if(ret == 1){
 	    serPort->println_P("i2c write block error");
 	    return;
@@ -161,26 +156,26 @@ uint16_t EEPROMClass::eeprom_write_byte (uint8_t *addr, uint8_t value)
 uint16_t EEPROMClass::eeprom_read_word (const uint16_t *addr)
 {
 	uint16_t val = 0;
-	eeprom_read_block(&val, addr, sizeof(val));
+	eeprom_read_block(&val, addr, 2);
 	return val;
 }
 
 void EEPROMClass::eeprom_write_word (uint16_t *addr, uint16_t value)
 {
 	uint16_t val = value;
-	eeprom_write_block(&val, addr, sizeof(val));
+	eeprom_write_block(&val, addr, 2);
 }
 
 uint32_t EEPROMClass::eeprom_read_dword (const uint32_t *addr)
 {
 	uint32_t val = 0;
-	eeprom_read_block(&val, addr, sizeof(val));
+	eeprom_read_block(&val, addr, 4);
 	return val;
 }
 
 void EEPROMClass::eeprom_write_dword (uint32_t *addr, uint32_t value)
 {
 	uint32_t val = value;
-	eeprom_write_block(&val, addr, sizeof(val));
+	eeprom_write_block(&val, addr, 4);
 }
 

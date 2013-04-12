@@ -1057,10 +1057,10 @@ void loop()
                 gps_fix_count           = 0;
                 perf_mon_counter        = 0;
             }
-        }else{
+
             // process communications with the GCS
             gcs_check();
-        }
+    	}
     } else {
 #ifdef DESKTOP_BUILD
         usleep(1000);
