@@ -87,8 +87,8 @@ static void update_navigation()
 static void calc_velocity_and_position(){
     static int32_t last_gps_longitude = 0;
     static int32_t last_gps_latitude  = 0;
-    static float lon_speed_old;
-    static float lat_speed_old;
+    static int16_t lon_speed_old = 0;
+    static int16_t lat_speed_old = 0;
 
     // initialise last_longitude and last_latitude
     if( last_gps_longitude == 0 && last_gps_latitude == 0 ) {
@@ -119,14 +119,14 @@ static void calc_velocity_and_position(){
     }
 #else
     // calculate velocity
-    lon_speed  = (float)(g_gps->longitude - last_gps_longitude)  * scaleLongDown * tmp;
-    lat_speed  = (float)(g_gps->latitude  - last_gps_latitude)  * tmp;
+    lon_speed  = (int16_t)((float)(g_gps->longitude - last_gps_longitude) * scaleLongDown * tmp);
+    lat_speed  = (int16_t)((float)(g_gps->latitude  - last_gps_latitude) * tmp);
 
-    lat_speed = (int16_t)((float)lat_speed * 0.8 + lat_speed_old * 0.2);
-    lon_speed = (int16_t)((float)lon_speed * 0.8 + lon_speed_old * 0.2);
+    lat_speed = (int16_t)((float)lat_speed * 0.8 + (float)lat_speed_old * 0.2));
+    lon_speed = (int16_t)((float)lon_speed * 0.8 + (float)lon_speed_old * 0.2));
 
-    lat_speed_old = (float)lat_speed;
-    lon_speed_old = (float)lon_speed;
+    lat_speed_old = lat_speed;
+    lon_speed_old = lon_speed;
     // calculate position from gps + expected travel during gps_lag
     current_loc.lng = xLeadFilter.get_position(g_gps->longitude, lon_speed, g_gps->get_lag());
     current_loc.lat = yLeadFilter.get_position(g_gps->latitude,  lat_speed, g_gps->get_lag());
