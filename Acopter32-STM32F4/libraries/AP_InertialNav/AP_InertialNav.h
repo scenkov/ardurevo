@@ -8,7 +8,6 @@
 #include <AP_Baro.h>                    // ArduPilot Mega Barometer Library
 #include <AP_Buffer.h>                  // FIFO buffer library
 
-#define AP_INTERTIALNAV_GRAVITY 9.80665f
 #define AP_INTERTIALNAV_TC_XY   3.0f // default time constant for complementary filter's X & Y axis
 #define AP_INTERTIALNAV_TC_Z    5.0f // default time constant for complementary filter's Z axis
 
@@ -62,6 +61,9 @@ public:
     // correct_with_gps - modifies accelerometer offsets using gps.  dt is time since last gps update
     void        correct_with_gps(int32_t lon, int32_t lat, float dt);
 
+    // get_position - returns current position from home in cm
+    Vector3f    get_position() { return _position_base + _position_correction; }
+
     // get latitude & longitude positions
     int32_t     get_latitude();
     int32_t     get_longitude();
@@ -76,6 +78,9 @@ public:
     // get velocity in latitude & longitude directions (in cm/s)
     float       get_latitude_velocity();
     float       get_longitude_velocity();
+
+    // get_velocity - returns current velocity in cm/s
+    Vector3f    get_velocity() { return _velocity; }
 
     // set velocity in latitude & longitude directions (in cm/s)
     void        set_velocity_xy(float x, float y);

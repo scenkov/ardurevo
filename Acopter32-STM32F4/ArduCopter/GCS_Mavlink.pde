@@ -271,13 +271,13 @@ static void NOINLINE send_ahrs(mavlink_channel_t chan)
         ahrs.get_error_yaw());
 }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 // report simulator state
 static void NOINLINE send_simstate(mavlink_channel_t chan)
 {
+#if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     sitl.simstate_send(chan);
-}
 #endif
+}
 
 static void NOINLINE send_hwstatus(mavlink_channel_t chan)
 {
@@ -1695,14 +1695,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         }
 
         if(packet.current == 2) {                                               //current = 2 is a flag to tell us this is a "guided mode" waypoint and not for the mission
-            guided_WP = tell_command;
-
-            // add home alt if needed
-            if (guided_WP.options & MASK_OPTIONS_RELATIVE_ALT) {
-                guided_WP.alt += home.alt;
-            }
-
+            // switch to guided mode
             set_mode(GUIDED);
+
+            // set wp_nav's destination
+            wp_nav.set_destination(pv_location_to_vector(tell_command));
 
             // verify we recevied the command
             mavlink_msg_mission_ack_send(
@@ -1718,7 +1715,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 tell_command.alt += home.alt;
             }
 
-            set_new_altitude(tell_command.alt);
+            // To-Do: update target altitude for loiter or waypoint controller depending upon nav mode
+            // similar to how do_change_alt works
+            wp_nav.set_desired_alt(tell_command.alt);
 
             // verify we recevied the command
             mavlink_msg_mission_ack_send(
