@@ -122,8 +122,8 @@ static void calc_velocity_and_position(){
     lon_speed  = (int16_t)((float)(g_gps->longitude - last_gps_longitude) * scaleLongDown * tmp);
     lat_speed  = (int16_t)((float)(g_gps->latitude  - last_gps_latitude) * tmp);
 
-    lat_speed = (int16_t)((float)lat_speed * 0.8 + (float)lat_speed_old * 0.2));
-    lon_speed = (int16_t)((float)lon_speed * 0.8 + (float)lon_speed_old * 0.2));
+    lat_speed = (int16_t)(((float)lat_speed * 0.8 + (float)lat_speed_old * 0.2));
+    lon_speed = (int16_t)(((float)lon_speed * 0.8 + (float)lon_speed_old * 0.2));
 
     lat_speed_old = lat_speed;
     lon_speed_old = lon_speed;
