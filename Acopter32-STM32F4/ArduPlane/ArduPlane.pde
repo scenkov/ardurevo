@@ -1,8 +1,10 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V2.69"
+#define THISFIRMWARE "ArduPlane V2.71"
 /*
- *  Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Andrew Tridgell, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Amilcar Lucas, Gregory Fletcher
+ *  Lead developer: Andrew Tridgell
+ *
+ *  Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Amilcar Lucas, Gregory Fletcher, Paul Riseborough, Brandon Jones, Jon Challinger
  *  Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier, Yury MonZon
  *  Please contribute your ideas!
  *
@@ -58,6 +60,9 @@
 #include <APM_Control.h>
 #endif
 
+#include <AP_Navigation.h>
+#include <AP_L1_Control.h>
+
 // Pre-AP_HAL compatibility
 #include "compat.h"
 
@@ -102,6 +107,7 @@ static Parameters g;
 ////////////////////////////////////////////////////////////////////////////////
 // prototypes
 static void update_events(void);
+void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -212,11 +218,9 @@ AP_InertialSensor_Oilpan ins( &adc );
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 
-#if HIL_MODE == HIL_MODE_ATTITUDE
-AP_AHRS_HIL ahrs(&ins, g_gps);
-#else
 AP_AHRS_DCM ahrs(&ins, g_gps);
-#endif
+
+static AP_L1_Control L1_controller(&ahrs);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 SITL sitl;
@@ -229,32 +233,35 @@ static bool training_manual_pitch; // user has manual pitch control
 ////////////////////////////////////////////////////////////////////////////////
 // GCS selection
 ////////////////////////////////////////////////////////////////////////////////
-GCS_MAVLINK gcs0;
-GCS_MAVLINK gcs3;
+static GCS_MAVLINK gcs0;
+static GCS_MAVLINK gcs3;
+
+// selected navigation controller
+static AP_Navigation *nav_controller = &L1_controller;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Analog Inputs
 ////////////////////////////////////////////////////////////////////////////////
 
-AP_HAL::AnalogSource *pitot_analog_source;
+static AP_HAL::AnalogSource *pitot_analog_source;
 
 // a pin for reading the receiver RSSI voltage. The scaling by 0.25 
 // is to take the 0 to 1024 range down to an 8 bit range for MAVLink
-AP_HAL::AnalogSource *rssi_analog_source;
+static AP_HAL::AnalogSource *rssi_analog_source;
 
-AP_HAL::AnalogSource *vcc_pin;
+static AP_HAL::AnalogSource *vcc_pin;
 
-AP_HAL::AnalogSource * batt_volt_pin;
-AP_HAL::AnalogSource * batt_curr_pin;
+static AP_HAL::AnalogSource * batt_volt_pin;
+static AP_HAL::AnalogSource * batt_curr_pin;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Relay
 ////////////////////////////////////////////////////////////////////////////////
-AP_Relay relay;
+static AP_Relay relay;
 
 // Camera
 #if CAMERA == ENABLED
-AP_Camera camera(&relay);
+static AP_Camera camera(&relay);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -291,16 +298,23 @@ enum FlightMode control_mode  = INITIALISING;
 uint8_t oldSwitchPosition;
 // This is used to enable the inverted flight feature
 bool inverted_flight     = false;
-// These are trim values used for elevon control
-// For elevons radio_in[CH_ROLL] and radio_in[CH_PITCH] are equivalent aileron and elevator, not left and right elevon
-static uint16_t elevon1_trim  = 1500;
-static uint16_t elevon2_trim  = 1500;
-// These are used in the calculation of elevon1_trim and elevon2_trim
-static uint16_t ch1_temp      = 1500;
-static uint16_t ch2_temp        = 1500;
-// These are values received from the GCS if the user is using GCS joystick
-// control and are substituted for the values coming from the RC radio
-static int16_t rc_override[8] = {0,0,0,0,0,0,0,0};
+
+static struct {
+    // These are trim values used for elevon control
+    // For elevons radio_in[CH_ROLL] and radio_in[CH_PITCH] are
+    // equivalent aileron and elevator, not left and right elevon
+    uint16_t trim1;
+    uint16_t trim2;
+    // These are used in the calculation of elevon1_trim and elevon2_trim
+    uint16_t ch1_temp;
+    uint16_t ch2_temp;
+} elevon = {
+	trim1 : 1500,
+    trim2 : 1500,
+    ch1_temp : 1500,
+    ch2_temp : 1500
+};
+
 // A flag if GCS joystick control is in use
 static bool rc_override_active = false;
 
@@ -351,24 +365,11 @@ static bool have_position;
 ////////////////////////////////////////////////////////////////////////////////
 // Location & Navigation
 ////////////////////////////////////////////////////////////////////////////////
-// Constants
-const float radius_of_earth   = 6378100;        // meters
-
-// This is the currently calculated direction to fly.
-// deg * 100 : 0 to 360
-static int32_t nav_bearing_cd;
-
-// This is the direction to the next waypoint or loiter center
-// deg * 100 : 0 to 360
-static int32_t target_bearing_cd;
-
-//This is the direction from the last waypoint to the next waypoint
-// deg * 100 : 0 to 360
-static int32_t crosstrack_bearing_cd;
 
 // Direction held during phases of takeoff and landing
 // deg * 100 dir of plane,  A value of -1 indicates the course has not been set/is not in use
-static int32_t hold_course                   = -1;              // deg * 100 dir of plane
+// this is a 0..36000 value, or -1 for disabled
+static int32_t hold_course_cd                 = -1;              // deg * 100 dir of plane
 
 // There may be two active commands in Auto mode.
 // This indicates the active navigation command by index number
@@ -414,17 +415,8 @@ static uint8_t receiver_rssi;
 // The amount current ground speed is below min ground speed.  Centimeters per second
 static int32_t groundspeed_undershoot = 0;
 
-////////////////////////////////////////////////////////////////////////////////
-// Location Errors
-////////////////////////////////////////////////////////////////////////////////
-// Difference between current bearing and desired bearing.  Hundredths of a degree
-static int32_t bearing_error_cd;
-
 // Difference between current altitude and desired altitude.  Centimeters
 static int32_t altitude_error_cm;
-
-// Distance perpandicular to the course line that we are off trackline.  Meters
-static float crosstrack_error;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Battery Sensors
@@ -469,26 +461,6 @@ static bool throttle_suppressed;
 ////////////////////////////////////////////////////////////////////////////////
 // Loiter management
 ////////////////////////////////////////////////////////////////////////////////
-// Previous target bearing.  Used to calculate loiter rotations.  Hundredths of a degree
-static int32_t old_target_bearing_cd;
-
-// Total desired rotation in a loiter.  Used for Loiter Turns commands.  Degrees
-static int32_t loiter_total;
-
-// Direction for loiter. 1 for clockwise, -1 for counter-clockwise
-static int8_t loiter_direction = 1;
-
-// The amount in degrees we have turned since recording old_target_bearing
-static int16_t loiter_delta;
-
-// Total rotation in a loiter.  Used for Loiter Turns commands and to check for missed waypoints.  Degrees
-static int32_t loiter_sum;
-
-// The amount of time we have been in a Loiter.  Used for the Loiter Time command.  Milliseconds.
-static uint32_t loiter_time_ms;
-
-// The amount of time we should stay in a loiter for the Loiter Time command.  Milliseconds.
-static uint32_t loiter_time_max_ms;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Navigation control variables
@@ -508,6 +480,30 @@ uint32_t wp_distance;
 
 // Distance between previous and next waypoint.  Meters
 static uint32_t wp_totalDistance;
+
+/*
+  meta data to support counting the number of circles in a loiter
+ */
+static struct {
+    // previous target bearing, used to update sum_cd
+    int32_t old_target_bearing_cd;
+
+    // Total desired rotation in a loiter.  Used for Loiter Turns commands. 
+    int32_t total_cd;
+
+    // total angle completed in the loiter so far
+    int32_t sum_cd;
+
+	// Direction for loiter. 1 for clockwise, -1 for counter-clockwise
+    int8_t direction;
+
+	// start time of the loiter.  Milliseconds.
+    uint32_t start_time_ms;
+
+	// The amount of time we should stay in a loiter for the Loiter Time command.  Milliseconds.
+    uint32_t time_max_ms;
+} loiter;
+
 
 // event control state
 enum event_type { 
@@ -753,15 +749,12 @@ static void fast_loop()
     // ------------------------------------
     check_short_failsafe();
 
-#if HIL_MODE == HIL_MODE_SENSORS
+#if HIL_MODE != HIL_MODE_DISABLED
     // update hil before AHRS update
     gcs_update();
 #endif
 
     ahrs.update();
-
-    // uses the yaw from the DCM to give more accurate turns
-    calc_bearing_error();
 
     if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
         Log_Write_Attitude();
@@ -777,7 +770,8 @@ static void fast_loop()
 #endif
 
     // custom code/exceptions for flight modes
-    // ---------------------------------------
+    // calculates roll, pitch and yaw demands from navigation demands
+    // --------------------------------------------------------------
     update_current_flight_mode();
 
     // apply desired roll, pitch and yaw to the plane
@@ -818,14 +812,12 @@ static void medium_loop()
         update_GPS();
         calc_gndspeed_undershoot();
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
         if (g.compass_enabled && compass.read()) {
             ahrs.set_compass(&compass);
             compass.null_offsets();
         } else {
             ahrs.set_compass(NULL);
         }
-#endif
 
         break;
 
@@ -851,11 +843,9 @@ static void medium_loop()
 
         // Read Airspeed
         // -------------
-#if HIL_MODE != HIL_MODE_ATTITUDE
         if (airspeed.enabled()) {
             read_airspeed();
         }
-#endif
 
         read_receiver_rssi();
 
@@ -924,12 +914,11 @@ static void slow_loop()
         slow_loopCounter++;
         check_long_failsafe();
         superslow_loopCounter++;
-        if(superslow_loopCounter >=200) {                                               //	200 = Execute every minute
-#if HIL_MODE != HIL_MODE_ATTITUDE
+        if(superslow_loopCounter >=200) {                                               
+            //	200 = Execute every minute
             if(g.compass_enabled) {
                 compass.save_offsets();
             }
-#endif
 
             superslow_loopCounter = 0;
         }
@@ -982,7 +971,7 @@ static void update_GPS(void)
     // get position from AHRS
     have_position = ahrs.get_position(&current_loc);
 
-    if (g_gps->new_data && g_gps->fix) {
+    if (g_gps->new_data && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
         g_gps->new_data = false;
 
         // for performance
@@ -1032,10 +1021,15 @@ static void update_current_flight_mode(void)
 
         switch(nav_command_ID) {
         case MAV_CMD_NAV_TAKEOFF:
-            if (hold_course != -1 && g.rudder_steer == 0) {
-                calc_nav_roll();
-            } else {
+            if (hold_course_cd == -1) {
+                // we don't yet have a heading to hold - just level
+                // the wings until we get up enough speed to get a GPS heading
                 nav_roll_cd = 0;
+            } else {
+                calc_nav_roll();
+                // during takeoff use the level flight roll limit to
+                // prevent large course corrections
+				nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
             }
 
             if (alt_control_airspeed()) {
@@ -1065,13 +1059,13 @@ static void update_current_flight_mode(void)
             break;
 
         case MAV_CMD_NAV_LAND:
-            if (g.rudder_steer == 0 || !land_complete) {
-                calc_nav_roll();
-            } else {
-                nav_roll_cd = 0;
-            }
+            calc_nav_roll();
 
             if (land_complete) {
+                // during final approach constrain roll to the range
+                // allowed for level flight
+                nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
+
                 // hold pitch constant in final approach
                 nav_pitch_cd = g.land_pitch_cd;
             } else {
@@ -1094,7 +1088,7 @@ static void update_current_flight_mode(void)
         default:
             // we are doing normal AUTO flight, the special cases
             // are for takeoff and landing
-            hold_course = -1;
+            hold_course_cd = -1;
             land_complete = false;
             calc_nav_roll();
             calc_nav_pitch();
@@ -1103,7 +1097,7 @@ static void update_current_flight_mode(void)
         }
     }else{
         // hold_course is only used in takeoff and landing
-        hold_course = -1;
+        hold_course_cd = -1;
 
         switch(control_mode) {
         case RTL:
@@ -1162,7 +1156,8 @@ static void update_current_flight_mode(void)
             break;
         }
 
-        case FLY_BY_WIRE_B:
+        case FLY_BY_WIRE_B: {
+            static float last_elevator_input;
             // Substitute stick inputs for Navigation control output
             // We use g.pitch_limit_min because its magnitude is
             // normally greater than g.pitch_limit_max
@@ -1177,16 +1172,26 @@ static void update_current_flight_mode(void)
             if (g.flybywire_elev_reverse) {
                 elevator_input = -elevator_input;
             }
-            if ((adjusted_altitude_cm() >= home.alt+g.FBWB_min_altitude_cm) || (g.FBWB_min_altitude_cm == 0)) {
-                altitude_error_cm = elevator_input * g.pitch_limit_min_cd;
-            } else {
-                altitude_error_cm = (home.alt + g.FBWB_min_altitude_cm) - adjusted_altitude_cm();
-                if (elevator_input < 0) {
-                    altitude_error_cm += elevator_input * g.pitch_limit_min_cd;
-                }
+
+            target_altitude_cm += g.flybywire_climb_rate * elevator_input * delta_ms_fast_loop * 0.1f;
+
+            if (elevator_input == 0.0f && last_elevator_input != 0.0f) {
+                // the user has just released the elevator, lock in
+                // the current altitude
+                target_altitude_cm = current_loc.alt;
             }
+
+            // check for FBWB altitude limit
+            if (g.FBWB_min_altitude_cm != 0 && target_altitude_cm < home.alt + g.FBWB_min_altitude_cm) {
+                target_altitude_cm = home.alt + g.FBWB_min_altitude_cm;
+            }
+            altitude_error_cm = target_altitude_cm - adjusted_altitude_cm();
+
+            last_elevator_input = elevator_input;
+
             calc_throttle();
             calc_nav_pitch();
+        }
             break;
 
         case STABILIZE:
@@ -1237,7 +1242,6 @@ static void update_navigation()
     case RTL:
     case GUIDED:
         update_loiter();
-        calc_bearing_error();
         break;
 
     case MANUAL:
@@ -1255,19 +1259,15 @@ static void update_navigation()
 
 static void update_alt()
 {
-#if HIL_MODE == HIL_MODE_ATTITUDE
-    current_loc.alt = g_gps->altitude;
-#else
     // this function is in place to potentially add a sonar sensor in the future
     //altitude_sensor = BARO;
 
     if (barometer.healthy) {
         current_loc.alt = (1 - g.altitude_mix) * g_gps->altitude;                       // alt_MSL centimeters (meters * 100)
         current_loc.alt += g.altitude_mix * (read_barometer() + home.alt);
-    } else if (g_gps->fix) {
+    } else if (g_gps->status() >= GPS::GPS_OK_FIX_3D) {
         current_loc.alt = g_gps->altitude;     // alt_MSL centimeters (meters * 100)
     }
-#endif
 
     geofence_check(true);
 

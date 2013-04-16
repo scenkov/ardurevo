@@ -162,8 +162,6 @@ static void init_ardupilot()
     }
 #endif
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
-
  #if CONFIG_ADC == ENABLED
     adc.Init();      // APM ADC library initialization
  #endif
@@ -179,7 +177,6 @@ static void init_ardupilot()
             ahrs.set_compass(&compass);
         }
     }
-#endif
 
     // give AHRS the airspeed sensor
     ahrs.set_airspeed(&airspeed);
@@ -199,9 +196,6 @@ static void init_ardupilot()
     //mavlink_system.sysid = MAV_SYSTEM_ID;				// Using g.sysid_this_mav
     mavlink_system.compid = 1;          //MAV_COMP_ID_IMU;   // We do not check for comp id
     mavlink_system.type = MAV_TYPE_FIXED_WING;
-
-    // Set initial values for no override
-    rc_override_active = hal.rcin->set_overrides(rc_override, 8);
 
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
@@ -236,15 +230,12 @@ static void init_ardupilot()
         // Get necessary data from EEPROM
         //----------------
         //read_EEPROM_airstart_critical();
-#if HIL_MODE != HIL_MODE_ATTITUDE
         ahrs.init();
         ahrs.set_fly_forward(true);
 
         ins.init(AP_InertialSensor::WARM_START, 
                  ins_sample_rate,
                  flash_leds);
-
-#endif
 
         // This delay is important for the APM_RC library to work.
         // We need some time for the comm between the 328 and 1280 to be established.
@@ -268,6 +259,9 @@ static void init_ardupilot()
         if (g.log_bitmask & MASK_LOG_CMD)
             Log_Write_Startup(TYPE_GROUNDSTART_MSG);
     }
+
+    // choose the nav controller
+    set_nav_controller();
 
     set_mode(MANUAL);
 
@@ -350,7 +344,10 @@ static void set_mode(enum FlightMode mode)
     case STABILIZE:
     case TRAINING:
     case FLY_BY_WIRE_A:
+        break;
+
     case FLY_BY_WIRE_B:
+        target_altitude_cm = current_loc.alt;
         break;
 
     case CIRCLE:
@@ -359,10 +356,12 @@ static void set_mode(enum FlightMode mode)
         break;
 
     case AUTO:
+        prev_WP = current_loc;
         update_auto();
         break;
 
     case RTL:
+        prev_WP = current_loc;
         do_RTL();
         break;
 
@@ -375,6 +374,7 @@ static void set_mode(enum FlightMode mode)
         break;
 
     default:
+        prev_WP = current_loc;
         do_RTL();
         break;
     }
@@ -403,6 +403,7 @@ static void check_long_failsafe()
             failsafe_long_on_event(FAILSAFE_LONG);
         }
         if (g.gcs_heartbeat_fs_enabled && 
+            last_heartbeat_ms != 0 &&
             (tnow - last_heartbeat_ms) > FAILSAFE_LONG_TIME) {
             failsafe_long_on_event(FAILSAFE_GCS);
         }
@@ -474,7 +475,6 @@ static void startup_INS_ground(bool force_accel_level)
 #endif
     ahrs.reset();
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
     //-----------------------------
     init_barometer();
@@ -487,7 +487,6 @@ static void startup_INS_ground(bool force_accel_level)
         gcs_send_text_P(SEVERITY_LOW,PSTR("NO airspeed"));
     }
 
-#endif
     digitalWrite(B_LED_PIN, LED_ON);                    // Set LED B high to indicate INS ready
     digitalWrite(A_LED_PIN, LED_OFF);
     digitalWrite(C_LED_PIN, LED_OFF);
@@ -499,25 +498,27 @@ static void update_GPS_light(void)
     // GPS LED on if we have a fix or Blink GPS LED if we are receiving data
     // ---------------------------------------------------------------------
     switch (g_gps->status()) {
-    case (2):
-        digitalWrite(C_LED_PIN, LED_ON);                  //Turn LED C on when gps has valid fix.
-        break;
-
-    case (1):
-        if (g_gps->valid_read == true) {
-            GPS_light = !GPS_light;                     // Toggle light on and off to indicate gps messages being received, but no GPS fix lock
-            if (GPS_light) {
-                digitalWrite(C_LED_PIN, LED_OFF);
-            } else {
-                digitalWrite(C_LED_PIN, LED_ON);
+        case GPS::NO_FIX:
+        case GPS::GPS_OK_FIX_2D:
+            // check if we've blinked since the last gps update
+            if (g_gps->valid_read) {
+                g_gps->valid_read = false;
+                GPS_light = !GPS_light;                     // Toggle light on and off to indicate gps messages being received, but no GPS fix lock
+                if (GPS_light) {
+                    digitalWrite(C_LED_PIN, LED_OFF);
+                }else{
+                    digitalWrite(C_LED_PIN, LED_ON);
+                }
             }
-            g_gps->valid_read = false;
-        }
-        break;
+            break;
 
-    default:
-        digitalWrite(C_LED_PIN, LED_OFF);
-        break;
+        case GPS::GPS_OK_FIX_3D:
+            digitalWrite(C_LED_PIN, LED_ON);                  //Turn LED C on when gps has valid fix AND home is set.
+            break;
+
+        default:
+            digitalWrite(C_LED_PIN, LED_OFF);
+            break;
     }
 }
 
@@ -645,3 +646,20 @@ static void print_comma(void)
 }
 
 
+/*
+  write to a servo
+ */
+static void servo_write(uint8_t ch, uint16_t pwm)
+{
+#if HIL_MODE != HIL_MODE_DISABLED
+    if (!g.hil_servos) {
+        extern RC_Channel *rc_ch[8];
+        if (ch < 8) {
+            rc_ch[ch]->radio_out = pwm;
+        }
+        return;
+    }
+#endif
+    hal.rcout->enable_ch(ch);
+    hal.rcout->write(ch, pwm);
+}
