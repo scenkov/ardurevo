@@ -8,12 +8,14 @@ static int8_t	setup_show			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_factory		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_flightmodes	(uint8_t argc, const Menu::arg *argv);
 #if !defined( __AVR_ATmega1280__ )
-static int8_t   setup_accel_scale                       (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_accel_scale   (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_set           (uint8_t argc, const Menu::arg *argv);
 #endif
+static int8_t   setup_level         (uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_erase			(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_compass			(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_declination		(uint8_t argc, const Menu::arg *argv);
-static int8_t	setup_batt_monitor			(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_compass		(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_declination	(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_batt_monitor	(uint8_t argc, const Menu::arg *argv);
 
 // Command/function table for the setup menu
 static const struct Menu::command setup_menu_commands[] PROGMEM = {
@@ -22,6 +24,7 @@ static const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"reset", 			setup_factory},
 	{"radio",			setup_radio},
 	{"modes",			setup_flightmodes},
+	{"level",			setup_level},
 #if !defined( __AVR_ATmega1280__ )
     {"accel",           setup_accel_scale},
 #endif
@@ -29,6 +32,9 @@ static const struct Menu::command setup_menu_commands[] PROGMEM = {
 	{"declination",		setup_declination},
 	{"battery",			setup_batt_monitor},
 	{"show",			setup_show},
+#if !defined( __AVR_ATmega1280__ )
+	{"set",				setup_set},
+#endif
 	{"erase",			setup_erase},
 };
 
@@ -57,6 +63,46 @@ setup_mode(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_show(uint8_t argc, const Menu::arg *argv)
 {
+
+#if !defined( __AVR_ATmega1280__ )
+	AP_Param *param;
+	ap_var_type type;
+
+	//If a parameter name is given as an argument to show, print only that parameter
+	if(argc>=2)
+	{
+
+		param=AP_Param::find(argv[1].str, &type);
+
+		if(!param)
+		{
+			cliSerial->printf_P(PSTR("Parameter not found: '%s'\n"), argv[1]);
+		return 0;
+		}
+
+		//Print differently for different types, and include parameter type in output.
+		switch (type) {
+			case AP_PARAM_INT8:
+				cliSerial->printf_P(PSTR("INT8  %s: %d\n"), argv[1].str, (int)((AP_Int8 *)param)->get());
+				break;
+			case AP_PARAM_INT16:
+				cliSerial->printf_P(PSTR("INT16 %s: %d\n"), argv[1].str, (int)((AP_Int16 *)param)->get());
+				break;
+			case AP_PARAM_INT32:
+				cliSerial->printf_P(PSTR("INT32 %s: %ld\n"), argv[1].str, (long)((AP_Int32 *)param)->get());
+				break;
+			case AP_PARAM_FLOAT:
+				cliSerial->printf_P(PSTR("FLOAT %s: %f\n"), argv[1].str, ((AP_Float *)param)->get());
+				break;
+			default:
+				cliSerial->printf_P(PSTR("Unhandled parameter type for %s: %d.\n"), argv[1].str, type);
+				break;
+		}
+
+		return 0;
+	}
+#endif
+
 	// clear the area
 	print_blanks(8);
 
@@ -75,6 +121,70 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 
 	return(0);
 }
+
+
+#if !defined( __AVR_ATmega1280__ )
+
+//Set a parameter to a specified value. It will cast the value to the current type of the
+//parameter and make sure it fits in case of INT8 and INT16
+static int8_t setup_set(uint8_t argc, const Menu::arg *argv)
+{
+	int8_t value_int8;
+	int16_t value_int16;
+
+	AP_Param *param;
+	enum ap_var_type p_type;
+
+	if(argc!=3)
+	{
+		cliSerial->printf_P(PSTR("Invalid command. Usage: set <name> <value>\n"));
+		return 0;
+	}
+
+	param = AP_Param::find(argv[1].str, &p_type);
+	if(!param)
+	{
+		cliSerial->printf_P(PSTR("Param not found: %s\n"), argv[1].str);
+		return 0;
+	}
+
+	switch(p_type)
+	{
+		case AP_PARAM_INT8:
+			value_int8 = (int8_t)(argv[2].i);
+			if(argv[2].i!=value_int8)
+			{
+				cliSerial->printf_P(PSTR("Value out of range for type INT8\n"));
+				return 0;
+			}
+			((AP_Int8*)param)->set_and_save(value_int8);
+			break;
+		case AP_PARAM_INT16:
+			value_int16 = (int16_t)(argv[2].i);
+			if(argv[2].i!=value_int16)
+			{
+				cliSerial->printf_P(PSTR("Value out of range for type INT16\n"));
+				return 0;
+			}
+			((AP_Int16*)param)->set_and_save(value_int16);
+			break;
+
+		//int32 and float don't need bounds checking, just use the value provoded by Menu::arg
+		case AP_PARAM_INT32:
+			((AP_Int32*)param)->set_and_save(argv[2].i);
+			break;
+		case AP_PARAM_FLOAT:
+			((AP_Float*)param)->set_and_save(argv[2].f);
+			break;
+		default:
+			cliSerial->printf_P(PSTR("Cannot set parameter of type %d.\n"), p_type);
+			break;
+	}
+
+	return 0;
+}
+#endif
+
 
 // Initialise the EEPROM to 'factory' settings (mostly defined in APM_Config.h or via defaults).
 // Called by the setup menu 'factoryreset' command.
@@ -228,7 +338,9 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
 
 			while (
 				mode != MANUAL &&
+				mode != HOLD &&
 				mode != LEARNING &&
+				mode != STEERING &&
 				mode != AUTO &&
 				mode != RTL) 
 			{
@@ -310,6 +422,19 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
     return(0);
 }
 #endif
+
+static int8_t
+setup_level(uint8_t argc, const Menu::arg *argv)
+{
+    cliSerial->println_P(PSTR("Initialising gyros"));
+    ahrs.init();
+    ins.init(AP_InertialSensor::COLD_START, 
+             ins_sample_rate,
+             flash_leds);
+    ins.init_accel(flash_leds);
+    ahrs.set_trim(Vector3f(0, 0, 0));
+    return(0);
+}
 
 static int8_t
 setup_compass(uint8_t argc, const Menu::arg *argv)

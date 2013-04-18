@@ -83,6 +83,7 @@
 # define BATTERY_PIN_1	  0
 # define CURRENT_PIN_1	  1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ # define CONFIG_COMPASS  AP_COMPASS_HMC5843
  # define A_LED_PIN        19
  # define B_LED_PIN        20
  # define C_LED_PIN        21
