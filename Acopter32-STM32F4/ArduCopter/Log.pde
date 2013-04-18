@@ -29,13 +29,6 @@ MENU2(log_menu, "Log", log_menu_commands, print_log_menu);
 static bool
 print_log_menu(void)
 {
-    uint16_t log_start;
-    uint16_t log_end;
-    uint16_t temp;
-    uint16_t last_log_num = DataFlash.find_last_log();
-
-    uint16_t num_logs = DataFlash.get_num_logs();
-
     cliSerial->printf_P(PSTR("logs enabled: "));
 
     if (0 == g.log_bitmask) {
@@ -60,23 +53,8 @@ print_log_menu(void)
 
     cliSerial->println();
 
-    if (num_logs == 0) {
-        cliSerial->printf_P(PSTR("\nNo logs\n\n"));
-    }else{
-        cliSerial->printf_P(PSTR("\n%u logs\n"), (unsigned)num_logs);
+    DataFlash.ListAvailableLogs(cliSerial);
 
-        for(int16_t i=num_logs; i>=1; i--) {
-            uint16_t last_log_start = log_start, last_log_end = log_end;
-            temp = last_log_num-i+1;
-            DataFlash.get_log_boundaries(temp, log_start, log_end);
-            cliSerial->printf_P(PSTR("Log %d,    start %d,   end %d\n"), (int)temp, (int)log_start, (int)log_end);
-            if (last_log_start == log_start && last_log_end == log_end) {
-                // we are printing bogus logs
-                break;
-            }
-        }
-        cliSerial->println();
-    }
     return(true);
 }
 
@@ -105,13 +83,7 @@ dump_log(uint8_t argc, const Menu::arg *argv)
     }
 
     DataFlash.get_log_boundaries(dump_log, dump_log_start, dump_log_end);
-    /*cliSerial->printf_P(PSTR("Dumping Log number %d,    start %d,   end %d\n"),
-     *                         dump_log,
-     *                         dump_log_start,
-     *                         dump_log_end);
-     */
-    Log_Read((uint8_t)dump_log, dump_log_start, dump_log_end);
-    //cliSerial->printf_P(PSTR("Done\n"));
+    Log_Read((uint16_t)dump_log, dump_log_start, dump_log_end);
     return (0);
 }
 
@@ -283,12 +255,12 @@ static void Log_Read_IMU()
 
     //                                 1      2      3      4      5      6
     cliSerial->printf_P(PSTR("IMU, %4.4f, %4.4f, %4.4f, %4.4f, %4.4f, %4.4f\n"),
-        (float)pkt.gyro.x,
-        (float)pkt.gyro.y,
-        (float)pkt.gyro.z,
-        (float)pkt.accel.x,
-        (float)pkt.accel.y,
-        (float)pkt.accel.z);
+        pkt.gyro.x,
+        pkt.gyro.y,
+        pkt.gyro.z,
+        pkt.accel.x,
+        pkt.accel.y,
+        pkt.accel.z);
 }
 
 struct log_Current {
@@ -475,8 +447,8 @@ static void Log_Read_Optflow()
                     (int)pkt.surface_quality,
                     (int)pkt.x_cm,
                     (int)pkt.y_cm,
-                    (float)pkt.latitude,
-                    (float)pkt.longitude,
+                    pkt.latitude,
+                    pkt.longitude,
                     (long)pkt.roll,
                     (long)pkt.pitch);
 }
@@ -520,8 +492,8 @@ static void Log_Read_Nav_Tuning()
     cliSerial->printf_P(PSTR("NTUN, %lu, %d, %.0f, %.0f, %d, %d, %d, %d\n"),
         (unsigned long)pkt.wp_distance,
         (int)pkt.wp_bearing,
-        (float)pkt.lat_error,
-        (float)pkt.lon_error,
+        pkt.lat_error,
+        pkt.lon_error,
         (int)pkt.nav_pitch,
         (int)pkt.nav_roll,
         (int)pkt.lat_speed,
@@ -550,7 +522,7 @@ static void Log_Write_Control_Tuning()
         throttle_in         : g.rc_3.control_in,
         sonar_alt           : sonar_alt,
         baro_alt            : baro_alt,
-        next_wp_alt         : target_alt_for_reporting,
+        next_wp_alt         : get_target_alt_for_reporting(),
         nav_throttle        : nav_throttle,
         angle_boost         : angle_boost,
         climb_rate          : climb_rate,
@@ -571,7 +543,7 @@ static void Log_Read_Control_Tuning()
         (int)pkt.throttle_in,
         (int)pkt.sonar_alt,
         (long)pkt.baro_alt,
-        (float)pkt.next_wp_alt,
+        pkt.next_wp_alt,
         (int)pkt.nav_throttle,
         (int)pkt.angle_boost,
         (int)pkt.climb_rate,
@@ -775,11 +747,9 @@ struct log_INAV {
     int32_t gps_lon_from_home;
     float   inav_lat_from_home;
     float   inav_lon_from_home;
-    float   inav_lat_speed;
-    float   inav_lon_speed;
 };
 
-// Write an INAV packet. Total length : 52 Bytes
+// Write an INAV packet. Total length : 37 Bytes
 static void Log_Write_INAV()
 {
     Vector3f accel_corr = inertial_nav.accel_correction_ef;
@@ -795,9 +765,7 @@ static void Log_Write_INAV()
         gps_lat_from_home   : g_gps->latitude-home.lat,                 // 7 lat from home
         gps_lon_from_home   : g_gps->longitude-home.lng,                // 8 lon from home
         inav_lat_from_home  : inertial_nav.get_latitude_diff(),         // 9 accel based lat from home
-        inav_lon_from_home  : inertial_nav.get_longitude_diff(),        // 10 accel based lon from home
-        inav_lat_speed      : inertial_nav.get_latitude_velocity(),     // 11 accel based lat velocity
-        inav_lon_speed      : inertial_nav.get_longitude_velocity()     // 12 accel based lon velocity
+        inav_lon_from_home  : inertial_nav.get_longitude_diff()        // 10 accel based lon from home
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -808,20 +776,18 @@ static void Log_Read_INAV()
     struct log_INAV pkt;
     DataFlash.ReadPacket(&pkt, sizeof(pkt));
 
-                                  // 1   2   3      4      5      6    7    8    9     10     11     12
-    cliSerial->printf_P(PSTR("INAV, %d, %d, %d, %6.4f, %6.4f, %6.4f, %ld, %ld, %6.4f, %6.4f, %6.4f, %6.4f\n"),
+                                  // 1   2   3      4      5      6    7    8      9     10
+    cliSerial->printf_P(PSTR("INAV, %d, %d, %d, %6.4f, %6.4f, %6.4f, %ld, %ld, %6.4f, %6.4f\n"),
                     (int)pkt.baro_alt,                  // 1 barometer altitude
                     (int)pkt.inav_alt,                  // 2 accel + baro filtered altitude
                     (int)pkt.inav_climb_rate,           // 3 accel + baro based climb rate
-                    (float)pkt.accel_corr_x,            // 4 accel correction x-axis
-                    (float)pkt.accel_corr_y,            // 5 accel correction y-axis
-                    (float)pkt.accel_corr_z,            // 6 accel correction z-axis
+                    pkt.accel_corr_x,                   // 4 accel correction x-axis
+                    pkt.accel_corr_y,                   // 5 accel correction y-axis
+                    pkt.accel_corr_z,                   // 6 accel correction z-axis
                     (long)pkt.gps_lat_from_home,        // 7 lat from home
                     (long)pkt.gps_lon_from_home,        // 8 lon from home
-                    (float)pkt.inav_lat_from_home,      // 9 accel based lat from home
-                    (float)pkt.inav_lon_from_home,      // 10 accel based lon from home
-                    (float)pkt.inav_lat_speed,          // 11 accel based lat velocity
-                    (float)pkt.inav_lon_speed);         // 12 accel based lon velocity
+                    pkt.inav_lat_from_home,             // 9 accel based lat from home
+                    pkt.inav_lon_from_home);            // 10 accel based lon from home
 }
 
 struct log_Mode {
@@ -1103,7 +1069,7 @@ static void Log_Read_PID()
                     (long)pkt.i,
                     (long)pkt.d,
                     (long)pkt.output,
-                    (float)pkt.gain);
+                    pkt.gain);
 }
 
 struct log_DMP {
@@ -1268,7 +1234,7 @@ struct log_WPNAV {
     int32_t desired_pitch;
 };
 
-// Write an INAV packet. Total length : 52 Bytes
+// Write an WPNAV packet. Total length : 43 Bytes
 static void Log_Write_WPNAV()
 {
     Vector3f velocity = inertial_nav.get_velocity();
@@ -1297,20 +1263,20 @@ static void Log_Read_WPNav()
 
                                       // 1      2      3      4      5      6      7      8    9   10
     cliSerial->printf_P(PSTR("WPNAV, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %ld, %ld\n"),
-                    (float)pkt.pos_error_x,         // 1 position error in cm in lat direction
-                    (float)pkt.pos_error_y,         // 2 position error in cm in lon direction
-                    (float)pkt.desired_velocity_x,  // 3 desired velocity in cm/s in lat direction
-                    (float)pkt.desired_velocity_y,  // 4 desired velocity in cm/s in lon direction
-                    (float)pkt.velocity_x,          // 5 velocity in cm/s in lat direction
-                    (float)pkt.velocity_y,          // 6 velocity in cm/s in lon direction
-                    (float)pkt.desired_accel_x,     // 7 desired acceleration in cm/s/s in lat direction
-                    (float)pkt.desired_accel_y,     // 8 desired acceleration in cm/s/s in lon direction
+                    pkt.pos_error_x,         // 1 position error in cm in lat direction
+                    pkt.pos_error_y,         // 2 position error in cm in lon direction
+                    pkt.desired_velocity_x,  // 3 desired velocity in cm/s in lat direction
+                    pkt.desired_velocity_y,  // 4 desired velocity in cm/s in lon direction
+                    pkt.velocity_x,          // 5 velocity in cm/s in lat direction
+                    pkt.velocity_y,          // 6 velocity in cm/s in lon direction
+                    pkt.desired_accel_x,     // 7 desired acceleration in cm/s/s in lat direction
+                    pkt.desired_accel_y,     // 8 desired acceleration in cm/s/s in lon direction
                     (long)pkt.desired_roll,         // 9 accel based lat from home
                     (long)pkt.desired_pitch);         // 12 accel based lon velocity
 }
 
 // Read the DataFlash log memory
-static void Log_Read(uint8_t log_num, int16_t start_page, int16_t end_page)
+static void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page)
 {
  #ifdef AIRFRAME_NAME
     cliSerial->printf_P(PSTR((AIRFRAME_NAME)));

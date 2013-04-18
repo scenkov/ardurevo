@@ -36,13 +36,9 @@
 
 #define THROTTLE_MANUAL                     0   // manual throttle mode - pilot input goes directly to motors
 #define THROTTLE_MANUAL_TILT_COMPENSATED    1   // mostly manual throttle but with some tilt compensation
-#define THROTTLE_ACCELERATION               2   // pilot inputs the desired acceleration
-#define THROTTLE_RATE                       3   // pilot inputs the desired climb rate.  Note: this uses the unstabilized rate controller
-#define THROTTLE_STABILIZED_RATE            4   // pilot inputs the desired climb rate.  Uses stabilized rate controller
-#define THROTTLE_DIRECT_ALT                 5   // pilot inputs a desired altitude from 0 ~ 10 meters
-#define THROTTLE_HOLD                       6   // alt hold plus pilot input of climb rate
-#define THROTTLE_AUTO                       7   // auto pilot altitude controller with target altitude held in next_WP.alt
-#define THROTTLE_LAND                       8   // landing throttle controller
+#define THROTTLE_HOLD                       2   // alt hold plus pilot input of climb rate
+#define THROTTLE_AUTO                       3   // auto pilot altitude controller with target altitude held in next_WP.alt
+#define THROTTLE_LAND                       4   // landing throttle controller
 
 
 // sonar - for use with CONFIG_SONAR_SOURCE
@@ -192,9 +188,10 @@
 #define NAV_WP          3
 #define NAV_WP_INAV     5
 
-// Yaw override behaviours - used for setting yaw_override_behaviour
-#define YAW_OVERRIDE_BEHAVIOUR_AT_NEXT_WAYPOINT     0   // auto pilot takes back yaw control at next waypoint
-#define YAW_OVERRIDE_BEHAVIOUR_AT_MISSION_RESTART   1   // auto pilot tkaes back control only when mission is restarted
+// Yaw behaviours during missions - possible values for WP_YAW_BEHAVIOR parameter
+#define WP_YAW_BEHAVIOR_NONE                          0   // auto pilot will never control yaw during missions or rtl (except for DO_CONDITIONAL_YAW command received)
+#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP               1   // auto pilot will face next waypoint or home during rtl
+#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last 
 
 // TOY mixing options
 #define TOY_LOOKUP_TABLE 0
