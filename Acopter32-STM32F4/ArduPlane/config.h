@@ -104,11 +104,8 @@
   #endif
  # define CLI_SLIDER_ENABLED DISABLED
 # define OPTFLOW_CS_PIN   (-1)
-# define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
-# define BATTERY_CURR_PIN      1      // Battery current on A1
-# define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
-# define CURRENT_PIN_1      1
-# define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+# define BATTERY_VOLT_PIN      6      // Battery voltage on A0
+# define BATTERY_CURR_PIN      200      // Battery current on A1
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_PUSHBUTTON DISABLED
 # define CONFIG_RELAY      DISABLED
@@ -118,7 +115,7 @@
 # define CONFIG_BARO     AP_BARO_MS5611
 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
 # define CONFIG_MAG MP32NAVYSENSOR
-# define LOGGING_ENABLED DISABLED
+# define LOGGING_ENABLED ENABLED
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
 # define CONFIG_PITOT_SOURCE PITOT_SOURCE_ANALOG_PIN
 # define CONFIG_PITOT_SOURCE_ANALOG_PIN 47 // SONAR IN

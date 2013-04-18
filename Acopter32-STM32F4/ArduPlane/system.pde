@@ -110,15 +110,6 @@ static void init_ardupilot()
     //
     load_parameters();
 
-    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_ON);
-
-    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_ON);
-
-    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_ON);
-
     // reset the uartA baud rate after parameter load
     hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
@@ -200,10 +191,15 @@ static void init_ardupilot()
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
 
-//    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-//    pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
-//    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-  
+    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                                 // GPS status LED
+    hal.gpio->write(C_LED_PIN, LED_OFF);
+
+    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(A_LED_PIN, LED_OFF);
+
+    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(B_LED_PIN, LED_OFF);
+
     relay.init();
 
 #if FENCE_TRIGGERED_PIN > 0
