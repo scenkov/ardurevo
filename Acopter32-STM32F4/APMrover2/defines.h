@@ -14,16 +14,6 @@
 #define DEBUG 0
 #define SERVO_MAX 4500	// This value represents 45 degrees and is just an arbitrary representation of servo max travel.
 
-// failsafe
-// ----------------------
-#define FAILSAFE_NONE	0
-#define FAILSAFE_SHORT	1
-#define FAILSAFE_LONG	2
-#define FAILSAFE_GCS	3
-#define	FAILSAFE_SHORT_TIME 1500	// Miliiseconds
-#define	FAILSAFE_LONG_TIME  20000	// Miliiseconds
-
-
 // active altitude sensor
 // ----------------------
 #define SONAR 0
@@ -52,13 +42,8 @@ enum ch7_option {
 #define GPS_PROTOCOL_MTK19	6
 #define GPS_PROTOCOL_AUTO	7
 
-#define CH_ROLL CH_1
-#define CH_PITCH CH_2
+#define CH_STEER    CH_1
 #define CH_THROTTLE CH_3
-#define CH_RUDDER CH_4
-#define CH_YAW CH_4
-#define CH_AIL1 CH_5
-#define CH_AIL2 CH_6
 
 // HIL enumerations
 #define HIL_MODE_DISABLED			0
@@ -70,11 +55,18 @@ enum ch7_option {
 enum mode {
     MANUAL=0,
 	LEARNING=2,
+    STEERING=3,
+    HOLD=4,
     AUTO=10,
     RTL=11,
     GUIDED=15,
     INITIALISING=16
 };
+
+// types of failsafe events
+#define FAILSAFE_EVENT_THROTTLE (1<<0)
+#define FAILSAFE_EVENT_GCS      (1<<1)
+#define FAILSAFE_EVENT_RC       (1<<2)
 
 // Commands - Note that APM now uses a subset of the MAVLink protocol commands.  See enum MAV_CMD in the GCS_Mavlink library
 #define CMD_BLANK 0 // there is no command stored in the mem location requested
@@ -122,6 +114,7 @@ enum ap_message {
     MSG_AHRS,
     MSG_SIMSTATE,
     MSG_HWSTATUS,
+    MSG_RANGEFINDER,
     MSG_RETRY_DEFERRED // this must be last
 };
 
@@ -181,8 +174,8 @@ enum gcs_severity {
 #define	ALTITUDE_HISTORY_LENGTH 8	//Number of (time,altitude) points to regress a climb rate from
 
 
-#define BATTERY_VOLTAGE(x) (x*(g.input_voltage/1024.0))*g.volt_div_ratio
-#define CURRENT_AMPS(x) ((x*(g.input_voltage/1024.0))-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
+#define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
+#define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
 
 #define RELAY_PIN 47
 
@@ -211,10 +204,15 @@ enum gcs_severity {
 // mark a function as not to be inlined
 #define NOINLINE __attribute__((noinline))
 
-#define CONFIG_INS_OILPAN 1
+// InertialSensor driver types
+#define CONFIG_INS_OILPAN  1
 #define CONFIG_INS_MPU6000 2
+#define CONFIG_INS_STUB    3
+#define CONFIG_INS_PX4     4
 
-#define AP_BARO_BMP085   1
-#define AP_BARO_MS5611   2
+// compass driver types
+#define AP_COMPASS_HMC5843   1
+#define AP_COMPASS_PX4       2
+#define AP_COMPASS_HIL       3
 
 #endif // _DEFINES_H
