@@ -165,10 +165,10 @@ void gpio_set_mode(gpio_dev* dev, uint8_t pin, gpio_pin_mode mode)
 			config.GPIO_Mode = GPIO_Mode_IN;
 			config.GPIO_PuPd = GPIO_PuPd_DOWN;
 			config.GPIO_OType = GPIO_OType_PP;
-        break;
-			case GPIO_AF_OUTPUT_PP:
+			break;
+		case GPIO_AF_OUTPUT_PP:
 			config.GPIO_Mode = GPIO_Mode_AF;
-			config.GPIO_PuPd = GPIO_PuPd_NOPULL;
+			config.GPIO_PuPd = GPIO_PuPd_UP;
 			config.GPIO_OType = GPIO_OType_PP;
 			break;
 		case GPIO_AF_OUTPUT_OD:

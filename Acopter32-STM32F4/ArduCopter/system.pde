@@ -111,7 +111,7 @@ static void init_ardupilot()
 #if GPS_PROTOCOL != GPS_PROTOCOL_IMU
     // standard gps running. Note that we need a 256 byte buffer for some
     // GPS types (eg. UBLOX)
-    hal.uartC->begin(38400, 256, 16);
+    hal.uartB->begin(38400, 256, 16);
 #endif
 
     cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
@@ -160,8 +160,8 @@ static void init_ardupilot()
 #else
     cliSerial->println("GCS3 init");
     // we have a 2nd serial port for telemetry
-    hal.uartB->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
-    gcs3.init(hal.uartB);
+    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+    gcs3.init(hal.uartC);
 #endif
 
     // identify ourselves correctly with the ground station
@@ -215,7 +215,7 @@ static void init_ardupilot()
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
-    g_gps->init(hal.uartC, GPS::GPS_ENGINE_AIRBORNE_1G);
+    g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
 
 
 cliSerial->println("compass init");
