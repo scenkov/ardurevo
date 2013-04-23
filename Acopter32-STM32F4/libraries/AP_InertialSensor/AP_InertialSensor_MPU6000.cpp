@@ -535,6 +535,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
         hal.scheduler->panic(PSTR("MPU6000: Unable to get semaphore"));
     }
 
+    _sample_rate = sample_rate;
     // Chip reset
     uint8_t tries;
     for (tries = 0; tries<5; tries++) {
@@ -573,23 +574,30 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     // sample rate and filtering
     // to minimise the effects of aliasing we choose a filter
     // that is less than half of the sample rate
-    switch (sample_rate) {
+    switch (_sample_rate) {
     case RATE_50HZ:
         // this is used for plane and rover, where noise resistance is
         // more important than update rate. Tests on an aerobatic plane
         // show that 10Hz is fine, and makes it very noise resistant
         default_filter = BITS_DLPF_CFG_10HZ;
+	_sample_time = 0.02;
         _sample_shift = 2;
         break;
     case RATE_100HZ:
         default_filter = BITS_DLPF_CFG_20HZ;
+	_sample_time = 0.01;
         _sample_shift = 1;
         break;
     case RATE_1000HZ:
+        default_filter = BITS_DLPF_CFG_20HZ;
+	_sample_time = 0.001;
+        _sample_shift = 0;
+        break;
     case RATE_200HZ:
     default:
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;
+        _sample_time = 0.005;
         break;
     }
 
@@ -671,11 +679,11 @@ void AP_InertialSensor_MPU6000::_dump_registers(void)
 #endif
 
 
-// get_delta_time returns the time period in seconds overwhich the sensor data was collected
+// get_delta_time returns the time period in seconds over which the sensor data was collected
 float AP_InertialSensor_MPU6000::get_delta_time() 
 {
-    // the sensor runs at 200Hz
-    return 0.005 * _num_samples;
+    // the sensor runs at _sample_rate
+    return _sample_time * _num_samples;
 }
 
 // Update gyro offsets with new values.  Offsets provided in as scaled deg/sec values
