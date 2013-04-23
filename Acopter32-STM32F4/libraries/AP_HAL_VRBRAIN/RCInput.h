@@ -38,7 +38,7 @@ private:
     unsigned int input_channel_ch11;
     unsigned int input_channel_ch12;
 
-    unsigned char iboard;
+    unsigned char _iboard;
     static volatile uint8_t  _valid;
 };
 

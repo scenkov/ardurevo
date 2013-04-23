@@ -32,9 +32,8 @@ volatile uint16_t rcPinValue[12] =
     {
     0, 0, 1000, 0, 1500, 1500, 1500, 1000, 0, 0, 0, 0
     };
-;
 // interval [1000;2000]
-static byte receiverPin[12] =
+static byte receiverPin[8] =
     {
 	    PPM_IN_CH1,
 	    PPM_IN_CH2,
@@ -116,7 +115,7 @@ typedef struct
     unsigned long fallTime;
     unsigned int lastGoodWidth;
     } tPinTimingData;
-volatile static tPinTimingData pinData[9];
+volatile static tPinTimingData pinData[8];
 
 // PE5 is PIN69
 #define PIN69	69
@@ -127,6 +126,43 @@ volatile static tPinTimingData pinData[9];
 #define PIN70	70
 #define PIN70IN	(*((unsigned long int *) 0x42420218))
 #define PIN70OUT	(*((unsigned long int *) 0x42420298))
+
+
+static void PWMCaptureCallback(uint8_t channel, uint8_t state, int16_t value)
+{
+	uint32_t currentTime;
+	uint32_t time;
+
+	//state 0: rise; state 1: fall
+	if (state == 0)
+	{
+		currentTime = hal.scheduler->micros();
+		time = currentTime - pinData[channel].fallTime;
+		pinData[channel].riseTime = currentTime;
+		if ((time >= MINOFFWIDTH) && (time <= MAXOFFWIDTH))
+			pinData[channel].edge = RISING_EDGE;
+		else
+		{
+			pinData[channel].edge = FALLING_EDGE; // invalid rising edge detected
+			radio_status_rc = 0;
+			sync = 0;
+		}
+	}
+	else
+	{
+		currentTime = hal.scheduler->micros();
+		time = currentTime - pinData[channel].riseTime;
+		pinData[channel].fallTime = currentTime;
+		if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
+		{
+			pinData[channel].lastGoodWidth = time;
+			radio_status_rc = channel;
+			rcPinValue[channel] = time;
+			sync = 1;
+			pinData[channel].edge = FALLING_EDGE;
+		}
+	}
+}
 
 void rxIntPPMSUM(void)
     {
@@ -143,7 +179,7 @@ void rxIntPPMSUM(void)
 	radio_status_rc = 0;
 	if (uiRcErrCnt1 == 0)
 	    {		// if the frame is error free, copy it to rcValue Array
-	    for (i = 0; i < 10; i++)
+	    for (i = 0; i < 9; i++)
 		{
 		rcValue[i] = rcTmpValue[i]; // THE PPMSUM VALUE START FROM 10 ' STANDARD PPM channel < 10
 		}
@@ -186,7 +222,9 @@ void rxIntPPM(void)
 
     //byte channel=0;
     pending = EXTI ->PR;
+    noInterrupts();
     currentTime = hal.scheduler->micros();
+    interrupts();
 
     for (byte channel = 0; channel < 8; channel++)
 	{
@@ -242,7 +280,7 @@ void rxIntPPM(void)
  6 PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
  7 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
  */
-//#define NEWEXTI
+#define NEWEXTI
 
 #ifdef NEWEXTI
 static void rxIntPPM5_9(void)
@@ -268,7 +306,9 @@ static void rxIntPPM5_9(void)
 	channel = 4;
 	if (hal.gpio->read(pin))
 		    {
-		    currentTime = hal.scheduler->micros();
+	    noInterrupts();
+	    currentTime = hal.scheduler->micros();
+	    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -284,7 +324,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -311,7 +353,9 @@ static void rxIntPPM5_9(void)
 		channel=5;
 		if (hal.gpio->read(pin))
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -327,7 +371,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
@@ -353,7 +399,9 @@ static void rxIntPPM5_9(void)
 		channel=6;
 		if (hal.gpio->read(pin))
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -369,7 +417,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
@@ -396,7 +446,9 @@ static void rxIntPPM5_9(void)
 		channel=0;
 		if (hal.gpio->read(pin))
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -412,7 +464,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
@@ -464,7 +518,9 @@ static void rxIntPPM5_9(void)
 		channel = 1;
 		if (hal.gpio->read(pin))
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -480,7 +536,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -512,7 +570,9 @@ static void rxIntPPM5_9(void)
 		channel = 2;
 		if (hal.gpio->read(pin))
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -528,7 +588,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -555,7 +617,9 @@ static void rxIntPPM5_9(void)
 		channel = 3;
 		if (hal.gpio->read(pin))
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -571,7 +635,9 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
+		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
+		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -613,6 +679,7 @@ static void rxIntPPM5_9(void)
 		rcChannel[5] = 5;
 		rcChannel[6] = 6;
 		rcChannel[7] = 7;
+		rcChannel[8] = 8;
 		break;
 
 	    case 11:
@@ -625,6 +692,7 @@ static void rxIntPPM5_9(void)
 		rcChannel[5] = 5;
 		rcChannel[6] = 6;
 		rcChannel[7] = 7;
+		rcChannel[8] = 8;
 
 		break;
 		}
@@ -641,11 +709,13 @@ static void rxIntPPM5_9(void)
 	    receiverPin[5] = input_channel_ch6;
 	    receiverPin[6] = input_channel_ch7;
 	    receiverPin[7] = input_channel_ch8;
-	    receiverPin[8] = input_channel_ch9;
+	    /*
+		receiverPin[8] = input_channel_ch9;
 	    receiverPin[9] = input_channel_ch10;
 	    receiverPin[10] = input_channel_ch11;
 	    receiverPin[11] = input_channel_ch12;
-	    /*
+	    */
+		/*
 	     PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
 	     PE11	80	PWM_IN1		 IRQ 10-15			  PPM2
 	     PE13	86	PWM_IN2		 IRQ 10-15			  PPM3
@@ -661,48 +731,48 @@ static void rxIntPPM5_9(void)
 	    if (input_channel_ch1 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch1, rxIntPPM5_9, CHANGE);
-//hal.gpio->pinMode(input_channel_ch1, INPUT);
+		hal.gpio->pinMode(input_channel_ch1, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch2 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch2, rxIntPPM10_15, CHANGE);
-//hal.gpio->pinMode(input_channel_ch2, INPUT);
+		hal.gpio->pinMode(input_channel_ch2, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch3 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch3, rxIntPPM10_15, CHANGE);
-//hal.gpio->pinMode(input_channel_ch3, INPUT);
+		hal.gpio->pinMode(input_channel_ch3, INPUT);
 		hal.scheduler->delay(100);
 		}
 	    if (input_channel_ch4 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch4, rxIntPPM10_15, CHANGE);
-//hal.gpio->pinMode(input_channel_ch4, INPUT);
+		hal.gpio->pinMode(input_channel_ch4, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch5 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch5, rxIntPPM5_9, CHANGE);
-//hal.gpio->pinMode(input_channel_ch5, INPUT);
+		hal.gpio->pinMode(input_channel_ch5, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch6 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch6, rxIntPPM5_9, CHANGE);
-//hal.gpio->pinMode(input_channel_ch6, INPUT);
+		hal.gpio->pinMode(input_channel_ch6, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch7 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch7, rxIntPPM5_9, CHANGE);
-//hal.gpio->pinMode(input_channel_ch7, INPUT);
+		hal.gpio->pinMode(input_channel_ch7, INPUT);
 		hal.scheduler->delay(100);
 		}
 
@@ -770,9 +840,11 @@ static void rxIntPPM5_9(void)
 
 #endif
 
-	    for (byte channel = 0; channel < 11; channel++)
+	    for (byte channel = 0; channel < 8; channel++)
+		{
+		if(receiverPin[channel] != 0)
 		pinData[receiverPin[channel]].edge = FALLING_EDGE;
-
+		}
 	    }
 
 	void VRBRAINRCInput::InitDefaultPPM(char board)
@@ -880,7 +952,7 @@ static void rxIntPPM5_9(void)
 	uint16_t VRBRAINRCInput::InputCh(unsigned char ch)
 	    {
 	    uint16_t data;
-	    if (iboard < 10)
+	    if (_iboard < 10)
 		data = rcPinValue[ch];
 	    else
 		{
@@ -900,12 +972,12 @@ static void rxIntPPM5_9(void)
 
 	void VRBRAINRCInput::init(void* machtnichts)
 	    {
-	    iboard = 2;
-	    if (iboard < 10)
+	    _iboard = 2;
+	    if (_iboard < 10)
 		{
 		// Init Radio In
 		hal.console->println("Init Default PPM");
-		InitDefaultPPM(iboard);
+		InitDefaultPPM(_iboard);
 		hal.console->println("Init PPM HWD");
 		InitPPM();
 		}
@@ -913,7 +985,7 @@ static void rxIntPPM5_9(void)
 		{
 		// Init Radio In
 		hal.console->println("Init Default PPMSUM");
-		InitDefaultPPMSUM(iboard);
+		InitDefaultPPMSUM(_iboard);
 		hal.console->println("Init PPMSUM HWD");
 		InitPPMSUM();
 
@@ -929,27 +1001,31 @@ static void rxIntPPM5_9(void)
 	uint16_t VRBRAINRCInput::read(uint8_t ch)
 	    {
 	    uint16_t data;
-	    if (iboard < 10)
+	    noInterrupts();
+	    if (_iboard < 10){
 		data = rcPinValue[ch];
+	    }
 	    else
 		{
 		data = rcValue[rcChannel[ch + 1]];
 		}
-
+	    interrupts();
 	    return data; // We return the value correctly copied when the IRQ's where disabled
 	    }
 
 	uint8_t VRBRAINRCInput::read(uint16_t* periods, uint8_t len)
 	    {
+	    noInterrupts();
 	    for (uint8_t i = 0; i < len; i++)
 		{
-		if (iboard < 10)
+		if (_iboard < 10)
 		    periods[i] = rcPinValue[i];
 		else
 		    {
 		    periods[i] = rcValue[rcChannel[i + 1]];
 		    }
 		}
+	    interrupts();
 	    return len;
 	    }
 
