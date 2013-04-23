@@ -1,6 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_HAL.h>
+#include <gpio_hal.h>
 #include "AP_InertialSensor_MPU6000.h"
 
 extern const AP_HAL::HAL& hal;
@@ -224,6 +225,8 @@ AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000() : AP_InertialSensor()
     _temp = 0;
     _initialised = false;
     _dmp_initialised = false;
+    _sample_time = 0;
+    _sample_rate = 0;
 }
 
 uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
@@ -239,6 +242,7 @@ uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
        (It is not a valid pin under Arduino.) */
 #if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     _drdy_pin = hal.gpio->channel(99);
+    _drdy_pin->mode(GPIO_INPUT_FLOATING);
 #else
     _drdy_pin = hal.gpio->channel(70);
 #endif

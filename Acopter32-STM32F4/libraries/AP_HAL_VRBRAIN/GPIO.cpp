@@ -1,9 +1,9 @@
 
 #include "GPIO.h"
 #include <gpio_hal.h>
-#include "ext_interrupts.h"
-#include "exti.h"
-#include "boards.h"
+#include <ext_interrupts.h>
+#include <exti.h>
+#include <boards.h>
 
 static inline exti_trigger_mode exti_out_mode(ExtIntTriggerMode mode);
 

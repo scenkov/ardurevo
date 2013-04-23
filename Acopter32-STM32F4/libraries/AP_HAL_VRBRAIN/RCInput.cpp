@@ -222,9 +222,7 @@ void rxIntPPM(void)
 
     //byte channel=0;
     pending = EXTI ->PR;
-    noInterrupts();
     currentTime = hal.scheduler->micros();
-    interrupts();
 
     for (byte channel = 0; channel < 8; channel++)
 	{
@@ -306,9 +304,7 @@ static void rxIntPPM5_9(void)
 	channel = 4;
 	if (hal.gpio->read(pin))
 		    {
-	    noInterrupts();
 	    currentTime = hal.scheduler->micros();
-	    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -324,9 +320,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -353,9 +347,7 @@ static void rxIntPPM5_9(void)
 		channel=5;
 		if (hal.gpio->read(pin))
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -371,9 +363,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
@@ -399,9 +389,7 @@ static void rxIntPPM5_9(void)
 		channel=6;
 		if (hal.gpio->read(pin))
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -417,9 +405,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
@@ -446,9 +432,7 @@ static void rxIntPPM5_9(void)
 		channel=0;
 		if (hal.gpio->read(pin))
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -464,9 +448,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH) && (pinData[channel].edge == RISING_EDGE))
@@ -518,9 +500,7 @@ static void rxIntPPM5_9(void)
 		channel = 1;
 		if (hal.gpio->read(pin))
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -536,9 +516,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -570,9 +548,7 @@ static void rxIntPPM5_9(void)
 		channel = 2;
 		if (hal.gpio->read(pin))
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -588,9 +564,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -617,9 +591,7 @@ static void rxIntPPM5_9(void)
 		channel = 3;
 		if (hal.gpio->read(pin))
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].fallTime;
 		    pinData[channel].riseTime = currentTime;
 		    //Serial4.print("1");
@@ -635,9 +607,7 @@ static void rxIntPPM5_9(void)
 		    }
 		else
 		    {
-		    noInterrupts();
 		    currentTime = hal.scheduler->micros();
-		    interrupts();
 		    time = currentTime - pinData[channel].riseTime;
 		    pinData[channel].fallTime = currentTime;
 		    if ((time >= MINONWIDTH) && (time <= MAXONWIDTH)
@@ -731,55 +701,55 @@ static void rxIntPPM5_9(void)
 	    if (input_channel_ch1 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch1, rxIntPPM5_9, CHANGE);
-		hal.gpio->pinMode(input_channel_ch1, INPUT);
+		//hal.gpio->pinMode(input_channel_ch1, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch2 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch2, rxIntPPM10_15, CHANGE);
-		hal.gpio->pinMode(input_channel_ch2, INPUT);
+		//hal.gpio->pinMode(input_channel_ch2, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch3 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch3, rxIntPPM10_15, CHANGE);
-		hal.gpio->pinMode(input_channel_ch3, INPUT);
+		//hal.gpio->pinMode(input_channel_ch3, INPUT);
 		hal.scheduler->delay(100);
 		}
 	    if (input_channel_ch4 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch4, rxIntPPM10_15, CHANGE);
-		hal.gpio->pinMode(input_channel_ch4, INPUT);
+		//hal.gpio->pinMode(input_channel_ch4, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch5 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch5, rxIntPPM5_9, CHANGE);
-		hal.gpio->pinMode(input_channel_ch5, INPUT);
+		//hal.gpio->pinMode(input_channel_ch5, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch6 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch6, rxIntPPM5_9, CHANGE);
-		hal.gpio->pinMode(input_channel_ch6, INPUT);
+		//hal.gpio->pinMode(input_channel_ch6, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch7 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch7, rxIntPPM5_9, CHANGE);
-		hal.gpio->pinMode(input_channel_ch7, INPUT);
+		//hal.gpio->pinMode(input_channel_ch7, INPUT);
 		hal.scheduler->delay(100);
 		}
 
 	    if (input_channel_ch8 != 0)
 		{
 		hal.gpio->attach_interrupt(input_channel_ch8, rxIntPPM, CHANGE);
-		hal.gpio->pinMode(input_channel_ch8, INPUT);
+		//hal.gpio->pinMode(input_channel_ch8, INPUT);
 		hal.scheduler->delay(100);
 		}
 #else
