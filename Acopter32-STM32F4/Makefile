@@ -25,11 +25,11 @@ STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.0.0
 STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
 WIRISH_PATH      := $(SRCROOT)/wirish
-LIBRARIES_PATH   := $(SRCROOT)/Libraries
+LIBRARIES_PATH   := $(SRCROOT)/libraries
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_USB
 #SKETCH           := AP_Compass_test
-FIRMWARE_PATH    := $(SRCROOT)/Firmware/ACopter32
-SKETCH          := ACopter32
+FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
+SKETCH          := ArduCopter
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)
 SKETCHSRCS      := $(wildcard $(addprefix $(SRCROOT)/,$(SRCSUFFIXES)))
 SKETCHPDE       := $(wildcard $(FIRMWARE_PATH)/$(SKETCH).pde)
