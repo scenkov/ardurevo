@@ -960,7 +960,7 @@ void loop()
 
     // We want this to execute fast
     // ----------------------------
-    if (ins.num_samples_available() >= 2) {
+    if (ins.num_samples_available() >= 10) {
 
         // check loop time
         perf_info_check_loop_time(timer - fast_loopTimer);
