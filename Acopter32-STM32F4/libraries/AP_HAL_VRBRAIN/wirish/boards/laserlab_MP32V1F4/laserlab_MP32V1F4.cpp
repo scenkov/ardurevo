@@ -14,18 +14,18 @@ void boardInit(void) {
      * anzichè a 550 così i servi non bruciano.
      */
 
-    unsigned short Reload;
-    unsigned short uFreq = MOTOR_PWM_FREQ;
-    if (uFreq > 550) uFreq = 550;
-    if (uFreq < 50) uFreq = 50;
-    Reload = (unsigned short)(0xFFFF * 50 / uFreq);
+    //unsigned short Reload;
+    //unsigned short uFreq = MOTOR_PWM_FREQ;
+    //if (uFreq > 550) uFreq = 550;
+    //if (uFreq < 50) uFreq = 50;
+    //Reload = (unsigned short)(0xFFFF * 50 / uFreq);
     // SI USA CON HEXA
-    timer_pause(TIMER4);
-    timer_set_prescaler(TIMER4, 21);    // 60 Hz nel caso di conf quad
+    //timer_pause(TIMER4);
+    //timer_set_prescaler(TIMER4, 21);    // 60 Hz nel caso di conf quad
     //timer_set_prescaler(TIMER4, 1);     // 550 Hz nel caso di conf hexa
-    timer_set_count(TIMER4, 0);
-    timer_set_reload(TIMER4, Reload);
-    timer_resume(TIMER4);
+    //timer_set_count(TIMER4, 0);
+    //timer_set_reload(TIMER4, Reload);
+    //timer_resume(TIMER4);
 
 //    afio_remap(AFIO_REMAP_USART2);
 //    afio_remap(AFIO_REMAP_USART3);
@@ -49,10 +49,10 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOC,   NULL, _ADC1,  3, 0,   13}, /* D9/PC3  9*/
     {_GPIOC,   NULL, _ADC1,  4, 0,   14}, /* D10/PC4 10*/
     {_GPIOC,   NULL, _ADC1,  5, 0,   15}, /* D11/PC5 1*/
-    {_GPIOC, TIMER8, NULL,  6, 1, ADCx}, /* D12/PC6  2*/
-    {_GPIOC, TIMER8, NULL,  7, 2, ADCx}, /* D13/PC7  3*/
-    {_GPIOC, TIMER8, NULL,  8, 3, ADCx}, /* D14/PC8  4*/
-    {_GPIOC, TIMER8, NULL,  9, 4, ADCx}, /* D15/PC9  5*/
+    {_GPIOC, TIMER8, NULL,  6, 1, ADCx}, /* D12/PC6  2 CH5_IN*/
+    {_GPIOC, TIMER8, NULL,  7, 2, ADCx}, /* D13/PC7  3 CH6_IN*/
+    {_GPIOC, TIMER8, NULL,  8, 3, ADCx}, /* D14/PC8  4 CH7_IN*/
+    {_GPIOC, TIMER8, NULL,  9, 4, ADCx}, /* D15/PC9  5 CH8_IN*/
     {_GPIOC,   NULL, NULL, 10, 0, ADCx}, /* D16/PC10 6*/
     {_GPIOC,   NULL, NULL, 11, 0, ADCx}, /* D17/PC11 7*/
     {_GPIOC,   NULL, NULL, 12, 0, ADCx}, /* D18/PC12 8*/
@@ -89,7 +89,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOF,   NULL, NULL, 11, 0, ADCx}, /* D44/PF11 4*/
     {_GPIOB, TIMER3, _ADC1,  1, 4,    9}, /* D45/PB1 5*/
     {_GPIOB, TIMER3, _ADC1,  0, 3,    8}, /* D46/PB0 6*/
-    {_GPIOA, TIMER5, _ADC1,  0, 1,    0}, /* D47/PA0 7*/
+    {_GPIOA, TIMER2, _ADC1,  0, 1,    0}, /* D47/PA0 7*/
     {_GPIOA, TIMER2, _ADC1,  1, 2,    1}, /* D48/PA1 8*/
     {_GPIOA, TIMER2, _ADC1,  2, 3,    2}, /* D49/PA2 9*/
     {_GPIOA, TIMER2, _ADC1,  3, 4,    3}, /* D50/PA3 50*/
@@ -120,21 +120,21 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOE,   NULL, NULL,  8, 0, ADCx}, /* D72/PE8  2*/
     {_GPIOF,   NULL, NULL, 12, 0, ADCx}, /* D73/PF12 3*/
     {_GPIOE,   NULL, NULL,  6, 0, ADCx}, /* D74/PE6  4*/
-    {_GPIOE,   NULL, NULL,  9, 0, ADCx}, /* D75/PE9  5*/
+    {_GPIOE,   TIMER1, NULL,  9, 1, ADCx}, /* D75/PE9  CH1_IN - PPMSUM*/
     {_GPIOF,   NULL, NULL, 13, 0, ADCx}, /* D76/PF13 6*/
     {_GPIOE,   NULL, NULL, 10, 0, ADCx}, /* D77/PE10 7*/
     {_GPIOF,   NULL, NULL, 14, 0, ADCx}, /* D78/PF14 8*/
     {_GPIOG,   NULL, NULL,  9, 0, ADCx}, /* D79/PG9  9*/
-    {_GPIOE,   NULL, NULL, 11, 0, ADCx}, /* D80/PE11 80*/
+    {_GPIOE,   TIMER1, NULL, 11, 2, ADCx}, /* D80/PE11 CH2_IN*/
     {_GPIOF,   NULL, NULL, 15, 0, ADCx}, /* D81/PF15 1*/
     {_GPIOG,   NULL, NULL, 10, 0, ADCx}, /* D82/PG10 2*/
     {_GPIOE,   NULL, NULL, 12, 0, ADCx}, /* D83/PE12 3*/
     {_GPIOG,   NULL, NULL,  0, 0, ADCx}, /* D84/PG0  4*/
     {_GPIOD,   NULL, NULL,  5, 0, ADCx}, /* D85/PD5  5*/
-    {_GPIOE,   NULL, NULL, 13, 0, ADCx}, /* D86/PE13 6*/
+    {_GPIOE,   TIMER1, NULL, 13, 3, ADCx}, /* D86/PE13 CH3_IN*/
     {_GPIOG,   NULL, NULL,  1, 0, ADCx}, /* D87/PG1  7*/
     {_GPIOD,   NULL, NULL,  4, 0, ADCx}, /* D88/PD4  8*/
-    {_GPIOE,   NULL, NULL, 14, 0, ADCx}, /* D89/PE14 9*/
+    {_GPIOE,   TIMER1, NULL, 14, 4, ADCx}, /* D89/PE14 CH4_IN*/
     {_GPIOG,   NULL, NULL,  2, 0, ADCx}, /* D90/PG2  90*/
     {_GPIOE,   NULL, NULL,  1, 0, ADCx}, /* D91/PE1  1*/
     {_GPIOE,   NULL, NULL, 15, 0, ADCx}, /* D92/PE15 2*/
@@ -147,6 +147,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOD,   NULL, NULL, 10, 0, ADCx}, /* D99/PD10 9*/
     {_GPIOB,   NULL, NULL, 11, 0, ADCx}, /* D100/PB11 100*/
     {_GPIOB, TIMER4, NULL,  8, 3, ADCx}, /* D101/PB8 1*/
+    {_GPIOE,   NULL, NULL,  2, 0, ADCx}  /* D102/PE2 */
 };
 
 extern const uint8_t boardPWMPins[BOARD_NR_PWM_PINS] __FLASH__ = {
