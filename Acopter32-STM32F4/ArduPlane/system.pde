@@ -104,7 +104,7 @@ static void init_ardupilot()
                          "\n\nFree RAM: %u\n"),
                     memcheck_available_memory());
 
-
+	init_rc_default(); // ADD BY ROBERTO METTO  A ZERO I CANALI PER EVITAR BURN SERVO
     //
     // Check the EEPROM format version before loading any parameters from EEPROM
     //

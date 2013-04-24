@@ -41,12 +41,12 @@ LIBRARIES_PATH   := $(SRCROOT)/libraries
 #SKETCH           := Blink
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_USB
 #SKETCH           := Test_USB
-FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
-SKETCH          := ArduCopter
+#FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
+#SKETCH          := ArduCopter
 #FIRMWARE_PATH    := $(SRCROOT)/APMRover2
 #SKETCH          := APMRover2
-#FIRMWARE_PATH    := $(SRCROOT)/ArduPlane
-#SKETCH          := ArduPlane
+FIRMWARE_PATH    := $(SRCROOT)/ArduPlane
+SKETCH          := ArduPlane
 
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)
 SKETCHSRCS      := $(wildcard $(addprefix $(SRCROOT)/,$(SRCSUFFIXES)))
