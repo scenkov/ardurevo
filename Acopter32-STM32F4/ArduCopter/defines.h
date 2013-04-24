@@ -13,24 +13,17 @@
 #define ENABLE ENABLED
 #define DISABLE DISABLED
 
-
-#ifndef HIGH
- #define HIGH 1
-#endif
-#ifndef LOW
- #define LOW 0
-#endif
-
 // Flight modes
 // ------------
 #define YAW_HOLD                        0       // heading hold at heading in nav_yaw but allow input from pilot
 #define YAW_ACRO                        1       // pilot controlled yaw using rate controller
 #define YAW_LOOK_AT_NEXT_WP             2       // point towards next waypoint (no pilot input accepted)
 #define YAW_LOOK_AT_LOCATION            3       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
-#define YAW_LOOK_AT_HOME    		    4       // point towards home (no pilot input accepted)
-#define YAW_LOOK_AT_HEADING    		    5       // point towards a particular angle (not pilot input accepted)
-#define YAW_LOOK_AHEAD					6		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
-#define YAW_TOY                         7       // THOR This is the Yaw mode
+#define YAW_CIRCLE                      4       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
+#define YAW_LOOK_AT_HOME    		    5       // point towards home (no pilot input accepted)
+#define YAW_LOOK_AT_HEADING    		    6       // point towards a particular angle (not pilot input accepted)
+#define YAW_LOOK_AHEAD					7		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
+#define YAW_TOY                         8       // THOR This is the Yaw mode
 
 #define RADIO_TYPE 0  // 0 Standard Radio 1 PPMSUM  2 OTHER
 
@@ -43,20 +36,12 @@
 
 #define THROTTLE_MANUAL                     0   // manual throttle mode - pilot input goes directly to motors
 #define THROTTLE_MANUAL_TILT_COMPENSATED    1   // mostly manual throttle but with some tilt compensation
-#define THROTTLE_ACCELERATION               2   // pilot inputs the desired acceleration
-#define THROTTLE_RATE                       3   // pilot inputs the desired climb rate.  Note: this uses the unstabilized rate controller
-#define THROTTLE_STABILIZED_RATE            4   // pilot inputs the desired climb rate.  Uses stabilized rate controller
-#define THROTTLE_DIRECT_ALT                 5   // pilot inputs a desired altitude from 0 ~ 10 meters
-#define THROTTLE_HOLD                       6   // alt hold plus pilot input of climb rate
-#define THROTTLE_AUTO                       7   // auto pilot altitude controller with target altitude held in next_WP.alt
-#define THROTTLE_LAND                       8   // landing throttle controller
+#define THROTTLE_HOLD                       2   // alt hold plus pilot input of climb rate
+#define THROTTLE_AUTO                       3   // auto pilot altitude controller with target altitude held in next_WP.alt
+#define THROTTLE_LAND                       4   // landing throttle controller
 
 
-// active altitude sensor
-// ----------------------
-#define SONAR 0
-#define BARO 1
-
+// sonar - for use with CONFIG_SONAR_SOURCE
 #define SONAR_SOURCE_ADC 1
 #define SONAR_SOURCE_ANALOG_PIN 2
 
@@ -173,9 +158,7 @@
 #define CH6_THR_ACCEL_KD    36          // accel based throttle controller's D term
 #define CH6_TOP_BOTTOM_RATIO 8          // upper/lower motor ratio (not used)
 #define CH6_RELAY           9           // switch relay on if ch6 high, off if low
-#define CH6_TRAVERSE_SPEED  10          // maximum speed to next way point (0 to 10m/s)
-#define CH6_NAV_KP          11          // navigation rate controller's P term (speed error to tilt angle)
-#define CH6_NAV_KI          20          // navigation rate controller's I term (speed error to tilt angle)
+#define CH6_WP_SPEED        10          // maximum speed to next way point (0 to 10m/s)
 #define CH6_LOITER_KP       12          // loiter distance controller's P term (position error to speed)
 #define CH6_LOITER_KI       27          // loiter distance controller's I term (position error to speed)
 #define CH6_HELI_EXTERNAL_GYRO 13       // TradHeli specific external tail gyro gain
@@ -188,12 +171,7 @@
 #define CH6_AHRS_YAW_KP     30          // ahrs's compass effect on yaw angle (0 = very low, 1 = very high)
 #define CH6_AHRS_KP         31          // accelerometer effect on roll/pitch angle (0=low)
 #define CH6_INAV_TC         32          // inertial navigation baro/accel and gps/accel time constant (1.5 = strong baro/gps correction on accel estimatehas very strong does not correct accel estimate, 7 = very weak correction)
-
-// nav byte mask used with wp_verify_byte variable
-// -----------------------------------------------
-#define NAV_LOCATION 1
-#define NAV_ALTITUDE 2
-#define NAV_DELAY    4
+#define CH6_DECLINATION     38          // compass declination in radians
 
 
 // Commands - Note that APM now uses a subset of the MAVLink protocol
@@ -210,9 +188,10 @@
 #define NAV_WP          3
 #define NAV_WP_INAV     5
 
-// Yaw override behaviours - used for setting yaw_override_behaviour
-#define YAW_OVERRIDE_BEHAVIOUR_AT_NEXT_WAYPOINT     0   // auto pilot takes back yaw control at next waypoint
-#define YAW_OVERRIDE_BEHAVIOUR_AT_MISSION_RESTART   1   // auto pilot tkaes back control only when mission is restarted
+// Yaw behaviours during missions - possible values for WP_YAW_BEHAVIOR parameter
+#define WP_YAW_BEHAVIOR_NONE                          0   // auto pilot will never control yaw during missions or rtl (except for DO_CONDITIONAL_YAW command received)
+#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP               1   // auto pilot will face next waypoint or home during rtl
+#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last 
 
 // TOY mixing options
 #define TOY_LOOKUP_TABLE 0
@@ -231,11 +210,12 @@
 #define WP_OPTION_NEXT_CMD                      128
 
 // RTL state
-#define RTL_STATE_INITIAL_CLIMB     0
-#define RTL_STATE_RETURNING_HOME    1
-#define RTL_STATE_LOITERING_AT_HOME 2
-#define RTL_STATE_FINAL_DESCENT     3
-#define RTL_STATE_LAND              4
+#define RTL_STATE_START             0
+#define RTL_STATE_INITIAL_CLIMB     1
+#define RTL_STATE_RETURNING_HOME    2
+#define RTL_STATE_LOITERING_AT_HOME 3
+#define RTL_STATE_FINAL_DESCENT     4
+#define RTL_STATE_LAND              5
 
 //repeating events
 #define RELAY_TOGGLE 5
@@ -305,7 +285,8 @@ enum gcs_severity {
 #define LOG_DATA_INT32_MSG              0x16
 #define LOG_DATA_UINT32_MSG             0x17
 #define LOG_DATA_FLOAT_MSG              0x18
-#define LOG_DATA_INT8_MSG              0x19
+#define LOG_WPNAV_MSG                   0x19
+#define LOG_DATA_INT8_MSG               0x1A
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
 
@@ -357,17 +338,13 @@ enum gcs_severity {
 #define DATA_RTL_REACHED_ALT            31
 
 // battery monitoring macros
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
 #define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
-#else
-#define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
-#define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
-#endif
 
 #define BATT_MONITOR_DISABLED               0
 #define BATT_MONITOR_VOLTAGE_ONLY           3
 #define BATT_MONITOR_VOLTAGE_AND_CURRENT    4
+
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
 
@@ -460,16 +437,17 @@ enum gcs_severity {
 #define ERROR_SUBSYSTEM_RADIO               2
 #define ERROR_SUBSYSTEM_COMPASS             3
 #define ERROR_SUBSYSTEM_OPTFLOW             4
-#define ERROR_SUBSYSTEM_FAILSAFE            5
+#define ERROR_SUBSYSTEM_FAILSAFE_RADIO      5
+#define ERROR_SUBSYSTEM_FAILSAFE_BATT       6
+#define ERROR_SUBSYSTEM_FAILSAFE_GPS        7
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
 // subsystem specific error codes -- radio
 #define ERROR_CODE_RADIO_LATE_FRAME         2
-// subsystem specific error codes -- failsafe
-#define ERROR_CODE_FAILSAFE_THROTTLE  2
-#define ERROR_CODE_FAILSAFE_BATTERY   3
-#define ERROR_CODE_FAILSAFE_WATCHDOG  4
+// subsystem specific error codes -- failsafe_thr, batt, gps
+#define ERROR_CODE_FAILSAFE_RESOLVED        0
+#define ERROR_CODE_FAILSAFE_OCCURRED        1
 
 
 

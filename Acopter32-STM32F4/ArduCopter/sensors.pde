@@ -3,9 +3,6 @@
 // Sensors are not available in HIL_MODE_ATTITUDE
 #if HIL_MODE != HIL_MODE_ATTITUDE
 
-static void ReadSCP1000(void) {
-}
-
  #if CONFIG_SONAR == ENABLED
 static void init_sonar(void)
 {
@@ -20,7 +17,6 @@ static void init_sonar(void)
 static void init_barometer(void)
 {
     barometer.calibrate();
-    ahrs.set_barometer(&barometer);
     gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
 }
 
@@ -28,7 +24,7 @@ static void init_barometer(void)
 static int32_t read_barometer(void)
 {
     barometer.read();
-    return baro_filter.apply(barometer.get_altitude() * 100.0f);
+    return barometer.get_altitude() * 100.0f;
 }
 
 // return sonar altitude in centimeters

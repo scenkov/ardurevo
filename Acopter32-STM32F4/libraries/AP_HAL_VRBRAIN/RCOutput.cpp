@@ -5,8 +5,8 @@ extern const AP_HAL::HAL& hal;
 
 static int analogOutPin[20];
 
-#define AC32PLANE
-//#define AC32COPTER
+//#define AC32PLANE
+#define AC32COPTER
 
 static inline long map(long value, long fromStart, long fromEnd,
                 long toStart, long toEnd) {

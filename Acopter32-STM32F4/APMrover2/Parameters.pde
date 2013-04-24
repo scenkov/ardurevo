@@ -58,7 +58,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(sysid_my_gcs,           "SYSID_MYGCS",      255),
 
     // @Param: SERIAL0_BAUD
-    // @DisplayName: Telemetry Baud Rate
+    // @DisplayName: USB Console Baud Rate
     // @Description: The baud rate used on the first serial port
     // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
@@ -106,12 +106,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Advanced
 	GSCALAR(curr_amp_per_volt,      "AMP_PER_VOLT",     CURR_AMP_PER_VOLT),
 
-    // @Param: INPUT_VOLTS
-    // @DisplayName: Max internal voltage of the battery voltage and current sensing pins
-    // @Description: Used to convert the voltage read in on the voltage and current pins for battery monitoring.  Normally 5 meaning 5 volts.
-    // @User: Advanced
-	GSCALAR(input_voltage,          "INPUT_VOLTS",      INPUT_VOLTAGE),
-
     // @Param: BATT_CAPACITY
     // @DisplayName: Battery Capacity
     // @Description: Battery capacity in milliamp-hours (mAh)
@@ -135,14 +129,48 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(crosstrack_entry_angle, "XTRK_ANGLE_CD",    XTRACK_ENTRY_ANGLE_CENTIDEGREE),
 
+	// @Param: AUTO_TRIGGER_PIN
+	// @DisplayName: Auto mode trigger pin
+	// @Description: pin number to use to trigger start of auto mode. If set to -1 then don't use a trigger, otherwise this is a pin number which if held low in auto mode will start the motor.
+	// @Values: -1:Disabled,0-9:TiggerPin
+	// @User: standard
+	GSCALAR(auto_trigger_pin,        "AUTO_TRIGGER_PIN", -1),
+
+	// @Param: AUTO_KICKSTART
+	// @DisplayName: Auto mode trigger kickstart acceleration
+	// @Description: X acceleration in meters/second/second to use to trigger the motor start in auto mode. If set to zero then auto throttle starts immediately when the mode switch happens, otherwise the rover waits for the X acceleration to go above this value before it will start the motor
+	// @Units: m/s/s
+	// @Range: 0 20
+	// @Increment: 0.1
+	// @User: standard
+	GSCALAR(auto_kickstart,          "AUTO_KICKSTART", 0.0f),
+
     // @Param: CRUISE_SPEED
-    // @DisplayName: Target speed in auto modes
+    // @DisplayName: Target cruise speed in auto modes
     // @Description: The target speed in auto missions.
     // @Units: m/s
     // @Range: 0 100
     // @Increment: 0.1
     // @User: Standard
 	GSCALAR(speed_cruise,        "CRUISE_SPEED",    5),
+
+    // @Param: SPEED_TURN_GAIN
+    // @DisplayName: Target speed reduction while turning
+    // @Description: The percentage to reduce the throttle while turning. If this is 100% then the target speed is not reduced while turning. If this is 50% then the target speed is reduced in proportion to the turn rate, with a reduction of 50% when the steering is maximally deflected.
+    // @Units: percent
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(speed_turn_gain,    "SPEED_TURN_GAIN",  50),
+
+    // @Param: SPEED_TURN_DIST
+    // @DisplayName: Distance to turn to start reducing speed
+    // @Description: The distance to the next turn at which the rover reduces its target speed by the SPEED_TURN_GAIN
+    // @Units: meters
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+	GSCALAR(speed_turn_dist,    "SPEED_TURN_DIST",  2.0f),
 
     // @Param: CH7_OPTION
     // @DisplayName: Channel 7 option
@@ -171,7 +199,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: THR_MAX
     // @DisplayName: Maximum Throttle
-    // @Description: The maximum throttle setting to which the autopilot will apply.
+    // @Description: The maximum throttle setting to which the autopilot will apply. This can be used to prevent overheating a ESC or motor on an electric rover.
     // @Units: Percent
     // @Range: 0 100
     // @Increment: 1
@@ -180,7 +208,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: CRUISE_THROTTLE
     // @DisplayName: Base throttle percentage in auto
-    // @Description: The base throttle percentage to use in auto mode
+    // @Description: The base throttle percentage to use in auto mode. The CRUISE_SPEED parameter controls the target speed, but the rover starts with the CRUISE_THROTTLE setting as the initial estimate for how much throttle is needed to achieve that speed. It then adjusts the throttle based on how fast the rover is actually going.
     // @Units: Percent
     // @Range: 0 100
     // @Increment: 1
@@ -196,51 +224,88 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(throttle_slewrate,      "THR_SLEWRATE",     0),
 
+    // @Param: SKID_STEER_OUT
+    // @DisplayName: Skid steering output
+    // @Description: Set this to 1 for skid steering controlled rovers (tank track style). When enabled, servo1 is used for the left track control, servo3 is used for right track control
+    // @Values: 0:Disabled, 1:SkidSteeringOutput
+    // @User: Standard
+	GSCALAR(skid_steer_out,          "SKID_STEER_OUT",     0),
+
+    // @Param: SKID_STEER_IN
+    // @DisplayName: Skid steering input
+    // @Description: Set this to 1 for skid steering input rovers (tank track style in RC controller). When enabled, servo1 is used for the left track control, servo3 is used for right track control
+    // @Values: 0:Disabled, 1:SkidSteeringInput
+    // @User: Standard
+	GSCALAR(skid_steer_in,           "SKID_STEER_IN",     0),
+
     // @Param: FS_ACTION
     // @DisplayName: Failsafe Action
     // @Description: What to do on a failsafe event
-    // @Values: 0:Nothing,1:RTL,2:STOP
+    // @Values: 0:Nothing,1:RTL,2:HOLD
     // @User: Standard
-	GSCALAR(fs_action,    "FS_ACTION",     0),
+	GSCALAR(fs_action,    "FS_ACTION",     2),
 
     // @Param: FS_TIMEOUT
     // @DisplayName: Failsafe timeout
     // @Description: How long a failsafe event need to happen for before we trigger the failsafe action
 	// @Units: seconds
     // @User: Standard
-	GSCALAR(fs_timeout,    "FS_TIMEOUT",     10),
+	GSCALAR(fs_timeout,    "FS_TIMEOUT",     5),
 
     // @Param: FS_THR_ENABLE
     // @DisplayName: Throttle Failsafe Enable
-    // @Description: The throttle failsafe allows you to configure a software failsafe activated by a setting on the throttle input channel to a low value. This can be used to detect the RC transmitter going out of range.
+    // @Description: The throttle failsafe allows you to configure a software failsafe activated by a setting on the throttle input channel to a low value. This can be used to detect the RC transmitter going out of range. Failsafe will be triggered when the throttle channel goes below the FS_THR_VALUE for FS_TIMEOUT seconds.
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
-	GSCALAR(fs_throttle_enabled,    "FS_THR_ENABLE",     0),
+	GSCALAR(fs_throttle_enabled,    "FS_THR_ENABLE",     1),
 
     // @Param: FS_THR_VALUE
     // @DisplayName: Throttle Failsafe Value
     // @Description: The PWM level on channel 3 below which throttle sailsafe triggers.
     // @User: Standard
-	GSCALAR(fs_throttle_value,      "FS_THR_VALUE",     900),
+	GSCALAR(fs_throttle_value,      "FS_THR_VALUE",     910),
 
     // @Param: FS_GCS_ENABLE
     // @DisplayName: GCS failsafe enable
-    // @Description: Enable ground control station telemetry failsafe
+    // @Description: Enable ground control station telemetry failsafe. When enabled the Rover will execute the FS_ACTION when it fails to receive MAVLink heartbeat packets for FS_TIMEOUT seconds.
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
 	GSCALAR(fs_gcs_enabled, "FS_GCS_ENABLE",   0),
 
-#if CONFIG_SONAR == ENABLED     
-	// @Param: SONAR_ENABLE
-	// @DisplayName: Enable Sonar
-	// @Description: Setting this to Enabled(1) will enable the sonar. Setting this to Disabled(0) will disable the sonar
-	// @Values: 0:Disabled,1:Enabled
+	// @Param: SONAR_TRIGGER_CM
+	// @DisplayName: Sonar trigger distance
+	// @Description: The distance from an obstacle in centimeters at which the sonar triggers a turn to avoid the obstacle
+	// @Units: centimeters
+    // @Range: 0 1000
+    // @Increment: 1
 	// @User: Standard
-	GSCALAR(sonar_trigger,      "SONAR_TRIGGER",    SONAR_TRIGGER),
-	GSCALAR(sonar_enabled,	    "SONAR_ENABLE",     SONAR_ENABLED),
-	GSCALAR(sonar_type,	        "SONAR_TYPE",       AP_RANGEFINDER_MAXSONARXL),
-#endif	
+	GSCALAR(sonar_trigger_cm,   "SONAR_TRIGGER_CM",    100),
 
+	// @Param: SONAR_TURN_ANGLE
+	// @DisplayName: Sonar trigger angle
+	// @Description: The course deviation in degrees to apply while avoiding an obstacle detected with the sonar. A positive number means to turn right, and a negative angle means to turn left.
+	// @Units: centimeters
+    // @Range: -45 45
+    // @Increment: 1
+	// @User: Standard
+	GSCALAR(sonar_turn_angle,   "SONAR_TURN_ANGLE",    45),
+
+	// @Param: SONAR_TURN_TIME
+	// @DisplayName: Sonar turn time
+	// @Description: The amount of time in seconds to apply the SONAR_TURN_ANGLE after detecting an obstacle.
+	// @Units: seconds
+    // @Range: 0 100
+    // @Increment: 0.1
+	// @User: Standard
+	GSCALAR(sonar_turn_time,    "SONAR_TURN_TIME",     1.0f),
+
+	// @Param: SONAR_DEBOUNCE
+	// @DisplayName: Sonar debounce count
+	// @Description: The number of 50Hz sonar hits needed to trigger an obstacle avoidance event. If you get a lot of false sonar events then raise this number, but if you make it too large then it will cause lag in detecting obstacles, which could cause you go hit the obstacle.
+    // @Range: 1 100
+    // @Increment: 1
+	// @User: Standard
+	GSCALAR(sonar_debounce,   "SONAR_DEBOUNCE",    2),
 
     // @Param: MODE_CH
     // @DisplayName: Mode channel
@@ -250,7 +315,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: MODE1
     // @DisplayName: Mode1
-    // @Values: 0:Manual,2:LEARNING,10:Auto,11:RTL,15:Guided
+    // @Values: 0:Manual,2:LEARNING,3:STEERING,4:HOLD,10:Auto,11:RTL,15:Guided
     // @User: Standard
     // @Description: Driving mode for switch position 1 (910 to 1230 and above 2049)
 	GSCALAR(mode1,           "MODE1",         MODE_1),
@@ -258,35 +323,35 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: MODE2
     // @DisplayName: Mode2
     // @Description: Driving mode for switch position 2 (1231 to 1360)
-    // @Values: 0:Manual,2:LEARNING,10:Auto,11:RTL,15:Guided
+    // @Values: 0:Manual,2:LEARNING,3:STEERING,4:HOLD,10:Auto,11:RTL,15:Guided
     // @User: Standard
 	GSCALAR(mode2,           "MODE2",         MODE_2),
 
     // @Param: MODE3
     // @DisplayName: Mode3
     // @Description: Driving mode for switch position 3 (1361 to 1490)
-    // @Values: 0:Manual,2:LEARNING,10:Auto,11:RTL,15:Guided
+    // @Values: 0:Manual,2:LEARNING,3:STEERING,4:HOLD,10:Auto,11:RTL,15:Guided
     // @User: Standard
 	GSCALAR(mode3,           "MODE3",         MODE_3),
 
     // @Param: MODE4
     // @DisplayName: Mode4
     // @Description: Driving mode for switch position 4 (1491 to 1620)
-    // @Values: 0:Manual,2:LEARNING,10:Auto,11:RTL,15:Guided
+    // @Values: 0:Manual,2:LEARNING,3:STEERING,4:HOLD,10:Auto,11:RTL,15:Guided
     // @User: Standard
 	GSCALAR(mode4,           "MODE4",         MODE_4),
 
     // @Param: MODE5
     // @DisplayName: Mode5
     // @Description: Driving mode for switch position 5 (1621 to 1749)
-    // @Values: 0:Manual,2:LEARNING,10:Auto,11:RTL,15:Guided
+    // @Values: 0:Manual,2:LEARNING,3:STEERING,4:HOLD,10:Auto,11:RTL,15:Guided
     // @User: Standard
 	GSCALAR(mode5,           "MODE5",         MODE_5),
 
     // @Param: MODE6
     // @DisplayName: Mode6
     // @Description: Driving mode for switch position 6 (1750 to 2049)
-    // @Values: 0:Manual,2:LEARNING,10:Auto,11:RTL,15:Guided
+    // @Values: 0:Manual,2:LEARNING,3:STEERING,4:HOLD,10:Auto,11:RTL,15:Guided
     // @User: Standard
 	GSCALAR(mode6,           "MODE6",         MODE_6),
 
@@ -310,6 +375,11 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GOBJECT(compass,                "COMPASS_",	Compass),
 	GOBJECT(gcs0,					"SR0_",     GCS_MAVLINK),
 	GOBJECT(gcs3,					"SR3_",     GCS_MAVLINK),
+
+    // @Group: SONAR_
+    // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
+    GOBJECT(sonar,                  "SONAR_", AP_RangeFinder_analog),
+    GOBJECT(sonar2,                 "SONAR2_", AP_RangeFinder_analog),
 
 #if HIL_MODE == HIL_MODE_DISABLED
     // @Group: INS_

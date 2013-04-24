@@ -49,7 +49,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
   scheduler->init(NULL);
-  uartA->begin(115200);
+  uartA->begin(57600);
   //_member->init();
   i2c->begin();
   spi->init(NULL);

@@ -1,12 +1,13 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_HAL.h>
+#include <gpio_hal.h>
 #include "AP_InertialSensor_MPU6000.h"
 
 extern const AP_HAL::HAL& hal;
 
 // MPU6000 accelerometer scaling
-#define MPU6000_ACCEL_SCALE_1G    (GRAVITY / 4096.0f)
+#define MPU6000_ACCEL_SCALE_1G    (GRAVITY_MSS / 4096.0f)
 
 // MPU 6000 registers
 #define MPUREG_XG_OFFS_TC                               0x00
@@ -167,7 +168,7 @@ extern const AP_HAL::HAL& hal;
  *  RM-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
  *  gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
  */
-const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 16.4);
+const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 32.8);
 
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
@@ -219,11 +220,13 @@ AP_HAL::Semaphore* AP_InertialSensor_MPU6000::_spi_sem = NULL;
  *  variants however
  */
 
-AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000()
+AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000() : AP_InertialSensor()
 {
     _temp = 0;
     _initialised = false;
     _dmp_initialised = false;
+    _sample_time = 0;
+    _sample_rate = 0;
 }
 
 uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
@@ -239,6 +242,7 @@ uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
        (It is not a valid pin under Arduino.) */
 #if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     _drdy_pin = hal.gpio->channel(99);
+    _drdy_pin->mode(GPIO_INPUT_FLOATING);
 #else
     _drdy_pin = hal.gpio->channel(70);
 #endif
@@ -535,6 +539,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
         hal.scheduler->panic(PSTR("MPU6000: Unable to get semaphore"));
     }
 
+    _sample_rate = sample_rate;
     // Chip reset
     uint8_t tries;
     for (tries = 0; tries<5; tries++) {
@@ -573,22 +578,30 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     // sample rate and filtering
     // to minimise the effects of aliasing we choose a filter
     // that is less than half of the sample rate
-    switch (sample_rate) {
+    switch (_sample_rate) {
     case RATE_50HZ:
         // this is used for plane and rover, where noise resistance is
         // more important than update rate. Tests on an aerobatic plane
         // show that 10Hz is fine, and makes it very noise resistant
         default_filter = BITS_DLPF_CFG_10HZ;
+	_sample_time = 0.02;
         _sample_shift = 2;
         break;
     case RATE_100HZ:
         default_filter = BITS_DLPF_CFG_20HZ;
+	_sample_time = 0.01;
         _sample_shift = 1;
+        break;
+    case RATE_1000HZ:
+        default_filter = BITS_DLPF_CFG_20HZ;
+	_sample_time = 0.001;
+        _sample_shift = 0;
         break;
     case RATE_200HZ:
     default:
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;
+        _sample_time = 0.005;
         break;
     }
 
@@ -596,10 +609,10 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 
     // set sample rate to 200Hz, and use _sample_divider to give
     // the requested rate to the application
-    register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
+    register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_1000HZ);
     hal.scheduler->delay(1);
 
-    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
+    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
     hal.scheduler->delay(1);
 
     // read the product ID rev c has 1/2 the sensitivity of rev d
@@ -670,11 +683,11 @@ void AP_InertialSensor_MPU6000::_dump_registers(void)
 #endif
 
 
-// get_delta_time returns the time period in seconds overwhich the sensor data was collected
+// get_delta_time returns the time period in seconds over which the sensor data was collected
 float AP_InertialSensor_MPU6000::get_delta_time() 
 {
-    // the sensor runs at 200Hz
-    return 0.005 * _num_samples;
+    // the sensor runs at _sample_rate
+    return _sample_time * _num_samples;
 }
 
 // Update gyro offsets with new values.  Offsets provided in as scaled deg/sec values

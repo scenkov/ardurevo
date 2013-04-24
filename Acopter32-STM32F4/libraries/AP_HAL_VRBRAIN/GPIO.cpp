@@ -1,9 +1,9 @@
 
 #include "GPIO.h"
 #include <gpio_hal.h>
-#include "ext_interrupts.h"
-#include "exti.h"
-#include "boards.h"
+#include <ext_interrupts.h>
+#include <exti.h>
+#include <boards.h>
 
 static inline exti_trigger_mode exti_out_mode(ExtIntTriggerMode mode);
 
@@ -88,6 +88,10 @@ void VRBRAINGPIO::pinMode(uint8_t pin, uint8_t output)
         //timer_set_mode(PIN_MAP[pin].timer_device, PIN_MAP[pin].timer_channel, pwm ? TIMER_PWM : TIMER_DISABLED);
     }
 
+}
+
+int8_t  VRBRAINGPIO::analogPinToDigitalPin(uint8_t pin){
+    return 1;
 }
 
 uint8_t VRBRAINGPIO::read(uint8_t pin)

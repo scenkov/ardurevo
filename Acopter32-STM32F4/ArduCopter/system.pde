@@ -60,6 +60,12 @@ static void run_cli(AP_HAL::UARTDriver *port)
     // disable main_loop failsafe
     failsafe_disable();
 
+    // cut the engines
+    if(motors.armed()) {
+        motors.armed(false);
+        motors.output();
+    }
+    
     while (1) {
         main_menu.run();
     }
@@ -119,40 +125,21 @@ static void init_ardupilot()
 
     // setup IO pins
     hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_ON);
+    hal.gpio->write(A_LED_PIN, LED_OFF);
 
     hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_ON);
+    hal.gpio->write(B_LED_PIN, LED_OFF);
 
     hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_ON);
-
-#if SLIDE_SWITCH_PIN > 0
-    pinMode(SLIDE_SWITCH_PIN, INPUT);           // To enter interactive mode
-#endif
-#if CONFIG_PUSHBUTTON == ENABLED
-    pinMode(PUSHBUTTON_PIN, INPUT);                     // unused
-#endif
+    hal.gpio->write(C_LED_PIN, LED_OFF);
 
     relay.init(); 
 
+    // load parameters from EEPROM
     load_parameters();
 
 #if COPTER_LEDS == ENABLED
-    cliSerial->println("LEDS init");
-    hal.gpio->pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
-    hal.gpio->pinMode(COPTER_LED_2, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
-    //pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
-    //pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
-    //pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
-
-    if ( !bitRead(g.copter_leds_mode, 3) ) {
-        piezo_beep();
-    }
-
+    copter_leds_init();
 #endif
 
     // init the GCS
@@ -190,6 +177,7 @@ static void init_ardupilot()
     } else if (DataFlash.NeedErase()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("ERASING LOGS"));
         do_erase_logs();
+        gcs0.reset_cli_timeout();
     }
     if (g.log_bitmask != 0) {
         DataFlash.start_new_log();
@@ -247,19 +235,7 @@ cliSerial->println("compass init");
     USERHOOK_INIT
 #endif
 
-#if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
-    // If the switch is in 'menu' mode, run the main menu.
-    //
-    // Since we can't be sure that the setup or test mode won't leave
-    // the system in an odd state, we don't let the user exit the top
-    // menu; they must reset in order to fly.
-    //
-    if (check_startup_for_CLI()) {
-        digitalWrite(A_LED_PIN, LED_ON);                        // turn on setup-mode LED
-        cliSerial->printf_P(PSTR("\nCLI:\n\n"));
-        run_cli(cliSerial);
-    }
-#else
+#if CLI_ENABLED == ENABLED
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
 #if USB_MUX_PIN == 0
@@ -267,7 +243,14 @@ cliSerial->println("compass init");
 #endif
 #endif // CLI_ENABLED
 
-    cliSerial->printf_P("Init Baro");
+#if HIL_MODE != HIL_MODE_DISABLED
+    while (!barometer.healthy) {
+        // the barometer becomes healthy when we get the first
+        // HIL_STATE message
+        gcs_send_text_P(SEVERITY_LOW, PSTR("Waiting for first HIL_STATE message"));
+        delay(1000);
+    }
+#endif
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
@@ -399,11 +382,6 @@ static void set_mode(uint8_t mode)
     control_mode 	= mode;
     control_mode    = constrain(control_mode, 0, NUM_MODES - 1);
 
-    // used to stop fly_aways
-    // set to false if we have low throttle
-    motors.auto_armed(g.rc_3.control_in > 0 || ap.failsafe);
-    set_auto_armed(g.rc_3.control_in > 0 || ap.failsafe);
-
     // if we change modes, we must clear landed flag
     set_land_complete(false);
 
@@ -459,12 +437,10 @@ static void set_mode(uint8_t mode)
     case CIRCLE:
     	ap.manual_throttle = false;
     	ap.manual_attitude = false;
-        // set yaw to point to center of circle
-        yaw_look_at_WP = circle_WP;
-        set_yaw_mode(CIRCLE_YAW);
         set_roll_pitch_mode(CIRCLE_RP);
         set_throttle_mode(CIRCLE_THR);
         set_nav_mode(CIRCLE_NAV);
+        set_yaw_mode(CIRCLE_YAW);
         break;
 
     case LOITER:
@@ -473,7 +449,6 @@ static void set_mode(uint8_t mode)
         set_yaw_mode(LOITER_YAW);
         set_roll_pitch_mode(LOITER_RP);
         set_throttle_mode(LOITER_THR);
-        set_next_WP(&current_loc);
         set_nav_mode(LOITER_NAV);
         break;
 
@@ -483,8 +458,8 @@ static void set_mode(uint8_t mode)
         set_yaw_mode(POSITION_YAW);
         set_roll_pitch_mode(POSITION_RP);
         set_throttle_mode(POSITION_THR);
-        set_next_WP(&current_loc);
         set_nav_mode(POSITION_NAV);
+        wp_nav.clear_angle_limit();     // ensure there are no left over angle limits from throttle controller.  To-Do: move this to the exit routine of throttle controller
         break;
 
     case GUIDED:
@@ -494,8 +469,6 @@ static void set_mode(uint8_t mode)
         set_roll_pitch_mode(GUIDED_RP);
         set_throttle_mode(GUIDED_THR);
         set_nav_mode(GUIDED_NAV);
-        wp_verify_byte = 0;
-        set_next_WP(&guided_WP);
         break;
 
     case LAND:
@@ -524,7 +497,6 @@ static void set_mode(uint8_t mode)
         set_roll_pitch_mode(OF_LOITER_RP);
         set_throttle_mode(OF_LOITER_THR);
         set_nav_mode(OF_LOITER_NAV);
-        set_next_WP(&current_loc);
         break;
 
     // THOR
@@ -559,8 +531,6 @@ static void set_mode(uint8_t mode)
         // We are under manual attitude control
         // remove the navigation from roll and pitch command
         reset_nav_params();
-        // remove the wind compenstaion
-        reset_wind_I();
     }
 
     Log_Write_Mode(control_mode);
@@ -575,12 +545,28 @@ init_simple_bearing()
     }
 }
 
-#if CLI_SLIDER_ENABLED == ENABLED && CLI_ENABLED == ENABLED
-static bool check_startup_for_CLI()
+// update_auto_armed - update status of auto_armed flag
+static void update_auto_armed()
 {
-    return (digitalReadFast(SLIDE_SWITCH_PIN) == 0);
+    // disarm checks
+    if(ap.auto_armed){
+        // if motors are disarmed, auto_armed should also be false
+        if(!motors.armed()) {
+            set_auto_armed(false);
+            return;
+        }
+        // if in stabilize or acro flight mode and throttle is zero, auto-armed should become false
+        if(control_mode <= ACRO && g.rc_3.control_in == 0 && !ap.failsafe_radio) {
+            set_auto_armed(false);
+        }
+    }else{
+        // arm checks
+        // if motors are armed and throttle is above zero auto_armed should be true
+        if(motors.armed() && g.rc_3.control_in != 0) {
+            set_auto_armed(true);
+        }
+    }
 }
-#endif // CLI_ENABLED
 
 /*
  *  map from a 8 bit EEPROM baud rate to a real baud rate

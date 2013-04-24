@@ -17,15 +17,15 @@ static int8_t   setup_compass           (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_compassmot        (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_tune              (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_range             (uint8_t argc, const Menu::arg *argv);
-//static int8_t	setup_mag_offset		(uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_declination       (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_optflow           (uint8_t argc, const Menu::arg *argv);
-
 
  #if FRAME_CONFIG == HELI_FRAME
 static int8_t   setup_heli              (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_gyro              (uint8_t argc, const Menu::arg *argv);
  #endif
+
+static int8_t   setup_set               (uint8_t argc, const Menu::arg *argv);
 
 // Command/function table for the setup menu
 const struct Menu::command setup_menu_commands[] PROGMEM = {
@@ -45,14 +45,14 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
     {"compassmot",                  setup_compassmot},
     {"tune",                        setup_tune},
     {"range",                       setup_range},
-//	{"offsets",			setup_mag_offset},
     {"declination",         setup_declination},
     {"optflow",                     setup_optflow},
  #if FRAME_CONFIG == HELI_FRAME
     {"heli",                        setup_heli},
     {"gyro",                        setup_gyro},
  #endif
-    {"show",                        setup_show}
+    {"show",                        setup_show},
+    {"set",                         setup_set}
 };
 
 // Create the setup menu object.
@@ -64,11 +64,6 @@ setup_mode(uint8_t argc, const Menu::arg *argv)
 {
     // Give the user some guidance
     cliSerial->printf_P(PSTR("Setup Mode\n\n\n"));
-    //"\n"
-    //"IMPORTANT: if you have not previously set this system up, use the\n"
-    //"'reset' command to initialize the EEPROM to sensible default values\n"
-    //"and then the 'radio' command to configure for your radio.\n"
-    //"\n"));
 
     if(g.rc_1.radio_min >= 1300) {
         delay(1000);
@@ -87,6 +82,43 @@ setup_mode(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_show(uint8_t argc, const Menu::arg *argv)
 {
+    AP_Param *param;
+    ap_var_type type;
+
+    //If a parameter name is given as an argument to show, print only that parameter
+    if(argc>=2)
+    {
+
+        param=AP_Param::find(argv[1].str, &type);
+
+        if(!param)
+        {
+            cliSerial->printf_P(PSTR("Parameter not found: '%s'\n"), argv[1]);
+            return 0;
+        }
+
+        //Print differently for different types, and include parameter type in output.
+        switch (type) {
+            case AP_PARAM_INT8:
+                cliSerial->printf_P(PSTR("INT8  %s: %d\n"), argv[1].str, (int)((AP_Int8 *)param)->get());
+                break;
+            case AP_PARAM_INT16:
+                cliSerial->printf_P(PSTR("INT16 %s: %d\n"), argv[1].str, (int)((AP_Int16 *)param)->get());
+                break;
+            case AP_PARAM_INT32:
+                cliSerial->printf_P(PSTR("INT32 %s: %ld\n"), argv[1].str, (long)((AP_Int32 *)param)->get());
+                break;
+            case AP_PARAM_FLOAT:
+                cliSerial->printf_P(PSTR("FLOAT %s: %f\n"), argv[1].str, ((AP_Float *)param)->get());
+                break;
+            default:
+                cliSerial->printf_P(PSTR("Unhandled parameter type for %s: %d.\n"), argv[1].str, type);
+                break;
+        }
+
+        return 0;
+    }
+
     // clear the area
     print_blanks(8);
 
@@ -95,9 +127,6 @@ setup_show(uint8_t argc, const Menu::arg *argv)
     report_frame();
     report_batt_monitor();
     report_sonar();
-    //report_gains();
-    //report_xtrack();
-    //report_throttle();
     report_flight_modes();
     report_ins();
     report_compass();
@@ -133,7 +162,6 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
     cliSerial->printf_P(PSTR("\nReboot APM"));
 
     delay(1000);
-    //default_gains();
 
     for (;; ) {
     }
@@ -262,31 +290,6 @@ setup_accel(uint8_t argc, const Menu::arg *argv)
     return(0);
 }
 
-/*
-  handle full accelerometer calibration via user dialog
- */
-
-static void setup_printf_P(const prog_char_t *fmt, ...)
-{
-    va_list arg_list;
-    va_start(arg_list, fmt);
-    cliSerial->printf_P(fmt, arg_list);
-    va_end(arg_list);
-}
-
-static void setup_wait_key(void)
-{
-    // wait for user input
-    while (!cliSerial->available()) {
-        delay(20);
-    }
-    // clear input buffer
-    while( cliSerial->available() ) {
-        cliSerial->read();
-    }
-}
-
-
 static int8_t
 setup_accel_scale(uint8_t argc, const Menu::arg *argv)
 {
@@ -411,8 +414,6 @@ static int8_t
 setup_tune(uint8_t argc, const Menu::arg *argv)
 {
     g.radio_tuning.set_and_save(argv[1].i);
-    //g.radio_tuning_high.set_and_save(1000);
-    //g.radio_tuning_low.set_and_save(0);
     report_tuning();
     return 0;
 }
@@ -991,7 +992,64 @@ setup_optflow(uint8_t argc, const Menu::arg *argv)
     return 0;
 }
 
+//Set a parameter to a specified value. It will cast the value to the current type of the
+//parameter and make sure it fits in case of INT8 and INT16
+static int8_t setup_set(uint8_t argc, const Menu::arg *argv)
+{
+    int8_t value_int8;
+    int16_t value_int16;
 
+    AP_Param *param;
+    enum ap_var_type p_type;
+
+    if(argc!=3)
+    {
+        cliSerial->printf_P(PSTR("Invalid command. Usage: set <name> <value>\n"));
+        return 0;
+    }
+
+    param = AP_Param::find(argv[1].str, &p_type);
+    if(!param)
+    {
+        cliSerial->printf_P(PSTR("Param not found: %s\n"), argv[1].str);
+        return 0;
+    }
+
+    switch(p_type)
+    {
+        case AP_PARAM_INT8:
+            value_int8 = (int8_t)(argv[2].i);
+            if(argv[2].i!=value_int8)
+            {
+                cliSerial->printf_P(PSTR("Value out of range for type INT8\n"));
+                return 0;
+            }
+            ((AP_Int8*)param)->set_and_save(value_int8);
+            break;
+        case AP_PARAM_INT16:
+            value_int16 = (int16_t)(argv[2].i);
+            if(argv[2].i!=value_int16)
+            {
+                cliSerial->printf_P(PSTR("Value out of range for type INT16\n"));
+                return 0;
+            }
+            ((AP_Int16*)param)->set_and_save(value_int16);
+            break;
+
+        //int32 and float don't need bounds checking, just use the value provoded by Menu::arg
+        case AP_PARAM_INT32:
+            ((AP_Int32*)param)->set_and_save(argv[2].i);
+            break;
+        case AP_PARAM_FLOAT:
+            ((AP_Float*)param)->set_and_save(argv[2].f);
+            break;
+        default:
+            cliSerial->printf_P(PSTR("Cannot set parameter of type %d.\n"), p_type);
+            break;
+    }
+
+    return 0;
+}
 
 /***************************************************************************/
 // CLI reports
@@ -1136,10 +1194,6 @@ void report_optflow()
     print_divider();
 
     print_enabled(g.optflow_enabled);
-
-    // field of view
-    //cliSerial->printf_P(PSTR("FOV: %4.0f\n"),
-    //						degrees(g.optflow_fov));
 
     print_blanks(2);
  #endif     // OPTFLOW == ENABLED
@@ -1345,11 +1399,8 @@ init_esc()
     }
 }
 
-static void print_wp(struct Location *cmd, uint8_t index)
+static void print_wp(const struct Location *cmd, uint8_t index)
 {
-   	//float t1 = (float)cmd->lat / t7;
-    //float t2 = (float)cmd->lng / t7;
-
     cliSerial->printf_P(PSTR("cmd#: %d | %d, %d, %d, %ld, %ld, %ld\n"),
                     index,
                     cmd->id,
@@ -1358,17 +1409,6 @@ static void print_wp(struct Location *cmd, uint8_t index)
                     cmd->alt,
                     cmd->lat,
                     cmd->lng);
-
-	/*
-    cliSerial->printf_P(PSTR("cmd#: %d id:%d op:%d p1:%d p2:%ld p3:%4.7f p4:%4.7f \n"),
-                    (int)index,
-                    (int)cmd->id,
-                    (int)cmd->options,
-                    (int)cmd->p1,
-                    (long)cmd->alt,
-                    t1,
-                    t2);
-	*/
 }
 
 static void report_version()

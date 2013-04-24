@@ -21,7 +21,11 @@
 
 extern const AP_HAL::HAL& hal;
 
+#if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define COMPASS_ADDRESS      0x3C
+#else
+#define COMPASS_ADDRESS      0x1E
+#endif
 #define ConfigRegA           0x00
 #define ConfigRegB           0x01
 #define magGain              0x20

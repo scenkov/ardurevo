@@ -120,11 +120,7 @@ static void init_arm_motors()
     }
 
 #if COPTER_LEDS == ENABLED
-    if ( bitRead(g.copter_leds_mode, 3) ) {
-        piezo_beep();
-        delay(50);
-        piezo_beep();
-    }
+    piezo_beep_twice();
 #endif
 
     // Remember Orientation
@@ -180,22 +176,15 @@ static void init_disarm_motors()
     motors.armed(false);
     set_armed(false);
 
-    motors.auto_armed(false);
-    set_auto_armed(false);
-
     compass.save_offsets();
 
     g.throttle_cruise.save();
-
-    inertial_nav.save_params();
 
     // we are not in the air
     set_takeoff_complete(false);
 
 #if COPTER_LEDS == ENABLED
-    if ( bitRead(g.copter_leds_mode, 3) ) {
-        piezo_beep();
-    }
+    piezo_beep();
 #endif
 
     // setup fast AHRS gains to get right attitude

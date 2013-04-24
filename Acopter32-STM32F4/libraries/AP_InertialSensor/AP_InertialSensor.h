@@ -3,7 +3,6 @@
 #ifndef __AP_INERTIAL_SENSOR_H__
 #define __AP_INERTIAL_SENSOR_H__
 
-#define GRAVITY 9.80665f
 // Gyro and Accelerometer calibration criteria
 #define AP_INERTIAL_SENSOR_ACCEL_TOT_MAX_OFFSET_CHANGE  4.0f
 #define AP_INERTIAL_SENSOR_ACCEL_MAX_OFFSET             250.0f
@@ -33,7 +32,8 @@ public:
     enum Sample_rate {
         RATE_50HZ,
         RATE_100HZ,
-        RATE_200HZ
+        RATE_200HZ,
+        RATE_1000HZ
     };
 
     /// Perform startup initialisation.

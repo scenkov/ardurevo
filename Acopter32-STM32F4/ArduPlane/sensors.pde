@@ -12,7 +12,6 @@ static void init_barometer(void)
     // filter at 100ms sampling, with 0.7Hz cutoff frequency
     altitude_filter.set_cutoff_frequency(0.1, 0.7);
 
-    ahrs.set_barometer(&barometer);
     gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
 }
 
@@ -47,12 +46,12 @@ static void read_battery(void)
     if(g.battery_monitoring == 3 || g.battery_monitoring == 4) {
         // this copes with changing the pin at runtime
         batt_volt_pin->set_pin(g.battery_volt_pin);
-        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin->read_average());
+        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin);
     }
     if(g.battery_monitoring == 4) {
         // this copes with changing the pin at runtime
         batt_curr_pin->set_pin(g.battery_curr_pin);
-        current_amps1    = CURRENT_AMPS(batt_curr_pin->read_average());
+        current_amps1    = CURRENT_AMPS(batt_curr_pin);
         current_total1   += current_amps1 * (float)delta_ms_medium_loop * 0.0002778;                                    // .0002778 is 1/3600 (conversion to hours)
     }
 

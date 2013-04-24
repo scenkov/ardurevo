@@ -28,13 +28,6 @@ MENU2(log_menu, "Log", log_menu_commands, print_log_menu);
 static bool
 print_log_menu(void)
 {
-    uint16_t log_start;
-    uint16_t log_end;
-    uint16_t temp;
-    int16_t last_log_num = DataFlash.find_last_log();
-
-    uint16_t num_logs = DataFlash.get_num_logs();
-
     cliSerial->println_P(PSTR("logs enabled: "));
 
     if (0 == g.log_bitmask) {
@@ -60,23 +53,7 @@ print_log_menu(void)
 
     cliSerial->println();
 
-    if (num_logs == 0) {
-        cliSerial->printf_P(PSTR("\nNo logs\n\n"));
-    }else{
-        cliSerial->printf_P(PSTR("\n%u logs\n"), (unsigned)num_logs);
-
-        for(int16_t i=num_logs; i>=1; i--) {
-            uint16_t last_log_start = log_start, last_log_end = log_end;
-            temp = last_log_num-i+1;
-            DataFlash.get_log_boundaries(temp, log_start, log_end);
-            cliSerial->printf_P(PSTR("Log %d,    start %d,   end %d\n"), (int)temp, (int)log_start, (int)log_end);
-            if (last_log_start == log_start && last_log_end == log_end) {
-                // we are printing bogus logs
-                break;
-            }
-        }
-        cliSerial->println();
-    }
+    DataFlash.ListAvailableLogs(cliSerial);
     return(true);
 }
 
@@ -112,7 +89,7 @@ dump_log(uint8_t argc, const Menu::arg *argv)
                         (unsigned)dump_log_start,
                         (unsigned)dump_log_end);
 
-    Log_Read((uint8_t)dump_log, dump_log_start, dump_log_end);
+    Log_Read((uint16_t)dump_log, dump_log_start, dump_log_end);
     cliSerial->printf_P(PSTR("Done\n"));
     return 0;
 }
@@ -298,7 +275,7 @@ struct log_Cmd {
 };
 
 // Write a command processing packet. Total length : 19 bytes
-static void Log_Write_Cmd(uint8_t num, struct Location *wp)
+static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
 {
     struct log_Cmd pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CMD_MSG),
@@ -329,6 +306,53 @@ static void Log_Read_Cmd()
         (long)pkt.waypoint_altitude,
         (long)pkt.waypoint_latitude,
         (long)pkt.waypoint_longitude);
+}
+
+struct log_Camera {
+    LOG_PACKET_HEADER;
+    uint32_t gps_time;
+    int32_t  latitude;
+    int32_t  longitude;
+    int32_t  altitude;
+    int16_t  roll;
+    int16_t  pitch;
+    uint16_t yaw;
+};
+
+// Write a Camera packet. Total length : 26 bytes
+static void Log_Write_Camera()
+{
+#if CAMERA == ENABLED
+    struct log_Camera pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
+        gps_time    : g_gps->time,
+        latitude    : current_loc.lat,
+        longitude   : current_loc.lng,
+        altitude    : current_loc.alt,
+        roll        : (int16_t)ahrs.roll_sensor,
+        pitch       : (int16_t)ahrs.pitch_sensor,
+        yaw         : (uint16_t)ahrs.yaw_sensor
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+#endif
+}
+
+// Read a camera packet
+static void Log_Read_Camera()
+{
+    struct log_Camera pkt;
+    DataFlash.ReadPacket(&pkt, sizeof(pkt));
+                                     // 1
+    cliSerial->printf_P(PSTR("CAMERA, %lu, "),(unsigned long)pkt.gps_time); // 1 time
+    print_latlon(cliSerial, pkt.latitude);              // 2 lat
+    cliSerial->print_P(PSTR(", "));
+    print_latlon(cliSerial, pkt.longitude);             // 3 lon
+                               // 4   5   6   7
+    cliSerial->printf_P(PSTR(", %ld, %d, %d, %u\n"),
+                    (long)pkt.altitude,                 // 4 altitude
+                    (int)pkt.roll,                      // 5 roll in centidegrees
+                    (int)pkt.pitch,                     // 6 pitch in centidegrees
+                    (unsigned)pkt.yaw);                 // 7 yaw in centidegrees
 }
 
 struct log_Startup {
@@ -442,8 +466,8 @@ static void Log_Write_Nav_Tuning()
         LOG_PACKET_HEADER_INIT(LOG_NAV_TUNING_MSG),
         yaw                 : (uint16_t)ahrs.yaw_sensor,
         wp_distance         : wp_distance,
-        target_bearing_cd   : (uint16_t)target_bearing_cd,
-        nav_bearing_cd      : (uint16_t)nav_bearing_cd,
+        target_bearing_cd   : (uint16_t)nav_controller->target_bearing_cd(),
+        nav_bearing_cd      : (uint16_t)nav_controller->nav_bearing_cd(),
         altitude_error_cm   : (int16_t)altitude_error_cm,
         airspeed_cm         : (int16_t)airspeed.get_airspeed_cm()
     };
@@ -600,7 +624,7 @@ static void Log_Read_Current()
 }
 
 // Read the DataFlash.log memory : Packet Parser
-static void Log_Read(uint8_t log_num, int16_t start_page, int16_t end_page)
+static void Log_Read(uint16_t log_num, int16_t start_page, int16_t end_page)
 {
     cliSerial->printf_P(PSTR("\n" THISFIRMWARE
                              "\nFree RAM: %u\n"),
@@ -643,6 +667,9 @@ static void log_callback(uint8_t msgid)
     case LOG_GPS_MSG:
         Log_Read_GPS();
         break;
+    case LOG_CAMERA_MSG:
+        Log_Read_Camera();
+        break;
     }
 }
 
@@ -652,7 +679,7 @@ static void log_callback(uint8_t msgid)
 // dummy functions
 static void Log_Write_Mode(uint8_t mode) {}
 static void Log_Write_Startup(uint8_t type) {}
-static void Log_Write_Cmd(uint8_t num, struct Location *wp) {}
+static void Log_Write_Cmd(uint8_t num, const struct Location *wp) {}
 static void Log_Write_Current() {}
 static void Log_Write_Nav_Tuning() {}
 static void Log_Write_GPS() {}
@@ -660,6 +687,7 @@ static void Log_Write_Performance() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_Control_Tuning() {}
 static void Log_Write_IMU() {}
+static void Log_Write_Camera() {}
 
 static int8_t process_logs(uint8_t argc, const Menu::arg *argv) {
     return 0;

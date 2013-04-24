@@ -122,8 +122,9 @@ public:
     /// Sets the local magnetic field declination.
     ///
     /// @param  radians             Local field declination.
+    /// @param save_to_eeprom       true to save to eeprom (false saves only to memory)
     ///
-    void set_declination(float radians);
+    void set_declination(float radians, bool save_to_eeprom = true);
     float get_declination();
 
     // set overall board orientation
@@ -189,11 +190,13 @@ public:
 
     static const struct AP_Param::GroupInfo var_info[];
 
+    // settable parameters
+    AP_Int8 _learn;                             ///<enable calibration learning
+
 protected:
     enum Rotation _orientation;
     AP_Vector3f _offset;
     AP_Float _declination;
-    AP_Int8 _learn;                             ///<enable calibration learning
     AP_Int8 _use_for_yaw;                       ///<enable use for yaw calculation
     AP_Int8 _auto_declination;                  ///<enable automatic declination code
 
