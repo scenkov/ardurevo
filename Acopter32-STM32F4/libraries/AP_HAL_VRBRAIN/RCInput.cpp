@@ -224,13 +224,14 @@ void rxIntPPM(void)
     uint32_t mask, pending;
 
     hal.scheduler->suspend_timer_procs();
-
+    noInterrupts();
     //byte channel=0;
     pending = EXTI ->PR;
     currentTime = hal.scheduler->micros();
 
     for (byte channel = 0; channel < 8; channel++)
 	{
+
 	pin = receiverPin[channel];
 
 	mask = BIT(PIN_MAP[pin].gpio_bit);
@@ -270,7 +271,9 @@ void rxIntPPM(void)
 		    }
 		}
 	    }
+
 	}
+    interrupts();
     hal.scheduler->resume_timer_procs();
     }
 
@@ -284,7 +287,7 @@ void rxIntPPM(void)
  6 PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
  7 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
  */
-//#define NEWEXTI
+#define NEWEXTI
 
 #ifdef NEWEXTI
 static void rxIntPPM5_9(void)
@@ -296,7 +299,7 @@ static void rxIntPPM5_9(void)
     uint8_t pin;
 
     hal.scheduler->suspend_timer_procs();
-
+    noInterrupts();
     if (EXTI_GetITStatus(EXTI_Line5) != RESET)
 	{
 
@@ -472,6 +475,7 @@ static void rxIntPPM5_9(void)
 		//===============================================
 		EXTI_ClearITPendingBit(EXTI_Line9);
 		}
+	    interrupts();
 	    hal.scheduler->resume_timer_procs();
     }
 	/*
@@ -493,7 +497,7 @@ static void rxIntPPM10_15(void)
 	    uint8_t pin;
 
 	    hal.scheduler->suspend_timer_procs();
-
+	    noInterrupts();
 	    if (EXTI_GetITStatus(EXTI_Line10) != RESET)
 		{
 
@@ -634,6 +638,7 @@ static void rxIntPPM10_15(void)
 		//===============================================
 		EXTI_ClearITPendingBit (EXTI_Line15);
 		}
+	    interrupts();
 	    hal.scheduler->resume_timer_procs();
 }
 

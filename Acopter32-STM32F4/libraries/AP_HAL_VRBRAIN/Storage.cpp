@@ -64,11 +64,11 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
 
 }
 
-void VRBRAINStorage::write_block(uint16_t loc, void* src, size_t n)
+void VRBRAINStorage::write_block(uint16_t dst, void* src, size_t n)
 {
 	uint8_t * buff = (uint8_t *)src;
 
-	uint32_t ret = sEE_WriteBuffer(buff,loc,(uint16_t)n);
+	uint32_t ret = sEE_WriteBuffer(buff,dst,(uint16_t)n);
 	if(ret == 1){
 	    hal.console->println_P("i2c timeout write block");
 	    return;
@@ -83,7 +83,7 @@ void VRBRAINStorage::write_word(uint16_t loc, uint16_t value)
 void VRBRAINStorage::write_dword(uint16_t loc, uint32_t value)
 {
 	uint32_t val = value;
-	this->write_block(&val, loc, 4);
+	this->write_block(loc,&val, 4);
 
 }
 
