@@ -12,7 +12,7 @@ static FastSerial *serPort;
 #endif
 #define notify(fmt, args...) do { if (serPort != NULL) { serPort->printf(fmt, ##args); delay(100); } } while(0)
 
-#define I2C_TIMEOUT         ((uint32_t)0x1000)
+//#define I2C_TIMEOUT         ((uint32_t)0x1000)
 __IO uint32_t  timeout = I2C_TIMEOUT;
 
 HardwareI2C *EEPROMClass::_I2Cx;
