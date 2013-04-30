@@ -407,7 +407,9 @@ static union {
         uint8_t armed              : 1; // 7
         uint8_t auto_armed         : 1; // 8
 
-        uint8_t failsafe           : 1; // 9    // A status flag for the failsafe state
+        uint8_t failsafe_radio     : 1; // 8    // A status flag for the radio failsafe
+        uint8_t failsafe_batt      : 1; // 9    // A status flag for the battery failsafe
+        uint8_t failsafe_gps       : 1; // 10   // A status flag for the gps failsafe
         uint8_t do_flip            : 1; // 10   // Used to enable flip code
         uint8_t takeoff_complete   : 1; // 11
         uint8_t land_complete      : 1; // 12
@@ -1497,13 +1499,15 @@ static void update_GPS(void)
                     ground_start_count = 5;
 
                 }else{
+                    // after 10 successful reads store home location
+                    // ap.home_is_set will be true so this will only happen once
+                    ground_start_count = 0;
+                    init_home();
                     if (g.compass_enabled) {
                         // Set compass declination automatically
                         compass.set_initial_location(g_gps->latitude, g_gps->longitude);
                     }
-                    // save home to eeprom (we must have a good fix to have reached this point)
-                    init_home();
-                    ground_start_count = 0;
+
                 }
             }
 
@@ -1669,8 +1673,13 @@ bool set_roll_pitch_mode(uint8_t new_roll_pitch_mode)
         case ROLL_PITCH_AUTO:
         case ROLL_PITCH_STABLE_OF:
         case ROLL_PITCH_TOY:
-        case ROLL_PITCH_LOITER_PR:
             roll_pitch_initialised = true;
+            break;
+        case ROLL_PITCH_LOITER_PR:
+            // require gps lock
+            if( ap.home_is_set ) {
+                roll_pitch_initialised = true;
+            }
             break;
     }
 
@@ -1816,11 +1825,11 @@ void update_simple_mode(void)
 
     if (simple_counter == 1) {
         // roll
-        simple_cos_x = sin(radians(90 - delta));
+        simple_cos_x = sinf(radians(90 - delta));
 
     }else if (simple_counter > 2) {
         // pitch
-        simple_sin_y = cos(radians(90 - delta));
+        simple_sin_y = cosf(radians(90 - delta));
         simple_counter = 0;
     }
 

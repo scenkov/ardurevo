@@ -138,7 +138,7 @@ get_roll_rate_stabilized_ef(int32_t stick_angle)
         angle_error	= constrain(angle_error, -MAX_ROLL_OVERSHOOT, MAX_ROLL_OVERSHOOT);
     }
 
-    if (motors.armed() == false || ((g.rc_3.control_in == 0) && !ap.failsafe)) {
+    if (motors.armed() == false || ((g.rc_3.control_in == 0) && !ap.failsafe_radio)) {
         angle_error = 0;
     }
 
@@ -174,7 +174,7 @@ get_pitch_rate_stabilized_ef(int32_t stick_angle)
         angle_error	= constrain(angle_error, -MAX_PITCH_OVERSHOOT, MAX_PITCH_OVERSHOOT);
     }
 
-    if (motors.armed() == false || ((g.rc_3.control_in == 0) && !ap.failsafe)) {
+    if (motors.armed() == false || ((g.rc_3.control_in == 0) && !ap.failsafe_radio)) {
         angle_error = 0;
     }
 
@@ -205,7 +205,7 @@ get_yaw_rate_stabilized_ef(int32_t stick_angle)
     // limit the maximum overshoot
     angle_error	= constrain(angle_error, -MAX_YAW_OVERSHOOT, MAX_YAW_OVERSHOOT);
 
-    if (motors.armed() == false || ((g.rc_3.control_in == 0) && !ap.failsafe)) {
+    if (motors.armed() == false || ((g.rc_3.control_in == 0) && !ap.failsafe_radio)) {
     	angle_error = 0;
     }
 
@@ -880,7 +880,7 @@ static int16_t get_pilot_desired_climb_rate(int16_t throttle_control)
     int16_t desired_rate = 0;
 
     // throttle failsafe check
-    if( ap.failsafe ) {
+    if( ap.failsafe_radio ) {
         return 0;
     }
 
@@ -913,7 +913,7 @@ static int16_t get_pilot_desired_acceleration(int16_t throttle_control)
     int32_t desired_accel = 0;
 
     // throttle failsafe check
-    if( ap.failsafe ) {
+    if( ap.failsafe_radio ) {
         return 0;
     }
 
@@ -942,7 +942,7 @@ static int32_t get_pilot_desired_direct_alt(int16_t throttle_control)
     int32_t desired_alt = 0;
 
     // throttle failsafe check
-    if( ap.failsafe ) {
+    if( ap.failsafe_radio ) {
         return 0;
     }
 
@@ -1022,8 +1022,8 @@ static void
 get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate)
 {
     int32_t alt_error;
-    int16_t desired_rate;
-    int32_t linear_distance;      // the distace we swap between linear and sqrt.
+    float desired_rate;
+    int32_t linear_distance;      // half the distace we swap between linear and sqrt and the distace we offset sqrt.
 
     // calculate altitude error
     alt_error    = target_alt - current_loc.alt;
@@ -1059,7 +1059,7 @@ static void
 get_throttle_althold_with_slew(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate)
 {
     // limit target altitude change
-    controller_desired_alt += constrain(target_alt-controller_desired_alt, min_climb_rate*0.02, max_climb_rate*0.02);
+    controller_desired_alt += constrain(target_alt-controller_desired_alt, min_climb_rate*0.02f, max_climb_rate*0.02f);
 
     // do not let target altitude get too far from current altitude
     controller_desired_alt = constrain(controller_desired_alt,current_loc.alt-750,current_loc.alt+750);
@@ -1101,7 +1101,7 @@ get_throttle_land()
                 land_detector++;
             }else{
                 set_land_complete(true);
-                if( g.rc_3.control_in == 0 || ap.failsafe ) {
+                if( g.rc_3.control_in == 0 || ap.failsafe_radio ) {
                     init_disarm_motors();
                 }
             }

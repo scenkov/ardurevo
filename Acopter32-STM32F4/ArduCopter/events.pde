@@ -4,7 +4,7 @@
  *       This event will be called when the failsafe changes
  *       boolean failsafe reflects the current state
  */
-static void failsafe_on_event()
+static void failsafe_radio_on_event()
 {
     // if motors are not armed there is nothing to do
     if( !motors.armed() ) {
@@ -55,7 +55,7 @@ static void failsafe_on_event()
 // failsafe_off_event - respond to radio contact being regained
 // we must be in AUTO, LAND or RTL modes
 // or Stabilize or ACRO mode but with motors disarmed
-static void failsafe_off_event()
+static void failsafe_radio_off_event()
 {
     // no need to do anything except log the error as resolved
     // user can now override roll, pitch, yaw and throttle and even use flight mode switch to restore previous flight mode
