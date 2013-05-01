@@ -226,7 +226,7 @@ AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000() : AP_InertialSensor()
     _initialised = false;
     _dmp_initialised = false;
     _sample_time = 0;
-    _sample_rate = 0;
+    _sample_rate = RATE_200HZ;
 }
 
 uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
@@ -609,7 +609,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 
     // set sample rate to 200Hz, and use _sample_divider to give
     // the requested rate to the application
-    register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_1000HZ);
+    register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
     hal.scheduler->delay(1);
 
     register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s

@@ -62,7 +62,7 @@ void boardInit(void);
 #define MPU6000_CS_PIN			77
 #define MPU6000_INT_PIN			99
 
-#define BOARD_NR_GPIO_PINS      102
+#define BOARD_NR_GPIO_PINS      103
 #define BOARD_NR_PWM_PINS       18
 #define BOARD_NR_ADC_PINS       21
 #define BOARD_NR_USED_PINS      43

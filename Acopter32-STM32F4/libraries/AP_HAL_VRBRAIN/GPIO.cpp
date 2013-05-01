@@ -118,7 +118,7 @@ void VRBRAINGPIO::write(uint8_t pin, uint8_t value)
 AP_HAL::DigitalSource* VRBRAINGPIO::channel(uint16_t pin) {
 
     if (pin >= BOARD_NR_GPIO_PINS) {
-        return;
+        return NULL;
     }
 
     uint8_t bit;
