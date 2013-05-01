@@ -168,7 +168,8 @@ extern const AP_HAL::HAL& hal;
  *  RM-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
  *  gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
  */
-const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 32.8);
+//const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 32.8);
+const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 16.4);
 
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
@@ -612,7 +613,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
     hal.scheduler->delay(1);
 
-    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
+    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
     hal.scheduler->delay(1);
 
     // read the product ID rev c has 1/2 the sensitivity of rev d
