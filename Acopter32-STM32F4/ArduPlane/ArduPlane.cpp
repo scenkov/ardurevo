@@ -1,9 +1,11 @@
 #line 1 "./ArduPlane/ArduPlane.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V2.69"
+#define THISFIRMWARE "ArduPlane V2.71"
 /*
- *  Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Andrew Tridgell, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Amilcar Lucas, Gregory Fletcher
+ *  Lead developer: Andrew Tridgell
+ *
+ *  Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Amilcar Lucas, Gregory Fletcher, Paul Riseborough, Brandon Jones, Jon Challinger
  *  Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier, Yury MonZon
  *  Please contribute your ideas!
  *
@@ -59,6 +61,9 @@
 #include <APM_Control.h>
 #endif
 
+#include <AP_Navigation.h>
+#include <AP_L1_Control.h>
+
 // Pre-AP_HAL compatibility
 #include "compat.h"
 
@@ -71,6 +76,7 @@
 #include "GCS.h"
 
 #include <AP_HAL_VRBRAIN.h>
+//#include <AP_HAL_AVR.h>
 //#include <AP_HAL_AVR_SITL.h>
 //#include <AP_HAL_PX4.h>
 //#include <AP_HAL_Empty.h>
@@ -89,7 +95,8 @@
  static bool stick_mixing_enabled(void) ;
  static void stabilize_roll(float speed_scaler) ;
  static void stabilize_pitch(float speed_scaler) ;
- static void stabilize_stick_mixing() ;
+ static void stabilize_stick_mixing_direct() ;
+ static void stabilize_stick_mixing_fbw() ;
  static void stabilize_yaw(float speed_scaler) ;
  static void stabilize_training(float speed_scaler) ;
  static void stabilize() ;
@@ -99,7 +106,9 @@
    static void calc_nav_pitch() ;
    static void calc_nav_roll() ;
  static void throttle_slew_limit(int16_t last_throttle) ;
+ static bool auto_takeoff_check(void) ;
  static bool suppress_throttle(void) ;
+ static void vtail_output_mixing(void) ;
  static void set_servos(void) ;
   static void demo_servos(uint8_t i) ;
  static bool alt_control_airspeed(void) ;
@@ -139,8 +148,10 @@
  static void Log_Read_Attitude() ;
  static void Log_Write_Performance() ;
  static void Log_Read_Performance() ;
- static void Log_Write_Cmd(uint8_t num, struct Location *wp) ;
+ static void Log_Write_Cmd(uint8_t num, const struct Location *wp) ;
  static void Log_Read_Cmd() ;
+ static void Log_Write_Camera() ;
+ static void Log_Read_Camera() ;
   static void Log_Write_Startup(uint8_t type) ;
   static void Log_Read_Startup() ;
  static void Log_Write_Control_Tuning() ;
@@ -155,11 +166,11 @@
  static void Log_Read_IMU() ;
   static void Log_Write_Current() ;
  static void Log_Read_Current() ;
- static void Log_Read(uint8_t log_num, int16_t start_page, int16_t end_page) ;
+ static void Log_Read(uint16_t log_num, int16_t start_page, int16_t end_page) ;
  static void log_callback(uint8_t msgid) ;
  static void Log_Write_Mode(uint8_t mode) ;
  static void Log_Write_Startup(uint8_t type) ;
- static void Log_Write_Cmd(uint8_t num, struct Location *wp) ;
+ static void Log_Write_Cmd(uint8_t num, const struct Location *wp) ;
  static void Log_Write_Current() ;
  static void Log_Write_Nav_Tuning() ;
  static void Log_Write_GPS() ;
@@ -167,6 +178,7 @@
  static void Log_Write_Attitude() ;
  static void Log_Write_Control_Tuning() ;
  static void Log_Write_IMU() ;
+ static void Log_Write_Camera() ;
    static void load_parameters(void) ;
   void add_altitude_data(unsigned long xl, long y) ;
   static void init_commands() ;
@@ -177,7 +189,7 @@
  static void set_cmd_with_index(struct Location temp, int16_t i) ;
   static void decrement_cmd_index() ;
   static int32_t read_alt_to_hold() ;
- static void set_next_WP(struct Location *wp) ;
+ static void set_next_WP(const struct Location *wp) ;
   static void set_guided_WP(void) ;
  void init_home() ;
  static void handle_process_nav_cmd() ;
@@ -188,7 +200,7 @@
   static void do_takeoff() ;
   static void do_nav_wp() ;
   static void do_land() ;
-  static void loiter_set_direction_wp(struct Location *nav_command)  ;
+  static void loiter_set_direction_wp(const struct Location *nav_command) ;
   static void do_loiter_unlimited() ;
   static void do_loiter_turns() ;
   static void do_loiter_time() ;
@@ -213,6 +225,7 @@
   static void do_set_relay() ;
   static void do_repeat_servo(uint8_t channel, uint16_t servo_value,                             int16_t repeat, uint8_t delay_time) ;
   static void do_repeat_relay() ;
+ static void do_take_picture() ;
  void change_command(uint8_t cmd_index) ;
  static void update_commands(void) ;
   static void verify_commands(void) ;
@@ -247,17 +260,14 @@
   static void geofence_check(bool altitude_check_only) ;
  static bool geofence_stickmixing(void) ;
  static bool geofence_enabled(void) ;
+ static void set_nav_controller(void) ;
+ static void loiter_angle_reset(void) ;
+ static void loiter_angle_update(void) ;
  static void navigate() ;
- void calc_distance_error() ;
-  static void calc_airspeed_errors() ;
+   static void calc_airspeed_errors() ;
   static void calc_gndspeed_undershoot() ;
-  static void calc_bearing_error() ;
   static void calc_altitude_error() ;
-  static int32_t wrap_360_cd(int32_t error) ;
-  static int32_t wrap_180_cd(int32_t error) ;
   static void update_loiter() ;
-  static void update_crosstrack(void) ;
-  static void reset_crosstrack() ;
   static void init_rc_in() ;
   static void init_rc_out() ;
   static void init_rc_default() ;
@@ -275,7 +285,6 @@
   static void report_batt_monitor() ;
  static void report_radio() ;
   static void report_gains() ;
-  static void report_xtrack() ;
   static void report_throttle() ;
   static void report_ins() ;
   static void report_compass() ;
@@ -306,9 +315,10 @@
  static void reboot_apm(void) ;
    static void print_flight_mode(uint8_t mode) ;
   static void print_comma(void) ;
+ static void servo_write(uint8_t ch, uint16_t pwm) ;
   static void print_hit_enter() ;
-  static void test_wp_print(struct Location *cmd, uint8_t wp_index) ;
-#line 77 "./ArduPlane/ArduPlane.pde"
+  static void test_wp_print(const struct Location *cmd, uint8_t wp_index) ;
+#line 83 "./ArduPlane/ArduPlane.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -337,6 +347,7 @@ static Parameters g;
 ////////////////////////////////////////////////////////////////////////////////
 // prototypes
 static void update_events(void);
+void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -350,6 +361,8 @@ DataFlash_APM2 DataFlash;
 DataFlash_MP32 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 DataFlash_SITL DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
+static DataFlash_File DataFlash("/fs/microsd/APM/logs");
 #else
 // no dataflash driver
 DataFlash_Empty DataFlash;
@@ -447,11 +460,9 @@ AP_InertialSensor_Oilpan ins( &adc );
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 
-#if HIL_MODE == HIL_MODE_ATTITUDE
-AP_AHRS_HIL ahrs(&ins, g_gps);
-#else
 AP_AHRS_DCM ahrs(&ins, g_gps);
-#endif
+
+static AP_L1_Control L1_controller(&ahrs);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 SITL sitl;
@@ -464,32 +475,35 @@ static bool training_manual_pitch; // user has manual pitch control
 ////////////////////////////////////////////////////////////////////////////////
 // GCS selection
 ////////////////////////////////////////////////////////////////////////////////
-GCS_MAVLINK gcs0;
-GCS_MAVLINK gcs3;
+static GCS_MAVLINK gcs0;
+static GCS_MAVLINK gcs3;
+
+// selected navigation controller
+static AP_Navigation *nav_controller = &L1_controller;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Analog Inputs
 ////////////////////////////////////////////////////////////////////////////////
 
-AP_HAL::AnalogSource *pitot_analog_source;
+static AP_HAL::AnalogSource *pitot_analog_source;
 
 // a pin for reading the receiver RSSI voltage. The scaling by 0.25 
 // is to take the 0 to 1024 range down to an 8 bit range for MAVLink
-AP_HAL::AnalogSource *rssi_analog_source;
+static AP_HAL::AnalogSource *rssi_analog_source;
 
-AP_HAL::AnalogSource *vcc_pin;
+static AP_HAL::AnalogSource *vcc_pin;
 
-AP_HAL::AnalogSource * batt_volt_pin;
-AP_HAL::AnalogSource * batt_curr_pin;
+static AP_HAL::AnalogSource * batt_volt_pin;
+static AP_HAL::AnalogSource * batt_curr_pin;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Relay
 ////////////////////////////////////////////////////////////////////////////////
-AP_Relay relay;
+static AP_Relay relay;
 
 // Camera
 #if CAMERA == ENABLED
-AP_Camera camera(&relay);
+static AP_Camera camera(&relay);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -526,16 +540,23 @@ enum FlightMode control_mode  = INITIALISING;
 uint8_t oldSwitchPosition;
 // This is used to enable the inverted flight feature
 bool inverted_flight     = false;
-// These are trim values used for elevon control
-// For elevons radio_in[CH_ROLL] and radio_in[CH_PITCH] are equivalent aileron and elevator, not left and right elevon
-static uint16_t elevon1_trim  = 1500;
-static uint16_t elevon2_trim  = 1500;
-// These are used in the calculation of elevon1_trim and elevon2_trim
-static uint16_t ch1_temp      = 1500;
-static uint16_t ch2_temp        = 1500;
-// These are values received from the GCS if the user is using GCS joystick
-// control and are substituted for the values coming from the RC radio
-static int16_t rc_override[8] = {0,0,0,0,0,0,0,0};
+
+static struct {
+    // These are trim values used for elevon control
+    // For elevons radio_in[CH_ROLL] and radio_in[CH_PITCH] are
+    // equivalent aileron and elevator, not left and right elevon
+    uint16_t trim1;
+    uint16_t trim2;
+    // These are used in the calculation of elevon1_trim and elevon2_trim
+    uint16_t ch1_temp;
+    uint16_t ch2_temp;
+} elevon = {
+	trim1 : 1500,
+    trim2 : 1500,
+    ch1_temp : 1500,
+    ch2_temp : 1500
+};
+
 // A flag if GCS joystick control is in use
 static bool rc_override_active = false;
 
@@ -586,24 +607,11 @@ static bool have_position;
 ////////////////////////////////////////////////////////////////////////////////
 // Location & Navigation
 ////////////////////////////////////////////////////////////////////////////////
-// Constants
-const float radius_of_earth   = 6378100;        // meters
-
-// This is the currently calculated direction to fly.
-// deg * 100 : 0 to 360
-static int32_t nav_bearing_cd;
-
-// This is the direction to the next waypoint or loiter center
-// deg * 100 : 0 to 360
-static int32_t target_bearing_cd;
-
-//This is the direction from the last waypoint to the next waypoint
-// deg * 100 : 0 to 360
-static int32_t crosstrack_bearing_cd;
 
 // Direction held during phases of takeoff and landing
 // deg * 100 dir of plane,  A value of -1 indicates the course has not been set/is not in use
-static int32_t hold_course                   = -1;              // deg * 100 dir of plane
+// this is a 0..36000 value, or -1 for disabled
+static int32_t hold_course_cd                 = -1;              // deg * 100 dir of plane
 
 // There may be two active commands in Auto mode.
 // This indicates the active navigation command by index number
@@ -649,17 +657,8 @@ static uint8_t receiver_rssi;
 // The amount current ground speed is below min ground speed.  Centimeters per second
 static int32_t groundspeed_undershoot = 0;
 
-////////////////////////////////////////////////////////////////////////////////
-// Location Errors
-////////////////////////////////////////////////////////////////////////////////
-// Difference between current bearing and desired bearing.  Hundredths of a degree
-static int32_t bearing_error_cd;
-
 // Difference between current altitude and desired altitude.  Centimeters
 static int32_t altitude_error_cm;
-
-// Distance perpandicular to the course line that we are off trackline.  Meters
-static float crosstrack_error;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Battery Sensors
@@ -704,26 +703,6 @@ static bool throttle_suppressed;
 ////////////////////////////////////////////////////////////////////////////////
 // Loiter management
 ////////////////////////////////////////////////////////////////////////////////
-// Previous target bearing.  Used to calculate loiter rotations.  Hundredths of a degree
-static int32_t old_target_bearing_cd;
-
-// Total desired rotation in a loiter.  Used for Loiter Turns commands.  Degrees
-static int32_t loiter_total;
-
-// Direction for loiter. 1 for clockwise, -1 for counter-clockwise
-static int8_t loiter_direction = 1;
-
-// The amount in degrees we have turned since recording old_target_bearing
-static int16_t loiter_delta;
-
-// Total rotation in a loiter.  Used for Loiter Turns commands and to check for missed waypoints.  Degrees
-static int32_t loiter_sum;
-
-// The amount of time we have been in a Loiter.  Used for the Loiter Time command.  Milliseconds.
-static uint32_t loiter_time_ms;
-
-// The amount of time we should stay in a loiter for the Loiter Time command.  Milliseconds.
-static uint32_t loiter_time_max_ms;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Navigation control variables
@@ -743,6 +722,30 @@ uint32_t wp_distance;
 
 // Distance between previous and next waypoint.  Meters
 static uint32_t wp_totalDistance;
+
+/*
+  meta data to support counting the number of circles in a loiter
+ */
+static struct {
+    // previous target bearing, used to update sum_cd
+    int32_t old_target_bearing_cd;
+
+    // Total desired rotation in a loiter.  Used for Loiter Turns commands. 
+    int32_t total_cd;
+
+    // total angle completed in the loiter so far
+    int32_t sum_cd;
+
+	// Direction for loiter. 1 for clockwise, -1 for counter-clockwise
+    int8_t direction;
+
+	// start time of the loiter.  Milliseconds.
+    uint32_t start_time_ms;
+
+	// The amount of time we should stay in a loiter for the Loiter Time command.  Milliseconds.
+    uint32_t time_max_ms;
+} loiter;
+
 
 // event control state
 enum event_type { 
@@ -988,15 +991,12 @@ static void fast_loop()
     // ------------------------------------
     check_short_failsafe();
 
-#if HIL_MODE == HIL_MODE_SENSORS
+#if HIL_MODE != HIL_MODE_DISABLED
     // update hil before AHRS update
     gcs_update();
 #endif
 
     ahrs.update();
-
-    // uses the yaw from the DCM to give more accurate turns
-    calc_bearing_error();
 
     if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
         Log_Write_Attitude();
@@ -1012,7 +1012,8 @@ static void fast_loop()
 #endif
 
     // custom code/exceptions for flight modes
-    // ---------------------------------------
+    // calculates roll, pitch and yaw demands from navigation demands
+    // --------------------------------------------------------------
     update_current_flight_mode();
 
     // apply desired roll, pitch and yaw to the plane
@@ -1053,14 +1054,12 @@ static void medium_loop()
         update_GPS();
         calc_gndspeed_undershoot();
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
         if (g.compass_enabled && compass.read()) {
             ahrs.set_compass(&compass);
             compass.null_offsets();
         } else {
             ahrs.set_compass(NULL);
         }
-#endif
 
         break;
 
@@ -1086,11 +1085,9 @@ static void medium_loop()
 
         // Read Airspeed
         // -------------
-#if HIL_MODE != HIL_MODE_ATTITUDE
         if (airspeed.enabled()) {
             read_airspeed();
         }
-#endif
 
         read_receiver_rssi();
 
@@ -1159,12 +1156,11 @@ static void slow_loop()
         slow_loopCounter++;
         check_long_failsafe();
         superslow_loopCounter++;
-        if(superslow_loopCounter >=200) {                                               //	200 = Execute every minute
-#if HIL_MODE != HIL_MODE_ATTITUDE
+        if(superslow_loopCounter >=200) {                                               
+            //	200 = Execute every minute
             if(g.compass_enabled) {
                 compass.save_offsets();
             }
-#endif
 
             superslow_loopCounter = 0;
         }
@@ -1217,7 +1213,7 @@ static void update_GPS(void)
     // get position from AHRS
     have_position = ahrs.get_position(&current_loc);
 
-    if (g_gps->new_data && g_gps->fix) {
+    if (g_gps->new_data && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
         g_gps->new_data = false;
 
         // for performance
@@ -1267,10 +1263,15 @@ static void update_current_flight_mode(void)
 
         switch(nav_command_ID) {
         case MAV_CMD_NAV_TAKEOFF:
-            if (hold_course != -1 && g.rudder_steer == 0) {
-                calc_nav_roll();
-            } else {
+            if (hold_course_cd == -1) {
+                // we don't yet have a heading to hold - just level
+                // the wings until we get up enough speed to get a GPS heading
                 nav_roll_cd = 0;
+            } else {
+                calc_nav_roll();
+                // during takeoff use the level flight roll limit to
+                // prevent large course corrections
+				nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
             }
 
             if (alt_control_airspeed()) {
@@ -1300,13 +1301,13 @@ static void update_current_flight_mode(void)
             break;
 
         case MAV_CMD_NAV_LAND:
-            if (g.rudder_steer == 0 || !land_complete) {
-                calc_nav_roll();
-            } else {
-                nav_roll_cd = 0;
-            }
+            calc_nav_roll();
 
             if (land_complete) {
+                // during final approach constrain roll to the range
+                // allowed for level flight
+                nav_roll_cd = constrain_int32(nav_roll_cd, -g.level_roll_limit*100UL, g.level_roll_limit*100UL);
+
                 // hold pitch constant in final approach
                 nav_pitch_cd = g.land_pitch_cd;
             } else {
@@ -1329,7 +1330,7 @@ static void update_current_flight_mode(void)
         default:
             // we are doing normal AUTO flight, the special cases
             // are for takeoff and landing
-            hold_course = -1;
+            hold_course_cd = -1;
             land_complete = false;
             calc_nav_roll();
             calc_nav_pitch();
@@ -1338,7 +1339,7 @@ static void update_current_flight_mode(void)
         }
     }else{
         // hold_course is only used in takeoff and landing
-        hold_course = -1;
+        hold_course_cd = -1;
 
         switch(control_mode) {
         case RTL:
@@ -1397,7 +1398,8 @@ static void update_current_flight_mode(void)
             break;
         }
 
-        case FLY_BY_WIRE_B:
+        case FLY_BY_WIRE_B: {
+            static float last_elevator_input;
             // Substitute stick inputs for Navigation control output
             // We use g.pitch_limit_min because its magnitude is
             // normally greater than g.pitch_limit_max
@@ -1412,16 +1414,26 @@ static void update_current_flight_mode(void)
             if (g.flybywire_elev_reverse) {
                 elevator_input = -elevator_input;
             }
-            if ((adjusted_altitude_cm() >= home.alt+g.FBWB_min_altitude_cm) || (g.FBWB_min_altitude_cm == 0)) {
-                altitude_error_cm = elevator_input * g.pitch_limit_min_cd;
-            } else {
-                altitude_error_cm = (home.alt + g.FBWB_min_altitude_cm) - adjusted_altitude_cm();
-                if (elevator_input < 0) {
-                    altitude_error_cm += elevator_input * g.pitch_limit_min_cd;
-                }
+
+            target_altitude_cm += g.flybywire_climb_rate * elevator_input * delta_ms_fast_loop * 0.1f;
+
+            if (elevator_input == 0.0f && last_elevator_input != 0.0f) {
+                // the user has just released the elevator, lock in
+                // the current altitude
+                target_altitude_cm = current_loc.alt;
             }
+
+            // check for FBWB altitude limit
+            if (g.FBWB_min_altitude_cm != 0 && target_altitude_cm < home.alt + g.FBWB_min_altitude_cm) {
+                target_altitude_cm = home.alt + g.FBWB_min_altitude_cm;
+            }
+            altitude_error_cm = target_altitude_cm - adjusted_altitude_cm();
+
+            last_elevator_input = elevator_input;
+
             calc_throttle();
             calc_nav_pitch();
+        }
             break;
 
         case STABILIZE:
@@ -1472,7 +1484,6 @@ static void update_navigation()
     case RTL:
     case GUIDED:
         update_loiter();
-        calc_bearing_error();
         break;
 
     case MANUAL:
@@ -1490,19 +1501,15 @@ static void update_navigation()
 
 static void update_alt()
 {
-#if HIL_MODE == HIL_MODE_ATTITUDE
-    current_loc.alt = g_gps->altitude;
-#else
     // this function is in place to potentially add a sonar sensor in the future
     //altitude_sensor = BARO;
 
     if (barometer.healthy) {
         current_loc.alt = (1 - g.altitude_mix) * g_gps->altitude;                       // alt_MSL centimeters (meters * 100)
         current_loc.alt += g.altitude_mix * (read_barometer() + home.alt);
-    } else if (g_gps->fix) {
+    } else if (g_gps->status() >= GPS::GPS_OK_FIX_3D) {
         current_loc.alt = g_gps->altitude;     // alt_MSL centimeters (meters * 100)
     }
-#endif
 
     geofence_check(true);
 
@@ -1555,9 +1562,11 @@ static bool stick_mixing_enabled(void)
 {
     if (control_mode == CIRCLE || control_mode > FLY_BY_WIRE_B) {
         // we're in an auto mode. Check the stick mixing flag
-        if (g.stick_mixing &&
+        if (g.stick_mixing != STICK_MIXING_DISABLED &&
             geofence_stickmixing() &&
-            failsafe == FAILSAFE_NONE) {
+            failsafe == FAILSAFE_NONE &&
+            (g.throttle_fs_enabled == 0 || 
+             g.channel_throttle.radio_in >= g.throttle_fs_value)) {
             // we're in an auto mode, and haven't triggered failsafe
             return true;
         } else {
@@ -1593,7 +1602,7 @@ static void stabilize_roll(float speed_scaler)
 #if APM_CONTROL == DISABLED
 	// Calculate dersired servo output for the roll
 	// ---------------------------------------------
-    g.channel_roll.servo_out = g.pidServoRoll.get_pid((nav_roll_cd - ahrs.roll_sensor), speed_scaler);
+    g.channel_roll.servo_out = g.pidServoRoll.get_pid_4500((nav_roll_cd - ahrs.roll_sensor), speed_scaler);
 #else // APM_CONTROL == ENABLED
     // calculate roll and pitch control using new APM_Control library
     g.channel_roll.servo_out = g.rollController.get_servo_out(nav_roll_cd, speed_scaler, control_mode == STABILIZE);
@@ -1616,7 +1625,7 @@ static void stabilize_pitch(float speed_scaler)
         // when flying upside down the elevator control is inverted
         tempcalc = -tempcalc;
     }
-    g.channel_pitch.servo_out = g.pidServoPitch.get_pid(tempcalc, speed_scaler);
+    g.channel_pitch.servo_out = g.pidServoPitch.get_pid_4500(tempcalc, speed_scaler);
 #else // APM_CONTROL == ENABLED
     g.channel_pitch.servo_out = g.pitchController.get_servo_out(nav_pitch_cd, speed_scaler, control_mode == STABILIZE);    
 #endif
@@ -1625,7 +1634,7 @@ static void stabilize_pitch(float speed_scaler)
 /*
   this gives the user control of the aircraft in stabilization modes
  */
-static void stabilize_stick_mixing()
+static void stabilize_stick_mixing_direct()
 {
     if (!stick_mixing_enabled() ||
         control_mode == FLY_BY_WIRE_A ||
@@ -1633,7 +1642,7 @@ static void stabilize_stick_mixing()
         control_mode == TRAINING) {
         return;
     }
-    // do stick mixing on aileron/elevator
+    // do direct stick mixing on aileron/elevator
     float ch1_inf;
     float ch2_inf;
         
@@ -1651,11 +1660,51 @@ static void stabilize_stick_mixing()
     // -----------------------------------------------
     g.channel_roll.servo_out  *= ch1_inf;
     g.channel_pitch.servo_out *= ch2_inf;
-            
+    
     // Mix in stick inputs
     // -------------------
     g.channel_roll.servo_out  +=     g.channel_roll.pwm_to_angle();
     g.channel_pitch.servo_out +=    g.channel_pitch.pwm_to_angle();
+}
+
+/*
+  this gives the user control of the aircraft in stabilization modes
+  using FBW style controls
+ */
+static void stabilize_stick_mixing_fbw()
+{
+    if (!stick_mixing_enabled() ||
+        control_mode == FLY_BY_WIRE_A ||
+        control_mode == FLY_BY_WIRE_B ||
+        control_mode == TRAINING) {
+        return;
+    }
+    // do FBW style stick mixing. We don't treat it linearly
+    // however. For inputs up to half the maximum, we use linear
+    // addition to the nav_roll and nav_pitch. Above that it goes
+    // non-linear and ends up as 2x the maximum, to ensure that
+    // the user can direct the plane in any direction with stick
+    // mixing.
+    float roll_input = g.channel_roll.norm_input();
+    if (fabsf(roll_input) > 0.5f) {
+        roll_input = (3*roll_input - 1);
+    }
+    nav_roll_cd += roll_input * g.roll_limit_cd;
+    nav_roll_cd = constrain_int32(nav_roll_cd, -g.roll_limit_cd.get(), g.roll_limit_cd.get());
+    
+    float pitch_input = g.channel_pitch.norm_input();
+    if (fabsf(pitch_input) > 0.5f) {
+        pitch_input = (3*pitch_input - 1);
+    }
+    if (inverted_flight) {
+        pitch_input = -pitch_input;
+    }
+    if (pitch_input > 0) {
+        nav_pitch_cd += pitch_input * g.pitch_limit_max_cd;
+    } else {
+        nav_pitch_cd += -(pitch_input * g.pitch_limit_min_cd);
+    }
+    nav_pitch_cd = constrain_int32(nav_pitch_cd, g.pitch_limit_min_cd.get(), g.pitch_limit_max_cd.get());
 }
 
 
@@ -1711,7 +1760,6 @@ static void stabilize_training(float speed_scaler)
         }
     }
 
-    stabilize_stick_mixing();
     stabilize_yaw(speed_scaler);
 }
 
@@ -1726,9 +1774,14 @@ static void stabilize()
     if (control_mode == TRAINING) {
         stabilize_training(speed_scaler);
     } else {
+        if (g.stick_mixing == STICK_MIXING_FBW && control_mode != STABILIZE) {
+            stabilize_stick_mixing_fbw();
+        }
         stabilize_roll(speed_scaler);
         stabilize_pitch(speed_scaler);
-        stabilize_stick_mixing();
+        if (g.stick_mixing == STICK_MIXING_DIRECT || control_mode == STABILIZE) {
+            stabilize_stick_mixing_direct();
+        }
         stabilize_yaw(speed_scaler);
     }
 }
@@ -1746,6 +1799,14 @@ static void crash_checker()
 
 static void calc_throttle()
 {
+    if (g.throttle_cruise <= 1) {
+        // user has asked for zero throttle - this may be done by a
+        // mission which wants to turn off the engine for a parachute
+        // landing
+        g.channel_throttle.servo_out = 0;
+        return;
+    }
+
     if (!alt_control_airspeed()) {
         int16_t throttle_target = g.throttle_cruise + throttle_nudge;
 
@@ -1786,10 +1847,12 @@ static void calc_throttle()
 // ----------------------------------------------------------------------
 static void calc_nav_yaw(float speed_scaler, float ch4_inf)
 {
-    if (hold_course != -1) {
+    if (hold_course_cd != -1) {
         // steering on or close to ground
-        g.channel_rudder.servo_out = g.pidWheelSteer.get_pid(bearing_error_cd, speed_scaler) + 
+        int32_t bearing_error_cd = nav_controller->bearing_error_cd();
+        g.channel_rudder.servo_out = g.pidWheelSteer.get_pid_4500(bearing_error_cd, speed_scaler) + 
             g.kff_rudder_mix * g.channel_roll.servo_out;
+        g.channel_rudder.servo_out = constrain_int16(g.channel_rudder.servo_out, -4500, 4500);
         return;
     }
 
@@ -1801,7 +1864,7 @@ static void calc_nav_yaw(float speed_scaler, float ch4_inf)
     Vector3f temp = ins.get_accel();
     int32_t error = -temp.y*100.0;
 
-    g.channel_rudder.servo_out += g.pidServoRudder.get_pid(error, speed_scaler);
+    g.channel_rudder.servo_out += g.pidServoRudder.get_pid_4500(error, speed_scaler);
 #else // APM_CONTROL == ENABLED
     // use the new APM_Control library
 	g.channel_rudder.servo_out = g.yawController.get_servo_out(speed_scaler, ch4_inf < 0.25f) + g.channel_roll.servo_out * g.kff_rudder_mix;
@@ -1824,35 +1887,7 @@ static void calc_nav_pitch()
 
 static void calc_nav_roll()
 {
-#define NAV_ROLL_BY_RATE 0
-#if NAV_ROLL_BY_RATE
-    // Scale from centidegrees (PID input) to radians per second. A P gain of 1.0 should result in a
-    // desired rate of 1 degree per second per degree of error - if you're 15 degrees off, you'll try
-    // to turn at 15 degrees per second.
-    float turn_rate = ToRad(g.pidNavRoll.get_pid(bearing_error_cd) * .01);
-
-    // Use airspeed_cruise as an analogue for airspeed if we don't have airspeed.
-    float speed;
-    if (!ahrs.airspeed_estimate(&speed)) {
-        speed = g.airspeed_cruise_cm*0.01;
-
-        // Floor the speed so that the user can't enter a bad value
-        if(speed < 6) {
-            speed = 6;
-        }
-    }
-
-    // Bank angle = V*R/g, where V is airspeed, R is turn rate, and g is gravity.
-    nav_roll = ToDeg(atanf(speed*turn_rate/GRAVITY_MSS)*100);
-
-#else
-    // this is the old nav_roll calculation. We will use this for 2.50
-    // then remove for a future release
-    float nav_gain_scaler = 0.01 * g_gps->ground_speed / g.scaling_speed;
-    nav_gain_scaler = constrain(nav_gain_scaler, 0.2, 1.4);
-    nav_roll_cd = g.pidNavRoll.get_pid(bearing_error_cd, nav_gain_scaler); //returns desired bank angle in degrees*100
-#endif
-
+    nav_roll_cd = nav_controller->nav_roll_cd();
     nav_roll_cd = constrain_int32(nav_roll_cd, -g.roll_limit_cd.get(), g.roll_limit_cd.get());
 }
 
@@ -1886,6 +1921,38 @@ static void throttle_slew_limit(int16_t last_throttle)
     }
 }
 
+/*
+  check for automatic takeoff conditions being met
+ */
+static bool auto_takeoff_check(void)
+{
+    if (g_gps == NULL || g_gps->status() != GPS::GPS_OK_FIX_3D) {
+        // no auto takeoff without GPS lock
+        return false;
+    }
+    if (g_gps->ground_speed < g.takeoff_throttle_min_speed*100.0f) {
+        // we haven't reached the minimum ground speed
+        return false;
+    }
+
+    if (g.takeoff_throttle_min_accel > 0.0f) {
+        float xaccel = ins.get_accel().x;
+        if (ahrs.pitch_sensor > -3000 && 
+            ahrs.pitch_sensor < 4500 &&
+            abs(ahrs.roll_sensor) < 3000 && 
+            xaccel >= g.takeoff_throttle_min_accel) {
+            // trigger with minimum acceleration when flat
+            // Thanks to Chris Miser for this suggestion
+            gcs_send_text_fmt(PSTR("Triggered AUTO xaccel=%.1f"), xaccel);
+            return true;
+        }
+        return false;
+    }
+
+    // we're good for takeoff
+    return true;
+}
+
 
 /* We want to supress the throttle if we think we are on the ground and in an autopilot controlled throttle mode.
 
@@ -1894,7 +1961,7 @@ static void throttle_slew_limit(int16_t last_throttle)
    *       AND
    *       2 - Our reported altitude is within 10 meters of the home altitude.
    *       3 - Our reported speed is under 5 meters per second.
-   *       4 - We are not performing a takeoff in Auto mode
+   *       4 - We are not performing a takeoff in Auto mode or takeoff speed/accel not yet reached
    *       OR
    *       5 - Home location is not set
 */
@@ -1910,7 +1977,7 @@ static bool suppress_throttle(void)
         return false;
     }
 
-    if (control_mode==AUTO && takeoff_complete == false) {
+    if (control_mode==AUTO && takeoff_complete == false && auto_takeoff_check()) {
         // we're in auto takeoff 
         throttle_suppressed = false;
         return false;
@@ -1923,7 +1990,7 @@ static bool suppress_throttle(void)
     }
 
     if (g_gps != NULL && 
-        g_gps->status() == GPS::GPS_OK && 
+        g_gps->status() >= GPS::GPS_OK_FIX_2D && 
         g_gps->ground_speed >= 500) {
         // we're moving at more than 5 m/s
         throttle_suppressed = false;
@@ -1932,6 +1999,51 @@ static bool suppress_throttle(void)
 
     // throttle remains suppressed
     return true;
+}
+
+/*
+  implement a software VTail mixer. There are 4 different mixing modes
+ */
+static void vtail_output_mixing(void)
+{
+    int16_t elevator, rudder;
+    int16_t v1, v2;
+
+    // first get desired elevator and rudder as -500..500 values
+    elevator = g.channel_pitch.radio_out  - 1500;
+    rudder   = g.channel_rudder.radio_out - 1500;
+
+    v1 = (elevator - rudder)/2;
+    v2 = (elevator + rudder)/2;
+
+    // now map to vtail output
+    switch (g.vtail_output) {
+    case VTAIL_DISABLED:
+        return;
+
+    case VTAIL_UPUP:
+        break;
+
+    case VTAIL_UPDN:
+        v2 = -v2;
+        break;
+
+    case VTAIL_DNUP:
+        v1 = -v1;
+        break;
+
+    case VTAIL_DNDN:
+        v1 = -v1;
+        v2 = -v2;
+        break;
+    }
+
+    v1 = constrain_int16(v1, -500, 500);
+    v2 = constrain_int16(v2, -500, 500);
+
+    // scale for a 1500 center and 1000..2000 range, symmetric
+    g.channel_pitch.radio_out  = 1500 + v1;
+    g.channel_rudder.radio_out = 1500 + v2;
 }
 
 /*****************************************
@@ -2020,8 +2132,8 @@ static void set_servos(void)
 			}
 
             // directly set the radio_out values for elevon mode
-            g.channel_roll.radio_out  =     elevon1_trim + (BOOL_TO_SIGN(g.reverse_ch1_elevon) * (ch1 * 500.0/ SERVO_MAX));
-            g.channel_pitch.radio_out =     elevon2_trim + (BOOL_TO_SIGN(g.reverse_ch2_elevon) * (ch2 * 500.0/ SERVO_MAX));
+            g.channel_roll.radio_out  =     elevon.trim1 + (BOOL_TO_SIGN(g.reverse_ch1_elevon) * (ch1 * 500.0/ SERVO_MAX));
+            g.channel_pitch.radio_out =     elevon.trim2 + (BOOL_TO_SIGN(g.reverse_ch2_elevon) * (ch2 * 500.0/ SERVO_MAX));
         }
 
 #if OBC_FAILSAFE == ENABLED
@@ -2104,7 +2216,21 @@ static void set_servos(void)
         throttle_slew_limit(last_throttle);
     }
 
-#if HIL_MODE == HIL_MODE_DISABLED || HIL_SERVOS
+    if (control_mode == TRAINING) {
+        // copy rudder in training mode
+        g.channel_rudder.radio_out   = g.channel_rudder.radio_in;
+    }
+
+#if HIL_MODE != HIL_MODE_DISABLED
+    if (!g.hil_servos) {
+        return;
+    }
+#endif
+
+    if (g.vtail_output != VTAIL_DISABLED) {
+        vtail_output_mixing();
+    }
+
     // send values to the PWM timers for output
     // ----------------------------------------
     hal.rcout->write(CH_1, g.channel_roll.radio_out);     // send to Servos
@@ -2121,7 +2247,6 @@ static void set_servos(void)
     g.rc_10.output_ch(CH_10);
     g.rc_11.output_ch(CH_11);
  # endif
-#endif
 }
 
 static bool demoing_servos;
@@ -2131,13 +2256,11 @@ static void demo_servos(uint8_t i) {
     while(i > 0) {
         gcs_send_text_P(SEVERITY_LOW,PSTR("Demo Servos!"));
         demoing_servos = true;
-#if HIL_MODE == HIL_MODE_DISABLED || HIL_SERVOS
-        hal.rcout->write(1, 1400);
+        servo_write(1, 1400);
         mavlink_delay(400);
-        hal.rcout->write(1, 1600);
+        servo_write(1, 1600);
         mavlink_delay(200);
-        hal.rcout->write(1, 1500);
-#endif
+        servo_write(1, 1500);
         demoing_servos = false;
         mavlink_delay(400);
         i--;
@@ -2160,9 +2283,6 @@ static bool mavlink_active;
 
 // check if a message will fit in the payload space available
 #define CHECK_PAYLOAD_SIZE(id) if (payload_space < MAVLINK_MSG_ID_ ## id ## _LEN) return false
-
-// prototype this for use inside the GCS class
-void gcs_send_text_fmt(const prog_char_t *fmt, ...);
 
 /*
  *  !!NOTE!!
@@ -2227,7 +2347,7 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
         base_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
     }
 
-    if (g.stick_mixing && control_mode != INITIALISING) {
+    if (g.stick_mixing != STICK_MIXING_DISABLED && control_mode != INITIALISING) {
         // all modes except INITIALISING have some form of manual
         // override if stick mixing is enabled
         base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
@@ -2289,7 +2409,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
         control_sensors_present |= (1<<2); // compass present
     }
     control_sensors_present |= (1<<3); // absolute pressure sensor present
-    if (g_gps != NULL && g_gps->status() == GPS::GPS_OK) {
+    if (g_gps != NULL && g_gps->status() >= GPS::NO_GPS) {
         control_sensors_present |= (1<<5); // GPS present
     }
     control_sensors_present |= (1<<10); // 3D angular rate control
@@ -2350,11 +2470,12 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
     // at the moment all sensors/controllers are assumed healthy
     control_sensors_health = control_sensors_present;
 
-    if (!compass.healthy) {
-        control_sensors_health &= ~(1<<2); // compass
+    if (!ahrs.use_compass()) {
+        control_sensors_health &= ~(1<<2); // compass not being used
     }
-    if (!compass.use_for_yaw()) {
-        control_sensors_enabled &= ~(1<<2); // compass
+
+    if (g_gps != NULL && g_gps->status() <= GPS::NO_FIX) {
+        control_sensors_health &= ~(1<<5); // GPS unhealthy
     }
 
     uint16_t battery_current = -1;
@@ -2405,7 +2526,7 @@ static void NOINLINE send_location(mavlink_channel_t chan)
     // positions.
     // If we don't have a GPS fix then we are dead reckoning, and will
     // use the current boot time as the fix time.    
-    if (g_gps->status() == GPS::GPS_OK) {
+    if (g_gps->status() >= GPS::GPS_OK_FIX_2D) {
         fix_time = g_gps->last_fix_time;
     } else {
         fix_time = millis();
@@ -2425,30 +2546,24 @@ static void NOINLINE send_location(mavlink_channel_t chan)
 
 static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
 {
-    int16_t bearing = (hold_course==-1 ? nav_bearing_cd : hold_course) / 100;
     mavlink_msg_nav_controller_output_send(
         chan,
         nav_roll_cd * 0.01,
         nav_pitch_cd * 0.01,
-        bearing,
-        target_bearing_cd * 0.01,
+        nav_controller->nav_bearing_cd() * 0.01f,
+        nav_controller->target_bearing_cd() * 0.01f,
         wp_distance,
         altitude_error_cm * 0.01,
         airspeed_error_cm,
-        crosstrack_error);
+        nav_controller->crosstrack_error());
 }
 
 static void NOINLINE send_gps_raw(mavlink_channel_t chan)
 {
-    uint8_t fix = g_gps->status();
-    if (fix == GPS::GPS_OK) {
-        fix = 3;
-    }
-
     mavlink_msg_gps_raw_int_send(
         chan,
         g_gps->last_fix_time*(uint64_t)1000,
-        fix,
+        g_gps->status(),
         g_gps->latitude,      // in 1E7 degrees
         g_gps->longitude,     // in 1E7 degrees
         g_gps->altitude * 10, // in mm
@@ -2498,7 +2613,24 @@ static void NOINLINE send_radio_in(mavlink_channel_t chan)
 
 static void NOINLINE send_radio_out(mavlink_channel_t chan)
 {
-#if HIL_MODE == HIL_MODE_DISABLED || HIL_SERVOS
+#if HIL_MODE != HIL_MODE_DISABLED
+    if (!g.hil_servos) {
+        extern RC_Channel* rc_ch[8];
+        mavlink_msg_servo_output_raw_send(
+            chan,
+            micros(),
+            0,     // port
+            rc_ch[0]->radio_out,
+            rc_ch[1]->radio_out,
+            rc_ch[2]->radio_out,
+            rc_ch[3]->radio_out,
+            rc_ch[4]->radio_out,
+            rc_ch[5]->radio_out,
+            rc_ch[6]->radio_out,
+            rc_ch[7]->radio_out);
+        return;
+    }
+#endif
     mavlink_msg_servo_output_raw_send(
         chan,
         micros(),
@@ -2511,21 +2643,6 @@ static void NOINLINE send_radio_out(mavlink_channel_t chan)
         hal.rcout->read(5),
         hal.rcout->read(6),
         hal.rcout->read(7));
-#else
-    extern RC_Channel* rc_ch[8];
-    mavlink_msg_servo_output_raw_send(
-        chan,
-        micros(),
-        0,     // port
-        rc_ch[0]->radio_out,
-        rc_ch[1]->radio_out,
-        rc_ch[2]->radio_out,
-        rc_ch[3]->radio_out,
-        rc_ch[4]->radio_out,
-        rc_ch[5]->radio_out,
-        rc_ch[6]->radio_out,
-        rc_ch[7]->radio_out);
-#endif
 }
 
 static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
@@ -2908,14 +3025,85 @@ void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char
   default stream rates to 1Hz
  */
 const AP_Param::GroupInfo GCS_MAVLINK::var_info[] PROGMEM = {
+    // @Param: RAW_SENS
+    // @DisplayName: Raw sensor stream rate
+    // @Description: Raw sensor stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("RAW_SENS", 0, GCS_MAVLINK, streamRates[0],  1),
+
+    // @Param: EXT_STAT
+    // @DisplayName: Extended status stream rate to ground station
+    // @Description: Extended status stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("EXT_STAT", 1, GCS_MAVLINK, streamRates[1],  1),
+
+    // @Param: RC_CHAN
+    // @DisplayName: RC Channel stream rate to ground station
+    // @Description: RC Channel stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("RC_CHAN",  2, GCS_MAVLINK, streamRates[2],  1),
+
+    // @Param: RAW_CTRL
+    // @DisplayName: Raw Control stream rate to ground station
+    // @Description: Raw Control stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("RAW_CTRL", 3, GCS_MAVLINK, streamRates[3],  1),
+
+    // @Param: POSITION
+    // @DisplayName: Position stream rate to ground station
+    // @Description: Position stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("POSITION", 4, GCS_MAVLINK, streamRates[4],  1),
+
+    // @Param: EXTRA1
+    // @DisplayName: Extra data type 1 stream rate to ground station
+    // @Description: Extra data type 1 stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("EXTRA1",   5, GCS_MAVLINK, streamRates[5],  1),
+
+    // @Param: EXTRA2
+    // @DisplayName: Extra data type 2 stream rate to ground station
+    // @Description: Extra data type 2 stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("EXTRA2",   6, GCS_MAVLINK, streamRates[6],  1),
+
+    // @Param: EXTRA3
+    // @DisplayName: Extra data type 3 stream rate to ground station
+    // @Description: Extra data type 3 stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("EXTRA3",   7, GCS_MAVLINK, streamRates[7],  1),
+
+    // @Param: PARAMS
+    // @DisplayName: Parameter stream rate to ground station
+    // @Description: Parameter stream rate to ground station
+    // @Units: Hz
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
     AP_GROUPINFO("PARAMS",   8, GCS_MAVLINK, streamRates[8],  50),
     AP_GROUPEND
 };
@@ -2961,7 +3149,8 @@ GCS_MAVLINK::update(void)
 #if CLI_ENABLED == ENABLED
         /* allow CLI to be started by hitting enter 3 times, if no
          *  heartbeat packets have been received */
-        if (mavlink_active == 0 && (millis() - _cli_timeout) < 30000) {
+        if (mavlink_active == 0 && (millis() - _cli_timeout) < 20000 && 
+            comm_is_idle(chan)) {
             if (c == '\n' || c == '\r') {
                 crlf_count++;
             } else {
@@ -3261,8 +3450,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_DO_SET_SERVO:
-            hal.rcout->enable_ch(packet.param1 - 1);
-            hal.rcout->write(packet.param1 - 1, packet.param2);
+            servo_write(packet.param1 - 1, packet.param2);
             result = MAV_RESULT_ACCEPTED;
             break;
 
@@ -3388,9 +3576,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_NAV_LOITER_TIME:
         case MAV_CMD_NAV_LOITER_TURNS:
             if (tell_command.options & MASK_OPTIONS_LOITER_DIRECTION) {
-                param3 = -g.loiter_radius;
+                param3 = -abs(g.loiter_radius);
             } else {
-                param3 = g.loiter_radius;
+                param3 = abs(g.loiter_radius);
             }
         case MAV_CMD_NAV_TAKEOFF:
         case MAV_CMD_DO_SET_HOME:
@@ -3399,9 +3587,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_NAV_LOITER_UNLIM:
             if (tell_command.options & MASK_OPTIONS_LOITER_DIRECTION) {
-                param3 = -g.loiter_radius;;
+                param3 = -abs(g.loiter_radius);
             } else {
-                param3 = g.loiter_radius;
+                param3 = abs(g.loiter_radius);
             }
             break;
         case MAV_CMD_CONDITION_CHANGE_ALT:
@@ -3633,8 +3821,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_FRAME_LOCAL_NED:                         // local (relative to home position)
         {
             tell_command.lat = 1.0e7f*ToDeg(packet.x/
-                                           (radius_of_earth*cosf(ToRad(home.lat/1.0e7f)))) + home.lat;
-            tell_command.lng = 1.0e7f*ToDeg(packet.y/radius_of_earth) + home.lng;
+                                           (RADIUS_OF_EARTH*cosf(ToRad(home.lat/1.0e7f)))) + home.lat;
+            tell_command.lng = 1.0e7f*ToDeg(packet.y/RADIUS_OF_EARTH) + home.lng;
             tell_command.alt = -packet.z*1.0e2f;
             tell_command.options = MASK_OPTIONS_RELATIVE_ALT;
             break;
@@ -3645,8 +3833,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_FRAME_LOCAL:                         // local (relative to home position)
         {
             tell_command.lat = 1.0e7f*ToDeg(packet.x/
-                                           (radius_of_earth*cosf(ToRad(home.lat/1.0e7f)))) + home.lat;
-            tell_command.lng = 1.0e7f*ToDeg(packet.y/radius_of_earth) + home.lng;
+                                           (RADIUS_OF_EARTH*cosf(ToRad(home.lat/1.0e7f)))) + home.lat;
+            tell_command.lng = 1.0e7f*ToDeg(packet.y/RADIUS_OF_EARTH) + home.lng;
             tell_command.alt = packet.z*1.0e2f;
             tell_command.options = MASK_OPTIONS_RELATIVE_ALT;
             break;
@@ -3719,6 +3907,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_DO_SET_SERVO:
             tell_command.alt = packet.param2;
             tell_command.p1 = packet.param1;
+            break;
+
+        case MAV_CMD_DO_DIGICAM_CONTROL:
             break;
 
         default:
@@ -3839,7 +4030,7 @@ mission_failed:
             send_text_P(SEVERITY_LOW,PSTR("bad fence point"));
         } else {
             Vector2l point = get_fence_point_with_index(packet.idx);
-            mavlink_msg_fence_point_send(chan, 0, 0, packet.idx, g.fence_total,
+            mavlink_msg_fence_point_send(chan, msg->sysid, msg->compid, packet.idx, g.fence_total,
                                          point.x*1.0e-7, point.y*1.0e-7);
         }
         break;
@@ -3995,15 +4186,6 @@ mission_failed:
         y *= 95446.0;
 
         barometer.setHIL(Temp, y);
-
- #if HIL_MODE == HIL_MODE_ATTITUDE
-        // set AHRS hil sensor. We don't do this in sensors mode, as
-        // in that case the attitude is computed via DCM
-        ahrs.setHil(packet.roll,packet.pitch,packet.yaw,packet.rollspeed,
-                    packet.pitchspeed,packet.yawspeed);
-
- #endif
-
         break;
     }
 #endif // HIL_MODE
@@ -4291,13 +4473,6 @@ MENU2(log_menu, "Log", log_menu_commands, print_log_menu);
 static bool
 print_log_menu(void)
 {
-    uint16_t log_start;
-    uint16_t log_end;
-    uint16_t temp;
-    int16_t last_log_num = DataFlash.find_last_log();
-
-    uint16_t num_logs = DataFlash.get_num_logs();
-
     cliSerial->println_P(PSTR("logs enabled: "));
 
     if (0 == g.log_bitmask) {
@@ -4323,23 +4498,7 @@ print_log_menu(void)
 
     cliSerial->println();
 
-    if (num_logs == 0) {
-        cliSerial->printf_P(PSTR("\nNo logs\n\n"));
-    }else{
-        cliSerial->printf_P(PSTR("\n%u logs\n"), (unsigned)num_logs);
-
-        for(int16_t i=num_logs; i>=1; i--) {
-            uint16_t last_log_start = log_start, last_log_end = log_end;
-            temp = last_log_num-i+1;
-            DataFlash.get_log_boundaries(temp, log_start, log_end);
-            cliSerial->printf_P(PSTR("Log %d,    start %d,   end %d\n"), (int)temp, (int)log_start, (int)log_end);
-            if (last_log_start == log_start && last_log_end == log_end) {
-                // we are printing bogus logs
-                break;
-            }
-        }
-        cliSerial->println();
-    }
+    DataFlash.ListAvailableLogs(cliSerial);
     return(true);
 }
 
@@ -4375,7 +4534,7 @@ dump_log(uint8_t argc, const Menu::arg *argv)
                         (unsigned)dump_log_start,
                         (unsigned)dump_log_end);
 
-    Log_Read((uint8_t)dump_log, dump_log_start, dump_log_end);
+    Log_Read((uint16_t)dump_log, dump_log_start, dump_log_end);
     cliSerial->printf_P(PSTR("Done\n"));
     return 0;
 }
@@ -4561,7 +4720,7 @@ struct log_Cmd {
 };
 
 // Write a command processing packet. Total length : 19 bytes
-static void Log_Write_Cmd(uint8_t num, struct Location *wp)
+static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
 {
     struct log_Cmd pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CMD_MSG),
@@ -4592,6 +4751,53 @@ static void Log_Read_Cmd()
         (long)pkt.waypoint_altitude,
         (long)pkt.waypoint_latitude,
         (long)pkt.waypoint_longitude);
+}
+
+struct log_Camera {
+    LOG_PACKET_HEADER;
+    uint32_t gps_time;
+    int32_t  latitude;
+    int32_t  longitude;
+    int32_t  altitude;
+    int16_t  roll;
+    int16_t  pitch;
+    uint16_t yaw;
+};
+
+// Write a Camera packet. Total length : 26 bytes
+static void Log_Write_Camera()
+{
+#if CAMERA == ENABLED
+    struct log_Camera pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
+        gps_time    : g_gps->time,
+        latitude    : current_loc.lat,
+        longitude   : current_loc.lng,
+        altitude    : current_loc.alt,
+        roll        : (int16_t)ahrs.roll_sensor,
+        pitch       : (int16_t)ahrs.pitch_sensor,
+        yaw         : (uint16_t)ahrs.yaw_sensor
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+#endif
+}
+
+// Read a camera packet
+static void Log_Read_Camera()
+{
+    struct log_Camera pkt;
+    DataFlash.ReadPacket(&pkt, sizeof(pkt));
+                                     // 1
+    cliSerial->printf_P(PSTR("CAMERA, %lu, "),(unsigned long)pkt.gps_time); // 1 time
+    print_latlon(cliSerial, pkt.latitude);              // 2 lat
+    cliSerial->print_P(PSTR(", "));
+    print_latlon(cliSerial, pkt.longitude);             // 3 lon
+                               // 4   5   6   7
+    cliSerial->printf_P(PSTR(", %ld, %d, %d, %u\n"),
+                    (long)pkt.altitude,                 // 4 altitude
+                    (int)pkt.roll,                      // 5 roll in centidegrees
+                    (int)pkt.pitch,                     // 6 pitch in centidegrees
+                    (unsigned)pkt.yaw);                 // 7 yaw in centidegrees
 }
 
 struct log_Startup {
@@ -4705,8 +4911,8 @@ static void Log_Write_Nav_Tuning()
         LOG_PACKET_HEADER_INIT(LOG_NAV_TUNING_MSG),
         yaw                 : (uint16_t)ahrs.yaw_sensor,
         wp_distance         : wp_distance,
-        target_bearing_cd   : (uint16_t)target_bearing_cd,
-        nav_bearing_cd      : (uint16_t)nav_bearing_cd,
+        target_bearing_cd   : (uint16_t)nav_controller->target_bearing_cd(),
+        nav_bearing_cd      : (uint16_t)nav_controller->nav_bearing_cd(),
         altitude_error_cm   : (int16_t)altitude_error_cm,
         airspeed_cm         : (int16_t)airspeed.get_airspeed_cm()
     };
@@ -4863,7 +5069,7 @@ static void Log_Read_Current()
 }
 
 // Read the DataFlash.log memory : Packet Parser
-static void Log_Read(uint8_t log_num, int16_t start_page, int16_t end_page)
+static void Log_Read(uint16_t log_num, int16_t start_page, int16_t end_page)
 {
     cliSerial->printf_P(PSTR("\n" THISFIRMWARE
                              "\nFree RAM: %u\n"),
@@ -4906,6 +5112,9 @@ static void log_callback(uint8_t msgid)
     case LOG_GPS_MSG:
         Log_Read_GPS();
         break;
+    case LOG_CAMERA_MSG:
+        Log_Read_Camera();
+        break;
     }
 }
 
@@ -4915,7 +5124,7 @@ static void log_callback(uint8_t msgid)
 // dummy functions
 static void Log_Write_Mode(uint8_t mode) {}
 static void Log_Write_Startup(uint8_t type) {}
-static void Log_Write_Cmd(uint8_t num, struct Location *wp) {}
+static void Log_Write_Cmd(uint8_t num, const struct Location *wp) {}
 static void Log_Write_Current() {}
 static void Log_Write_Nav_Tuning() {}
 static void Log_Write_GPS() {}
@@ -4923,6 +5132,7 @@ static void Log_Write_Performance() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_Control_Tuning() {}
 static void Log_Write_IMU() {}
+static void Log_Write_Camera() {}
 
 static int8_t process_logs(uint8_t argc, const Menu::arg *argv) {
     return 0;
@@ -4953,7 +5163,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     GSCALAR(sysid_my_gcs,           "SYSID_MYGCS",    255),
 
     // @Param: SERIAL0_BAUD
-    // @DisplayName: Telemetry Baud Rate
+    // @DisplayName: USB Console Baud Rate
     // @Description: The baud rate used on the main uart
     // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
@@ -5016,17 +5226,37 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: STICK_MIXING
     // @DisplayName: Stick Mixing
-    // @Description: When enabled, this adds user stick input to the control surfaces in auto modes, allowing the user to have some degree of flight control without changing modes
-    // @Values: 0:Disabled,1:Enabled
+    // @Description: When enabled, this adds user stick input to the control surfaces in auto modes, allowing the user to have some degree of flight control without changing modes.  There are two types of stick mixing available. If you set STICK_MIXING to 1 then it will use "fly by wire" mixing, which controls the roll and pitch in the same way that the FBWA mode does. This is the safest option if you usually fly ArduPlane in FBWA or FBWB mode. If you set STICK_MIXING to 2 then it will enable direct mixing mode, which is what the STABILIZE mode uses. That will allow for much more extreme maneuvers while in AUTO mode.
+    // @Values: 0:Disabled,1:FBWMixing,2:DirectMixing
     // @User: Advanced
-    GSCALAR(stick_mixing,           "STICK_MIXING",   1),
+    GSCALAR(stick_mixing,           "STICK_MIXING",   STICK_MIXING_FBW),
 
-    // @Param: RUDDER_STEER
-    // @DisplayName: Rudder steering on takeoff and landing
-    // @Description: When enabled, only rudder will be used for steering during takeoff and landing, with the ailerons used to hold the plane level
-    // @Values: 0:Disabled,1:Enabled
+    // @Param: TKOFF_THR_MINSPD
+    // @DisplayName: Takeoff throttle min speed
+    // @Description: Minimum GPS ground speed in m/s before un-suppressing throttle in auto-takeoff. This is meant to be used for catapult launches where you want the motor to engage only after the plane leaves the catapult. Note that the GPS velocity will lag the real velocity by about 0.5seconds.
+    // @Units: m/s
+    // @Range: 0 30
+    // @Increment: 0.1
     // @User: User
-    GSCALAR(rudder_steer,           "RUDDER_STEER",   0),
+    GSCALAR(takeoff_throttle_min_speed,     "TKOFF_THR_MINSPD",  0),
+
+    // @Param: TKOFF_THR_MINACC
+    // @DisplayName: Takeoff throttle min acceleration
+    // @Description: Minimum forward acceleration in m/s/s before un-suppressing throttle in auto-takeoff. This is meant to be used for hand launches with a tractor style (front engine) plane. If this is set then the auto takeoff will only trigger if the pitch of the plane is between -30 and +45 degrees, and the roll is less than 30 degrees. This makes it less likely it will trigger due to carrying the plane with the nose down.
+    // @Units: m/s/s
+    // @Range: 0 30
+    // @Increment: 0.1
+    // @User: User
+    GSCALAR(takeoff_throttle_min_accel,     "TKOFF_THR_MINACC",  0),
+
+    // @Param: LEVEL_ROLL_LIMIT
+    // @DisplayName: Level flight roll limit
+    // @Description: This controls the maximum bank angle in degrees during flight modes where level flight is desired, such as in the final stages of landing, and during auto takeoff. This should be a small angle (such as 5 degrees) to prevent a wing hitting the runway during takeoff or landing. Setting this to zero will completely disable heading hold on auto takeoff and final landing approach.
+    // @Units: degrees
+    // @Range: 0 45
+    // @Increment: 1
+    // @User: User
+    GSCALAR(level_roll_limit,              "LEVEL_ROLL_LIMIT",   5),
 
     // @Param: land_pitch_cd
     // @DisplayName: Landing Pitch
@@ -5051,38 +5281,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Advanced
     GSCALAR(land_flare_sec,          "LAND_FLARE_SEC",  2.0),
 
-    // @Param: XTRK_GAIN_SC
-    // @DisplayName: Crosstrack Gain
-    // @Description: The scale between distance off the line and angle to meet the line (in Degrees * 100)
-    // @Range: 0 2000
-    // @Increment: 1
-    // @User: Standard
-    GSCALAR(crosstrack_gain,        "XTRK_GAIN_SC",   XTRACK_GAIN_SCALED),
-
-    // @Param: XTRK_ANGLE_CD
-    // @DisplayName: Crosstrack Entry Angle
-    // @Description: Maximum angle used to correct for track following.
-    // @Units: centi-Degrees
-    // @Range: 0 9000
-    // @Increment: 1
-    // @User: Standard
-    GSCALAR(crosstrack_entry_angle, "XTRK_ANGLE_CD",  XTRACK_ENTRY_ANGLE_CENTIDEGREE),
-
-    // @Param: XTRK_USE_WIND
-    // @DisplayName: Crosstrack Wind correction
-    // @Description: If enabled, use wind estimation for navigation crosstrack when using a compass for yaw
-    // @Values: 0:Disabled,1:Enabled
-    // @User: Standard
-    GSCALAR(crosstrack_use_wind, "XTRK_USE_WIND",     1),
-
-    // @Param: XTRK_MIN_DIST
-    // @DisplayName: Crosstrack mininum distance
-    // @Description: Minimum distance in meters between waypoints to do crosstrack correction.
-    // @Units: Meters
-    // @Range: 0 32767
-    // @Increment: 1
-    // @User: Standard
-    GSCALAR(crosstrack_min_distance, "XTRK_MIN_DIST",  50),
+	// @Param: NAV_CONTROLLER
+	// @DisplayName: Navigation controller selection
+	// @Description: Which navigation controller to enable
+	// @Values: 0:Legacy,1:L1Controller
+	// @User: Standard
+	GSCALAR(nav_controller,          "NAV_CONTROLLER",   AP_Navigation::CONTROLLER_L1),
 
     // @Param: ALT_MIX
     // @DisplayName: Gps to Baro Mix
@@ -5116,14 +5320,14 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @DisplayName: Waypoint Radius
     // @Description: Defines the distance from a waypoint, that when crossed indicates the wp has been hit.
     // @Units: Meters
-    // @Range: 1 127
+    // @Range: 1 32767
     // @Increment: 1
     // @User: Standard
     GSCALAR(waypoint_radius,        "WP_RADIUS",      WP_RADIUS_DEFAULT),
 
     // @Param: WP_LOITER_RAD
     // @DisplayName: Waypoint Loiter Radius
-    // @Description: Defines the distance from the waypoint center, the plane will maintain during a loiter
+    // @Description: Defines the distance from the waypoint center, the plane will maintain during a loiter. If you set this value to a negative number then the default loiter direction will be counter-clockwise instead of clockwise.
     // @Units: Meters
     // @Range: 1 32767
     // @Increment: 1
@@ -5193,6 +5397,14 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
     GSCALAR(flybywire_elev_reverse, "FBWB_ELEV_REV",  0),
+
+    // @Param: FBWB_CLIMB_RATE
+    // @DisplayName: Fly By Wire B altitude change rate
+    // @Description: This sets the rate in m/s at which FBWB will change its target altitude for full elevator deflection. Note that the actual climb rate of the aircraft can be lower than this, depending on your airspeed and throttle control settings. If you have this parameter set to the default value of 2.0, then holding the elevator at maximum deflection for 10 seconds would change the target altitude by 20 meters.
+    // @Range: 1-10
+	// @Increment: 0.1
+    // @User: Standard
+    GSCALAR(flybywire_climb_rate, "FBWB_CLIMB_RATE",  2.0f),
 
     // @Param: THR_MIN
     // @DisplayName: Minimum Throttle
@@ -5369,9 +5581,9 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(auto_trim,              "TRIM_AUTO",      AUTO_TRIM),
 
-    // @Param: MIX_MODE
+    // @Param: ELEVON_MIXING
     // @DisplayName: Elevon mixing
-    // @Description: Enable elevon mixing
+    // @Description: Enable elevon mixing  on both input and output
     // @Values: 0:Disabled,1:Enabled
     // @User: User
     GSCALAR(mix_mode,               "ELEVON_MIXING",  ELEVON_MIXING),
@@ -5397,6 +5609,13 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Values: -1:Disabled,1:Enabled
     // @User: User
     GSCALAR(reverse_ch2_elevon,     "ELEVON_CH2_REV", ELEVON_CH2_REVERSE),
+
+    // @Param: VTAIL_OUTPUT
+    // @DisplayName: VTail output
+    // @Description: Enable VTail output in software. If enabled then the APM will provide software VTail mixing on the elevator and rudder channels. There are 4 different mixing modes available, which refer to the 4 ways the elevator can be mapped to the two VTail servos. Note that you must not use VTail output mixing with hardware pass-through of RC values, such as with channel 8 manual control on an APM1. So if you use an APM1 then set FLTMODE_CH to something other than 8 before you enable VTAIL_OUTPUT.
+    // @Values: 0:Disabled,1:UpUp,2:UpDown,3:DownUp,4:DownDown
+    // @User: User
+    GSCALAR(vtail_output,           "VTAIL_OUTPUT",  0),
 
     // @Param: SYS_NUM_RESETS
     // @DisplayName: Num Resets
@@ -5457,6 +5676,11 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: User
     GSCALAR(RTL_altitude_cm,        "ALT_HOLD_RTL",   ALT_HOLD_HOME_CM),
 
+    // @Param: ALT_HOLD_FBWCM
+    // @DisplayName: Minimum altitude for FBWB mode
+    // @Description: This is the minimum altitude in centimeters that FBWB will allow. If you attempt to descend below this altitude then the plane will level off. A value of zero means no limit.
+    // @Units: centimeters
+    // @User: User
     GSCALAR(FBWB_min_altitude_cm,   "ALT_HOLD_FBWCM", ALT_HOLD_FBW_CM),
 
     // @Param: MAG_ENABLE
@@ -5489,8 +5713,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(curr_amp_offset,        "AMP_OFFSET",     0),
 
-    GSCALAR(input_voltage,          "INPUT_VOLTS",    INPUT_VOLTAGE),
-
     // @Param: BATT_CAPACITY
     // @DisplayName: Battery capacity
     // @Description: Capacity of the battery in mAh when full
@@ -5519,7 +5741,21 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(rssi_pin,            "RSSI_PIN",         -1),
 
+    // @Param: INVERTEDFLT_CH
+    // @DisplayName: Inverted flight channel
+    // @Description: A RC input channel number to enable inverted flight. If this is non-zero then the APM will monitor the correcponding RC input channel and will enable inverted flight when the channel goes above 1750.
+    // @Values: 0:Disabled,1:Channel1,2:Channel2,3:Channel3,4:Channel4,5:Channel5,6:Channel6,7:Channel7,8:Channel8
+    // @User: Standard
     GSCALAR(inverted_flight_ch,     "INVERTEDFLT_CH", 0),
+
+#if HIL_MODE != HIL_MODE_DISABLED
+    // @Param: HIL_SERVOS
+    // @DisplayName: HIL Servos enable
+    // @Description: This controls whether real servo controls are used in HIL mode. If you enable this then the APM will control the real servos in HIL mode. If disabled it will report servo values, but will not output to the real servos. Be careful that your motor and propeller are not connected if you enable this option.
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    GSCALAR(hil_servos,            "HIL_SERVOS",      0),
+#endif
 
     // barometer ground calibration. The GND_ prefix is chosen for
     // compatibility with previous releases of ArduPlane
@@ -5576,7 +5812,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     GGROUP(rc_11,                    "RC11_", RC_Channel_aux),
 #endif
 
-	GGROUP(pidNavRoll,              "HDNG2RLL_",  PID),
 	GGROUP(pidNavPitchAirspeed,     "ARSP2PTCH_", PID),
 	GGROUP(pidTeThrottle,           "ENRGY2THR_", PID),
 	GGROUP(pidNavPitchAltitude,     "ALT2PTCH_",  PID),
@@ -5611,6 +5846,10 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: ARSPD_
     // @Path: ../libraries/AP_Airspeed/AP_Airspeed.cpp
     GOBJECT(airspeed,                               "ARSPD_",   AP_Airspeed),
+
+    // @Group: NAVL1_
+    // @Path: ../libraries/AP_L1_Control/AP_L1_Control.cpp
+    GOBJECT(L1_controller,         "NAVL1_",   AP_L1_Control),
 
 #if MOUNT == ENABLED
     // @Group: MNT_
@@ -5869,7 +6108,7 @@ static int32_t read_alt_to_hold()
  *  This function stores waypoint commands
  *  It looks to see what the next command type is and finds the last command.
  */
-static void set_next_WP(struct Location *wp)
+static void set_next_WP(const struct Location *wp)
 {
     // copy the current WP into the OldWP slot
     // ---------------------------------------
@@ -5915,23 +6154,13 @@ static void set_next_WP(struct Location *wp)
     }
 
     // zero out our loiter vals to watch for missed waypoints
-    loiter_delta            = 0;
-    loiter_sum                      = 0;
-    loiter_total            = 0;
+    loiter_angle_reset();
 
     // this is handy for the groundstation
     wp_totalDistance        = get_distance(&current_loc, &next_WP);
     wp_distance             = wp_totalDistance;
-    target_bearing_cd       = get_bearing_cd(&current_loc, &next_WP);
-    nav_bearing_cd          = target_bearing_cd;
 
-    // to check if we have missed the WP
-    // ----------------------------
-    old_target_bearing_cd   = target_bearing_cd;
-
-    // set a new crosstrack bearing
-    // ----------------------------
-    reset_crosstrack();
+    loiter_angle_reset();
 }
 
 static void set_guided_WP(void)
@@ -5952,15 +6181,8 @@ static void set_guided_WP(void)
     // this is handy for the groundstation
     wp_totalDistance        = get_distance(&current_loc, &next_WP);
     wp_distance             = wp_totalDistance;
-    target_bearing_cd       = get_bearing_cd(&current_loc, &next_WP);
 
-    // to check if we have missed the WP
-    // ----------------------------
-    old_target_bearing_cd = target_bearing_cd;
-
-    // set a new crosstrack bearing
-    // ----------------------------
-    reset_crosstrack();
+    loiter_angle_reset();
 }
 
 // run this at setup on the ground
@@ -6121,7 +6343,7 @@ static void handle_process_do_command()
         break;
 
     case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
-        camera.trigger_pic();
+        do_take_picture();
         break;
 #endif
 
@@ -6163,9 +6385,13 @@ static void handle_no_commands()
 
 }
 
-/********************************************************************************/
-// Verify command Handlers
-/********************************************************************************/
+/*******************************************************************************
+Verify command Handlers
+
+Each type of mission element has a "verify" operation. The verify
+operation returns true when the mission element has completed and we
+should move onto the next mission element.
+*******************************************************************************/
 
 static bool verify_nav_command()        // Returns true if command complete
 {
@@ -6237,7 +6463,12 @@ static void do_RTL(void)
     control_mode    = RTL;
     crash_timer     = 0;
     next_WP                 = home;
-    loiter_direction = 1;
+
+    if (g.loiter_radius < 0) {
+        loiter.direction = -1;
+    } else {
+        loiter.direction = 1;
+    }
 
     // Altitude to hold over home
     // Set by configuration tool
@@ -6270,12 +6501,12 @@ static void do_land()
     set_next_WP(&next_nav_command);
 }
 
-static void loiter_set_direction_wp(struct Location *nav_command) 
+static void loiter_set_direction_wp(const struct Location *nav_command)
 {
     if (nav_command->options & MASK_OPTIONS_LOITER_DIRECTION) {
-        loiter_direction = -1;
+        loiter.direction = -1;
     } else {
-        loiter_direction=1;
+        loiter.direction = 1;
     }
 }
 
@@ -6288,15 +6519,16 @@ static void do_loiter_unlimited()
 static void do_loiter_turns()
 {
     set_next_WP(&next_nav_command);
-    loiter_total = next_nav_command.p1 * 360;
+    loiter.total_cd = next_nav_command.p1 * 36000UL;
     loiter_set_direction_wp(&next_nav_command);
 }
 
 static void do_loiter_time()
 {
     set_next_WP(&next_nav_command);
-    loiter_time_ms = millis();
-    loiter_time_max_ms = next_nav_command.p1 * (uint32_t)1000;     // units are seconds
+    // we set start_time_ms when we reach the waypoint
+    loiter.start_time_ms = 0;
+    loiter.time_max_ms = next_nav_command.p1 * (uint32_t)1000;     // units are seconds
     loiter_set_direction_wp(&next_nav_command);
 }
 
@@ -6306,24 +6538,24 @@ static void do_loiter_time()
 static bool verify_takeoff()
 {
     if (ahrs.yaw_initialised()) {
-        if (hold_course == -1) {
+        if (hold_course_cd == -1) {
             // save our current course to take off
-            hold_course = ahrs.yaw_sensor;
-            gcs_send_text_fmt(PSTR("Holding course %ld"), hold_course);
+            hold_course_cd = ahrs.yaw_sensor;
+            gcs_send_text_fmt(PSTR("Holding course %ld"), hold_course_cd);
         }
     }
 
-    if (hold_course != -1) {
-        // recalc bearing error with hold_course;
-        nav_bearing_cd = hold_course;
-        // recalc bearing error
-        calc_bearing_error();
+    if (hold_course_cd != -1) {
+        // call navigation controller for heading hold
+        nav_controller->update_heading_hold(hold_course_cd);
+    } else {
+        nav_controller->update_level_flight();        
     }
 
     if (adjusted_altitude_cm() > takeoff_altitude)  {
-        hold_course = -1;
+        hold_course_cd = -1;
         takeoff_complete = true;
-        next_WP = current_loc;
+        next_WP = prev_WP = current_loc;
         return true;
     } else {
         return false;
@@ -6344,18 +6576,18 @@ static bool verify_land()
 
         land_complete = true;
 
-        if (hold_course == -1) {
+        if (hold_course_cd == -1) {
             // we have just reached the threshold of to flare for landing.
             // We now don't want to do any radical
             // turns, as rolling could put the wings into the runway.
-            // To prevent further turns we set hold_course to the
+            // To prevent further turns we set hold_course_cd to the
             // current heading. Previously we set this to
             // crosstrack_bearing, but the xtrack bearing can easily
             // be quite large at this point, and that could induce a
             // sudden large roll correction which is very nasty at
             // this point in the landing.
-            hold_course = ahrs.yaw_sensor;
-            gcs_send_text_fmt(PSTR("Land Complete - Hold course %ld"), hold_course);
+            hold_course_cd = ahrs.yaw_sensor;
+            gcs_send_text_fmt(PSTR("Land Complete - Hold course %ld"), hold_course_cd);
         }
 
         if (g_gps->ground_speed*0.01 < 3.0) {
@@ -6369,33 +6601,27 @@ static bool verify_land()
         }
     }
 
-    if (hold_course != -1) {
+    if (hold_course_cd != -1) {
         // recalc bearing error with hold_course;
-        nav_bearing_cd = hold_course;
-        // recalc bearing error
-        calc_bearing_error();
+        nav_controller->update_heading_hold(hold_course_cd);
     } else {
-        update_crosstrack();
+        nav_controller->update_waypoint(prev_WP, next_WP);
     }
     return false;
 }
 
 static bool verify_nav_wp()
 {
-    hold_course = -1;
-    update_crosstrack();
-    if (wp_distance <= (uint32_t)max(g.waypoint_radius,0)) {
+    hold_course_cd = -1;
+
+    nav_controller->update_waypoint(prev_WP, next_WP);
+    
+    if (wp_distance <= nav_controller->turn_distance(g.waypoint_radius)) {
         gcs_send_text_fmt(PSTR("Reached Waypoint #%i dist %um"),
                           (unsigned)nav_command_index,
                           (unsigned)get_distance(&current_loc, &next_WP));
         return true;
-    }
-
-    // have we circled around the waypoint?
-    if (loiter_sum > 300) {
-        gcs_send_text_P(SEVERITY_MEDIUM,PSTR("Missed WP"));
-        return true;
-    }
+	}
 
     // have we flown past the waypoint?
     if (location_passed_point(current_loc, prev_WP, next_WP)) {
@@ -6411,15 +6637,18 @@ static bool verify_nav_wp()
 static bool verify_loiter_unlim()
 {
     update_loiter();
-    calc_bearing_error();
     return false;
 }
 
 static bool verify_loiter_time()
 {
     update_loiter();
-    calc_bearing_error();
-    if ((millis() - loiter_time_ms) > loiter_time_max_ms) {
+    if (loiter.start_time_ms == 0) {
+        if (nav_controller->reached_loiter_target()) {
+            // we've reached the target, start the timer
+            loiter.start_time_ms = millis();
+        }
+    } else if ((millis() - loiter.start_time_ms) > loiter.time_max_ms) {
         gcs_send_text_P(SEVERITY_LOW,PSTR("verify_nav: LOITER time complete"));
         return true;
     }
@@ -6429,9 +6658,8 @@ static bool verify_loiter_time()
 static bool verify_loiter_turns()
 {
     update_loiter();
-    calc_bearing_error();
-    if(loiter_sum > loiter_total) {
-        loiter_total = 0;
+    if (loiter.sum_cd > loiter.total_cd) {
+        loiter.total_cd = 0;
         gcs_send_text_P(SEVERITY_LOW,PSTR("verify_nav: LOITER orbits complete"));
         // clear the command queue;
         return true;
@@ -6441,12 +6669,14 @@ static bool verify_loiter_turns()
 
 static bool verify_RTL()
 {
-    if (wp_distance <= (uint32_t)max(g.waypoint_radius,0)) {
-        gcs_send_text_P(SEVERITY_LOW,PSTR("Reached home"));
-        return true;
-    }else{
+    update_loiter();
+	if (wp_distance <= (uint32_t)max(g.waypoint_radius,0) || 
+        nav_controller->reached_loiter_target()) {
+			gcs_send_text_P(SEVERITY_LOW,PSTR("Reached home"));
+			return true;
+    } else {
         return false;
-    }
+	}
 }
 
 /********************************************************************************/
@@ -6515,7 +6745,11 @@ static bool verify_within_distance()
 
 static void do_loiter_at_location()
 {
-    loiter_direction = 1;
+    if (g.loiter_radius < 0) {
+        loiter.direction = -1;
+    } else {
+        loiter.direction = 1;
+    }
     next_WP = current_loc;
 }
 
@@ -6590,7 +6824,7 @@ static void do_change_speed()
 
 static void do_set_home()
 {
-    if (next_nonnav_command.p1 == 1 && g_gps->status() == GPS::GPS_OK) {
+    if (next_nonnav_command.p1 == 1 && g_gps->status() == GPS::GPS_OK_FIX_3D) {
         init_home();
     } else {
         home.id         = MAV_CMD_NAV_WAYPOINT;
@@ -6603,8 +6837,7 @@ static void do_set_home()
 
 static void do_set_servo()
 {
-    hal.rcout->enable_ch(next_nonnav_command.p1 - 1);
-    hal.rcout->write(next_nonnav_command.p1 - 1, next_nonnav_command.alt);
+    servo_write(next_nonnav_command.p1 - 1, next_nonnav_command.alt);
 }
 
 static void do_set_relay()
@@ -6648,6 +6881,15 @@ static void do_repeat_relay()
     event_state.delay_ms        = next_nonnav_command.lat * 500.0;
     event_state.repeat          = next_nonnav_command.alt * 2;
     update_events();
+}
+
+// do_take_picture - take a picture with the camera library
+static void do_take_picture()
+{
+#if CAMERA == ENABLED
+    camera.trigger_pic();
+    Log_Write_Camera();
+#endif
 }
 #line 1 "./ArduPlane/commands_process.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
@@ -6846,6 +7088,12 @@ static void read_control_switch()
     // If we get this value we do not want to change modes.
     if(switchPosition == 255) return;
 
+    if (ch3_failsafe) {
+        // when we are in ch3_failsafe mode then RC input is not
+        // working, and we need to ignore the mode switch channel
+        return;
+    }
+
     // we look for changes in the switch position. If the
     // RST_SWITCH_CH parameter is set, then it is a switch that can be
     // used to force re-reading of the control switch. This is useful
@@ -7016,9 +7264,9 @@ static void update_events(void)
         case EVENT_TYPE_SERVO:
             hal.rcout->enable_ch(event_state.rc_channel);
             if (event_state.repeat & 1) {
-                hal.rcout->write(event_state.rc_channel, event_state.undo_value);                 
+                servo_write(event_state.rc_channel, event_state.undo_value);
             } else {
-                hal.rcout->write(event_state.rc_channel, event_state.servo_value);                 
+                servo_write(event_state.rc_channel, event_state.servo_value);                 
             }
             break;
 
@@ -7074,13 +7322,20 @@ void failsafe_check(uint32_t tnow)
         // pass RC inputs to outputs every 20ms
         last_timestamp = tnow;
         hal.rcin->clear_overrides();
-        uint8_t start_ch = 0;
-        if (demoing_servos) {
-            start_ch = 1;
+        g.channel_roll.radio_out     = hal.rcin->read(CH_1);
+        g.channel_pitch.radio_out    = hal.rcin->read(CH_2);
+        g.channel_throttle.radio_out = hal.rcin->read(CH_3);
+        g.channel_rudder.radio_out   = hal.rcin->read(CH_4);
+        if (g.vtail_output != VTAIL_DISABLED) {
+            vtail_output_mixing();
         }
-        for (uint8_t ch=start_ch; ch<4; ch++) {
-            hal.rcout->write(ch, hal.rcin->read(ch));
+        if (!demoing_servos) {
+            servo_write(CH_1, g.channel_roll.radio_out);
         }
+        servo_write(CH_2, g.channel_pitch.radio_out);
+        servo_write(CH_3, g.channel_throttle.radio_out);
+        servo_write(CH_4, g.channel_rudder.radio_out);
+
         RC_Channel_aux::copy_radio_in_out(RC_Channel_aux::k_manual, true);
         RC_Channel_aux::copy_radio_in_out(RC_Channel_aux::k_aileron_with_input, true);
         RC_Channel_aux::copy_radio_in_out(RC_Channel_aux::k_elevator_with_input, true);
@@ -7434,18 +7689,61 @@ static bool geofence_enabled(void) {
 #line 1 "./ArduPlane/navigation.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+
+// set the nav_controller pointer to the right controller
+static void set_nav_controller(void)
+{
+    switch ((AP_Navigation::ControllerType)g.nav_controller.get()) {
+    case AP_Navigation::CONTROLLER_L1:
+        nav_controller = &L1_controller;
+        break;
+    }
+}
+
+/*
+  reset the total loiter angle
+ */
+static void loiter_angle_reset(void)
+{
+    loiter.sum_cd = 0;
+    loiter.total_cd = 0;
+}
+
+/*
+  update the total angle we have covered in a loiter. Used to support
+  commands to do N circles of loiter
+ */
+static void loiter_angle_update(void)
+{
+    int32_t target_bearing_cd = nav_controller->target_bearing_cd();
+    int32_t loiter_delta_cd;
+    if (loiter.sum_cd == 0) {
+        // use 1 cd for initial delta
+        loiter_delta_cd = 1;
+    } else {
+        loiter_delta_cd = target_bearing_cd - loiter.old_target_bearing_cd;
+    }
+    loiter.old_target_bearing_cd = target_bearing_cd;
+    loiter_delta_cd = wrap_180_cd(loiter_delta_cd);
+
+    loiter.sum_cd += loiter_delta_cd;
+}
+
 //****************************************************************
 // Function that will calculate the desired direction to fly and distance
 //****************************************************************
 static void navigate()
 {
+    // allow change of nav controller mid-flight
+    set_nav_controller();
+
     // do not navigate with corrupt data
     // ---------------------------------
     if (!have_position) {
         return;
     }
 
-    if(next_WP.lat == 0) {
+    if (next_WP.lat == 0) {
         return;
     }
 
@@ -7458,40 +7756,14 @@ static void navigate()
         return;
     }
 
-    // target_bearing is where we should be heading
-    // --------------------------------------------
-    target_bearing_cd       = get_bearing_cd(&current_loc, &next_WP);
+    // update total loiter angle
+    loiter_angle_update();
 
-    // nav_bearing will includes xtrac correction
-    // ------------------------------------------
-    nav_bearing_cd = target_bearing_cd;
-
-    // check if we have missed the WP
-    loiter_delta = (target_bearing_cd - old_target_bearing_cd)/100;
-
-    // reset the old value
-    old_target_bearing_cd = target_bearing_cd;
-
-    // wrap values
-    if (loiter_delta > 180) loiter_delta -= 360;
-    if (loiter_delta < -180) loiter_delta += 360;
-    loiter_sum += abs(loiter_delta);
-
-    // control mode specific updates to nav_bearing
-    // --------------------------------------------
+    // control mode specific updates to navigation demands
+    // ---------------------------------------------------
     update_navigation();
 }
 
-
-#if 0
-// Disabled for now
-void calc_distance_error()
-{
-    distance_estimate       += (float)g_gps->ground_speed * .0002f * cosf(radians(bearing_error_cd * .01f));
-    distance_estimate       -= DST_EST_GAIN * (float)(distance_estimate - GPS_wp_distance);
-    wp_distance             = max(distance_estimate,10);
-}
-#endif
 
 static void calc_airspeed_errors()
 {
@@ -7534,15 +7806,9 @@ static void calc_gndspeed_undershoot()
 {
     // Function is overkill, but here in case we want to add filtering
     // later
-    if (g_gps && g_gps->status() == GPS::GPS_OK) {
+    if (g_gps && g_gps->status() >= GPS::GPS_OK_FIX_2D) {
         groundspeed_undershoot = (g.min_gndspeed_cm > 0) ? (g.min_gndspeed_cm - g_gps->ground_speed) : 0;
     }
-}
-
-static void calc_bearing_error()
-{
-    bearing_error_cd = nav_bearing_cd - ahrs.yaw_sensor;
-    bearing_error_cd = wrap_180_cd(bearing_error_cd);
 }
 
 static void calc_altitude_error()
@@ -7564,80 +7830,9 @@ static void calc_altitude_error()
     altitude_error_cm       = target_altitude_cm - adjusted_altitude_cm();
 }
 
-static int32_t wrap_360_cd(int32_t error)
-{
-    if (error > 36000) error -= 36000;
-    if (error < 0) error += 36000;
-    return error;
-}
-
-static int32_t wrap_180_cd(int32_t error)
-{
-    if (error > 18000) error -= 36000;
-    if (error < -18000) error += 36000;
-    return error;
-}
-
 static void update_loiter()
 {
-    float power;
-
-    if(wp_distance <= (uint32_t)max(g.loiter_radius,0)) {
-        power = float(wp_distance) / float(g.loiter_radius);
-        power = constrain(power, 0.5, 1);
-        nav_bearing_cd += 9000.0 * (2.0 + power) * loiter_direction;
-    } else if(wp_distance < (uint32_t)max((g.loiter_radius + LOITER_RANGE),0)) {
-        power = -((float)(wp_distance - g.loiter_radius - LOITER_RANGE) / LOITER_RANGE);
-        power = constrain(power, 0.5, 1);                               //power = constrain(power, 0, 1);
-        nav_bearing_cd -= power * 9000 * loiter_direction;
-    } else{
-        update_crosstrack();
-        loiter_time_ms = millis();                              // keep start time for loiter updating till we get within LOITER_RANGE of orbit
-
-    }
-/*
- *       if (wp_distance < g.loiter_radius){
- *               nav_bearing += 9000;
- *       }else{
- *               nav_bearing -= 100 * M_PI / 180 * asinf(g.loiter_radius / wp_distance);
- *       }
- *
- *       update_crosstrack();
- */
-    nav_bearing_cd = wrap_360_cd(nav_bearing_cd);
-}
-
-static void update_crosstrack(void)
-{
-    // if we are using a compass for navigation, then adjust the
-    // heading to account for wind
-    if (g.crosstrack_use_wind && compass.use_for_yaw()) {
-        Vector3f wind = ahrs.wind_estimate();
-        Vector2f wind2d = Vector2f(wind.x, wind.y);
-        float speed;
-        if (ahrs.airspeed_estimate(&speed)) {
-            Vector2f nav_vector = Vector2f(cosf(radians(nav_bearing_cd*0.01)), sinf(radians(nav_bearing_cd*0.01))) * speed;
-            Vector2f nav_adjusted = nav_vector - wind2d;
-            nav_bearing_cd = degrees(atan2f(nav_adjusted.y, nav_adjusted.x)) * 100;
-        }
-    }
-
-    // Crosstrack Error
-    // ----------------
-    // If we are too far off or too close we don't do track following
-    if (wp_totalDistance >= (uint32_t)max(g.crosstrack_min_distance,0) &&
-        abs(wrap_180_cd(target_bearing_cd - crosstrack_bearing_cd)) < 4500) {
-        // Meters we are off track line
-        crosstrack_error = sinf(radians((target_bearing_cd - crosstrack_bearing_cd) * 0.01)) * wp_distance;               
-        nav_bearing_cd += constrain_int32(crosstrack_error * g.crosstrack_gain, -g.crosstrack_entry_angle.get(), g.crosstrack_entry_angle.get());
-        nav_bearing_cd = wrap_360_cd(nav_bearing_cd);
-    }
-
-}
-
-static void reset_crosstrack()
-{
-    crosstrack_bearing_cd   = get_bearing_cd(&prev_WP, &next_WP);       // Used for track following
+    nav_controller->update_loiter(next_WP, abs(g.loiter_radius), loiter.direction);
 }
 
 #line 1 "./ArduPlane/radio.pde"
@@ -7695,20 +7890,20 @@ static void init_rc_out()
     enable_aux_servos();
 
     // Initialization of servo outputs
-    hal.rcout->write(CH_1,   g.channel_roll.radio_trim);
-    hal.rcout->write(CH_2,   g.channel_pitch.radio_trim);
-    hal.rcout->write(CH_3,   g.channel_throttle.radio_min);
-    hal.rcout->write(CH_4,   g.channel_rudder.radio_trim);
+    servo_write(CH_1, g.channel_roll.radio_trim);
+    servo_write(CH_2,   g.channel_pitch.radio_trim);
+    servo_write(CH_3,   g.channel_throttle.radio_min);
+    servo_write(CH_4,   g.channel_rudder.radio_trim);
 
-    hal.rcout->write(CH_5,   g.rc_5.radio_trim);
-    hal.rcout->write(CH_6,   g.rc_6.radio_trim);
-    hal.rcout->write(CH_7,   g.rc_7.radio_trim);
-    hal.rcout->write(CH_8,   g.rc_8.radio_trim);
+    servo_write(CH_5,   g.rc_5.radio_trim);
+    servo_write(CH_6,   g.rc_6.radio_trim);
+    servo_write(CH_7,   g.rc_7.radio_trim);
+    servo_write(CH_8,   g.rc_8.radio_trim);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
-    hal.rcout->write(CH_9,   g.rc_9.radio_trim);
-    hal.rcout->write(CH_10,  g.rc_10.radio_trim);
-    hal.rcout->write(CH_11,  g.rc_11.radio_trim);
+    servo_write(CH_9,   g.rc_9.radio_trim);
+    servo_write(CH_10,  g.rc_10.radio_trim);
+    servo_write(CH_11,  g.rc_11.radio_trim);
 #endif
 }
 
@@ -7735,16 +7930,16 @@ static void init_rc_default()
 
 static void read_radio()
 {
-    ch1_temp = hal.rcin->read(CH_ROLL);
-    ch2_temp = hal.rcin->read(CH_PITCH);
+    elevon.ch1_temp = hal.rcin->read(CH_ROLL);
+    elevon.ch2_temp = hal.rcin->read(CH_PITCH);
     uint16_t pwm_roll, pwm_pitch;
 
     if (g.mix_mode == 0) {
-        pwm_roll = ch1_temp;
-        pwm_pitch = ch2_temp;
+        pwm_roll = elevon.ch1_temp;
+        pwm_pitch = elevon.ch2_temp;
     }else{
-        pwm_roll = BOOL_TO_SIGN(g.reverse_elevons) * (BOOL_TO_SIGN(g.reverse_ch2_elevon) * int(ch2_temp - elevon2_trim) - BOOL_TO_SIGN(g.reverse_ch1_elevon) * int(ch1_temp - elevon1_trim)) / 2 + 1500;
-        pwm_pitch = (BOOL_TO_SIGN(g.reverse_ch2_elevon) * int(ch2_temp - elevon2_trim) + BOOL_TO_SIGN(g.reverse_ch1_elevon) * int(ch1_temp - elevon1_trim)) / 2 + 1500;
+        pwm_roll = BOOL_TO_SIGN(g.reverse_elevons) * (BOOL_TO_SIGN(g.reverse_ch2_elevon) * int16_t(elevon.ch2_temp - elevon.trim2) - BOOL_TO_SIGN(g.reverse_ch1_elevon) * int16_t(elevon.ch1_temp - elevon.trim1)) / 2 + 1500;
+        pwm_pitch = (BOOL_TO_SIGN(g.reverse_ch2_elevon) * int16_t(elevon.ch2_temp - elevon.trim2) + BOOL_TO_SIGN(g.reverse_ch1_elevon) * int16_t(elevon.ch1_temp - elevon.trim1)) / 2 + 1500;
     }
     
     if (control_mode == TRAINING) {
@@ -7837,6 +8032,19 @@ static void control_failsafe(uint16_t pwm)
 static void trim_control_surfaces()
 {
     read_radio();
+    int16_t trim_roll_range = (g.channel_roll.radio_max - g.channel_roll.radio_min)/5;
+    int16_t trim_pitch_range = (g.channel_pitch.radio_max - g.channel_pitch.radio_min)/5;
+    if (g.channel_roll.radio_in < g.channel_roll.radio_min+trim_roll_range ||
+        g.channel_roll.radio_in > g.channel_roll.radio_max-trim_roll_range ||
+        g.channel_pitch.radio_in < g.channel_pitch.radio_min+trim_pitch_range ||
+        g.channel_pitch.radio_in > g.channel_pitch.radio_max-trim_pitch_range) {
+        // don't trim for extreme values - if we attempt to trim so
+        // there is less than 20 percent range left then assume the
+        // sticks are not properly centered. This also prevents
+        // problems with starting APM with the TX off
+        return;
+    }
+
     // Store control surface trim values
     // ---------------------------------
     if(g.mix_mode == 0) {
@@ -7853,11 +8061,11 @@ static void trim_control_surfaces()
         RC_Channel_aux::set_radio_trim(RC_Channel_aux::k_aileron_with_input);
         RC_Channel_aux::set_radio_trim(RC_Channel_aux::k_elevator_with_input);
     } else{
-        if (ch1_temp != 0) {
-            elevon1_trim = ch1_temp;
+        if (elevon.ch1_temp != 0) {
+            elevon.trim1 = elevon.ch1_temp;
         }
-        if (ch2_temp != 0) {
-            elevon2_trim = ch2_temp;
+        if (elevon.ch2_temp != 0) {
+            elevon.trim2 = elevon.ch2_temp;
         }
         //Recompute values here using new values for elevon1_trim and elevon2_trim
         //We cannot use radio_in[CH_ROLL] and radio_in[CH_PITCH] values from read_radio() because the elevon trim values have changed
@@ -7898,7 +8106,6 @@ static void init_barometer(void)
     // filter at 100ms sampling, with 0.7Hz cutoff frequency
     altitude_filter.set_cutoff_frequency(0.1, 0.7);
 
-    ahrs.set_barometer(&barometer);
     gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
 }
 
@@ -7933,12 +8140,12 @@ static void read_battery(void)
     if(g.battery_monitoring == 3 || g.battery_monitoring == 4) {
         // this copes with changing the pin at runtime
         batt_volt_pin->set_pin(g.battery_volt_pin);
-        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin->read_average());
+        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin);
     }
     if(g.battery_monitoring == 4) {
         // this copes with changing the pin at runtime
         batt_curr_pin->set_pin(g.battery_curr_pin);
-        current_amps1    = CURRENT_AMPS(batt_curr_pin->read_average());
+        current_amps1    = CURRENT_AMPS(batt_curr_pin);
         current_total1   += current_amps1 * (float)delta_ms_medium_loop * 0.0002778;                                    // .0002778 is 1/3600 (conversion to hours)
     }
 
@@ -7979,11 +8186,15 @@ static int8_t   setup_show                              (uint8_t argc, const Men
 static int8_t   setup_factory                   (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_flightmodes               (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_level                             (uint8_t argc, const Menu::arg *argv);
+#if !defined( __AVR_ATmega1280__ )
 static int8_t   setup_accel_scale                       (uint8_t argc, const Menu::arg *argv);
+static int8_t   setup_set                               (uint8_t argc, const Menu::arg *argv);
+#endif
 static int8_t   setup_erase                             (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_compass                   (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_declination               (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_batt_monitor              (uint8_t argc, const Menu::arg *argv);
+
 
 // Command/function table for the setup menu
 static const struct Menu::command setup_menu_commands[] PROGMEM = {
@@ -8000,6 +8211,9 @@ static const struct Menu::command setup_menu_commands[] PROGMEM = {
     {"declination",         setup_declination},
     {"battery",                     setup_batt_monitor},
     {"show",                        setup_show},
+#if !defined( __AVR_ATmega1280__ )
+    {"set",                         setup_set},
+#endif
     {"erase",                       setup_erase},
 };
 
@@ -8028,13 +8242,52 @@ setup_mode(uint8_t argc, const Menu::arg *argv)
 static int8_t
 setup_show(uint8_t argc, const Menu::arg *argv)
 {
+
+#if !defined( __AVR_ATmega1280__ )
+    AP_Param *param;
+    ap_var_type type;
+
+    //If a parameter name is given as an argument to show, print only that parameter
+    if(argc>=2)
+    {
+
+        param=AP_Param::find(argv[1].str, &type);
+
+        if(!param)
+        {
+            cliSerial->printf_P(PSTR("Parameter not found: '%s'\n"), argv[1]);
+            return 0;
+        }
+
+        //Print differently for different types, and include parameter type in output.
+        switch (type) {
+            case AP_PARAM_INT8:
+                cliSerial->printf_P(PSTR("INT8  %s: %d\n"), argv[1].str, (int)((AP_Int8 *)param)->get());
+                break;
+            case AP_PARAM_INT16:
+                cliSerial->printf_P(PSTR("INT16 %s: %d\n"), argv[1].str, (int)((AP_Int16 *)param)->get());
+                break;
+            case AP_PARAM_INT32:
+                cliSerial->printf_P(PSTR("INT32 %s: %ld\n"), argv[1].str, (long)((AP_Int32 *)param)->get());
+                break;
+            case AP_PARAM_FLOAT:
+                cliSerial->printf_P(PSTR("FLOAT %s: %f\n"), argv[1].str, ((AP_Float *)param)->get());
+                break;
+            default:
+                cliSerial->printf_P(PSTR("Unhandled parameter type for %s: %d.\n"), argv[1].str, type);
+                break;
+        }
+
+        return 0;
+    }
+#endif
+
     // clear the area
     print_blanks(8);
 
     report_radio();
     report_batt_monitor();
     report_gains();
-    report_xtrack();
     report_throttle();
     report_flight_modes();
     report_ins();
@@ -8047,6 +8300,69 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 
     return(0);
 }
+
+
+#if !defined( __AVR_ATmega1280__ )
+
+//Set a parameter to a specified value. It will cast the value to the current type of the
+//parameter and make sure it fits in case of INT8 and INT16
+static int8_t setup_set(uint8_t argc, const Menu::arg *argv)
+{
+    int8_t value_int8;
+    int16_t value_int16;
+
+    AP_Param *param;
+    enum ap_var_type p_type;
+
+    if(argc!=3)
+    {
+        cliSerial->printf_P(PSTR("Invalid command. Usage: set <name> <value>\n"));
+        return 0;
+    }
+
+    param = AP_Param::find(argv[1].str, &p_type);
+    if(!param)
+    {
+        cliSerial->printf_P(PSTR("Param not found: %s\n"), argv[1].str);
+        return 0;
+    }
+
+    switch(p_type)
+    {
+        case AP_PARAM_INT8:
+            value_int8 = (int8_t)(argv[2].i);
+            if(argv[2].i!=value_int8)
+            {
+                cliSerial->printf_P(PSTR("Value out of range for type INT8\n"));
+                return 0;
+            }
+            ((AP_Int8*)param)->set_and_save(value_int8);
+            break;
+        case AP_PARAM_INT16:
+            value_int16 = (int16_t)(argv[2].i);
+            if(argv[2].i!=value_int16)
+            {
+                cliSerial->printf_P(PSTR("Value out of range for type INT16\n"));
+                return 0;
+            }
+            ((AP_Int16*)param)->set_and_save(value_int16);
+            break;
+
+        //int32 and float don't need bounds checking, just use the value provoded by Menu::arg
+        case AP_PARAM_INT32:
+            ((AP_Int32*)param)->set_and_save(argv[2].i);
+            break;
+        case AP_PARAM_FLOAT:
+            ((AP_Float*)param)->set_and_save(argv[2].f);
+            break;
+        default:
+            cliSerial->printf_P(PSTR("Cannot set parameter of type %d.\n"), p_type);
+            break;
+    }
+
+    return 0;
+}
+#endif
 
 // Initialise the EEPROM to 'factory' settings (mostly defined in APM_Config.h or via defaults).
 // Called by the setup menu 'factoryreset' command.
@@ -8168,7 +8484,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
     uint8_t switchPosition, mode = 0;
 
     cliSerial->printf_P(PSTR("\nMove RC toggle switch to each position to edit, move aileron stick to select modes."));
-    //print_hit_enter();
+    print_hit_enter();
     trim_radio();
 
     while(1) {
@@ -8279,6 +8595,7 @@ setup_level(uint8_t argc, const Menu::arg *argv)
 /*
   handle full accelerometer calibration via user dialog
  */
+
 static int8_t
 setup_accel_scale(uint8_t argc, const Menu::arg *argv)
 {
@@ -8389,9 +8706,6 @@ static void report_gains()
 	print_PID(&g.pidServoRudder);
 #endif
 
-    cliSerial->printf_P(PSTR("nav roll:\n"));
-    print_PID(&g.pidNavRoll);
-
     cliSerial->printf_P(PSTR("nav pitch airspeed:\n"));
     print_PID(&g.pidNavPitchAirspeed);
 
@@ -8401,19 +8715,6 @@ static void report_gains()
     cliSerial->printf_P(PSTR("nav pitch alt:\n"));
     print_PID(&g.pidNavPitchAltitude);
 
-    print_blanks(2);
-}
-
-static void report_xtrack()
-{
-    //print_blanks(2);
-    cliSerial->printf_P(PSTR("Crosstrack\n"));
-    print_divider();
-    // radio
-    cliSerial->printf_P(PSTR("XTRACK: %4.2f\n"
-                         "XTRACK angle: %d\n"),
-                    (float)g.crosstrack_gain,
-                    (int)g.crosstrack_entry_angle);
     print_blanks(2);
 }
 
@@ -8741,15 +9042,6 @@ static void init_ardupilot()
     //
     load_parameters();
 
-    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_ON);
-
-    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_ON);
-
-    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_ON);
-
     // reset the uartA baud rate after parameter load
     hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
@@ -8793,8 +9085,6 @@ static void init_ardupilot()
     }
 #endif
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
-
  #if CONFIG_ADC == ENABLED
     adc.Init();      // APM ADC library initialization
  #endif
@@ -8810,7 +9100,6 @@ static void init_ardupilot()
             ahrs.set_compass(&compass);
         }
     }
-#endif
 
     // give AHRS the airspeed sensor
     ahrs.set_airspeed(&airspeed);
@@ -8831,16 +9120,18 @@ static void init_ardupilot()
     mavlink_system.compid = 1;          //MAV_COMP_ID_IMU;   // We do not check for comp id
     mavlink_system.type = MAV_TYPE_FIXED_WING;
 
-    // Set initial values for no override
-    rc_override_active = hal.rcin->set_overrides(rc_override, 8);
-
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
 
-//    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-//    pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
-//    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-  
+    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                                 // GPS status LED
+    hal.gpio->write(C_LED_PIN, LED_OFF);
+
+    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(A_LED_PIN, LED_OFF);
+
+    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(B_LED_PIN, LED_OFF);
+
     relay.init();
 
 #if FENCE_TRIGGERED_PIN > 0
@@ -8867,15 +9158,12 @@ static void init_ardupilot()
         // Get necessary data from EEPROM
         //----------------
         //read_EEPROM_airstart_critical();
-#if HIL_MODE != HIL_MODE_ATTITUDE
         ahrs.init();
         ahrs.set_fly_forward(true);
 
         ins.init(AP_InertialSensor::WARM_START, 
                  ins_sample_rate,
                  flash_leds);
-
-#endif
 
         // This delay is important for the APM_RC library to work.
         // We need some time for the comm between the 328 and 1280 to be established.
@@ -8899,6 +9187,9 @@ static void init_ardupilot()
         if (g.log_bitmask & MASK_LOG_CMD)
             Log_Write_Startup(TYPE_GROUNDSTART_MSG);
     }
+
+    // choose the nav controller
+    set_nav_controller();
 
     set_mode(MANUAL);
 
@@ -8981,7 +9272,10 @@ static void set_mode(enum FlightMode mode)
     case STABILIZE:
     case TRAINING:
     case FLY_BY_WIRE_A:
+        break;
+
     case FLY_BY_WIRE_B:
+        target_altitude_cm = current_loc.alt;
         break;
 
     case CIRCLE:
@@ -8990,10 +9284,12 @@ static void set_mode(enum FlightMode mode)
         break;
 
     case AUTO:
+        prev_WP = current_loc;
         update_auto();
         break;
 
     case RTL:
+        prev_WP = current_loc;
         do_RTL();
         break;
 
@@ -9006,6 +9302,7 @@ static void set_mode(enum FlightMode mode)
         break;
 
     default:
+        prev_WP = current_loc;
         do_RTL();
         break;
     }
@@ -9034,6 +9331,7 @@ static void check_long_failsafe()
             failsafe_long_on_event(FAILSAFE_LONG);
         }
         if (g.gcs_heartbeat_fs_enabled && 
+            last_heartbeat_ms != 0 &&
             (tnow - last_heartbeat_ms) > FAILSAFE_LONG_TIME) {
             failsafe_long_on_event(FAILSAFE_GCS);
         }
@@ -9105,7 +9403,6 @@ static void startup_INS_ground(bool force_accel_level)
 #endif
     ahrs.reset();
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
     //-----------------------------
     init_barometer();
@@ -9118,7 +9415,6 @@ static void startup_INS_ground(bool force_accel_level)
         gcs_send_text_P(SEVERITY_LOW,PSTR("NO airspeed"));
     }
 
-#endif
     digitalWrite(B_LED_PIN, LED_ON);                    // Set LED B high to indicate INS ready
     digitalWrite(A_LED_PIN, LED_OFF);
     digitalWrite(C_LED_PIN, LED_OFF);
@@ -9130,25 +9426,27 @@ static void update_GPS_light(void)
     // GPS LED on if we have a fix or Blink GPS LED if we are receiving data
     // ---------------------------------------------------------------------
     switch (g_gps->status()) {
-    case (2):
-        digitalWrite(C_LED_PIN, LED_ON);                  //Turn LED C on when gps has valid fix.
-        break;
-
-    case (1):
-        if (g_gps->valid_read == true) {
-            GPS_light = !GPS_light;                     // Toggle light on and off to indicate gps messages being received, but no GPS fix lock
-            if (GPS_light) {
-                digitalWrite(C_LED_PIN, LED_OFF);
-            } else {
-                digitalWrite(C_LED_PIN, LED_ON);
+        case GPS::NO_FIX:
+        case GPS::GPS_OK_FIX_2D:
+            // check if we've blinked since the last gps update
+            if (g_gps->valid_read) {
+                g_gps->valid_read = false;
+                GPS_light = !GPS_light;                     // Toggle light on and off to indicate gps messages being received, but no GPS fix lock
+                if (GPS_light) {
+                    digitalWrite(C_LED_PIN, LED_OFF);
+                }else{
+                    digitalWrite(C_LED_PIN, LED_ON);
+                }
             }
-            g_gps->valid_read = false;
-        }
-        break;
+            break;
 
-    default:
-        digitalWrite(C_LED_PIN, LED_OFF);
-        break;
+        case GPS::GPS_OK_FIX_3D:
+            digitalWrite(C_LED_PIN, LED_ON);                  //Turn LED C on when gps has valid fix AND home is set.
+            break;
+
+        default:
+            digitalWrite(C_LED_PIN, LED_OFF);
+            break;
     }
 }
 
@@ -9276,6 +9574,23 @@ static void print_comma(void)
 }
 
 
+/*
+  write to a servo
+ */
+static void servo_write(uint8_t ch, uint16_t pwm)
+{
+#if HIL_MODE != HIL_MODE_DISABLED
+    if (!g.hil_servos) {
+        extern RC_Channel *rc_ch[8];
+        if (ch < 8) {
+            rc_ch[ch]->radio_out = pwm;
+        }
+        return;
+    }
+#endif
+    hal.rcout->enable_ch(ch);
+    hal.rcout->write(ch, pwm);
+}
 #line 1 "./ArduPlane/test.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -9335,11 +9650,10 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
     {"airspeed",    test_airspeed},
     {"airpressure", test_pressure},
     {"compass",             test_mag},
-#elif HIL_MODE == HIL_MODE_SENSORS
+#else
     {"gps",                 test_gps},
     {"ins",                 test_ins},
     {"compass",             test_mag},
-#elif HIL_MODE == HIL_MODE_ATTITUDE
 #endif
     {"logging",             test_logging},
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -9424,7 +9738,7 @@ test_passthru(uint8_t argc, const Menu::arg *argv)
             for(int16_t i = 0; i < 8; i++) {
                 cliSerial->print(hal.rcin->read(i));        // Print channel values
                 print_comma();
-                hal.rcout->write(i, hal.rcin->read(i)); // Copy input to Servos
+                servo_write(i, hal.rcin->read(i)); // Copy input to Servos
             }
             cliSerial->println();
         }
@@ -9613,7 +9927,7 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 }
 
 static void
-test_wp_print(struct Location *cmd, uint8_t wp_index)
+test_wp_print(const struct Location *cmd, uint8_t wp_index)
 {
     cliSerial->printf_P(PSTR("command #: %d id:%d options:%d p1:%d p2:%ld p3:%ld p4:%ld \n"),
                     (int)wp_index,
@@ -9692,8 +10006,6 @@ test_shell(uint8_t argc, const Menu::arg *argv)
 //-------------------------------------------------------------------------------------------
 // tests in this section are for real sensors or sensors that have been simulated
 
-#if HIL_MODE == HIL_MODE_DISABLED || HIL_MODE == HIL_MODE_SENSORS
-
  #if CONFIG_ADC == ENABLED
 static int8_t
 test_adc(uint8_t argc, const Menu::arg *argv)
@@ -9722,7 +10034,7 @@ test_gps(uint8_t argc, const Menu::arg *argv)
     delay(1000);
 
     while(1) {
-        delay(333);
+        delay(100);
 
         // Blink GPS LED if we don't have a fix
         // ------------------------------------
@@ -9880,8 +10192,6 @@ test_mag(uint8_t argc, const Menu::arg *argv)
     compass.save_offsets();
     return (0);
 }
-
-#endif // HIL_MODE == HIL_MODE_DISABLED || HIL_MODE == HIL_MODE_SENSORS
 
 //-------------------------------------------------------------------------------------------
 // real sensors that have not been simulated yet go here
