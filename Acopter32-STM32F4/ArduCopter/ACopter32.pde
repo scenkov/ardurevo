@@ -1407,7 +1407,10 @@ static void super_slow_loop()
 #ifdef PERFMON_ENABLE
     AP_PERFMON_REGISTER
 #endif
+    if (g.log_bitmask != 0) {
+
     Log_Write_Data(DATA_AP_STATE, ap.value);
+}
 
     if (g.log_bitmask & MASK_LOG_CUR && motors.armed())
         Log_Write_Current();
