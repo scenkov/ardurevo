@@ -8,3 +8,4 @@ _htmresc
 Utilities
 
 /Acopter32-STM32F4/Firmware/Acopter32/ArduCopter.cpp
+/Acopter32-STM32F4/ArduPlane/ArduPlane.cpp
