@@ -1,6 +1,7 @@
 #include <exti.h>
 #include <timer.h>
 #include "RCInput.h"
+#include <pwm_in.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -16,21 +17,22 @@ extern const AP_HAL::HAL& hal;
 
 #define RISING_EDGE 1
 #define FALLING_EDGE 0
-#define MINONWIDTH 950
-#define MAXONWIDTH 2075
+#define MINONWIDTH 900
+#define MAXONWIDTH 2100
+// PATCH FOR FAILSAFE AND FRSKY
+#define MINOFFWIDTH 1000
+#define MAXOFFWIDTH 21000
 
 #define MINCHECK 900
 #define MAXCHECK 2100
 
-// PATCH FOR FAILSAFE AND FRSKY
-#define MINOFFWIDTH 1000
-#define MAXOFFWIDTH 30000
+
 
 // STANDARD PPM VARIABLE
 
-volatile uint16_t rcPinValue[12] =
+volatile uint16_t rcPinValue[8] =
     {
-    0, 0, 1000, 0, 1500, 1500, 1500, 1000, 0, 0, 0, 0
+    1500, 1500, 1000, 1500, 1500, 1500, 1500, 1500
     };
 // interval [1000;2000]
 static byte receiverPin[8] =
@@ -223,8 +225,9 @@ void rxIntPPM(void)
     uint8_t pin;
     uint32_t mask, pending;
 
+	
     hal.scheduler->suspend_timer_procs();
-    noInterrupts();
+    //noInterrupts();
     //byte channel=0;
     pending = EXTI ->PR;
     currentTime = hal.scheduler->micros();
@@ -232,6 +235,8 @@ void rxIntPPM(void)
     for (byte channel = 0; channel < 8; channel++)
 	{
 
+	if(receiverPin[channel] != 0)
+	{
 	pin = receiverPin[channel];
 
 	mask = BIT(PIN_MAP[pin].gpio_bit);
@@ -271,9 +276,9 @@ void rxIntPPM(void)
 		    }
 		}
 	    }
-
 	}
-    interrupts();
+	}
+    //interrupts();
     hal.scheduler->resume_timer_procs();
     }
 
@@ -646,11 +651,11 @@ static void rxIntPPM10_15(void)
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-	using namespace VRBRAIN;
+using namespace VRBRAIN;
 
 	/* ADD ON PIN NORMALLY AVAILABLE ON RX BUT IF PPM SUM ACTIVE AVAILABLE AS SERVO OUTPUT */
 
-	void VRBRAINRCInput::InitDefaultPPMSUM(char board)
+void VRBRAINRCInput::InitDefaultPPMSUM(char board)
 	    {
 	    switch (board)
 		{
@@ -683,9 +688,9 @@ static void rxIntPPM10_15(void)
 		}
 	    }
 
-	void VRBRAINRCInput::InitPPM(void)
+void VRBRAINRCInput::InitPPM(void)
 	    {
-
+	    /*
 	    receiverPin[0] = input_channel_ch1;
 	    receiverPin[1] = input_channel_ch2;
 	    receiverPin[2] = input_channel_ch3;
@@ -694,6 +699,7 @@ static void rxIntPPM10_15(void)
 	    receiverPin[5] = input_channel_ch6;
 	    receiverPin[6] = input_channel_ch7;
 	    receiverPin[7] = input_channel_ch8;
+	    */
 	    /*
 	    receiverPin[8] = input_channel_ch9;
 	    receiverPin[9] = input_channel_ch10;
@@ -710,7 +716,7 @@ static void rxIntPPM10_15(void)
 	     PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
 	     PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
 	     */
-
+/*
 #ifdef NEWEXTI
 
 	    if (input_channel_ch1 != 0)
@@ -824,13 +830,13 @@ static void rxIntPPM10_15(void)
 		}
 
 #endif
+*/
+    for(byte channel = 0; channel < 8; channel++)
+    		   pinData[channel].edge = FALLING_EDGE;
 
-	    for (byte channel = 0; channel < 8; channel++)
-		{
-		if(receiverPin[channel] != 0)
-		pinData[receiverPin[channel]].edge = FALLING_EDGE;
-		}
-	    }
+    	attachPWMCaptureCallback(PWMCaptureCallback);
+    	pwmInit();
+}
 
 void VRBRAINRCInput::InitDefaultPPM(char board)
 	    {
@@ -905,12 +911,14 @@ void VRBRAINRCInput::InitPPMSUM(void)
 uint16_t VRBRAINRCInput::InputCh(unsigned char ch)
 	    {
 	    uint16_t data;
+	    noInterrupts();
 	    if (_iboard < 10)
 		data = rcPinValue[ch];
 	    else
 		{
 		data = rcValue[rcChannel[ch + 1]];
 		}
+	    interrupts();
 	    return data; // We return the value correctly copied when the IRQ's where disabled
 	    }
 
@@ -930,7 +938,7 @@ void VRBRAINRCInput::init(void* machtnichts)
 		{
 		// Init Radio In
 		hal.console->println("Init Default PPM");
-		InitDefaultPPM(_iboard);
+		//InitDefaultPPM(_iboard);
 		hal.console->println("Init PPM HWD");
 		InitPPM();
 		}

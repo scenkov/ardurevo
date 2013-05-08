@@ -22,6 +22,7 @@ cSRCS_$(d)   += usart.c
 cSRCS_$(d)   += adc.c
 cSRCS_$(d)   += stopwatch.c
 cSRCS_$(d)   += usb.c
+cSRCS_$(d)   += pwm_in.c
 
 cppSRCS_$(d) := 
 

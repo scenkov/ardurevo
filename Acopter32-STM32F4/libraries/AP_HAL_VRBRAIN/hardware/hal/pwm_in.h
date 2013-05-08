@@ -25,25 +25,39 @@
  *****************************************************************************/
 
 /**
- *  @brief Arduino-style PWM implementation.
+ *  @file pwm.h
+ *
+ *  @brief Arduino-compatible PWM interface.
  */
 
-#include "pwm.h"
+#ifndef _PWM_IN_H_
+#define _PWM_IN_H_
+
 #include "hal_types.h"
-#include "timer.h"
-#include "boards.h"
 
-//typedef void (*rcc_clockcmd)(uint32_t, FunctionalState);
 
-void pwmWrite(uint8_t pin, uint16_t duty_cycle)
-    {
-    timer_dev *dev = PIN_MAP[pin].timer_device;
-    if (pin >= BOARD_NR_GPIO_PINS || dev == NULL || dev->type == TIMER_BASIC)
-	{
-	//errno_r = ENODEV;
-	return;
-	}
+#ifdef __cplusplus
+  extern "C" {
+#endif
+ 
+/**
+ * Set the PWM duty on the given pin.
+ *
+ * User code is expected to determine and honor the maximum value
+ * (based on the configured period).
+ *
+ * @param pin PWM output pin
+ * @param duty_cycle Duty cycle to set.
+ */
 
-    timer_set_compare(dev, PIN_MAP[pin].timer_channel, duty_cycle);
-    TIM_Cmd(dev->regs, ENABLE);
-    }
+void pwmInit(void);
+uint16_t pwmRead(uint8_t channel);
+void attachPWMCaptureCallback(void (*callback)(uint8_t, uint8_t, int16_t));
+
+
+#ifdef __cplusplus
+  }
+#endif
+
+#endif
+

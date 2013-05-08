@@ -137,11 +137,11 @@ void HardwareTimer::refresh(void) {
 
 /* -- Deprecated predefined instances -------------------------------------- */
 
-HardwareTimer Timer1(1);
+//HardwareTimer Timer1(1);
 HardwareTimer Timer2(2);
 HardwareTimer Timer3(3);
 HardwareTimer Timer4(4);
 HardwareTimer Timer5(5);
 HardwareTimer Timer6(6);
 HardwareTimer Timer7(7);
-HardwareTimer Timer8(8);
+//HardwareTimer Timer8(8);

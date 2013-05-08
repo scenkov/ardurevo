@@ -212,14 +212,14 @@ void timer_set_mode(timer_dev *dev, uint8_t channel, timer_mode mode) {
  * @param fn Function to call on each timer device.
  */
 void timer_foreach(void (*fn)(timer_dev*)) {
-    fn(TIMER1);
+    //fn(TIMER1);
     fn(TIMER2);
     fn(TIMER3);
     fn(TIMER4);
     fn(TIMER5);
     fn(TIMER6);
     fn(TIMER7);
-    fn(TIMER8);
+    //fn(TIMER8);
 }
 
 /**
@@ -264,7 +264,7 @@ static inline void dispatch_adv_trg_com(timer_dev *dev);
 static inline void dispatch_adv_cc(timer_dev *dev);
 static inline void dispatch_general(timer_dev *dev);
 static inline void dispatch_basic(timer_dev *dev);
-
+/*
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
     dispatch_adv_brk(TIMER1);
@@ -281,7 +281,7 @@ void TIM1_TRG_COM_TIM11_IRQHandler(void) {
 void TIM1_CC_IRQHandler(void) {
     dispatch_adv_cc(TIMER1);
 }
-
+*/
 void TIM2_IRQHandler(void) {
     dispatch_general(TIMER2);
 }
@@ -305,7 +305,7 @@ void TIM6_DAC_IRQHandler(void) {
 void TIM7_IRQHandler(void) {
     dispatch_basic(TIMER7);
 }
-
+/*
 void TIM8_BRK_TIM12_IRQHandler(void) {
     dispatch_adv_brk(TIMER8);
 }
@@ -321,7 +321,7 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void) {
 void TIM8_CC_IRQHandler(void) {
     dispatch_adv_cc(TIMER8);
 }
-
+*/
 
           
   
