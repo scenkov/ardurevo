@@ -181,7 +181,7 @@ void usart_setup(usart_dev *dev,
 
     /* Enable the USART Interrupt */         
     NVIC_InitStructure.NVIC_IRQChannel = dev->irq;     
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;         
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;         
     NVIC_Init(&NVIC_InitStructure); 

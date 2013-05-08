@@ -186,7 +186,7 @@ static void pwmInitializeInput(void)
 		GPIO_PinAFConfig(channel.gpio_port, channel.gpio_af, channel.gpio_af_tim);
 // enable the TIM global interrupt
 		NVIC_InitStructure.NVIC_IRQChannel = channel.tim_irq;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&NVIC_InitStructure);
