@@ -274,8 +274,8 @@
  #define COPTER_LEDS ENABLED
 #endif
 
-#define COPTER_LED_ON           LOW
-#define COPTER_LED_OFF          HIGH
+#define COPTER_LED_ON           HIGH
+#define COPTER_LED_OFF          LOW
 
 #if CONFIG_APM_HARDWARE == VRBRAINF4
 #define COPTER_LED_1 102  	// Motor or Aux LED
