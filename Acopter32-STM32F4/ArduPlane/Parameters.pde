@@ -64,7 +64,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range: 0 5
     // @Increment: 0.01
     // @User: Advanced
-    GSCALAR(kff_pitch_to_throttle,  "KFF_PTCH2THR",   P_TO_T),
+    GSCALAR(kff_pitch_to_throttle,  "KFF_PTCH2THR",   0),
 
     // @Param: KFF_THR2PTCH
     // @DisplayName: Throttle to Pitch Mix
@@ -72,14 +72,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range: 0 5
     // @Increment: 0.01
     // @User: Advanced
-    GSCALAR(kff_throttle_to_pitch,  "KFF_THR2PTCH",   T_TO_P),
-
-    // @Param: MANUAL_LEVEL
-    // @DisplayName: Manual Level
-    // @Description: Setting this to Disabled(0) will enable autolevel on every boot. Setting it to Enabled(1) will do a calibration only when you tell it to
-    // @Values: 0:Disabled,1:Enabled
-    // @User: Advanced
-    GSCALAR(manual_level,           "MANUAL_LEVEL",   MANUAL_LEVEL),
+    GSCALAR(kff_throttle_to_pitch,  "KFF_THR2PTCH",   0),
 
     // @Param: STICK_MIXING
     // @DisplayName: Stick Mixing
@@ -144,6 +137,13 @@ const AP_Param::Info var_info[] PROGMEM = {
 	// @Values: 0:Legacy,1:L1Controller
 	// @User: Standard
 	GSCALAR(nav_controller,          "NAV_CONTROLLER",   AP_Navigation::CONTROLLER_L1),
+
+	// @Param: ATT_CONTROLLER
+	// @DisplayName: Attitude controller selection
+	// @Description: Which attitude (roll, pitch, yaw) controller to enable
+	// @Values: 0:PID,1:APMControl
+	// @User: Standard
+	GSCALAR(att_controller,          "ATT_CONTROLLER",   ATT_CONTROL_PID),
 
     // @Param: ALT_MIX
     // @DisplayName: Gps to Baro Mix
@@ -440,7 +440,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: ELEVON_MIXING
     // @DisplayName: Elevon mixing
-    // @Description: Enable elevon mixing  on both input and output
+    // @Description: Enable elevon mixing  on both input and output. To enable just output mixing see the ELEVON_OUTPUT option.
     // @Values: 0:Disabled,1:Enabled
     // @User: User
     GSCALAR(mix_mode,               "ELEVON_MIXING",  ELEVON_MIXING),
@@ -473,6 +473,13 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Values: 0:Disabled,1:UpUp,2:UpDown,3:DownUp,4:DownDown
     // @User: User
     GSCALAR(vtail_output,           "VTAIL_OUTPUT",  0),
+
+    // @Param: ELEVON_OUTPUT
+    // @DisplayName: Elevon output
+    // @Description: Enable software elevon output mixer. If enabled then the APM will provide software elevon mixing on the aileron and elevator channels. There are 4 different mixing modes available, which refer to the 4 ways the elevator can be mapped to the two elevon servos. Note that you must not use elevon output mixing with hardware pass-through of RC values, such as with channel 8 manual control on an APM1. So if you use an APM1 then set FLTMODE_CH to something other than 8 before you enable ELEVON_OUTPUT.
+    // @Values: 0:Disabled,1:UpUp,2:UpDown,3:DownUp,4:DownDown
+    // @User: User
+    GSCALAR(elevon_output,           "ELEVON_OUTPUT",  0),
 
     // @Param: SYS_NUM_RESETS
     // @DisplayName: Num Resets
@@ -521,7 +528,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: TRIM_PITCH_CD
     // @DisplayName: Pitch angle offset
-    // @Description: offset to add to pitch - used for trimming tail draggers
+    // @Description: offset to add to pitch - used for in-flight pitch trimming. It is recommended that instead of using this parameter you level your plane correctly on the ground for good flight attitude.
     // @Units: centi-Degrees
     // @User: Advanced
     GSCALAR(pitch_trim_cd,        "TRIM_PITCH_CD",  0),
@@ -542,10 +549,10 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: MAG_ENABLE
     // @DisplayName: Enable Compass
-    // @Description: Setting this to Enabled(1) will enable the compass. Setting this to Disabled(0) will disable the compass
+    // @Description: Setting this to Enabled(1) will enable the compass. Setting this to Disabled(0) will disable the compass. Note that this is separate from COMPASS_USE. This will enable the low level senor, and will enable logging of magnetometer data. To use the compass for navigation you must also set COMPASS_USE to 1.
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
-    GSCALAR(compass_enabled,        "MAG_ENABLE",     MAGNETOMETER),
+    GSCALAR(compass_enabled,        "MAG_ENABLE",     1),
 
     GSCALAR(flap_1_percent,         "FLAP_1_PERCNT",  FLAP_1_PERCENT),
     GSCALAR(flap_1_speed,           "FLAP_1_SPEED",   FLAP_1_SPEED),
@@ -655,7 +662,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/RC_Channel/RC_Channel_aux.cpp, ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(rc_8,                    "RC8_", RC_Channel_aux),
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
     // @Group: RC9_
     // @Path: ../libraries/RC_Channel/RC_Channel_aux.cpp, ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(rc_9,                    "RC9_", RC_Channel_aux),
@@ -669,20 +676,32 @@ const AP_Param::Info var_info[] PROGMEM = {
     GGROUP(rc_11,                    "RC11_", RC_Channel_aux),
 #endif
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC12_
+    // @Path: ../libraries/RC_Channel/RC_Channel_aux.cpp, ../libraries/RC_Channel/RC_Channel.cpp
+    GGROUP(rc_12,                    "RC12_", RC_Channel_aux),
+#endif
+
 	GGROUP(pidNavPitchAirspeed,     "ARSP2PTCH_", PID),
 	GGROUP(pidTeThrottle,           "ENRGY2THR_", PID),
 	GGROUP(pidNavPitchAltitude,     "ALT2PTCH_",  PID),
 	GGROUP(pidWheelSteer,           "WHEELSTEER_",PID),
 
-#if APM_CONTROL == DISABLED
 	GGROUP(pidServoRoll,            "RLL2SRV_",   PID),
 	GGROUP(pidServoPitch,           "PTCH2SRV_",  PID),
 	GGROUP(pidServoRudder,          "YW2SRV_",    PID),
-#else
-	GGROUP(rollController,          "RLL_",       AP_RollController),
-	GGROUP(pitchController,         "PTCH_",      AP_PitchController),
-	GGROUP(yawController,           "YWCTL_",     AP_YawController),
-#endif
+
+    // @Group: CTL_RLL_
+    // @Path: ../libraries/APM_Control/AP_RollController.cpp
+	GGROUP(rollController,          "CTL_RLL_",   AP_RollController),
+
+    // @Group: CTL_PTCH_
+    // @Path: ../libraries/APM_Control/AP_PitchController.cpp
+	GGROUP(pitchController,         "CTL_PTCH_",  AP_PitchController),
+
+    // @Group: CTL_YAW_
+    // @Path: ../libraries/APM_Control/AP_YawController.cpp
+	GGROUP(yawController,           "CTL_YAW_",   AP_YawController),
 
 	// variables not in the g class which contain EEPROM saved variables
 

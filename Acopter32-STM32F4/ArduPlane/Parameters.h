@@ -66,7 +66,7 @@ public:
         k_param_flap_2_percent,
         k_param_flap_2_speed,
         k_param_reset_switch_chan,
-        k_param_manual_level,
+        k_param_manual_level, // unused
         k_param_land_pitch_cd,
         k_param_ins_old,            // *** Deprecated, remove with next eeprom number change
         k_param_stick_mixing,
@@ -85,6 +85,8 @@ public:
         k_param_hil_servos,
         k_param_vtail_output,
         k_param_nav_controller,
+        k_param_elevon_output,
+        k_param_att_controller,
 
         // 110: Telemetry control
         //
@@ -180,6 +182,7 @@ public:
         k_param_throttle_slewrate,
         k_param_throttle_suppress_manual,
         k_param_throttle_passthru_stabilize,
+        k_param_rc_12,
 
         //
         // 200: Feed-forward gains
@@ -261,6 +264,9 @@ public:
     // navigation controller type. See AP_Navigation::ControllerType
     AP_Int8  nav_controller;
 
+    // attitude controller type.
+    AP_Int8  att_controller;
+
     // Estimation
     //
     AP_Float altitude_mix;
@@ -328,6 +334,7 @@ public:
     AP_Int8 auto_trim;
     AP_Int8 mix_mode;
     AP_Int8 vtail_output;
+    AP_Int8 elevon_output;
     AP_Int8 reverse_elevons;
     AP_Int8 reverse_ch1_elevon;
     AP_Int8 reverse_ch2_elevon;
@@ -335,7 +342,6 @@ public:
     AP_Int16 log_bitmask;
     AP_Int8 reset_switch_chan;
     AP_Int8 reset_mission_chan;
-    AP_Int8 manual_level;
     AP_Int32 airspeed_cruise_cm;
     AP_Int32 RTL_altitude_cm;
     AP_Int16 land_pitch_cd;
@@ -376,23 +382,24 @@ public:
     RC_Channel_aux rc_6;
     RC_Channel_aux rc_7;
     RC_Channel_aux rc_8;
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
     RC_Channel_aux rc_9;
     RC_Channel_aux rc_10;
     RC_Channel_aux rc_11;
 #endif
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    RC_Channel_aux rc_12;
+#endif
 
     // PID controllers
     //
-#if APM_CONTROL == DISABLED
     PID         pidServoRoll;
     PID         pidServoPitch;
     PID         pidServoRudder;
-#else
+
     AP_RollController  rollController;
     AP_PitchController pitchController;
     AP_YawController   yawController;
-#endif
 
     PID         pidNavPitchAirspeed;
     PID         pidTeThrottle;
@@ -410,20 +417,20 @@ public:
         rc_6                                    (CH_6),
         rc_7                                    (CH_7),
         rc_8                                    (CH_8),
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
         rc_9                                    (CH_9),
         rc_10                                   (CH_10),
         rc_11                                   (CH_11),
 #endif
-
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+        rc_12                                   (CH_12),
+#endif
         // PID controller    initial P        initial I        initial D        initial imax
         //-----------------------------------------------------------------------------------
 
-#if APM_CONTROL == DISABLED
         pidServoRoll        (SERVO_ROLL_P,    SERVO_ROLL_I,    SERVO_ROLL_D,    SERVO_ROLL_INT_MAX_CENTIDEGREE),
         pidServoPitch       (SERVO_PITCH_P,   SERVO_PITCH_I,   SERVO_PITCH_D,   SERVO_PITCH_INT_MAX_CENTIDEGREE),
         pidServoRudder      (SERVO_YAW_P,     SERVO_YAW_I,     SERVO_YAW_D,     SERVO_YAW_INT_MAX),
-#endif
 
         pidNavPitchAirspeed (NAV_PITCH_ASP_P, NAV_PITCH_ASP_I, NAV_PITCH_ASP_D, NAV_PITCH_ASP_INT_MAX_CMSEC),
         pidTeThrottle       (THROTTLE_TE_P,   THROTTLE_TE_I,   THROTTLE_TE_D,   THROTTLE_TE_INT_MAX),

@@ -82,12 +82,12 @@ enum StickMixing {
     STICK_MIXING_DIRECT   = 2
 };
 
-enum VTailMixing {
-    VTAIL_DISABLED = 0,
-    VTAIL_UPUP     = 1,
-    VTAIL_UPDN     = 2,
-    VTAIL_DNUP     = 3,
-    VTAIL_DNDN     = 4
+enum ChannelMixing {
+    MIXING_DISABLED = 0,
+    MIXING_UPUP     = 1,
+    MIXING_UPDN     = 2,
+    MIXING_DNUP     = 3,
+    MIXING_DNDN     = 4
 };
 
 // Commands - Note that APM now uses a subset of the MAVLink protocol
@@ -146,31 +146,23 @@ enum ap_message {
     MSG_RETRY_DEFERRED // this must be last
 };
 
-enum gcs_severity {
-    SEVERITY_LOW=1,
-    SEVERITY_MEDIUM,
-    SEVERITY_HIGH,
-    SEVERITY_CRITICAL
-};
-
 // Logging message types. NOTE: If you change the value of one
 // of these then existing logs will break! Only add at the end, and 
 // mark unused ones as 'deprecated', but leave them in
 enum log_messages {
     LOG_INDEX_MSG,
-    LOG_ATTITUDE_MSG,
-    LOG_GPS_MSG,
-    LOG_MODE_MSG,
-    LOG_CONTROL_TUNING_MSG,
-    LOG_NAV_TUNING_MSG,
+    LOG_CTUN_MSG,
+    LOG_NTUN_MSG,
     LOG_PERFORMANCE_MSG,
-    LOG_IMU_MSG,
     LOG_CMD_MSG,
     LOG_CURRENT_MSG,
     LOG_STARTUP_MSG,
     TYPE_AIRSTART_MSG,
     TYPE_GROUNDSTART_MSG,
     LOG_CAMERA_MSG,
+    LOG_ATTITUDE_MSG,
+    LOG_MODE_MSG,
+    LOG_COMPASS_MSG,
     MAX_NUM_LOGS
 };
 
@@ -184,6 +176,7 @@ enum log_messages {
 #define MASK_LOG_IMU                    (1<<7)
 #define MASK_LOG_CMD                    (1<<8)
 #define MASK_LOG_CURRENT                (1<<9)
+#define MASK_LOG_COMPASS                (1<<10)
 
 // Waypoint Modes
 // ----------------
@@ -267,5 +260,10 @@ enum {
     ALT_CONTROL_NON_AIRSPEED=1
 };
 
+// attitude controller choice
+enum {
+    ATT_CONTROL_PID = 0,
+    ATT_CONTROL_APMCONTROL = 1
+};
 
 #endif // _DEFINES_H

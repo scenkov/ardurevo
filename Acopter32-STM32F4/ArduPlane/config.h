@@ -95,21 +95,20 @@
  # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN (-1)
- # define PUSHBUTTON_PIN   (-1)
-  #if USB == ENABLED
+ # define SLIDE_SWITCH_PIN 200
+ # define PUSHBUTTON_PIN   200
+ #if TELEMETRY_UART2 == ENABLED
    # define USB_MUX_PIN      1
   #else
-   # define USB_MUX_PIN      (-1)
+   # define USB_MUX_PIN      200
   #endif
  # define CLI_SLIDER_ENABLED DISABLED
-# define OPTFLOW_CS_PIN   (-1)
+# define OPTFLOW_CS_PIN   200
 # define BATTERY_VOLT_PIN      6      // Battery voltage on A0
 # define BATTERY_CURR_PIN      200      // Battery current on A1
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_PUSHBUTTON DISABLED
 # define CONFIG_RELAY      DISABLED
-# define MAG_ORIENTATION	ROTATION_YAW_180
 # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
 # define MAGNETOMETER ENABLED
 # define CONFIG_BARO     AP_BARO_MS5611
@@ -150,9 +149,6 @@
  # define CONFIG_INS_TYPE CONFIG_INS_MPU6000
  # define CONFIG_PITOT_SOURCE PITOT_SOURCE_ANALOG_PIN
  # define CONFIG_PITOT_SOURCE_ANALOG_PIN 0
- # define CONFIG_PITOT_SCALING 4.0
- # define MAG_ORIENTATION   AP_COMPASS_APM2_SHIELD
- # define MAGNETOMETER ENABLED
  # ifdef APM2_BETA_HARDWARE
  #  define CONFIG_BARO     AP_BARO_BMP085
  # else // APM2 Production Hardware (default)
@@ -171,8 +167,6 @@
  # define CONFIG_INS_TYPE CONFIG_INS_STUB
  # define CONFIG_PITOT_SOURCE PITOT_SOURCE_ANALOG_PIN
  # define CONFIG_PITOT_SOURCE_ANALOG_PIN 0
- # define CONFIG_PITOT_SCALING 4.0
- # define MAGNETOMETER ENABLED
  # define CONFIG_BARO     AP_BARO_HIL
  # define CONFIG_COMPASS  AP_COMPASS_HIL
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -187,9 +181,6 @@
  # define CONFIG_INS_TYPE CONFIG_INS_PX4
  # define CONFIG_PITOT_SOURCE PITOT_SOURCE_ANALOG_PIN
  # define CONFIG_PITOT_SOURCE_ANALOG_PIN 11
- # define CONFIG_PITOT_SCALING (4.0*5.0/3.3)
- # define MAGNETOMETER ENABLED
- # define MAG_ORIENTATION   ROTATION_NONE
  # define CONFIG_BARO AP_BARO_PX4
  # define CONFIG_COMPASS  AP_COMPASS_PX4
  # define SERIAL0_BAUD 115200
@@ -239,8 +230,6 @@
  #define CONFIG_PITOT_SOURCE PITOT_SOURCE_ANALOG_PIN
  #undef CONFIG_PITOT_SOURCE_ANALOG_PIN
  #define CONFIG_PITOT_SOURCE_ANALOG_PIN -1
- #undef CONFIG_PITOT_SCALING
- #define CONFIG_PITOT_SCALING 4.0
  #undef  CONFIG_COMPASS
  #define CONFIG_COMPASS  AP_COMPASS_HIL
 #endif
@@ -297,17 +286,6 @@
 #ifndef INPUT_VOLTAGE
  # define INPUT_VOLTAGE                  4.68   //  4.68 is the average value for a sample set.  This is the value at the processor with 5.02 applied at the servo rail
 #endif
-
-//////////////////////////////////////////////////////////////////////////////
-//  MAGNETOMETER
-#ifndef MAGNETOMETER
- # define MAGNETOMETER                   DISABLED
-#endif
-
-#ifndef MAG_ORIENTATION
- # define MAG_ORIENTATION                AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -438,13 +416,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-
-//////////////////////////////////////////////////////////////////////////////
-// Level with each startup = 0, level with MP/CLI only = 1
-//
-#ifndef MANUAL_LEVEL
- # define MANUAL_LEVEL        0
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // GROUND_START_DELAY
@@ -710,12 +681,6 @@
 #ifndef THROTTLE_SLEW_LIMIT
  # define THROTTLE_SLEW_LIMIT  0
 #endif
-#ifndef P_TO_T
- # define P_TO_T               0
-#endif
-#ifndef T_TO_P
- # define T_TO_P               0
-#endif
 #ifndef PITCH_TARGET
  # define PITCH_TARGET         0
 #endif
@@ -746,52 +711,16 @@
  # define LOGGING_ENABLED                ENABLED
 #endif
 
-
-#ifndef LOG_ATTITUDE_FAST
- # define LOG_ATTITUDE_FAST              DISABLED
-#endif
-#ifndef LOG_ATTITUDE_MED
- # define LOG_ATTITUDE_MED               ENABLED
-#endif
-#ifndef LOG_GPS
- # define LOG_GPS                                ENABLED
-#endif
-#ifndef LOG_PM
- # define LOG_PM                                 ENABLED
-#endif
-#ifndef LOG_CTUN
- # define LOG_CTUN                               DISABLED
-#endif
-#ifndef LOG_NTUN
- # define LOG_NTUN                               DISABLED
-#endif
-#ifndef LOG_MODE
- # define LOG_MODE                               ENABLED
-#endif
-#ifndef LOG_IMU
- # define LOG_IMU                                DISABLED
-#endif
-#ifndef LOG_CMD
- # define LOG_CMD                                ENABLED
-#endif
-#ifndef LOG_CURRENT
- # define LOG_CURRENT                            DISABLED
-#endif
-
-// calculate the default log_bitmask
-#define LOGBIT(_s)      (LOG_ ## _s ? MASK_LOG_ ## _s : 0)
-
 #define DEFAULT_LOG_BITMASK     \
-    LOGBIT(ATTITUDE_FAST)       | \
-    LOGBIT(ATTITUDE_MED)        | \
-    LOGBIT(GPS)                 | \
-    LOGBIT(PM)                  | \
-    LOGBIT(CTUN)                | \
-    LOGBIT(NTUN)                | \
-    LOGBIT(MODE)                | \
-    LOGBIT(IMU)                 | \
-    LOGBIT(CMD)                 | \
-    LOGBIT(CURRENT)
+    MASK_LOG_ATTITUDE_MED | \
+    MASK_LOG_GPS | \
+    MASK_LOG_PM | \
+    MASK_LOG_NTUN | \
+    MASK_LOG_MODE | \
+    MASK_LOG_CMD | \
+    MASK_LOG_COMPASS | \
+    MASK_LOG_CURRENT
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -826,11 +755,6 @@
  # define SCALING_SPEED          15.0
 #endif
 
-// use this to enable servos in HIL mode
-#ifndef HIL_SERVOS
- # define HIL_SERVOS DISABLED
-#endif
-
 // use this to completely disable the CLI
 #ifndef CLI_ENABLED
  # define CLI_ENABLED ENABLED
@@ -863,11 +787,6 @@
 // OBC Failsafe enable
 #ifndef OBC_FAILSAFE
  # define OBC_FAILSAFE DISABLED
-#endif
-
-// new APM_Control controller library by Jon Challinger
-#ifndef APM_CONTROL
-# define APM_CONTROL DISABLED
 #endif
 
 #ifndef SERIAL_BUFSIZE

@@ -19,7 +19,7 @@ static float get_speed_scaler(void)
         } else {
             speed_scaler = 2.0;
         }
-        speed_scaler = constrain(speed_scaler, 0.5, 2.0);
+        speed_scaler = constrain_float(speed_scaler, 0.5, 2.0);
     } else {
         if (g.channel_throttle.servo_out > 0) {
             speed_scaler = 0.5 + ((float)THROTTLE_CRUISE / g.channel_throttle.servo_out / 2.0);                 // First order taylor expansion of square root
@@ -28,7 +28,7 @@ static float get_speed_scaler(void)
             speed_scaler = 1.67;
         }
         // This case is constrained tighter as we don't have real speed info
-        speed_scaler = constrain(speed_scaler, 0.6, 1.67);
+        speed_scaler = constrain_float(speed_scaler, 0.6, 1.67);
     }
     return speed_scaler;
 }
@@ -77,14 +77,18 @@ static void stabilize_roll(float speed_scaler)
         if (ahrs.roll_sensor < 0) nav_roll_cd -= 36000;
     }
 
-#if APM_CONTROL == DISABLED
-	// Calculate dersired servo output for the roll
-	// ---------------------------------------------
-    g.channel_roll.servo_out = g.pidServoRoll.get_pid_4500((nav_roll_cd - ahrs.roll_sensor), speed_scaler);
-#else // APM_CONTROL == ENABLED
-    // calculate roll and pitch control using new APM_Control library
-    g.channel_roll.servo_out = g.rollController.get_servo_out(nav_roll_cd, speed_scaler, control_mode == STABILIZE);
-#endif
+    switch (g.att_controller) {
+    case ATT_CONTROL_APMCONTROL:
+        // calculate roll and pitch control using new APM_Control library
+        g.channel_roll.servo_out = g.rollController.get_servo_out(nav_roll_cd, speed_scaler, control_mode == STABILIZE, g.flybywire_airspeed_min);
+        break;
+
+    default:
+        // Calculate dersired servo output for the roll
+        // ---------------------------------------------
+        g.channel_roll.servo_out = g.pidServoRoll.get_pid_4500((nav_roll_cd - ahrs.roll_sensor), speed_scaler);
+        break;
+    }
 }
 
 /*
@@ -94,19 +98,27 @@ static void stabilize_roll(float speed_scaler)
  */
 static void stabilize_pitch(float speed_scaler)
 {
-#if APM_CONTROL == DISABLED
-    int32_t tempcalc = nav_pitch_cd +
-        fabsf(ahrs.roll_sensor * g.kff_pitch_compensation) +
-        (g.channel_throttle.servo_out * g.kff_throttle_to_pitch) -
-        (ahrs.pitch_sensor - g.pitch_trim_cd);
-    if (inverted_flight) {
-        // when flying upside down the elevator control is inverted
-        tempcalc = -tempcalc;
+    int32_t demanded_pitch = nav_pitch_cd + g.pitch_trim_cd + g.channel_throttle.servo_out * g.kff_throttle_to_pitch;
+    switch (g.att_controller) {
+    case ATT_CONTROL_APMCONTROL: {
+        g.channel_pitch.servo_out = g.pitchController.get_servo_out(demanded_pitch, 
+                                                                    speed_scaler, 
+                                                                    control_mode == STABILIZE, 
+                                                                    g.flybywire_airspeed_min, g.flybywire_airspeed_max);    
+        break;
     }
-    g.channel_pitch.servo_out = g.pidServoPitch.get_pid_4500(tempcalc, speed_scaler);
-#else // APM_CONTROL == ENABLED
-    g.channel_pitch.servo_out = g.pitchController.get_servo_out(nav_pitch_cd, speed_scaler, control_mode == STABILIZE);    
-#endif
+
+    default: {
+        int32_t tempcalc = demanded_pitch - ahrs.pitch_sensor;
+        tempcalc += fabsf(ahrs.roll_sensor * g.kff_pitch_compensation);
+        if (abs(ahrs.roll_sensor) > 9000) {
+            // when flying upside down the elevator control is inverted
+            tempcalc = -tempcalc;
+        }
+        g.channel_pitch.servo_out = g.pidServoPitch.get_pid_4500(tempcalc, speed_scaler);
+        break;
+    }
+    }
 }
 
 /*
@@ -334,19 +346,23 @@ static void calc_nav_yaw(float speed_scaler, float ch4_inf)
         return;
     }
 
-#if APM_CONTROL == DISABLED
-    // always do rudder mixing from roll
-    g.channel_rudder.servo_out = g.kff_rudder_mix * g.channel_roll.servo_out;
+    switch (g.att_controller) {
+    case ATT_CONTROL_APMCONTROL:
+        g.channel_rudder.servo_out = g.yawController.get_servo_out(speed_scaler, 
+                                                                   control_mode == STABILIZE, 
+                                                                   g.flybywire_airspeed_min, g.flybywire_airspeed_max);
+        break;
 
-    // a PID to coordinate the turn (drive y axis accel to zero)
-    Vector3f temp = ins.get_accel();
-    int32_t error = -temp.y*100.0;
+    default:
+        // a PID to coordinate the turn (drive y axis accel to zero)
+        float temp_y = ins.get_accel().y;
+        int32_t error = -temp_y * 100.0f;
+        g.channel_rudder.servo_out = g.pidServoRudder.get_pid_4500(error, speed_scaler);
+        break;
+    }
 
-    g.channel_rudder.servo_out += g.pidServoRudder.get_pid_4500(error, speed_scaler);
-#else // APM_CONTROL == ENABLED
-    // use the new APM_Control library
-	g.channel_rudder.servo_out = g.yawController.get_servo_out(speed_scaler, ch4_inf < 0.25f) + g.channel_roll.servo_out * g.kff_rudder_mix;
-#endif
+    // add in rudder mixing from roll
+    g.channel_rudder.servo_out += g.channel_roll.servo_out * g.kff_rudder_mix;
 }
 
 
@@ -377,7 +393,7 @@ static void calc_nav_roll()
  *  float roll_slew_limit(float servo)
  *  {
  *       static float last;
- *       float temp = constrain(servo, last-ROLL_SLEW_LIMIT * delta_ms_fast_loop/1000.f, last + ROLL_SLEW_LIMIT * delta_ms_fast_loop/1000.f);
+ *       float temp = constrain_float(servo, last-ROLL_SLEW_LIMIT * delta_ms_fast_loop/1000.f, last + ROLL_SLEW_LIMIT * delta_ms_fast_loop/1000.f);
  *       last = servo;
  *       return temp;
  *  }*/
@@ -470,9 +486,14 @@ static bool suppress_throttle(void)
     if (g_gps != NULL && 
         g_gps->status() >= GPS::GPS_OK_FIX_2D && 
         g_gps->ground_speed >= 500) {
-        // we're moving at more than 5 m/s
-        throttle_suppressed = false;
-        return false;        
+        // if we have an airspeed sensor, then check it too, and
+        // require 5m/s. This prevents throttle up due to spiky GPS
+        // groundspeed with bad GPS reception
+        if (!airspeed.use() || airspeed.get_airspeed() >= 5) {
+            // we're moving at more than 5 m/s
+            throttle_suppressed = false;
+            return false;        
+        }
     }
 
     // throttle remains suppressed
@@ -480,37 +501,37 @@ static bool suppress_throttle(void)
 }
 
 /*
-  implement a software VTail mixer. There are 4 different mixing modes
+  implement a software VTail or elevon mixer. There are 4 different mixing modes
  */
-static void vtail_output_mixing(void)
+static void channel_output_mixer(uint8_t mixing_type, int16_t &chan1_out, int16_t &chan2_out)
 {
-    int16_t elevator, rudder;
+    int16_t c1, c2;
     int16_t v1, v2;
 
     // first get desired elevator and rudder as -500..500 values
-    elevator = g.channel_pitch.radio_out  - 1500;
-    rudder   = g.channel_rudder.radio_out - 1500;
+    c1 = chan1_out - 1500;
+    c2 = chan2_out - 1500;
 
-    v1 = (elevator - rudder)/2;
-    v2 = (elevator + rudder)/2;
+    v1 = (c1 - c2)/2;
+    v2 = (c1 + c2)/2;
 
-    // now map to vtail output
-    switch (g.vtail_output) {
-    case VTAIL_DISABLED:
+    // now map to mixed output
+    switch (mixing_type) {
+    case MIXING_DISABLED:
         return;
 
-    case VTAIL_UPUP:
+    case MIXING_UPUP:
         break;
 
-    case VTAIL_UPDN:
+    case MIXING_UPDN:
         v2 = -v2;
         break;
 
-    case VTAIL_DNUP:
+    case MIXING_DNUP:
         v1 = -v1;
         break;
 
-    case VTAIL_DNDN:
+    case MIXING_DNDN:
         v1 = -v1;
         v2 = -v2;
         break;
@@ -520,8 +541,8 @@ static void vtail_output_mixing(void)
     v2 = constrain_int16(v2, -500, 500);
 
     // scale for a 1500 center and 1000..2000 range, symmetric
-    g.channel_pitch.radio_out  = 1500 + v1;
-    g.channel_rudder.radio_out = 1500 + v2;
+    chan1_out = 1500 + v1;
+    chan2_out = 1500 + v2;
 }
 
 /*****************************************
@@ -533,7 +554,7 @@ static void set_servos(void)
 
     if (control_mode == MANUAL) {
         // do a direct pass through of radio values
-        if (g.mix_mode == 0) {
+        if (g.mix_mode == 0 || g.elevon_output != MIXING_DISABLED) {
             g.channel_roll.radio_out                = g.channel_roll.radio_in;
             g.channel_pitch.radio_out               = g.channel_pitch.radio_in;
         } else {
@@ -567,7 +588,7 @@ static void set_servos(void)
         // copy flap control from transmitter
         RC_Channel_aux::copy_radio_in_out(RC_Channel_aux::k_flap_auto);
 
-        if (g.mix_mode != 0) {
+        if (g.mix_mode == 0 && g.elevon_output == MIXING_DISABLED) {
             // set any differential spoilers to follow the elevons in
             // manual mode. 
             RC_Channel_aux::set_radio(RC_Channel_aux::k_dspoiler1, g.channel_roll.radio_out);
@@ -705,8 +726,10 @@ static void set_servos(void)
     }
 #endif
 
-    if (g.vtail_output != VTAIL_DISABLED) {
-        vtail_output_mixing();
+    if (g.vtail_output != MIXING_DISABLED) {
+        channel_output_mixer(g.vtail_output, g.channel_pitch.radio_out, g.channel_rudder.radio_out);
+    } else if (g.elevon_output != MIXING_DISABLED) {
+        channel_output_mixer(g.elevon_output, g.channel_pitch.radio_out, g.channel_roll.radio_out);
     }
 
     // send values to the PWM timers for output
@@ -720,10 +743,13 @@ static void set_servos(void)
     g.rc_6.output_ch(CH_6);
     g.rc_7.output_ch(CH_7);
     g.rc_8.output_ch(CH_8);
- # if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+ # if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
     g.rc_9.output_ch(CH_9);
     g.rc_10.output_ch(CH_10);
     g.rc_11.output_ch(CH_11);
+ # endif
+ # if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    g.rc_12.output_ch(CH_12);
  # endif
 }
 

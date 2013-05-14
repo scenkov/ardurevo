@@ -117,6 +117,9 @@ static void init_ardupilot()
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
 
+    // init baro before we start the GCS, so that the CLI baro test works
+    barometer.init();
+
     // init the GCS
     gcs0.init(hal.uartA);
     // Register mavlink_delay_cb, which will run anytime you have
@@ -149,7 +152,7 @@ static void init_ardupilot()
         gcs0.reset_cli_timeout();
     }
     if (g.log_bitmask != 0) {
-        DataFlash.start_new_log();
+        start_logging();
     }
 #endif
 
@@ -157,10 +160,7 @@ static void init_ardupilot()
     adc.Init();      // APM ADC library initialization
  #endif
 
-    barometer.init();
-
     if (g.compass_enabled==true) {
-        compass.set_orientation(MAG_ORIENTATION);                                                       // set compass's orientation on aircraft
         if (!compass.init() || !compass.read()) {
             cliSerial->println_P(PSTR("Compass initialisation failed!"));
             g.compass_enabled = false;
@@ -172,12 +172,10 @@ static void init_ardupilot()
     // give AHRS the airspeed sensor
     ahrs.set_airspeed(&airspeed);
 
-#if APM_CONTROL == ENABLED
     // the axis controllers need access to the AHRS system
     g.rollController.set_ahrs(&ahrs);
     g.pitchController.set_ahrs(&ahrs);
     g.yawController.set_ahrs(&ahrs);
-#endif
 
 	// Do GPS init
 	g_gps = &g_gps_driver;
@@ -434,7 +432,7 @@ static void check_short_failsafe()
 }
 
 
-static void startup_INS_ground(bool force_accel_level)
+static void startup_INS_ground(bool do_accel_init)
 {
 #if HIL_MODE != HIL_MODE_DISABLED
     while (!barometer.healthy) {
@@ -460,15 +458,10 @@ static void startup_INS_ground(bool force_accel_level)
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,
              flash_leds);
-#if HIL_MODE == HIL_MODE_DISABLED
-    if (force_accel_level || g.manual_level == 0) {
-        // when MANUAL_LEVEL is set to 1 we don't do accelerometer
-        // levelling on each boot, and instead rely on the user to do
-        // it once via the ground station
+    if (do_accel_init) {
         ins.init_accel(flash_leds);
         ahrs.set_trim(Vector3f(0, 0, 0));
     }
-#endif
     ahrs.reset();
 
     // read Baro pressure at ground
@@ -600,38 +593,38 @@ static void reboot_apm(void)
 
 
 static void
-print_flight_mode(uint8_t mode)
+print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
 {
     switch (mode) {
     case MANUAL:
-        cliSerial->println_P(PSTR("Manual"));
+        port->print_P(PSTR("Manual"));
         break;
     case CIRCLE:
-        cliSerial->println_P(PSTR("Circle"));
+        port->print_P(PSTR("Circle"));
         break;
     case STABILIZE:
-        cliSerial->println_P(PSTR("Stabilize"));
+        port->print_P(PSTR("Stabilize"));
         break;
     case TRAINING:
-        cliSerial->println_P(PSTR("Training"));
+        port->print_P(PSTR("Training"));
         break;
     case FLY_BY_WIRE_A:
-        cliSerial->println_P(PSTR("FBW_A"));
+        port->print_P(PSTR("FBW_A"));
         break;
     case FLY_BY_WIRE_B:
-        cliSerial->println_P(PSTR("FBW_B"));
+        port->print_P(PSTR("FBW_B"));
         break;
     case AUTO:
-        cliSerial->println_P(PSTR("AUTO"));
+        port->print_P(PSTR("AUTO"));
         break;
     case RTL:
-        cliSerial->println_P(PSTR("RTL"));
+        port->print_P(PSTR("RTL"));
         break;
     case LOITER:
-        cliSerial->println_P(PSTR("Loiter"));
+        port->print_P(PSTR("Loiter"));
         break;
     default:
-        cliSerial->println_P(PSTR("---"));
+        port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
         break;
     }
 }

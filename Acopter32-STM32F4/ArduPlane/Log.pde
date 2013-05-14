@@ -48,6 +48,7 @@ print_log_menu(void)
         PLOG(IMU);
         PLOG(CMD);
         PLOG(CURRENT);
+        PLOG(COMPASS);
  #undef PLOG
     }
 
@@ -84,13 +85,7 @@ dump_log(uint8_t argc, const Menu::arg *argv)
     }
 
     DataFlash.get_log_boundaries(dump_log, dump_log_start, dump_log_end);
-    cliSerial->printf_P(PSTR("Dumping Log %u,    start pg %u,   end pg %u\n"),
-                        (unsigned)dump_log,
-                        (unsigned)dump_log_start,
-                        (unsigned)dump_log_end);
-
     Log_Read((uint16_t)dump_log, dump_log_start, dump_log_end);
-    cliSerial->printf_P(PSTR("Done\n"));
     return 0;
 }
 
@@ -142,6 +137,7 @@ select_logs(uint8_t argc, const Menu::arg *argv)
         TARG(IMU);
         TARG(CMD);
         TARG(CURRENT);
+        TARG(COMPASS);
  #undef TARG
     }
 
@@ -160,57 +156,26 @@ process_logs(uint8_t argc, const Menu::arg *argv)
     return 0;
 }
 
-// print_latlon - prints an latitude or longitude value held in an int32_t
-// probably this should be moved to AP_Common
-void print_latlon(AP_HAL::BetterStream *s, int32_t lat_or_lon)
-{
-    int32_t dec_portion, frac_portion;
-    int32_t abs_lat_or_lon = labs(lat_or_lon);
-
-    // extract decimal portion (special handling of negative numbers to ensure we round towards zero)
-    dec_portion = abs_lat_or_lon / T7;
-
-    // extract fractional portion
-    frac_portion = abs_lat_or_lon - dec_portion*T7;
-
-    // print output including the minus sign
-    if( lat_or_lon < 0 ) {
-        s->printf_P(PSTR("-"));
-    }
-    s->printf_P(PSTR("%ld.%07ld"),(long)dec_portion,(long)frac_portion);
-}
-
-struct log_Attitute {
+struct PACKED log_Attitude {
     LOG_PACKET_HEADER;
-    int32_t roll;
-    int32_t pitch;
-    int32_t yaw;
+    int16_t roll;
+    int16_t pitch;
+    uint16_t yaw;
 };
 
 // Write an attitude packet. Total length : 10 bytes
 static void Log_Write_Attitude(void)
 {
-    struct log_Attitute pkt = {
+    struct log_Attitude pkt = {
         LOG_PACKET_HEADER_INIT(LOG_ATTITUDE_MSG),
-        roll  : ahrs.roll_sensor,
-        pitch : ahrs.pitch_sensor,
-        yaw   : ahrs.yaw_sensor
+        roll  : (int16_t)ahrs.roll_sensor,
+        pitch : (int16_t)ahrs.pitch_sensor,
+        yaw   : (uint16_t)ahrs.yaw_sensor
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read an attitude packet
-static void Log_Read_Attitude()
-{
-    struct log_Attitute pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-    cliSerial->printf_P(PSTR("ATT, %ld, %ld, %ld\n"),
-                        (long)pkt.roll, 
-                        (long)pkt.pitch,
-                        (long)pkt.yaw);
-}
-
-struct log_Performance {
+struct PACKED log_Performance {
     LOG_PACKET_HEADER;
     uint32_t loop_time;
     uint16_t main_loop_count;
@@ -222,6 +187,7 @@ struct log_Performance {
     int16_t  gyro_drift_y;
     int16_t  gyro_drift_z;
     int16_t  pm_test;
+    uint8_t  i2c_lockup_count;
 };
 
 // Write a performance monitoring packet. Total length : 19 bytes
@@ -238,31 +204,13 @@ static void Log_Write_Performance()
         gyro_drift_x    : (int16_t)(ahrs.get_gyro_drift().x * 1000),
         gyro_drift_y    : (int16_t)(ahrs.get_gyro_drift().y * 1000),
         gyro_drift_z    : (int16_t)(ahrs.get_gyro_drift().z * 1000),
-        pm_test         : pmTest1
+        pm_test         : pmTest1,
+        i2c_lockup_count: hal.i2c->lockup_count()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read a performance packet
-static void Log_Read_Performance()
-{
-    struct log_Performance pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-
-    cliSerial->printf_P(PSTR("PM, %lu, %u, %d, %u, %u, %u, %d, %d, %d, %d\n"),
-            pkt.loop_time,
-            (unsigned)pkt.main_loop_count,
-            (int)pkt.g_dt_max,
-            (unsigned)pkt.renorm_count,
-            (unsigned)pkt.renorm_blowup,
-            (unsigned)pkt.gps_fix_count,
-            (int)pkt.gyro_drift_x,
-            (int)pkt.gyro_drift_y,
-            (int)pkt.gyro_drift_z,
-            (int)pkt.pm_test);
-}
-
-struct log_Cmd {
+struct PACKED log_Cmd {
     LOG_PACKET_HEADER;
     uint8_t command_total;
     uint8_t command_number;
@@ -291,24 +239,7 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read a command processing packet
-static void Log_Read_Cmd()
-{
-    struct log_Cmd pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-
-    cliSerial->printf_P(PSTR("CMD, %u, %u, %u, %u, %u, %ld, %ld, %ld\n"),
-        (unsigned)pkt.command_total,
-        (unsigned)pkt.command_number,
-        (unsigned)pkt.waypoint_id,
-        (unsigned)pkt.waypoint_options,
-        (unsigned)pkt.waypoint_param1,
-        (long)pkt.waypoint_altitude,
-        (long)pkt.waypoint_latitude,
-        (long)pkt.waypoint_longitude);
-}
-
-struct log_Camera {
+struct PACKED log_Camera {
     LOG_PACKET_HEADER;
     uint32_t gps_time;
     int32_t  latitude;
@@ -337,25 +268,7 @@ static void Log_Write_Camera()
 #endif
 }
 
-// Read a camera packet
-static void Log_Read_Camera()
-{
-    struct log_Camera pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-                                     // 1
-    cliSerial->printf_P(PSTR("CAMERA, %lu, "),(unsigned long)pkt.gps_time); // 1 time
-    print_latlon(cliSerial, pkt.latitude);              // 2 lat
-    cliSerial->print_P(PSTR(", "));
-    print_latlon(cliSerial, pkt.longitude);             // 3 lon
-                               // 4   5   6   7
-    cliSerial->printf_P(PSTR(", %ld, %d, %d, %u\n"),
-                    (long)pkt.altitude,                 // 4 altitude
-                    (int)pkt.roll,                      // 5 roll in centidegrees
-                    (int)pkt.pitch,                     // 6 pitch in centidegrees
-                    (unsigned)pkt.yaw);                 // 7 yaw in centidegrees
-}
-
-struct log_Startup {
+struct PACKED log_Startup {
     LOG_PACKET_HEADER;
     uint8_t startup_type;
     uint8_t command_total;
@@ -378,37 +291,15 @@ static void Log_Write_Startup(uint8_t type)
     }
 }
 
-static void Log_Read_Startup()
-{
-    struct log_Startup pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-
-    switch( pkt.startup_type ) {
-        case TYPE_AIRSTART_MSG:
-            cliSerial->printf_P(PSTR("AIR START"));
-            break;
-        case TYPE_GROUNDSTART_MSG:
-            cliSerial->printf_P(PSTR("GROUND START"));
-            break;
-        default:
-            cliSerial->printf_P(PSTR("UNKNOWN STARTUP"));
-            break;
-    }
-
-    cliSerial->printf_P(PSTR(" - %u commands in memory\n"),(unsigned)pkt.command_total);
-}
-
-struct log_Control_Tuning {
+struct PACKED log_Control_Tuning {
     LOG_PACKET_HEADER;
-    int16_t roll_out;
     int16_t nav_roll_cd;
     int16_t roll;
-    int16_t pitch_out;
     int16_t nav_pitch_cd;
     int16_t pitch;
     int16_t throttle_out;
     int16_t rudder_out;
-    int16_t accel_y;
+    float   accel_y;
 };
 
 // Write a control tuning packet. Total length : 22 bytes
@@ -416,40 +307,19 @@ static void Log_Write_Control_Tuning()
 {
     Vector3f accel = ins.get_accel();
     struct log_Control_Tuning pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_CONTROL_TUNING_MSG),
-        roll_out        : (int16_t)g.channel_roll.servo_out,
+        LOG_PACKET_HEADER_INIT(LOG_CTUN_MSG),
         nav_roll_cd     : (int16_t)nav_roll_cd,
         roll            : (int16_t)ahrs.roll_sensor,
-        pitch_out       : (int16_t)g.channel_pitch.servo_out,
         nav_pitch_cd    : (int16_t)nav_pitch_cd,
         pitch           : (int16_t)ahrs.pitch_sensor,
         throttle_out    : (int16_t)g.channel_throttle.servo_out,
         rudder_out      : (int16_t)g.channel_rudder.servo_out,
-        accel_y         : (int16_t)(accel.y * 10000)
+        accel_y         : accel.y
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read an control tuning packet
-static void Log_Read_Control_Tuning()
-{
-    struct log_Control_Tuning pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-
-    cliSerial->printf_P(PSTR("CTUN, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.2f, %4.4f\n"),
-        (float)pkt.roll_out / 100.f,
-        (float)pkt.nav_roll_cd / 100.f,
-        (float)pkt.roll / 100.f,
-        (float)pkt.pitch_out / 100.f,
-        (float)pkt.nav_pitch_cd / 100.f,
-        (float)pkt.pitch / 100.f,
-        (float)pkt.throttle_out / 100.f,
-        (float)pkt.rudder_out / 100.f,
-        (float)pkt.accel_y / 10000.f
-    );
-}
-
-struct log_Nav_Tuning {
+struct PACKED log_Nav_Tuning {
     LOG_PACKET_HEADER;
     uint16_t yaw;
     uint32_t wp_distance;
@@ -463,7 +333,7 @@ struct log_Nav_Tuning {
 static void Log_Write_Nav_Tuning()
 {
     struct log_Nav_Tuning pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_NAV_TUNING_MSG),
+        LOG_PACKET_HEADER_INIT(LOG_NTUN_MSG),
         yaw                 : (uint16_t)ahrs.yaw_sensor,
         wp_distance         : wp_distance,
         target_bearing_cd   : (uint16_t)nav_controller->target_bearing_cd(),
@@ -474,24 +344,10 @@ static void Log_Write_Nav_Tuning()
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read a nav tuning packet
-static void Log_Read_Nav_Tuning()
-{
-    struct log_Nav_Tuning pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-
-    cliSerial->printf_P(PSTR("NTUN, %4.4f, %lu, %4.4f, %4.4f, %4.4f, %4.4f\n"),
-                    (float)pkt.yaw/100.0f,
-                    (unsigned long)pkt.wp_distance,
-                    (float)(pkt.target_bearing_cd/100.0f),
-                    (float)(pkt.nav_bearing_cd/100.0f),
-                    (float)(pkt.altitude_error_cm/100.0f),
-                    (float)(pkt.airspeed_cm/100.0f));
-}
-
-struct log_Mode {
+struct PACKED log_Mode {
     LOG_PACKET_HEADER;
     uint8_t mode;
+    uint8_t mode_num;
 };
 
 // Write a mode packet. Total length : 5 bytes
@@ -499,104 +355,19 @@ static void Log_Write_Mode(uint8_t mode)
 {
     struct log_Mode pkt = {
         LOG_PACKET_HEADER_INIT(LOG_MODE_MSG),
-        mode : mode
+        mode     : mode,
+        mode_num : mode
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read a mode packet
-static void Log_Read_Mode()
-{
-    struct log_Mode pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-    cliSerial->printf_P(PSTR("MOD,"));
-    print_flight_mode(pkt.mode);
-}
-
-struct log_GPS {
-    LOG_PACKET_HEADER;
-    uint32_t gps_time;
-    uint8_t  num_sats;
-    int32_t  latitude;
-    int32_t  longitude;
-    int32_t  rel_altitude;
-    int32_t  altitude;
-    uint32_t ground_speed;
-    int32_t  ground_course;
-};
-
-// Write an GPS packet. Total length : 30 bytes
-static void Log_Write_GPS(void)
-{
-    struct log_GPS pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_GPS_MSG),
-    	gps_time      : g_gps->time,
-        num_sats      : g_gps->num_sats,
-        latitude      : g_gps->latitude,
-        longitude     : g_gps->longitude,
-        rel_altitude  : current_loc.alt,
-        altitude      : g_gps->altitude,
-        ground_speed  : g_gps->ground_speed,
-        ground_course : g_gps->ground_course
-    };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
-}
-
-// Read a GPS packet
-static void Log_Read_GPS()
-{
-    struct log_GPS pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-    cliSerial->printf_P(PSTR("GPS, %ld, %u, "),
-                        (long)pkt.gps_time,
-                        (unsigned)pkt.num_sats);
-    print_latlon(cliSerial, pkt.latitude);
-    cliSerial->print_P(PSTR(", "));
-    print_latlon(cliSerial, pkt.longitude);
-    cliSerial->printf_P(PSTR(", %4.4f, %4.4f, %lu, %ld\n"),
-                        (float)pkt.rel_altitude*0.01,
-                        (float)pkt.altitude*0.01,
-                        (unsigned long)pkt.ground_speed,
-                        (long)pkt.ground_course);
-}
-
-struct log_IMU {
-    LOG_PACKET_HEADER;
-    Vector3f gyro;
-    Vector3f accel;
-};
-
-// Write an raw accel/gyro data packet. Total length : 28 bytes
-static void Log_Write_IMU()
-{
-    struct log_IMU pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_IMU_MSG),
-        gyro  : ins.get_gyro(),
-        accel : ins.get_accel()
-    };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
-}
-
-// Read a raw accel/gyro packet
-static void Log_Read_IMU()
-{
-    struct log_IMU pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-    cliSerial->printf_P(PSTR("IMU, %4.4f, %4.4f, %4.4f, %4.4f, %4.4f, %4.4f\n"),
-                        pkt.gyro.x,
-                        pkt.gyro.y,
-                        pkt.gyro.z,
-                        pkt.accel.x,
-                        pkt.accel.y,
-                        pkt.accel.z);
-}
-
-struct log_Current {
+struct PACKED log_Current {
     LOG_PACKET_HEADER;
     int16_t throttle_in;
     int16_t battery_voltage;
     int16_t current_amps;
-    int16_t current_total;
+    uint16_t board_voltage;
+    float   current_total;
 };
 
 static void Log_Write_Current()
@@ -606,88 +377,117 @@ static void Log_Write_Current()
         throttle_in             : g.channel_throttle.control_in,
         battery_voltage         : (int16_t)(battery_voltage1 * 100.0),
         current_amps            : (int16_t)(current_amps1 * 100.0),
-        current_total           : (int16_t)current_total1
+        board_voltage           : board_voltage(),
+        current_total           : current_total1
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-// Read a Current packet
-static void Log_Read_Current()
+
+struct PACKED log_Compass {
+    LOG_PACKET_HEADER;
+    int16_t mag_x;
+    int16_t mag_y;
+    int16_t mag_z;
+    int16_t offset_x;
+    int16_t offset_y;
+    int16_t offset_z;
+    int16_t motor_offset_x;
+    int16_t motor_offset_y;
+    int16_t motor_offset_z;
+};
+
+// Write a Compass packet. Total length : 15 bytes
+static void Log_Write_Compass()
 {
-    struct log_Current pkt;
-    DataFlash.ReadPacket(&pkt, sizeof(pkt));
-    cliSerial->printf_P(PSTR("CURRENT, %d, %4.4f, %4.4f, %d\n"),
-                    (int)pkt.throttle_in,
-                    ((float)pkt.battery_voltage / 100.f),
-                    ((float)pkt.current_amps / 100.f),
-                    (int)pkt.current_total);
+    Vector3f mag_offsets = compass.get_offsets();
+    Vector3f mag_motor_offsets = compass.get_motor_offsets();
+    struct log_Compass pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_COMPASS_MSG),
+        mag_x           : compass.mag_x,
+        mag_y           : compass.mag_y,
+        mag_z           : compass.mag_z,
+        offset_x        : (int16_t)mag_offsets.x,
+        offset_y        : (int16_t)mag_offsets.y,
+        offset_z        : (int16_t)mag_offsets.z,
+        motor_offset_x  : (int16_t)mag_motor_offsets.x,
+        motor_offset_y  : (int16_t)mag_motor_offsets.y,
+        motor_offset_z  : (int16_t)mag_motor_offsets.z
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
+
+static void Log_Write_GPS(void)
+{
+    DataFlash.Log_Write_GPS(g_gps, current_loc.alt);
+}
+
+static void Log_Write_IMU() 
+{
+    DataFlash.Log_Write_IMU(&ins);
+}
+
+static const struct LogStructure log_structure[] PROGMEM = {
+    LOG_COMMON_STRUCTURES,
+    { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
+      "ATT", "ccC",        "Roll,Pitch,Yaw" },
+    { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
+      "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,PMT,I2CErr" },
+    { LOG_CMD_MSG, sizeof(log_Cmd),                 
+      "CMD", "BBBBBeLL",   "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
+    { LOG_CAMERA_MSG, sizeof(log_Camera),                 
+      "CAM", "ILLeccC",   "GPSTime,Lat,Lng,Alt,Roll,Pitch,Yaw" },
+    { LOG_STARTUP_MSG, sizeof(log_Startup),         
+      "STRT", "BB",         "SType,CTot" },
+    { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     
+      "CTUN", "cccchhf",    "NavRoll,Roll,NavPitch,Pitch,ThrOut,RdrOut,AccY" },
+    { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
+      "NTUN", "CICCcc",     "Yaw,WpDist,TargBrg,NavBrg,AltErr,Arspd" },
+    { LOG_MODE_MSG, sizeof(log_Mode),             
+      "MODE", "MB",         "Mode" },
+    { LOG_CURRENT_MSG, sizeof(log_Current),             
+      "CURR", "hhhHf",      "Thr,Volt,Curr,Vcc,CurrTot" },
+    { LOG_COMPASS_MSG, sizeof(log_Compass),             
+      "MAG", "hhhhhhhhh",   "MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" },
+};
 
 // Read the DataFlash.log memory : Packet Parser
 static void Log_Read(uint16_t log_num, int16_t start_page, int16_t end_page)
 {
     cliSerial->printf_P(PSTR("\n" THISFIRMWARE
                              "\nFree RAM: %u\n"),
-                        memcheck_available_memory());
+                        (unsigned) memcheck_available_memory());
 
-    DataFlash.log_read_process(log_num, start_page, end_page, log_callback);
+    cliSerial->println_P(PSTR(HAL_BOARD_NAME));
+
+	DataFlash.LogReadProcess(log_num, start_page, end_page, 
+                             sizeof(log_structure)/sizeof(log_structure[0]),
+                             log_structure, 
+                             print_flight_mode,
+                             cliSerial);
 }
 
-// Read the DataFlash.log memory : Packet Parser
-static void log_callback(uint8_t msgid)
+// start a new log
+static void start_logging() 
 {
-    switch (msgid) {
-    case LOG_ATTITUDE_MSG:
-        Log_Read_Attitude();
-        break;
-    case LOG_MODE_MSG:
-        Log_Read_Mode();
-        break;
-    case LOG_CONTROL_TUNING_MSG:
-        Log_Read_Control_Tuning();
-        break;
-    case LOG_NAV_TUNING_MSG:
-        Log_Read_Nav_Tuning();
-        break;
-    case LOG_PERFORMANCE_MSG:
-        Log_Read_Performance();
-        break;
-    case LOG_IMU_MSG:
-        Log_Read_IMU();
-        break;
-    case LOG_CMD_MSG:
-        Log_Read_Cmd();
-        break;
-    case LOG_CURRENT_MSG:
-        Log_Read_Current();
-        break;
-    case LOG_STARTUP_MSG:
-        Log_Read_Startup();
-        break;
-    case LOG_GPS_MSG:
-        Log_Read_GPS();
-        break;
-    case LOG_CAMERA_MSG:
-        Log_Read_Camera();
-        break;
-    }
+    DataFlash.StartNewLog(sizeof(log_structure)/sizeof(log_structure[0]), log_structure);
 }
 
-                        
 #else // LOGGING_ENABLED
 
 // dummy functions
-static void Log_Write_Mode(uint8_t mode) {}
 static void Log_Write_Startup(uint8_t type) {}
 static void Log_Write_Cmd(uint8_t num, const struct Location *wp) {}
 static void Log_Write_Current() {}
 static void Log_Write_Nav_Tuning() {}
-static void Log_Write_GPS() {}
 static void Log_Write_Performance() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_Control_Tuning() {}
-static void Log_Write_IMU() {}
 static void Log_Write_Camera() {}
+static void Log_Write_Mode(uint8_t mode) {}
+static void Log_Write_Compass() {}
+static void Log_Write_GPS() {}
+static void Log_Write_IMU() {}
 
 static int8_t process_logs(uint8_t argc, const Menu::arg *argv) {
     return 0;

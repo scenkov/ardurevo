@@ -139,7 +139,7 @@ test_passthru(uint8_t argc, const Menu::arg *argv)
         delay(20);
 
         // New radio frame? (we could use also if((millis()- timer) > 20)
-        if (hal.rcin->valid() > 0) {
+        if (hal.rcin->valid_channels() > 0) {
             cliSerial->print_P(PSTR("CH:"));
             for(int16_t i = 0; i < 8; i++) {
                 cliSerial->print(hal.rcin->read(i));        // Print channel values
@@ -227,13 +227,15 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
 
         if(oldSwitchPosition != readSwitch()) {
             cliSerial->printf_P(PSTR("CONTROL MODE CHANGED: "));
-            print_flight_mode(readSwitch());
+            print_flight_mode(cliSerial, readSwitch());
+            cliSerial->println();
             fail_test++;
         }
 
         if(g.throttle_fs_enabled && g.channel_throttle.get_failsafe()) {
             cliSerial->printf_P(PSTR("THROTTLE FAILSAFE ACTIVATED: %d, "), (int)g.channel_throttle.radio_in);
-            print_flight_mode(readSwitch());
+            print_flight_mode(cliSerial, readSwitch());
+            cliSerial->println();
             fail_test++;
         }
 
@@ -524,7 +526,6 @@ test_mag(uint8_t argc, const Menu::arg *argv)
         return (0);
     }
 
-    compass.set_orientation(MAG_ORIENTATION);
     if (!compass.init()) {
         cliSerial->println_P(PSTR("Compass initialisation failed!"));
         return 0;
@@ -543,8 +544,6 @@ test_mag(uint8_t argc, const Menu::arg *argv)
     int16_t counter = 0;
     float heading = 0;
 
-    //cliSerial->printf_P(PSTR("MAG_ORIENTATION: %d\n"), MAG_ORIENTATION);
-
     print_hit_enter();
 
     while(1) {
@@ -562,7 +561,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
             if(medium_loopCounter == 5) {
                 if (compass.read()) {
                     // Calculate heading
-                    Matrix3f m = ahrs.get_dcm_matrix();
+                    const Matrix3f &m = ahrs.get_dcm_matrix();
                     heading = compass.calculate_heading(m);
                     compass.null_offsets();
                 }
@@ -607,9 +606,9 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_airspeed(uint8_t argc, const Menu::arg *argv)
 {
-    float airspeed_ch = pitot_analog_source->read_average();
+    float airspeed_ch = pitot_analog_source->voltage_average();
     // cliSerial->println(pitot_analog_source.read());
-    cliSerial->printf_P(PSTR("airspeed_ch: %.1f\n"), airspeed_ch);
+    cliSerial->printf_P(PSTR("airspeed_ch: %.3f\n"), airspeed_ch);
 
     if (!airspeed.enabled()) {
         cliSerial->printf_P(PSTR("airspeed: "));

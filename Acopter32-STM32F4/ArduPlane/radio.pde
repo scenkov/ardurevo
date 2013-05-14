@@ -67,6 +67,10 @@ static void init_rc_out()
     servo_write(CH_10,  g.rc_10.radio_trim);
     servo_write(CH_11,  g.rc_11.radio_trim);
 #endif
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    servo_write(CH_12,  g.rc_12.radio_trim);
+#endif
+
 }
 
 static void init_rc_default()

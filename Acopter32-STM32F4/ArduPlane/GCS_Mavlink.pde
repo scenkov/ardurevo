@@ -1146,6 +1146,16 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (packet.param4 == 1) {
                 trim_radio();
             }
+#if !defined( __AVR_ATmega1280__ )
+            if (packet.param5 == 1) {
+                float trim_roll, trim_pitch;
+                AP_InertialSensor_UserInteract_MAVLink interact(chan);
+                if(ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch)) {
+                    // reset ahrs's trim to suggested values from calibration routine
+                    ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
+                }
+            }
+#endif
             result = MAV_RESULT_ACCEPTED;
             break;
 
@@ -1408,7 +1418,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 gcs_send_text_fmt(PSTR("Unknown parameter index %d"), packet.param_index);
                 break;
             }
-            vp->copy_name_token(&token, param_name, AP_MAX_NAME_SIZE, true);
+            vp->copy_name_token(token, param_name, AP_MAX_NAME_SIZE, true);
             param_name[AP_MAX_NAME_SIZE] = 0;
         } else {
             strncpy(param_name, packet.param_id, AP_MAX_NAME_SIZE);
@@ -1797,17 +1807,17 @@ mission_failed:
             } else if (var_type == AP_PARAM_INT32) {
                 if (packet.param_value < 0) rounding_addition = -rounding_addition;
                 float v = packet.param_value+rounding_addition;
-                v = constrain(v, -2147483648.0, 2147483647.0);
+                v = constrain_float(v, -2147483648.0, 2147483647.0);
                 ((AP_Int32 *)vp)->set_and_save(v);
             } else if (var_type == AP_PARAM_INT16) {
                 if (packet.param_value < 0) rounding_addition = -rounding_addition;
                 float v = packet.param_value+rounding_addition;
-                v = constrain(v, -32768, 32767);
+                v = constrain_float(v, -32768, 32767);
                 ((AP_Int16 *)vp)->set_and_save(v);
             } else if (var_type == AP_PARAM_INT8) {
                 if (packet.param_value < 0) rounding_addition = -rounding_addition;
                 float v = packet.param_value+rounding_addition;
-                v = constrain(v, -128, 127);
+                v = constrain_float(v, -128, 127);
                 ((AP_Int8 *)vp)->set_and_save(v);
             } else {
                 // we don't support mavlink set on this parameter
@@ -1825,6 +1835,9 @@ mission_failed:
                 mav_var_type(var_type),
                 _count_parameters(),
                 -1);     // XXX we don't actually know what its index is...
+#if LOGGING_ENABLED == ENABLED
+            DataFlash.Log_Write_Parameter(key, vp->cast_to_float(var_type));
+#endif
         }
 
         break;
@@ -1901,16 +1914,8 @@ mission_failed:
         ins.set_gyro(gyros);
         ins.set_accel(accels);
 
-        // approximate a barometer
-        float y;
-        const float Temp = 312;
-
-        y = (packet.alt - 584000.0) / 29271.267;
-        y /= (Temp / 10.0) + 273.15;
-        y = 1.0/exp(y);
-        y *= 95446.0;
-
-        barometer.setHIL(Temp, y);
+        barometer.setHIL(packet.alt*0.001f);
+        compass.setHIL(packet.roll, packet.pitch, packet.yaw);
         break;
     }
 #endif // HIL_MODE
@@ -2037,7 +2042,7 @@ GCS_MAVLINK::queued_param_send()
         value = vp->cast_to_float(_queued_parameter_type);
 
         char param_name[AP_MAX_NAME_SIZE];
-        vp->copy_name_token(&_queued_parameter_token, param_name, sizeof(param_name), true);
+        vp->copy_name_token(_queued_parameter_token, param_name, sizeof(param_name), true);
 
         mavlink_msg_param_value_send(
             chan,
@@ -2145,6 +2150,9 @@ static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
     if (gcs3.initialised) {
         gcs3.send_text_P(severity, str);
     }
+#if LOGGING_ENABLED == ENABLED
+    DataFlash.Log_Write_Message_P(str);
+#endif
 }
 
 /*
@@ -2160,6 +2168,9 @@ void gcs_send_text_fmt(const prog_char_t *fmt, ...)
     hal.util->vsnprintf_P((char *)gcs0.pending_status.text,
             sizeof(gcs0.pending_status.text), fmt, arg_list);
     va_end(arg_list);
+#if LOGGING_ENABLED == ENABLED
+    DataFlash.Log_Write_Message(gcs0.pending_status.text);
+#endif
     gcs3.pending_status = gcs0.pending_status;
     mavlink_send_message(MAVLINK_COMM_0, MSG_STATUSTEXT, 0);
     if (gcs3.initialised) {

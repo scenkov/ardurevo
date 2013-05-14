@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V2.71"
+#define THISFIRMWARE "ArduPlane V2.74beta"
 /*
  *  Lead developer: Andrew Tridgell
  *
@@ -53,12 +53,6 @@
 #include <AP_Declination.h> // ArduPilot Mega Declination Helper Library
 #include <DataFlash.h>
 #include <SITL.h>
-#include <wirish.h>
-
-// optional new controller library
-#if APM_CONTROL == ENABLED
-#include <APM_Control.h>
-#endif
 
 #include <AP_Navigation.h>
 #include <AP_L1_Control.h>
@@ -95,7 +89,7 @@ APM_OBC obc;
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
 ////////////////////////////////////////////////////////////////////////////////
-static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_200HZ;
+static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_50HZ;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Parameters
@@ -109,11 +103,13 @@ static Parameters g;
 // prototypes
 static void update_events(void);
 void gcs_send_text_fmt(const prog_char_t *fmt, ...);
+static void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // DataFlash
 ////////////////////////////////////////////////////////////////////////////////
+#if LOGGING_ENABLED == ENABLED
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
@@ -127,6 +123,7 @@ static DataFlash_File DataFlash("/fs/microsd/APM/logs");
 #else
 // no dataflash driver
 DataFlash_Empty DataFlash;
+#endif
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -157,7 +154,7 @@ static AP_Baro_BMP085 barometer;
 #elif CONFIG_BARO == AP_BARO_PX4
 static AP_Baro_PX4 barometer;
 #elif CONFIG_BARO == AP_BARO_HIL
-static AP_Baro_BMP085_HIL barometer;
+static AP_Baro_HIL barometer;
 #elif CONFIG_BARO == AP_BARO_MS5611
  #if CONFIG_MS5611_SERIAL == AP_BARO_MS5611_SPI
  static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::spi);
@@ -248,8 +245,7 @@ static AP_Navigation *nav_controller = &L1_controller;
 
 static AP_HAL::AnalogSource *pitot_analog_source;
 
-// a pin for reading the receiver RSSI voltage. The scaling by 0.25 
-// is to take the 0 to 1024 range down to an 8 bit range for MAVLink
+// a pin for reading the receiver RSSI voltage. 
 static AP_HAL::AnalogSource *rssi_analog_source;
 
 static AP_HAL::AnalogSource *vcc_pin;
@@ -668,13 +664,14 @@ void setup() {
     // load the default values of variables listed in var_info[]
     AP_Param::setup_sketch_defaults();
 
-    rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE, 0.25);
+    rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE);
 
 #if CONFIG_PITOT_SOURCE == PITOT_SOURCE_ADC
     pitot_analog_source = new AP_ADC_AnalogSource( &adc,
-                                         CONFIG_PITOT_SOURCE_ADC_CHANNEL, 1.0);
+                                         CONFIG_PITOT_SOURCE_ADC_CHANNEL, 1.0f);
 #elif CONFIG_PITOT_SOURCE == PITOT_SOURCE_ANALOG_PIN
-    pitot_analog_source = hal.analogin->channel(CONFIG_PITOT_SOURCE_ANALOG_PIN, CONFIG_PITOT_SCALING);
+    pitot_analog_source = hal.analogin->channel(CONFIG_PITOT_SOURCE_ANALOG_PIN);
+    hal.gpio->write(hal.gpio->analogPinToDigitalPin(CONFIG_PITOT_SOURCE_ANALOG_PIN), 0);
 #endif
     vcc_pin = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
@@ -818,6 +815,9 @@ static void medium_loop()
         if (g.compass_enabled && compass.read()) {
             ahrs.set_compass(&compass);
             compass.null_offsets();
+            if (g.log_bitmask & MASK_LOG_COMPASS) {
+                Log_Write_Compass();
+            }
         } else {
             ahrs.set_compass(NULL);
         }
@@ -879,9 +879,6 @@ static void medium_loop()
 
         if (g.log_bitmask & MASK_LOG_NTUN)
             Log_Write_Nav_Tuning();
-
-        if (g.log_bitmask & MASK_LOG_GPS)
-            Log_Write_GPS();
         break;
 
     // This case controls the slow loop
@@ -930,7 +927,9 @@ static void slow_loop()
     case 1:
         slow_loopCounter++;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+        update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
         update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11);
 #else
         update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
@@ -968,8 +967,16 @@ static void one_second_loop()
 
 static void update_GPS(void)
 {
+    static uint32_t last_gps_reading;
     g_gps->update();
     update_GPS_light();
+
+    if (g_gps->last_message_time_ms() != last_gps_reading) {
+        last_gps_reading = g_gps->last_message_time_ms();
+        if (g.log_bitmask & MASK_LOG_GPS) {
+            Log_Write_GPS();
+        }
+    }
 
     // get position from AHRS
     have_position = ahrs.get_position(&current_loc);
@@ -1044,7 +1051,6 @@ static void update_current_flight_mode(void)
                 nav_pitch_cd = constrain_int32(nav_pitch_cd, 500, takeoff_pitch_cd);
             }
 
-#if APM_CONTROL == DISABLED
             float aspeed;
             if (ahrs.airspeed_estimate(&aspeed)) {
                 // don't use a pitch/roll integrators during takeoff if we are
@@ -1052,9 +1058,10 @@ static void update_current_flight_mode(void)
                 if (aspeed < g.flybywire_airspeed_min) {
                     g.pidServoPitch.reset_I();
                     g.pidServoRoll.reset_I();
+                    g.pitchController.reset_I();
+                    g.rollController.reset_I();
                 }
             }
-#endif
 
             // max throttle for takeoff
             g.channel_throttle.servo_out = g.throttle_max;
@@ -1146,6 +1153,7 @@ static void update_current_flight_mode(void)
         case FLY_BY_WIRE_A: {
             // set nav_roll and nav_pitch using sticks
             nav_roll_cd  = g.channel_roll.norm_input() * g.roll_limit_cd;
+            nav_roll_cd = constrain_int32(nav_roll_cd, -g.roll_limit_cd, g.roll_limit_cd);
             float pitch_input = g.channel_pitch.norm_input();
             if (pitch_input > 0) {
                 nav_pitch_cd = pitch_input * g.pitch_limit_max_cd;
