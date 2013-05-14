@@ -46,10 +46,10 @@ static void (*pwm_capture_callback)(uint8_t, uint8_t, int16_t);
 static struct TIM_Channel {
     TIM_TypeDef * tim;
     uint32_t      tim_clk;
-	rcc_clockcmd  tim_clkcmd;
+    rcc_clockcmd  tim_clkcmd;
     IRQn_Type     tim_irq;
 
-	uint16_t 	  tim_channel;
+    uint16_t 	  tim_channel;
     uint16_t 	  tim_cc;
 
     GPIO_TypeDef * gpio_port;
@@ -75,9 +75,9 @@ static struct PWM_State {
     uint16_t rise;
     uint16_t fall;
     uint16_t capture;
-} Inputs[8] = { { 0, } };
+} Inputs[8];
 
-static TIM_ICInitTypeDef  TIM_ICInitStructure = { 0, };
+static TIM_ICInitTypeDef  TIM_ICInitStructure;
 
 void attachPWMCaptureCallback(void (*callback)(uint8_t, uint8_t, int16_t))
 {
@@ -99,7 +99,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
     for (i = 0; i < 8; i++) {
         struct TIM_Channel channel = Channels[i];
-        struct PWM_State *state = &Inputs[i];
+        struct PWM_State *input = &Inputs[i];
 
         if (channel.tim == tim && (TIM_GetITStatus(tim, channel.tim_cc) == SET)) {
             TIM_ClearITPendingBit(channel.tim, channel.tim_cc);
@@ -119,37 +119,31 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
                     break;
             }
 
-            if (state->state == 0)
+            if (input->state == 0)
             {
-                state->rise = val;
-        		if (pwm_capture_callback) {
-        			pwm_capture_callback(i, state->state, state->rise);
-        		}
+        	input->rise = val;
             }
             else
             {
-                state->fall = val;
-        		if (pwm_capture_callback) {
-        			pwm_capture_callback(i, state->state, state->fall);
-        		}
+        	input->fall = val;
             }
 
-            if (state->state == 0) {
+            if (input->state == 0) {
                 // switch states
-                state->state = 1;
+        	input->state = 1;
 
                 TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
                 TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
                 TIM_ICInit(channel.tim, &TIM_ICInitStructure);
             } else {
                 // compute capture
-                if (state->fall > state->rise)
-                    state->capture = (state->fall - state->rise);
+                if (input->fall > input->rise)
+                    input->capture = (input->fall - input->rise);
                 else
-                    state->capture = ((0xffff - state->rise) + state->fall);
+                    input->capture = ((0xFFFF - input->rise) + input->fall);
 
                 // switch state
-                state->state = 0;
+                input->state = 0;
 
                 TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
                 TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
@@ -161,9 +155,9 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
 static void pwmInitializeInput(void)
 {
-    GPIO_InitTypeDef GPIO_InitStructure = { 0, };
-    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure = { 0, };
-    NVIC_InitTypeDef NVIC_InitStructure = { 0, };
+    GPIO_InitTypeDef GPIO_InitStructure;
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
 
 	uint8_t i;
 
@@ -191,13 +185,15 @@ static void pwmInitializeInput(void)
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&NVIC_InitStructure);
 // TIM configuration base *******************************************************/
+
 		TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-		TIM_TimeBaseStructure.TIM_Prescaler = 168;
+		TIM_TimeBaseStructure.TIM_Prescaler = 167; //100KHz
 		TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 		TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 		TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 		TIM_TimeBaseInit(channel.tim, &TIM_TimeBaseStructure);
+
 // PWM input capture ************************************************************/
 		TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
 		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
@@ -218,7 +214,12 @@ void pwmInit(void)
 
     // preset channels to center
     for (i = 0; i < 8; i++)
-        Inputs[i].capture = 1500;
+	{
+        Inputs[i].state = 0;
+	Inputs[i].capture = 1500;
+	Inputs[i].rise = 0;
+	Inputs[i].fall = 0;
+	}
 
 	pwmInitializeInput();
 
