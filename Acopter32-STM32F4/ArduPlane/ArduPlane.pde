@@ -28,6 +28,13 @@
 #include <AP_HAL.h>
 #include <AP_Menu.h>
 #include <AP_Param.h>
+
+#include <AP_HAL_VRBRAIN.h>
+//#include <AP_HAL_AVR.h>
+//#include <AP_HAL_AVR_SITL.h>
+//#include <AP_HAL_PX4.h>
+#include <AP_HAL_Empty.h>
+
 #include <AP_GPS.h>         // ArduPilot GPS library
 #include <AP_Baro.h>        // ArduPilot barometer library
 #include <AP_Compass.h>     // ArduPilot Mega Magnetometer Library
@@ -68,11 +75,7 @@
 #include "Parameters.h"
 #include "GCS.h"
 
-#include <AP_HAL_VRBRAIN.h>
-//#include <AP_HAL_AVR.h>
-//#include <AP_HAL_AVR_SITL.h>
-//#include <AP_HAL_PX4.h>
-//#include <AP_HAL_Empty.h>
+
 
 AP_HAL::BetterStream* cliSerial;
 

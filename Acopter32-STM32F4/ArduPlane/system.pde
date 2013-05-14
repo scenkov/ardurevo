@@ -121,6 +121,7 @@ static void init_ardupilot()
     barometer.init();
 
     // init the GCS
+    cliSerial->println("GCS0 init");
     gcs0.init(hal.uartA);
     // Register mavlink_delay_cb, which will run anytime you have
     // more than 5ms remaining in your call to hal.scheduler->delay
@@ -133,6 +134,7 @@ static void init_ardupilot()
         hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 #else
+    cliSerial->println("GCS3 init");
     // we have a 2nd serial port for telemetry
     hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD),
             128, SERIAL_BUFSIZE);
@@ -142,6 +144,7 @@ static void init_ardupilot()
     mavlink_system.sysid = g.sysid_this_mav;
 
 #if LOGGING_ENABLED == ENABLED
+    cliSerial->println("DataFlash init");
     DataFlash.Init();
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash card inserted"));

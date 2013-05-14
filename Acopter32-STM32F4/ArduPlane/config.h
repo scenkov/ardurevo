@@ -98,7 +98,7 @@
  # define SLIDE_SWITCH_PIN 200
  # define PUSHBUTTON_PIN   200
  #if TELEMETRY_UART2 == ENABLED
-   # define USB_MUX_PIN      1
+   # define USB_MUX_PIN      200
   #else
    # define USB_MUX_PIN      200
   #endif

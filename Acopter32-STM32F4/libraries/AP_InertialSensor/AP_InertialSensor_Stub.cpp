@@ -21,9 +21,10 @@ uint16_t AP_InertialSensor_Stub::_init_sensor( Sample_rate sample_rate ) {
     case RATE_200HZ:
         _sample_period_ms = 5;
         break;
-    case RATE_1000HZ:
+    /*case RATE_1000HZ:
         _sample_period_ms = 1;
         break;
+		*/
     }
     return AP_PRODUCT_ID_NONE;
 }
