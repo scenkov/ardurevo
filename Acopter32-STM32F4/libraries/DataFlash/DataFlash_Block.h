@@ -9,14 +9,7 @@
 
 #include <stdint.h>
 
-// the last page holds the log format in first 4 bytes. Please change
-// this if (and only if!) the low level format changes
-#define DF_LOGGING_FORMAT    0x28122013
-
-// we use an invalie logging format to test the chip erase
-#define DF_LOGGING_FORMAT_INVALID   0x28122012
-
-class DataFlash_Block : DataFlash_Class
+class DataFlash_Block : public DataFlash_Class
 {
 public:
     // initialisation
@@ -30,19 +23,17 @@ public:
     /* Write a block of data at current offset */
     void WriteBlock(const void *pBuffer, uint16_t size);
 
-    /*
-      read a packet. The header byte have already been read.
-    */
-    void ReadPacket(void *pkt, uint16_t size);
-
     // high level interface
     uint16_t find_last_log(void);
     void get_log_boundaries(uint16_t log_num, uint16_t & start_page, uint16_t & end_page);
     uint16_t get_num_logs(void);
     uint16_t start_new_log(void);
-    void log_read_process(uint16_t log_num,
-                          uint16_t start_page, uint16_t end_page, 
-                          void (*callback)(uint8_t msgid));
+    void LogReadProcess(uint16_t log_num,
+                        uint16_t start_page, uint16_t end_page, 
+                        uint8_t num_types,
+                        const struct LogStructure *structure,
+                        void (*print_mode)(AP_HAL::BetterStream *port, uint8_t mode),
+                        AP_HAL::BetterStream *port);
     void DumpPageInfo(AP_HAL::BetterStream *port);
     void ShowDeviceInfo(AP_HAL::BetterStream *port);
     void ListAvailableLogs(AP_HAL::BetterStream *port);
@@ -62,6 +53,7 @@ private:
     uint16_t df_Read_PageAdr;
     uint16_t df_FileNumber;
     uint16_t df_FilePage;
+    bool log_write_started;
 
     /*
       functions implemented by the board specific backends
@@ -117,9 +109,9 @@ protected:
 
 #include "DataFlash_APM1.h"
 #include "DataFlash_APM2.h"
-#include "DataFlash_MP32.h"
 #include "DataFlash_SITL.h"
 #include "DataFlash_Empty.h"
+#include "DataFlash_MP32.h"
 
 #endif // DataFlash_block_h
 

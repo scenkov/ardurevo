@@ -39,6 +39,9 @@ public:
         // which will make us less prone to increasing omegaI
         // incorrectly due to sensor noise
         _gyro_drift_limit = ins->get_gyro_drift_rate();
+
+        // enable centrifugal correction by default
+        _flags.correct_centrifugal = true;
     }
 
     // init sets up INS board orientation
@@ -48,7 +51,7 @@ public:
 
     // Accessors
     void set_fly_forward(bool b) {
-        _fly_forward = b;
+        _flags.fly_forward = b;
     }
     void set_compass(Compass *compass) {
         _compass = compass;
@@ -60,12 +63,12 @@ public:
         _airspeed = airspeed;
     }
 
-    AP_InertialSensor* get_ins() {
+    AP_InertialSensor* get_ins() const {
 	    return _ins;
     }
 
     // accelerometer values in the earth frame in m/s/s
-    Vector3f        get_accel_ef(void) { return _accel_ef; }
+    const Vector3f &get_accel_ef(void) const { return _accel_ef; }
 
     // Methods
     virtual void update(void) = 0;
@@ -81,14 +84,14 @@ public:
     int32_t yaw_sensor;
 
     // roll and pitch rates in earth frame, in radians/s
-    float get_pitch_rate_earth(void);
-    float get_roll_rate_earth(void);
+    float get_pitch_rate_earth(void) const;
+    float get_roll_rate_earth(void) const;
 
     // return a smoothed and corrected gyro vector
-    virtual Vector3f get_gyro(void) = 0;
+    virtual const Vector3f get_gyro(void) const = 0;
 
     // return the current estimate of the gyro drift
-    virtual Vector3f get_gyro_drift(void) = 0;
+    virtual const Vector3f &get_gyro_drift(void) const = 0;
 
     // reset the current attitude, used on new IMU calibration
     virtual void reset(bool recover_eulers=false) = 0;
@@ -109,7 +112,7 @@ public:
 
     // return a DCM rotation matrix representing our current
     // attitude
-    virtual Matrix3f get_dcm_matrix(void) = 0;
+    virtual const Matrix3f &get_dcm_matrix(void) const = 0;
 
     // get our current position, either from GPS or via
     // dead-reckoning. Return true if a position is available,
@@ -137,23 +140,29 @@ public:
     Vector2f groundspeed_vector(void);
 
     // return true if we will use compass for yaw
-    virtual bool use_compass(void) { return _compass && _compass->use_for_yaw(); }
+    virtual bool use_compass(void) const { return _compass && _compass->use_for_yaw(); }
 
     // correct a bearing in centi-degrees for wind
     void wind_correct_bearing(int32_t &nav_bearing_cd);
 
     // return true if yaw has been initialised
-    bool yaw_initialised(void) {
-        return _have_initial_yaw;
+    bool yaw_initialised(void) const {
+        return _flags.have_initial_yaw;
     }
 
     // set the fast gains flag
     void set_fast_gains(bool setting) {
-        _fast_ground_gains = setting;
+        _flags.fast_ground_gains = setting;
+    }
+
+    // set the correct centrifugal flag
+    // allows arducopter to disable corrections when disarmed
+    void set_correct_centrifugal(bool setting) {
+        _flags.correct_centrifugal = setting;
     }
 
     // get trim
-    Vector3f                get_trim() { return _trim; }
+    const Vector3f &get_trim() const { return _trim.get(); }
 
     // set trim
     virtual void            set_trim(Vector3f new_trim);
@@ -169,13 +178,20 @@ public:
     AP_Int8 _gps_use;
     AP_Int8 _wind_max;
     AP_Int8 _board_orientation;
+    AP_Int8 _gps_minsats;
 
     // for holding parameters
     static const struct AP_Param::GroupInfo var_info[];
 
 protected:
-    // whether the yaw value has been intialised with a reference
-    bool _have_initial_yaw;
+
+    // flags structure
+    struct ahrs_flags {
+        uint8_t have_initial_yaw        : 1;    // whether the yaw value has been intialised with a reference
+        uint8_t fast_ground_gains       : 1;    // should we raise the gain on the accelerometers for faster convergence, used when disarmed for ArduCopter
+        uint8_t fly_forward             : 1;    // 1 if we can assume the aircraft will be flying forward on its X axis
+        uint8_t correct_centrifugal     : 1;    // 1 if we should correct for centrifugal forces (allows arducopter to turn this off when motors are disarmed)
+    } _flags;
 
     // pointer to compass object, if available
     Compass         * _compass;
@@ -194,14 +210,6 @@ protected:
     // a vector to capture the difference between the controller and body frames
     AP_Vector3f         _trim;
 
-    // should we raise the gain on the accelerometers for faster
-    // convergence, used when disarmed for ArduCopter
-    bool _fast_ground_gains;
-
-    // true if we can assume the aircraft will be flying forward
-    // on its X axis
-    bool _fly_forward;
-
     // the limit of the gyro drift claimed by the sensors, in
     // radians/s/s
     float _gyro_drift_limit;
@@ -211,13 +219,10 @@ protected:
 
 	// Declare filter states for HPF and LPF used by complementary
 	// filter in AP_AHRS::groundspeed_vector
-	float _xlp; // x component low-pass filter
-	float _ylp; // y component low-pass filter
-	float _xhp; // x component high-pass filter
-	float _yhp; // y component high-pass filter
-    Vector2f _lastGndVelADS; // previous HPF input
-		
-	};
+	Vector2f _lp; // ground vector low-pass filter
+	Vector2f _hp; // ground vector high-pass filter
+    Vector2f _lastGndVelADS; // previous HPF input		
+};
 
 #include <AP_AHRS_DCM.h>
 #include <AP_AHRS_MPU6000.h>

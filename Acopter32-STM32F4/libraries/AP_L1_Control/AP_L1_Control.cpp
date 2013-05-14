@@ -10,11 +10,11 @@ const AP_Param::GroupInfo AP_L1_Control::var_info[] PROGMEM = {
 	// @Units: seconds
 	// @Range: 1-60
 	// @Increment: 1
-    AP_GROUPINFO("PERIOD",    0, AP_L1_Control, _L1_period, 30),
+    AP_GROUPINFO("PERIOD",    0, AP_L1_Control, _L1_period, 25),
 	
     // @Param: DAMPING
     // @DisplayName: L1 control damping ratio
-    // @Description: Damping ratio for L1 control. Increase this if you are getting overshoot in path tracking.
+    // @Description: Damping ratio for L1 control. Increase this in increments of 0.05 if you are getting overshoot in path tracking. You should not need a value below 0.7 or above 0.85.
 	// @Range: 0.6-1.0
 	// @Increment: 0.05
     AP_GROUPINFO("DAMPING",   1, AP_L1_Control, _L1_damping, 0.75f),
@@ -39,7 +39,7 @@ int32_t AP_L1_Control::nav_roll_cd(void)
 {
 	float ret;	
 	ret = degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
-	ret = constrain(ret, -9000, 9000);
+	ret = constrain_float(ret, -9000, 9000);
 	return ret;
 }
 
@@ -78,15 +78,14 @@ float AP_L1_Control::crosstrack_error(void)
 void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct Location &next_WP)
 {
 
-	// Calculate normalised frequency for tracking loop						   
-	const float omegaA = 4.4428f/_L1_period; // sqrt(2)*pi/period
-	// Calculate additional damping gain
-	const float Kv = omegaA * 2.8284f * (_L1_damping - 0.7071f); // omegaA * 2*sqrt(2) * (dampingRatio - 1/sqrt(2))
-	float Nu;
-	float dampingWeight;
-	float xtrackVel;
 	struct Location _current_loc;
+	float Nu;
+	float xtrackVel;
+	float ltrackVel;
 	
+	// Calculate L1 gain required for specified damping
+	float K_L1 = 4.0f * _L1_damping * _L1_damping;
+
 	// Get current position and velocity
     _ahrs->get_position(&_current_loc);
 
@@ -96,71 +95,67 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
 	Vector2f _groundspeed_vector = _ahrs->groundspeed_vector();
 	
 	//Calculate groundspeed
-	float groundSpeed = _groundspeed_vector.length();
+	float groundSpeed = _maxf(_groundspeed_vector.length(), 1.0f);
 
 	// Calculate time varying control parameters
-	_L1_dist = groundSpeed / omegaA; // L1 distance is adjusted to maintain a constant tracking loop frequency
-	float VomegaA = groundSpeed * omegaA;
+	// Calculate the L1 length required for specified period
+	// 0.3183099 = 1/1/pipi
+	_L1_dist = 0.3183099f * _L1_damping * _L1_period * groundSpeed;
 	
 	//Convert current location and WP positions to 2D vectors in lat and long
-    Vector2f A_air((_current_loc.lat/1.0e7f), (_current_loc.lng/1.0e7f));
-    Vector2f A_v((prev_WP.lat/1.0e7f), (prev_WP.lng/1.0e7f));
-    Vector2f B_v((next_WP.lat/1.0e7f), (next_WP.lng/1.0e7f));
+    Vector2f A_air((_current_loc.lat*1.0e-7f), (_current_loc.lng*1.0e-7f));
+    Vector2f A_v((prev_WP.lat*1.0e-7f), (prev_WP.lng*1.0e-7f));
+    Vector2f B_v((next_WP.lat*1.0e-7f), (next_WP.lng*1.0e-7f));
 
-	//Calculate the NE position of the aircraft and WP B relative to WP A
-    A_air = _geo2planar(A_v, A_air)*RADIUS_OF_EARTH;
-    Vector2f AB = _geo2planar(A_v, B_v)*RADIUS_OF_EARTH;
+	// Calculate the NE position of WP B relative to WP A
+    Vector2f AB = _geo2planar(A_v, B_v);
 	
-    //Calculate the unit vector from WP A to WP B
-    Vector2f AB_unit = (AB).normalized();
+	// Check for AB zero length and track directly to the destination
+	// if too small
+	if (AB.length() < 1.0e-6f) {
+		AB = _geo2planar(A_air, B_v);
+	}
+	AB.normalize();
+
+	// Calculate the NE position of the aircraft relative to WP A
+    A_air = _geo2planar(A_v, A_air);
 
 	// calculate distance to target track, for reporting
-	_crosstrack_error = _cross2D(AB_unit, A_air);
+	_crosstrack_error = AB % A_air;
 
-    //Determine if the aircraft is behind a +-135 degree degree arc centred on WP A
+	//Determine if the aircraft is behind a +-135 degree degree arc centred on WP A
 	//and further than L1 distance from WP A. Then use WP A as the L1 reference point
-	//Otherwise do normal L1 guidance
+		//Otherwise do normal L1 guidance
 	float WP_A_dist = A_air.length();
-	float alongTrackDist = A_air * AB_unit;
-	if (WP_A_dist > _L1_dist && alongTrackDist/(WP_A_dist + 1.0f) < -0.7071f) {
+	float alongTrackDist = A_air * AB;
+	if (WP_A_dist > _L1_dist && alongTrackDist/_maxf(WP_A_dist , 1.0f) < -0.7071f) {
+
 		//Calc Nu to fly To WP A
 		Vector2f A_air_unit = (A_air).normalized(); // Unit vector from WP A to aircraft
-		xtrackVel = _cross2D(_groundspeed_vector , -A_air_unit); // Velocity across line
-		float ltrackVel = _groundspeed_vector * (-A_air_unit); // Velocity along line
+		xtrackVel = _groundspeed_vector % (-A_air_unit); // Velocity across line
+		ltrackVel = _groundspeed_vector * (-A_air_unit); // Velocity along line
 		Nu = atan2f(xtrackVel,ltrackVel);
-		dampingWeight = 1.0f;
-		
 		_nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians) from AC to L1 point
 		
-    } else { //Calc Nu to fly along AB line
-		
+	} else { //Calc Nu to fly along AB line
+			
 		//Calculate Nu2 angle (angle of velocity vector relative to line connecting waypoints)
-		xtrackVel = _cross2D(_groundspeed_vector,AB_unit); // Velocity cross track
-		float ltrackVel = _groundspeed_vector * AB_unit; // Velocity along track
+		xtrackVel = _groundspeed_vector % AB; // Velocity cross track
+		ltrackVel = _groundspeed_vector * AB; // Velocity along track
 		float Nu2 = atan2f(xtrackVel,ltrackVel);
-		
 		//Calculate Nu1 angle (Angle to L1 reference point)
-		float xtrackErr = _cross2D(A_air, AB_unit);
+		float xtrackErr = A_air % AB;
 		float sine_Nu1 = xtrackErr/_maxf(_L1_dist , 0.1f);
 		//Limit sine of Nu1 to provide a controlled track capture angle of 45 deg
-		sine_Nu1 = constrain(sine_Nu1, -0.7854f, 0.7854f);
+		sine_Nu1 = constrain_float(sine_Nu1, -0.7854f, 0.7854f);
 		float Nu1 = asinf(sine_Nu1);
-		
-		//Calculate Nu
 		Nu = Nu1 + Nu2;
-		
-		//Calculate a weight to apply to the damping augmentation
-		// This is used to reduce damping away from track so as not to interfere
-		// with the track capture angle
-		dampingWeight = 1.0f - fabsf(sine_Nu1 * 1.4142f);
-		dampingWeight = dampingWeight*dampingWeight;
-
-		_nav_bearing = atan2f(AB_unit.y, AB_unit.x) + Nu1; // bearing (radians) from AC to L1 point		
+		_nav_bearing = atan2f(AB.y, AB.x) + Nu1; // bearing (radians) from AC to L1 point		
 	}	
-		
+			
 	//Limit Nu to +-pi
-	Nu = constrain(Nu, -1.5708f, +1.5708f);
-	_latAccDem = (xtrackVel*dampingWeight*Kv + 2.0f*sinf(Nu))*VomegaA;
+	Nu = constrain_float(Nu, -1.5708f, +1.5708f);
+	_latAccDem = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
 	
 	// Waypoint capture status is always false during waypoint following
 	_WPcircle = false;
@@ -171,15 +166,15 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
 // update L1 control for loitering
 void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius, int8_t loiter_direction)
 {
-	// Calculate normalised frequency for tracking loop						   
-	const float omegaA = 4.4428f/_L1_period; // sqrt(2)*pi/period
-	// Calculate additional damping gain used  with L1 control (used during waypoint capture)
-	const float Kv_L1 = omegaA * 2.8284f * (_L1_damping - 0.7071f); // omegaA * 2*sqrt(2) * (dampingRatio - 1/sqrt(2))
+	struct Location _current_loc;
+
 	// Calculate guidance gains used by PD loop (used during circle tracking)
 	float omega = (6.2832f / _L1_period);
 	float Kx = omega * omega;
 	float Kv = 2.0f * _L1_damping * omega;
-	struct Location _current_loc;
+
+	// Calculate L1 gain required for specified damping (used during waypoint capture)
+	float K_L1 = 4.0f * _L1_damping * _L1_damping;
 
 	//Get current position and velocity
     _ahrs->get_position(&_current_loc);
@@ -190,30 +185,31 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
 	Vector2f _groundspeed_vector = _ahrs->groundspeed_vector();
 
 	//Calculate groundspeed
-	float groundSpeed = _groundspeed_vector.length();
+	float groundSpeed = _maxf(_groundspeed_vector.length() , 1.0f);
 
 	// Calculate time varying control parameters
-	_L1_dist = groundSpeed / omegaA; // L1 distance is adjusted to maintain a constant tracking loop frequency
-	float VomegaA = groundSpeed * omegaA;
+	// Calculate the L1 length required for specified period
+	// 0.3183099 = 1/pi
+	_L1_dist = 0.3183099f * _L1_damping * _L1_period * groundSpeed;
 
 	//Convert current location and WP positionsto 2D vectors in lat and long
-    Vector2f A_air((_current_loc.lat/1.0e7f), (_current_loc.lng/1.0e7f));
-    Vector2f A_v((center_WP.lat/1.0e7f), (center_WP.lng/1.0e7f));
+    Vector2f A_air((_current_loc.lat*1.0e-7f), (_current_loc.lng*1.0e-7f));
+    Vector2f A_v((center_WP.lat*1.0e-7f), (center_WP.lng*1.0e-7f));
 
 	//Calculate the NE position of the aircraft relative to WP A
-    A_air = _geo2planar(A_v, A_air)*RADIUS_OF_EARTH;
+    A_air = _geo2planar(A_v, A_air);
 	
     //Calculate the unit vector from WP A to aircraft
     Vector2f A_air_unit = (A_air).normalized();
 
 	//Calculate Nu to capture center_WP
-	float xtrackVelCap = _cross2D(A_air_unit , _groundspeed_vector); // Velocity across line - perpendicular to radial inbound to WP
+	float xtrackVelCap = A_air_unit % _groundspeed_vector; // Velocity across line - perpendicular to radial inbound to WP
 	float ltrackVelCap = - (_groundspeed_vector * A_air_unit); // Velocity along line - radial inbound to WP
 	float Nu = atan2f(xtrackVelCap,ltrackVelCap);
-	Nu = constrain(Nu, -1.5708f, +1.5708f); //Limit Nu to +- Pi/2
+	Nu = constrain_float(Nu, -1.5708f, +1.5708f); //Limit Nu to +- Pi/2
 
 	//Calculate lat accln demand to capture center_WP (use L1 guidance law)
-	float latAccDemCap = VomegaA * (xtrackVelCap * Kv_L1 + 2.0f * sinf(Nu));
+	float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
 	
 	//Calculate radial position and velocity errors
 	float xtrackVelCirc = -ltrackVelCap; // Radial outbound velocity - reuse previous radial inbound velocity
@@ -290,7 +286,7 @@ void AP_L1_Control::update_heading_hold(int32_t navigation_heading_cd)
 	_bearing_error = Nu; // bearing error angle (radians), +ve to left of track
 
 	// Limit Nu to +-pi
-	Nu = constrain(Nu, -1.5708f, +1.5708f);
+	Nu = constrain_float(Nu, -1.5708f, +1.5708f);
 	_latAccDem = 2.0f*sinf(Nu)*VomegaA;
 }
 
@@ -317,16 +313,7 @@ Vector2f AP_L1_Control::_geo2planar(const Vector2f &ref, const Vector2f &wp) con
     out.x=radians((wp.x-ref.x));
     out.y=radians((wp.y-ref.y)*cosf(radians(ref.x)));
 
-    return out;
-}
-
-float AP_L1_Control::_cross2D(const Vector2f &v1, const Vector2f &v2)
-{
-    float out;
-
-    out = v1.x * v2.y - v1.y * v2.x;
-
-    return out;
+    return out * RADIUS_OF_EARTH;
 }
 
 float AP_L1_Control::_maxf(const float &num1, const float &num2) const

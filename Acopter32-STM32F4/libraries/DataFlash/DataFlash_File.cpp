@@ -3,7 +3,7 @@
 /* 
    DataFlash logging - file oriented variant
 
-   This uses posix file IO to create log files called logs/NN.log in the
+   This uses posix file IO to create log files called logs/NN.bin in the
    given directory
  */
 
@@ -89,7 +89,7 @@ bool DataFlash_File::NeedErase(void)
 char *DataFlash_File::_log_file_name(uint16_t log_num)
 {
     char *buf = NULL;
-    asprintf(&buf, "%s/%u.log", _log_directory, (unsigned)log_num);
+    asprintf(&buf, "%s/%u.bin", _log_directory, (unsigned)log_num);
     return buf;
 }
 
@@ -172,15 +172,11 @@ void DataFlash_File::WriteBlock(const void *pBuffer, uint16_t size)
 /*
   read a packet. The header bytes have already been read.
 */
-void DataFlash_File::ReadPacket(void *pkt, uint16_t size)
+void DataFlash_File::ReadBlock(void *pkt, uint16_t size)
 {
-    if (_read_fd == -1 || !_initialised || size <= 3) {
+    if (_read_fd == -1 || !_initialised) {
         return;
     }
-
-    // we don't read the 3 header bytes. That happens in log_read_process()
-    pkt = (void *)(3+(char *)pkt);
-    size -= 3;
 
     memset(pkt, 0, size);
     ::read(_read_fd, pkt, size);
@@ -268,7 +264,7 @@ uint16_t DataFlash_File::start_new_log(void)
 
     uint16_t log_num = find_last_log();
     // re-use empty logs if possible
-    if (_get_log_size(log_num) > 0) {
+    if (_get_log_size(log_num) > 0 || log_num == 0) {
         log_num++;
     }
     if (log_num > MAX_LOG_FILES) {
@@ -288,15 +284,19 @@ uint16_t DataFlash_File::start_new_log(void)
     fprintf(f, "%u\n", (unsigned)log_num);
     fclose(f);    
     free(fname);
+
     return log_num;
 }
 
 /*
-  start processing a log, called by CLI to display logs
- */
-void DataFlash_File::log_read_process(uint16_t log_num,
-                                      uint16_t start_page, uint16_t end_page, 
-                                      void (*callback)(uint8_t msgid))
+  Read the log and print it on port
+*/
+void DataFlash_File::LogReadProcess(uint16_t log_num,
+                                    uint16_t start_page, uint16_t end_page, 
+                                    uint8_t num_types,
+                                    const struct LogStructure *structure,
+                                    void (*print_mode)(AP_HAL::BetterStream *port, uint8_t mode),
+                                    AP_HAL::BetterStream *port)
 {
     uint8_t log_step = 0;
     if (!_initialised) {
@@ -345,7 +345,7 @@ void DataFlash_File::log_read_process(uint16_t log_num,
 
             case 2:
                 log_step = 0;
-                callback(data);
+                _print_log_entry(data, num_types, structure, print_mode, port);
                 break;
         }
         if (_read_offset >= (end_page+1) * DATAFLASH_PAGE_SIZE) {

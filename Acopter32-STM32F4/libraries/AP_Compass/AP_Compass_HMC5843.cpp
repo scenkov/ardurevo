@@ -327,14 +327,18 @@ bool AP_Compass_HMC5843::read()
     // rotate to the desired orientation
     Vector3f rot_mag = Vector3f(mag_x,mag_y,mag_z);
     if (product_id == AP_COMPASS_TYPE_HMC5883L) {
-       // rot_mag.rotate(ROTATION_YAW_270);
+        rot_mag.rotate(ROTATION_YAW_90);
     }
 
-    // add components orientation
-    //rot_mag.rotate(_orientation);
+    // apply default board orientation for this compass type. This is
+    // a noop on most boards
+    rot_mag.rotate(MAG_BOARD_ORIENTATION);
 
-    // add in board orientation
-    //rot_mag.rotate(_board_orientation); // Patch by RFOX for VRBRIN WIP
+    // add user selectable orientation
+    rot_mag.rotate((enum Rotation)_orientation.get());
+
+    // add in board orientation from AHRS
+    rot_mag.rotate(_board_orientation);
 
     rot_mag += _offset.get();
 

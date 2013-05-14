@@ -25,7 +25,7 @@
 #define AP_MOTORS_MAX_NUM_MOTORS 8
 
 #define AP_MOTORS_DEFAULT_MIN_THROTTLE  130
-#define AP_MOTORS_DEFAULT_MAX_THROTTLE  850
+#define AP_MOTORS_DEFAULT_MAX_THROTTLE  1000
 
 // APM board definitions
 #define AP_MOTORS_APM1  1
@@ -35,12 +35,10 @@
 #define AP_MOTORS_PLUS_FRAME        0
 #define AP_MOTORS_X_FRAME           1
 #define AP_MOTORS_V_FRAME           2
+#define AP_MOTORS_H_FRAME           3   // same as X frame but motors spin in opposite direction
 
 // motor update rate
-#define AP_MOTORS_SPEED_DEFAULT 490
-
-// top-bottom ratio (for Y6)
-#define AP_MOTORS_TOP_BOTTOM_RATIO      1.0
+#define AP_MOTORS_SPEED_DEFAULT     490 // default output rate to the motors
 
 #define THROTTLE_CURVE_ENABLED      1   // throttle curve disabled by default
 #define THROTTLE_CURVE_MID_THRUST   52  // throttle which produces 1/2 the maximum thrust.  expressed as a percentage of the full throttle range (i.e 0 ~ 100)
@@ -119,16 +117,11 @@ public:
         return _reached_limit & which_limit;
     }
 
-    // get basic information about the platform
-    virtual uint8_t        get_num_motors() {
-        return 0;
-    };
-
     // motor test
     virtual void        output_test() {
     };
 
-    // throttle_pass_through - passes throttle through to motors - dangerous but required for initialising ESCs
+    // throttle_pass_through - passes pilot's throttle input directly to all motors - dangerous but used for initialising ESCs
     virtual void        throttle_pass_through();
 
 	// setup_throttle_curve - used to linearlise thrust output by motors
@@ -136,13 +129,10 @@ public:
 	virtual bool setup_throttle_curve();
 
     // 1 if motor is enabled, 0 otherwise
-    AP_Int8             motor_enabled[AP_MOTORS_MAX_NUM_MOTORS];
+    bool                motor_enabled[AP_MOTORS_MAX_NUM_MOTORS];
 
     // final output values sent to the motors.  public (for now) so that they can be access for logging
     int16_t             motor_out[AP_MOTORS_MAX_NUM_MOTORS];
-
-    // power ratio of upper vs lower motors (only used by y6 and octa quad copters)
-    AP_Float            top_bottom_ratio;
 
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo        var_info[];

@@ -129,9 +129,9 @@ void AP_AHRS_MPU6000::drift_correction( float deltat )
         // 0.65*0.04 / 0.005 = 5.2
         float drift_limit = _mpu6000->get_gyro_drift_rate() * deltat 
             / _gyro_bias_from_gravity_gain;
-        errorRollPitch[0] = constrain(errorRollPitch[0],
+        errorRollPitch[0] = constrain_float(errorRollPitch[0],
                 -drift_limit, drift_limit);
-        errorRollPitch[1] = constrain(errorRollPitch[1],
+        errorRollPitch[1] = constrain_float(errorRollPitch[1],
                 -drift_limit, drift_limit);
 
         // We correct gyroX and gyroY bias using the error vector
@@ -280,8 +280,8 @@ AP_AHRS_MPU6000::drift_correction_yaw(void)
             heading = _compass->calculate_heading(_dcm_matrix);
 
             // if this is the first good compass reading then set yaw to this heading
-            if( !_have_initial_yaw ) {
-                _have_initial_yaw = true;
+            if( !_flags.have_initial_yaw ) {
+                _flags.have_initial_yaw = true;
                 yaw_corrected = wrap_PI(heading);
             }
 

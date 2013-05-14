@@ -111,10 +111,10 @@ static NOINLINE void send_attitude(mavlink_channel_t chan)
         omega.z);
 }
 
-#if AP_LIMITS == ENABLED
+#if AC_FENCE == ENABLED
 static NOINLINE void send_limits_status(mavlink_channel_t chan)
 {
-    limits_send_mavlink_status(chan);
+    fence_send_mavlink_status(chan);
 }
 #endif
 
@@ -626,13 +626,11 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_statustext(chan);
         break;
 
-#if AP_LIMITS == ENABLED
-
+#if AC_FENCE == ENABLED
     case MSG_LIMITS_STATUS:
         CHECK_PAYLOAD_SIZE(LIMITS_STATUS);
         send_limits_status(chan);
         break;
-
 #endif
 
     case MSG_AHRS:
@@ -1205,7 +1203,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (packet.param5 == 1) {
                 float trim_roll, trim_pitch;
                 // this blocks
-                AP_InertialSensor_UserInteractStream interact(hal.console);
+                AP_InertialSensor_UserInteract_MAVLink interact(chan);
                 if(ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch)) {
                     // reset ahrs's trim to suggested values from calibration routine
                     ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
@@ -1490,7 +1488,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 gcs_send_text_fmt(PSTR("Unknown parameter index %d"), packet.param_index);
                 break;
             }
-            vp->copy_name_token(&token, param_name, AP_MAX_NAME_SIZE, true);
+            vp->copy_name_token(token, param_name, AP_MAX_NAME_SIZE, true);
             param_name[AP_MAX_NAME_SIZE] = 0;
         } else {
             strncpy(param_name, packet.param_id, AP_MAX_NAME_SIZE);
@@ -1803,7 +1801,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #endif
                 if (packet.param_value < 0) rounding_addition = -rounding_addition;
                 float v = packet.param_value+rounding_addition;
-                v = constrain(v, -2147483648.0, 2147483647.0);
+                v = constrain_float(v, -2147483648.0, 2147483647.0);
                 ((AP_Int32 *)vp)->set_and_save(v);
             } else if (var_type == AP_PARAM_INT16) {
 #if LOGGING_ENABLED == ENABLED
@@ -1813,7 +1811,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #endif
                 if (packet.param_value < 0) rounding_addition = -rounding_addition;
                 float v = packet.param_value+rounding_addition;
-                v = constrain(v, -32768, 32767);
+                v = constrain_float(v, -32768, 32767);
                 ((AP_Int16 *)vp)->set_and_save(v);
             } else if (var_type == AP_PARAM_INT8) {
 #if LOGGING_ENABLED == ENABLED
@@ -1823,7 +1821,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #endif
                 if (packet.param_value < 0) rounding_addition = -rounding_addition;
                 float v = packet.param_value+rounding_addition;
-                v = constrain(v, -128, 127);
+                v = constrain_float(v, -128, 127);
                 ((AP_Int8 *)vp)->set_and_save(v);
             } else {
                 // we don't support mavlink set on this parameter
@@ -1841,7 +1839,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 mav_var_type(var_type),
                 _count_parameters(),
                 -1);                         // XXX we don't actually know what its index is...
-
+            DataFlash.Log_Write_Parameter(key, vp->cast_to_float(var_type));
         }
 
         break;
@@ -1869,6 +1867,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         v[6] = packet.chan7_raw;
         v[7] = packet.chan8_raw;
         hal.rcin->set_overrides(v, 8);
+
+        // record that rc are overwritten so we can trigger a failsafe if we lose contact with groundstation
+        ap.rc_override_active = true;
+        // a RC override message is consiered to be a 'heartbeat' from the ground station for failsafe purposes
+        last_heartbeat_ms = millis();
         break;
     }
 
@@ -1913,33 +1916,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         ins.set_accel(accels);
 
-        // approximate a barometer
-        const float Temp = 312;
-
-        float y = (packet.alt - 584000.0) / 29271.267;
-        y /= (Temp / 10.0) + 273.15;
-        y = 1.0/exp(y);
-        y *= 95446.0;
-
-        barometer.setHIL(Temp, y);
-  
-        Vector3f Bearth, m;
-        Matrix3f R;
-
-        // Bearth is the magnetic field in Canberra. We need to adjust
-        // it for inclination and declination
-        Bearth(400, 0, 0);
-        R.from_euler(0, 0, 0);
-        Bearth = R * Bearth;
-
-        // create a rotation matrix for the given attitude
-        R.from_euler(packet.roll, packet.pitch, packet.yaw);
-
-        // convert the earth frame magnetic vector to body frame, and
-        // apply the offsets
-        m = R.transposed() * Bearth - Vector3f(0, 0, 0);
-       
-        compass.setHIL(m.x,m.y,m.z);
+        barometer.setHIL(packet.alt*0.001f);
+        compass.setHIL(packet.roll, packet.pitch, packet.yaw);
 
  #if HIL_MODE == HIL_MODE_ATTITUDE
         // set AHRS hil sensor
@@ -1953,79 +1931,15 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     }
 #endif //  HIL_MODE != HIL_MODE_DISABLED
 
-/*
- *       case MAVLINK_MSG_ID_HEARTBEAT:
- *               {
- *                       // We keep track of the last time we received a heartbeat from our GCS for failsafe purposes
- *                       if(msg->sysid != g.sysid_my_gcs) break;
- *                       rc_override_fs_timer = millis();
- *                       break;
- *               }
- *
- * #if HIL_MODE != HIL_MODE_DISABLED
- *               // This is used both as a sensor and to pass the location
- *               // in HIL_ATTITUDE mode.
- *       case MAVLINK_MSG_ID_GPS_RAW:
- *               {
- *                       // decode
- *                       mavlink_gps_raw_t packet;
- *                       mavlink_msg_gps_raw_decode(msg, &packet);
- *
- *                       // set gps hil sensor
- *                       g_gps->setHIL(packet.usec/1000,packet.lat,packet.lon,packet.alt,
- *                       packet.v,packet.hdg,0,0);
- *                       break;
- *               }
- * #endif
- */
-#if HIL_MODE == HIL_MODE_SENSORS
 
-    case MAVLINK_MSG_ID_RAW_IMU: // 28
+    case MAVLINK_MSG_ID_HEARTBEAT:
     {
-        // decode
-        mavlink_raw_imu_t packet;
-        mavlink_msg_raw_imu_decode(msg, &packet);
-
-        // set imu hil sensors
-        // TODO: check scaling for temp/absPress
-        float temp = 70;
-        float absPress = 1;
-        //      cliSerial->printf_P(PSTR("accel:\t%d\t%d\t%d\n"), packet.xacc, packet.yacc, packet.zacc);
-        //      cliSerial->printf_P(PSTR("gyro:\t%d\t%d\t%d\n"), packet.xgyro, packet.ygyro, packet.zgyro);
-
-        // rad/sec
-        Vector3f gyros;
-        gyros.x = (float)packet.xgyro / 1000.0;
-        gyros.y = (float)packet.ygyro / 1000.0;
-        gyros.z = (float)packet.zgyro / 1000.0;
-
-        // m/s/s
-        Vector3f accels;
-        accels.x = packet.xacc * (GRAVITY_MSS/1000.0);
-        accels.y = packet.yacc * (GRAVITY_MSS/1000.0);
-        accels.z = packet.zacc * (GRAVITY_MSS/1000.0);
-
-        ins.set_gyro(gyros);
-
-        ins.set_accel(accels);
-
-        compass.setHIL(packet.xmag,packet.ymag,packet.zmag);
+        // We keep track of the last time we received a heartbeat from our GCS for failsafe purposes
+        if(msg->sysid != g.sysid_my_gcs) break;
+        last_heartbeat_ms = millis();
+        pmTest1++;
         break;
     }
-
-    case MAVLINK_MSG_ID_RAW_PRESSURE: //29
-    {
-        // decode
-        mavlink_raw_pressure_t packet;
-        mavlink_msg_raw_pressure_decode(msg, &packet);
-
-        // set pressure hil sensor
-        // TODO: check scaling
-        float temp = 70;
-        barometer.setHIL(temp,packet.press_diff1);
-        break;
-    }
-#endif // HIL_MODE
 
 #if CAMERA == ENABLED
     case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:
@@ -2084,8 +1998,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         break;
     }
 
-#if AP_LIMITS == ENABLED
-
+/* To-Do: add back support for polygon type fence
+#if AC_FENCE == ENABLED
     // receive an AP_Limits fence point from GCS and store in EEPROM
     // receive a fence point from GCS and store in EEPROM
     case MAVLINK_MSG_ID_FENCE_POINT: {
@@ -2116,9 +2030,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         }
         break;
     }
-
-
-#endif // AP_LIMITS ENABLED
+#endif // AC_FENCE ENABLED
+*/
 
     }     // end switch
 } // end handle mavlink
@@ -2159,7 +2072,7 @@ GCS_MAVLINK::queued_param_send()
     value = vp->cast_to_float(_queued_parameter_type);
 
     char param_name[AP_MAX_NAME_SIZE];
-    vp->copy_name_token(&_queued_parameter_token, param_name, sizeof(param_name), true);
+    vp->copy_name_token(_queued_parameter_token, param_name, sizeof(param_name), true);
 
     mavlink_msg_param_value_send(
         chan,

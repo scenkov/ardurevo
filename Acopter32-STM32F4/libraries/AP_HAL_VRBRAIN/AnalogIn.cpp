@@ -14,7 +14,11 @@ float VRBRAINAnalogSource::read_average() {
 float VRBRAINAnalogSource::read_latest() {
     return _v;
 }
-
+float VRBRAINAnalogSource::voltage_average_ratiometric(){
+    return _v;
+}
+void VRBRAINAnalogSource::set_stop_pin(uint8_t p){}
+void VRBRAINAnalogSource::set_settle_time(uint16_t settle_time_ms){}
 /*
   return voltage in Volts
  */

@@ -8,6 +8,10 @@
 
 extern AP_HAL::HAL& hal;
 
+// the last page holds the log format in first 4 bytes. Please change
+// this if (and only if!) the low level format changes
+#define DF_LOGGING_FORMAT    0x28122013
+
 // *** DATAFLASH PUBLIC FUNCTIONS ***
 void DataFlash_Block::StartWrite(uint16_t PageAdr)
 {
@@ -33,7 +37,7 @@ void DataFlash_Block::FinishWrite(void)
 
 void DataFlash_Block::WriteBlock(const void *pBuffer, uint16_t size)
 {
-    if (!CardInserted()) {
+    if (!CardInserted() || !log_write_started) {
         return;
     }
     while (size > 0) {
@@ -131,11 +135,6 @@ void DataFlash_Block::ReadBlock(void *pBuffer, uint16_t size)
     }
 }
 
-void DataFlash_Block::ReadPacket(void *pkt, uint16_t size)
-{
-    ReadBlock((void *)(sizeof(struct log_Header)+(uintptr_t)pkt), size - sizeof(struct log_Header));
-}
-
 void DataFlash_Block::SetFileNumber(uint16_t FileNumber)
 {
     df_FileNumber = FileNumber;
@@ -154,17 +153,21 @@ uint16_t DataFlash_Block::GetFilePage()
 
 void DataFlash_Block::EraseAll()
 {
-    for(uint16_t j = 1; j <= (df_NumPages+1)/8; j++) {
+    for (uint16_t j = 1; j <= (df_NumPages+1)/8; j++) {
         BlockErase(j);
         if (j%6 == 0) {
             hal.scheduler->delay(6);
         }
     }
     // write the logging format in the last page
+    hal.scheduler->delay(100);
     StartWrite(df_NumPages+1);
     uint32_t version = DF_LOGGING_FORMAT;
+    log_write_started = true;
     WriteBlock(&version, sizeof(version));
+    log_write_started = false;
     FinishWrite();
+    hal.scheduler->delay(100);
 }
 
 /*
@@ -172,10 +175,9 @@ void DataFlash_Block::EraseAll()
  */
 bool DataFlash_Block::NeedErase(void)
 {
-    uint32_t version;
+    uint32_t version = 0;
     StartRead(df_NumPages+1);
     ReadBlock(&version, sizeof(version));
+    StartRead(1);
     return version != DF_LOGGING_FORMAT;
 }
-
-

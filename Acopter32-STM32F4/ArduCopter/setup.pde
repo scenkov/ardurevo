@@ -96,26 +96,7 @@ setup_show(uint8_t argc, const Menu::arg *argv)
             cliSerial->printf_P(PSTR("Parameter not found: '%s'\n"), argv[1]);
             return 0;
         }
-
-        //Print differently for different types, and include parameter type in output.
-        switch (type) {
-            case AP_PARAM_INT8:
-                cliSerial->printf_P(PSTR("INT8  %s: %d\n"), argv[1].str, (int)((AP_Int8 *)param)->get());
-                break;
-            case AP_PARAM_INT16:
-                cliSerial->printf_P(PSTR("INT16 %s: %d\n"), argv[1].str, (int)((AP_Int16 *)param)->get());
-                break;
-            case AP_PARAM_INT32:
-                cliSerial->printf_P(PSTR("INT32 %s: %ld\n"), argv[1].str, (long)((AP_Int32 *)param)->get());
-                break;
-            case AP_PARAM_FLOAT:
-                cliSerial->printf_P(PSTR("FLOAT %s: %f\n"), argv[1].str, ((AP_Float *)param)->get());
-                break;
-            default:
-                cliSerial->printf_P(PSTR("Unhandled parameter type for %s: %d.\n"), argv[1].str, type);
-                break;
-        }
-
+        AP_Param::show(param, argv[1].str, type, cliSerial);
         return 0;
     }
 
@@ -137,7 +118,7 @@ setup_show(uint8_t argc, const Menu::arg *argv)
     report_gyro();
  #endif
 
-    AP_Param::show_all();
+    AP_Param::show_all(cliSerial);
 
     return(0);
 }
@@ -350,10 +331,10 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
         if (_oldSwitchPosition != _switchPosition) {
 
             mode = flight_modes[_switchPosition];
-            mode = constrain(mode, 0, NUM_MODES-1);
+            mode = constrain_int16(mode, 0, NUM_MODES-1);
 
             // update the user
-            print_switch(_switchPosition, mode, (g.simple_modes & (1<<_switchPosition)));
+            print_switch(_switchPosition, mode, BIT_IS_SET(g.simple_modes, _switchPosition));
 
             // Remember switch position
             _oldSwitchPosition = _switchPosition;
@@ -369,7 +350,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
             flight_modes[_switchPosition] = mode;
 
             // print new mode
-            print_switch(_switchPosition, mode, (g.simple_modes & (1<<_switchPosition)));
+            print_switch(_switchPosition, mode, BIT_IS_SET(g.simple_modes, _switchPosition));
             delay(500);
         }
 
@@ -377,7 +358,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
         if (g.rc_4.control_in > 3000) {
             g.simple_modes |= (1<<_switchPosition);
             // print new mode
-            print_switch(_switchPosition, mode, (g.simple_modes & (1<<_switchPosition)));
+            print_switch(_switchPosition, mode, BIT_IS_SET(g.simple_modes, _switchPosition));
             delay(500);
         }
 
@@ -385,7 +366,7 @@ setup_flightmodes(uint8_t argc, const Menu::arg *argv)
         if (g.rc_4.control_in < -3000) {
             g.simple_modes &= ~(1<<_switchPosition);
             // print new mode
-            print_switch(_switchPosition, mode, (g.simple_modes & (1<<_switchPosition)));
+            print_switch(_switchPosition, mode, BIT_IS_SET(g.simple_modes, _switchPosition));
             delay(500);
         }
 
@@ -567,7 +548,7 @@ setup_compassmot(uint8_t argc, const Menu::arg *argv)
     }
 
     // enable motors and pass through throttle
-    motors.enable();
+    init_rc_out();
     motors.armed(true);
     motors.output_min();
 
@@ -595,7 +576,7 @@ setup_compassmot(uint8_t argc, const Menu::arg *argv)
 
             // calculate scaling for throttle
             throttle_pct = (float)g.rc_3.control_in / 1000.0f;
-            throttle_pct = constrain(throttle_pct,0.0f,1.0f);
+            throttle_pct = constrain_float(throttle_pct,0.0f,1.0f);
 
             // if throttle is zero, update base x,y,z values
             if( throttle_pct == 0.0f ) {
@@ -1182,7 +1163,7 @@ static void report_flight_modes()
     print_divider();
 
     for(int16_t i = 0; i < 6; i++ ) {
-        print_switch(i, flight_modes[i], (g.simple_modes & (1<<i)));
+        print_switch(i, flight_modes[i], BIT_IS_SET(g.simple_modes, i));
     }
     print_blanks(2);
 }
@@ -1268,7 +1249,7 @@ static void
 print_switch(uint8_t p, uint8_t m, bool b)
 {
     cliSerial->printf_P(PSTR("Pos %d:\t"),p);
-    print_flight_mode(m);
+    print_flight_mode(cliSerial, m);
     cliSerial->printf_P(PSTR(",\t\tSimple: "));
     if(b)
         cliSerial->printf_P(PSTR("ON\n"));

@@ -80,13 +80,16 @@ public:
         k_param_throttle_accel_enabled,
         k_param_wp_yaw_behavior,
         k_param_acro_trainer_enabled,
-        k_param_pilot_velocity_z_max,   // 28
+        k_param_pilot_velocity_z_max,
+        k_param_circle_rate,
+        k_param_sonar_gain,             // 30
 
         // 65: AP_Limits Library
-        k_param_limits = 65,
-        k_param_gpslock_limit,
-        k_param_geofence_limit,
-        k_param_altitude_limit,
+        k_param_limits = 65,            // deprecated - remove
+        k_param_gpslock_limit,          // deprecated - remove
+        k_param_geofence_limit,         // deprecated - remove
+        k_param_altitude_limit,         // deprecated - remove
+        k_param_fence,                  // 69
 
         //
         // 80: Heli
@@ -191,7 +194,10 @@ public:
         k_param_rc_speed = 192,
         k_param_failsafe_battery_enabled,
         k_param_throttle_mid,
-        k_param_failsafe_gps_enabled,  // 195
+        k_param_failsafe_gps_enabled,
+        k_param_rc_9,
+        k_param_rc_12,
+        k_param_failsafe_gcs,           // 198
 
         //
         // 200: flight modes
@@ -261,6 +267,7 @@ public:
     AP_Int8         sonar_type;       // 0 = XL, 1 = LV,
                                       // 2 = XLL (XL with 10m range)
                                       // 3 = HRLV
+    AP_Float        sonar_gain;
     AP_Int8         battery_monitoring;         // 0=disabled, 3=voltage only,
                                                 // 4=voltage and current
     AP_Float        volt_div_ratio;
@@ -268,6 +275,7 @@ public:
     AP_Int16        pack_capacity;              // Battery pack capacity less reserve
     AP_Int8         failsafe_battery_enabled;   // battery failsafe enabled
     AP_Int8         failsafe_gps_enabled;       // gps failsafe enabled
+    AP_Int8         failsafe_gcs;               // ground station failsafe behavior
 
     AP_Int8         compass_enabled;
     AP_Int8         optflow_enabled;
@@ -289,6 +297,7 @@ public:
     AP_Int8         command_total;
     AP_Int8         command_index;
     AP_Int16        circle_radius;
+    AP_Float        circle_rate;                // Circle mode's turn rate in deg/s.  positive to rotate clockwise, negative for counter clockwise
     AP_Int32        rtl_loiter_time;
     AP_Int16        land_speed;
     AP_Int16        pilot_velocity_z_max;        // maximum vertical velocity the pilot may request
@@ -352,6 +361,12 @@ public:
     RC_Channel_aux          rc_10;
     RC_Channel_aux          rc_11;
 #endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    RC_Channel_aux          rc_9;
+    RC_Channel_aux          rc_12;
+#endif
+
     AP_Int16                rc_speed; // speed of fast RC Channels in Hz
 
     // Acro parameters
@@ -398,7 +413,12 @@ public:
         rc_6                (CH_6),
         rc_7                (CH_7),
         rc_8                (CH_8),
-#if MOUNT == ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+        rc_9                (CH_9),
+        rc_10               (CH_10),
+        rc_11               (CH_11),
+        rc_12               (CH_12),
+#elif MOUNT == ENABLED
         rc_10               (CH_10),
         rc_11               (CH_11),
 #endif

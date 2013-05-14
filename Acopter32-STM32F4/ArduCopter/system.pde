@@ -179,9 +179,6 @@ static void init_ardupilot()
         do_erase_logs();
         gcs0.reset_cli_timeout();
     }
-    if (g.log_bitmask != 0) {
-        DataFlash.start_new_log();
-    }
 #endif
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -286,43 +283,7 @@ cliSerial->printf_P("Init Commands");
     Log_Write_Startup();
 #endif
 
-    cliSerial->printf_P("Init ap_limits");
-    init_ap_limits();
-
     cliSerial->print_P(PSTR("\nReady to FLY "));
-}
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-// Experimental AP_Limits library - set constraints, limits, fences, minima,
-// maxima on various parameters
-////////////////////////////////////////////////////////////////////////////////
-static void init_ap_limits() {
-#if AP_LIMITS == ENABLED
-    // The linked list looks (logically) like this [limits module] -> [first
-    // limit module] -> [second limit module] -> [third limit module] -> NULL
-
-
-    // The details of the linked list are handled by the methods
-    // modules_first, modules_current, modules_next, modules_last, modules_add
-    // in limits
-
-    limits.modules_add(&gpslock_limit);
-    limits.modules_add(&geofence_limit);
-    limits.modules_add(&altitude_limit);
-
-
-    if (limits.debug())  {
-        gcs_send_text_P(SEVERITY_LOW,PSTR("Limits Modules Loaded"));
-
-        AP_Limit_Module *m = limits.modules_first();
-        while (m) {
-            gcs_send_text_P(SEVERITY_LOW, get_module_name(m->get_module_id()));
-            m = limits.modules_next();
-        }
-    }
-#endif
 }
 
 
@@ -380,7 +341,7 @@ static void set_mode(uint8_t mode)
     }
 
     control_mode 	= mode;
-    control_mode    = constrain(control_mode, 0, NUM_MODES - 1);
+    control_mode    = constrain_int16(control_mode, 0, NUM_MODES - 1);
 
     // if we change modes, we must clear landed flag
     set_land_complete(false);
@@ -426,12 +387,8 @@ static void set_mode(uint8_t mode)
     case AUTO:
     	ap.manual_throttle = false;
     	ap.manual_attitude = false;
-        set_yaw_mode(AUTO_YAW);
-        set_roll_pitch_mode(AUTO_RP);
-        set_throttle_mode(AUTO_THR);
-        // we do not set nav mode for auto because it will be overwritten when first command runs
-        // loads the commands from where we left off
-        init_commands();
+        // roll-pitch, throttle and yaw modes will all be set by the first nav command
+        init_commands();            // clear the command queues. will be reloaded when "run_autopilot" calls "update_commands" function
         break;
 
     case CIRCLE:
@@ -465,7 +422,7 @@ static void set_mode(uint8_t mode)
     case GUIDED:
     	ap.manual_throttle = false;
     	ap.manual_attitude = false;
-        set_yaw_mode(GUIDED_YAW);
+        set_yaw_mode(get_wp_yaw_mode(false));
         set_roll_pitch_mode(GUIDED_RP);
         set_throttle_mode(GUIDED_THR);
         set_nav_mode(GUIDED_NAV);
@@ -635,50 +592,50 @@ static void reboot_apm(void) {
 // print_flight_mode - prints flight mode to serial port.
 //
 static void
-print_flight_mode(uint8_t mode)
+print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
 {
     switch (mode) {
     case STABILIZE:
-        cliSerial->print_P(PSTR("STABILIZE"));
+        port->print_P(PSTR("STABILIZE"));
         break;
     case ACRO:
-        cliSerial->print_P(PSTR("ACRO"));
+        port->print_P(PSTR("ACRO"));
         break;
     case ALT_HOLD:
-        cliSerial->print_P(PSTR("ALT_HOLD"));
+        port->print_P(PSTR("ALT_HOLD"));
         break;
     case AUTO:
-        cliSerial->print_P(PSTR("AUTO"));
+        port->print_P(PSTR("AUTO"));
         break;
     case GUIDED:
-        cliSerial->print_P(PSTR("GUIDED"));
+        port->print_P(PSTR("GUIDED"));
         break;
     case LOITER:
-        cliSerial->print_P(PSTR("LOITER"));
+        port->print_P(PSTR("LOITER"));
         break;
     case RTL:
-        cliSerial->print_P(PSTR("RTL"));
+        port->print_P(PSTR("RTL"));
         break;
     case CIRCLE:
-        cliSerial->print_P(PSTR("CIRCLE"));
+        port->print_P(PSTR("CIRCLE"));
         break;
     case POSITION:
-        cliSerial->print_P(PSTR("POSITION"));
+        port->print_P(PSTR("POSITION"));
         break;
     case LAND:
-        cliSerial->print_P(PSTR("LAND"));
+        port->print_P(PSTR("LAND"));
         break;
     case OF_LOITER:
-        cliSerial->print_P(PSTR("OF_LOITER"));
+        port->print_P(PSTR("OF_LOITER"));
         break;
     case TOY_M:
-        cliSerial->print_P(PSTR("TOY_M"));
+        port->print_P(PSTR("TOY_M"));
         break;
     case TOY_A:
-        cliSerial->print_P(PSTR("TOY_A"));
+        port->print_P(PSTR("TOY_A"));
         break;
     default:
-        cliSerial->print_P(PSTR("---"));
+        port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
         break;
     }
 }

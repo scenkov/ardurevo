@@ -1,10 +1,11 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V2.9.1b-dev"
+#define THISFIRMWARE "ArduCopter V3.0.0-rc2"
 /*
- *  ArduCopter Version 2.9
- *  Lead author:	Jason Short
- *  Based on code and ideas from the Arducopter team: Randy Mackay, Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni
+ *  ArduCopter Version 3.0
+ *  Creator:        Jason Short
+ *  Lead Developer: Randy Mackay
+ *  Based on code and ideas from the Arducopter team: Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni
  *  Thanks to:	Chris Anderson, Mike Smith, Jordi Munoz, Doug Weibel, James Goppert, Benjamin Pelletier, Robert Lefebvre, Marco Robustini
  *
  *  This firmware is free software; you can redistribute it and/or
@@ -26,7 +27,7 @@
  *  HappyKillmore		:Mavlink GCS
  *  Hein Hollander      :Octo Support
  *  Igor van Airde      :Control Law optimization
- *  Leonard Hall 		:Flight Dynamics, INAV throttle
+ *  Leonard Hall 		:Flight Dynamics, Throttle, Loiter and Navigation Controllers
  *  Jonathan Challinger :Inertial Navigation
  *  Jean-Louis Naudin   :Auto Landing
  *  Max Levine			:Tri Support, Graphics
@@ -35,7 +36,6 @@
  *  Jani Hiriven		:Testing feedback
  *  John Arne Birkeland	:PPM Encoder
  *  Jose Julio			:Stabilization Control laws
- *  Randy Mackay		:General development and release
  *  Marco Robustini		:Lead tester
  *  Michael Oborne		:Mission Planner GCS
  *  Mike Smith			:Libraries, Coding support
@@ -100,7 +100,7 @@
 #include <AP_InertialNav.h>     // ArduPilot Mega inertial navigation library
 #include <AC_WPNav.h>     		// ArduCopter waypoint navigation library
 #include <AP_Declination.h>     // ArduPilot Mega Declination Helper Library
-#include <AP_Limits.h>
+#include <AC_Fence.h>           // Arducopter Fence library
 #include <memcheck.h>           // memory limit checker
 #include <SITL.h>               // software in the loop support
 #include <AP_Scheduler.h>       // main loop scheduler
@@ -148,6 +148,7 @@ static AP_Scheduler scheduler;
 // prototypes
 ////////////////////////////////////////////////////////////////////////////////
 static void update_events(void);
+static void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Dataflash
@@ -210,7 +211,7 @@ static AP_InertialSensor_PX4 ins;
 
  #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  // When building for SITL we use the HIL barometer and compass drivers
-static AP_Baro_BMP085_HIL barometer;
+static AP_Baro_HIL barometer;
 static AP_Compass_HIL compass;
 static SITL sitl;
  #else
@@ -276,7 +277,7 @@ static AP_AHRS_MPU6000  ahrs2(&ins, g_gps);               // only works with APM
 #elif HIL_MODE == HIL_MODE_SENSORS
 // sensor emulators
 static AP_ADC_HIL              adc;
-static AP_Baro_BMP085_HIL      barometer;
+static AP_Baro_HIL      barometer;
 static AP_Compass_HIL          compass;
 static AP_GPS_HIL              g_gps_driver;
 static AP_InertialSensor_Stub  ins;
@@ -295,7 +296,7 @@ static AP_InertialSensor_Stub  ins;
 static AP_AHRS_HIL             ahrs(&ins, g_gps);
 static AP_GPS_HIL              g_gps_driver;
 static AP_Compass_HIL          compass;                  // never used
-static AP_Baro_BMP085_HIL      barometer;
+static AP_Baro_HIL      barometer;
 
 static int32_t gps_base_alt;
 
@@ -361,23 +362,26 @@ static AP_RangeFinder_MaxsonarXL *sonar;
 //Documentation of GLobals:
 static union {
     struct {
-        uint8_t home_is_set        : 1; // 1
-        uint8_t simple_mode        : 1; // 2    // This is the state of simple mode
-        uint8_t manual_attitude    : 1; // 3
-        uint8_t manual_throttle    : 1; // 4
+        uint8_t home_is_set        : 1; // 0
+        uint8_t simple_mode        : 1; // 1    // This is the state of simple mode
+        uint8_t manual_attitude    : 1; // 2
+        uint8_t manual_throttle    : 1; // 3
 
-        uint8_t low_battery        : 1; // 5    // Used to track if the battery is low - LED output flashes when the batt is low
-        uint8_t armed              : 1; // 6
+        uint8_t low_battery        : 1; // 4    // Used to track if the battery is low - LED output flashes when the batt is low
+        uint8_t pre_arm_check      : 1; // 5    // true if the radio and accel calibration have been performed
+        uint8_t logging_started    : 1; // 6    // true if dataflash logging has started
         uint8_t auto_armed         : 1; // 7    // stops auto missions from beginning until throttle is raised
 
         uint8_t failsafe_radio     : 1; // 8    // A status flag for the radio failsafe
         uint8_t failsafe_batt      : 1; // 9    // A status flag for the battery failsafe
         uint8_t failsafe_gps       : 1; // 10   // A status flag for the gps failsafe
-        uint8_t do_flip            : 1; // 11   // Used to enable flip code
-        uint8_t takeoff_complete   : 1; // 12
-        uint8_t land_complete      : 1; // 13
-        uint8_t compass_status     : 1; // 14
-        uint8_t gps_status         : 1; // 15
+        uint8_t failsafe_gcs       : 1; // 11   // A status flag for the ground station failsafe
+        uint8_t rc_override_active : 1; // 12   // true if rc control are overwritten by ground station
+        uint8_t do_flip            : 1; // 13   // Used to enable flip code
+        uint8_t takeoff_complete   : 1; // 14
+        uint8_t land_complete      : 1; // 15
+        uint8_t compass_status     : 1; // 16
+        uint8_t gps_status         : 1; // 17
     };
     uint16_t value;
 } ap;
@@ -478,20 +482,6 @@ static float scaleLongUp = 1;
 // Sometimes we need to remove the scaling for distance calcs
 static float scaleLongDown = 1;
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Mavlink specific
-////////////////////////////////////////////////////////////////////////////////
-// Used by Mavlink for unknow reasons
-static const float radius_of_earth = 6378100;   // meters
-
-// Unions for getting byte values
-static union float_int {
-    int32_t int_value;
-    float float_value;
-} float_int;
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // Location & Navigation
 ////////////////////////////////////////////////////////////////////////////////
@@ -522,7 +512,8 @@ static uint8_t command_cond_index;
 static float lon_error, lat_error;      // Used to report how many cm we are from the next waypoint or loiter target position
 static int16_t control_roll;
 static int16_t control_pitch;
-static uint8_t rtl_state;
+static uint8_t rtl_state;               // records state of rtl (initial climb, returning home, etc)
+static uint8_t land_state;              // records state of land (flying to location, descending)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Orientation
@@ -531,12 +522,12 @@ static uint8_t rtl_state;
 // by the DCM through a few simple equations. They are used throughout the code where cos and sin
 // would normally be used.
 // The cos values are defaulted to 1 to get a decent initial value for a level state
-static float cos_roll_x         = 1;
-static float cos_pitch_x        = 1;
-static float cos_yaw            = 1;
-static float sin_yaw            = 1;
-static float sin_roll           = 1;
-static float sin_pitch          = 1;
+static float cos_roll_x         = 1.0;
+static float cos_pitch_x        = 1.0;
+static float cos_yaw            = 1.0;
+static float sin_yaw;
+static float sin_roll;
+static float sin_pitch;
 
 ////////////////////////////////////////////////////////////////////////////////
 // SIMPLE Mode
@@ -563,7 +554,7 @@ static int16_t throttle_accel_target_ef;    // earth frame throttle acceleration
 static bool throttle_accel_controller_active;   // true when accel based throttle controller is active, false when higher level throttle controllers are providing throttle output directly
 static float throttle_avg;                  // g.throttle_cruise as a float
 static int16_t desired_climb_rate;          // pilot desired climb rate - for logging purposes only
-static float target_alt_for_reporting;      // target altitude for reporting (logs and ground station)
+static float target_alt_for_reporting;      // target altitude in cm for reporting (logs and ground station)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -583,8 +574,6 @@ static LowPassFilterFloat rate_pitch_filter;   // Rate Pitch filter
 ////////////////////////////////////////////////////////////////////////////////
 // Circle Mode / Loiter control
 ////////////////////////////////////////////////////////////////////////////////
-// used to control the speed of Circle mode in radians/second, default is 5° per second
-static const float circle_rate = 0.0872664625;
 Vector3f circle_center;     // circle position expressed in cm from home location.  x = lat, y = lon
 // angle from the circle center to the copter's desired location.  Incremented at circle_rate / second
 static float circle_angle;
@@ -753,13 +742,14 @@ static AP_InertialNav inertial_nav(&ahrs, &ins, &barometer, &g_gps);
 // Waypoint navigation object
 // To-Do: move inertial nav up or other navigation variables down here
 ////////////////////////////////////////////////////////////////////////////////
-static AC_WPNav wp_nav(&inertial_nav, &g.pi_loiter_lat, &g.pi_loiter_lon, &g.pid_loiter_rate_lat, &g.pid_loiter_rate_lon);
+static AC_WPNav wp_nav(&inertial_nav, &ahrs, &g.pi_loiter_lat, &g.pi_loiter_lon, &g.pid_loiter_rate_lat, &g.pid_loiter_rate_lon);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Performance monitoring
 ////////////////////////////////////////////////////////////////////////////////
 // The number of GPS fixes we have had
 static uint8_t gps_fix_count;
+static int16_t pmTest1;
 
 // System Timers
 // --------------
@@ -781,6 +771,8 @@ static uint32_t rtl_loiter_start_time;
 static uint8_t auto_disarming_counter;
 // prevents duplicate GPS messages from entering system
 static uint32_t last_gps_time;
+// the time when the last HEARTBEAT message arrived from a GCS - used for triggering gcs failsafe
+static uint32_t last_heartbeat_ms;
 
 // Used to exit the roll and pitch auto trim function
 static uint8_t auto_trim_counter;
@@ -793,8 +785,7 @@ static AP_Relay relay;
   static AP_Camera camera(&relay);
 #endif
 
-// a pin for reading the receiver RSSI voltage. The scaling by 0.25
-// is to take the 0 to 1024 range down to an 8 bit range for MAVLink
+// a pin for reading the receiver RSSI voltage.
 static AP_HAL::AnalogSource* rssi_analog_source;
 
 
@@ -822,15 +813,11 @@ static AP_Mount camera_mount(&current_loc, g_gps, &ahrs, 0);
 static AP_Mount camera_mount2(&current_loc, g_gps, &ahrs, 1);
 #endif
 
-
 ////////////////////////////////////////////////////////////////////////////////
-// Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
+// AC_Fence library to reduce fly-aways
 ////////////////////////////////////////////////////////////////////////////////
-#if AP_LIMITS == ENABLED
-AP_Limits               limits;
-AP_Limit_GPSLock        gpslock_limit(g_gps);
-AP_Limit_Geofence       geofence_limit(FENCE_START_BYTE, FENCE_WP_SIZE, MAX_FENCEPOINTS, g_gps, &home, &current_loc);
-AP_Limit_Altitude       altitude_limit(&current_loc);
+#if AC_FENCE == ENABLED
+AC_Fence    fence(&inertial_nav);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -855,7 +842,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { update_GPS,            2,     900 },
     { update_navigation,     10,    500 },
     { medium_loop,           2,     700 },
-    { update_altitude,       5,    1000 },
+    { update_altitude,      10,    1000 },
     { fifty_hz_loop,         2,     950 },
     { run_nav_updates,      10,     800 },
     { slow_loop,            10,     500 },
@@ -908,7 +895,7 @@ void setup() {
             &sonar_mode_filter);
 #endif
 
-    rssi_analog_source      = hal.analogin->channel(g.rssi_pin, 0.25);
+    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
     batt_volt_analog_source = hal.analogin->channel(g.battery_volt_pin);
     batt_curr_analog_source = hal.analogin->channel(g.battery_curr_pin);
     board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
@@ -952,6 +939,7 @@ static void perf_update(void)
     }
     perf_info_reset();
     gps_fix_count = 0;
+    pmTest1 = 0;
 }
 
 void loop()
@@ -1093,7 +1081,7 @@ static void medium_loop()
         medium_loopCounter++;
 
         // log compass information
-        if (motors.armed() && g.log_bitmask & MASK_LOG_COMPASS) {
+        if (motors.armed() && (g.log_bitmask & MASK_LOG_COMPASS)) {
             Log_Write_Compass();
         }
 
@@ -1111,14 +1099,6 @@ static void medium_loop()
     //-------------------------------------------------
     case 3:
         medium_loopCounter++;
-
-        // perform next command
-        // --------------------
-        if(control_mode == AUTO) {
-            if(ap.home_is_set && g.command_total > 1) {
-                update_commands();
-            }
-        }
 
         if(motors.armed()) {
             if (g.log_bitmask & MASK_LOG_ATTITUDE_MED) {
@@ -1216,28 +1196,23 @@ static void fifty_hz_loop()
     }
 
     if (g.log_bitmask & MASK_LOG_IMU && motors.armed())
-        Log_Write_IMU();
+        DataFlash.Log_Write_IMU(&ins);
 #endif
 
 }
 
-
+// slow_loop - 3.3hz loop
 static void slow_loop()
 {
-
-#if AP_LIMITS == ENABLED
-
-    // Run the AP_Limits main loop
-    limits_loop();
-
-#endif // AP_LIMITS_ENABLED
-
     // This is the slow (3 1/3 Hz) loop pieces
     //----------------------------------------
     switch (slow_loopCounter) {
     case 0:
         slow_loopCounter++;
         superslow_loopCounter++;
+
+        // check if we've lost contact with the ground station
+        failsafe_gcs_check();
 
         // record if the compass is healthy
         set_compass_healthy(compass.healthy);
@@ -1256,12 +1231,19 @@ static void slow_loop()
             motors.set_frame_orientation(g.frame_orientation);
         }
 
+#if AC_FENCE == ENABLED
+        // check if we have breached a fence
+        fence_check();
+#endif // AC_FENCE_ENABLED
+
         break;
 
     case 1:
         slow_loopCounter++;
 
-#if MOUNT == ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+        update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
+#elif MOUNT == ENABLED
         update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_10, &g.rc_11);
 #endif
         enable_aux_servos();
@@ -1311,8 +1293,11 @@ static void super_slow_loop()
     }
 
     // log battery info to the dataflash
-    if (g.log_bitmask & MASK_LOG_CURRENT && motors.armed())
+    if ((g.log_bitmask & MASK_LOG_CURRENT) && motors.armed())
         Log_Write_Current();
+
+    // perform pre-arm checks
+    pre_arm_checks();
 
     // this function disarms the copter if it has been sitting on the ground for any moment of time greater than 25 seconds
     // but only of the control mode is manual
@@ -1378,7 +1363,7 @@ static void update_GPS(void)
 
         // log location if we have at least a 2D fix
         if (g.log_bitmask & MASK_LOG_GPS && motors.armed()) {
-            Log_Write_GPS();
+            DataFlash.Log_Write_GPS(g_gps, current_loc.alt);
         }
 
         // for performance monitoring
@@ -1560,6 +1545,33 @@ void update_yaw_mode(void)
     }
 }
 
+// get yaw mode based on WP_YAW_BEHAVIOR parameter
+// set rtl parameter to true if this is during an RTL
+uint8_t get_wp_yaw_mode(bool rtl)
+{
+    switch (g.wp_yaw_behavior) {
+        case WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP:
+            return YAW_LOOK_AT_NEXT_WP;
+            break;
+
+        case WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL:
+            if( rtl ) {
+                return YAW_HOLD;
+            }else{
+                return YAW_LOOK_AT_NEXT_WP; 
+            }
+            break;
+
+        case WP_YAW_BEHAVIOR_LOOK_AHEAD:
+            return YAW_LOOK_AHEAD;
+            break;
+
+        default:
+            return YAW_HOLD;
+            break;
+    }
+}
+
 // set_roll_pitch_mode - update roll/pitch mode and initialise any variables as required
 bool set_roll_pitch_mode(uint8_t new_roll_pitch_mode)
 {
@@ -1648,13 +1660,9 @@ void update_roll_pitch_mode(void)
         break;
 
     case ROLL_PITCH_AUTO:
-        // copy user input for reporting purposes
-        control_roll  = g.rc_1.control_in;
-        control_pitch = g.rc_2.control_in;
-
         // copy latest output from nav controller to stabilize controller
-        nav_roll    += constrain_int32(wrap_180_cd(wp_nav.get_desired_roll()  - nav_roll),  -g.auto_slew_rate.get(), g.auto_slew_rate.get());  // 40 deg a second
-        nav_pitch   += constrain_int32(wrap_180_cd(wp_nav.get_desired_pitch() - nav_pitch), -g.auto_slew_rate.get(), g.auto_slew_rate.get());  // 40 deg a second
+        nav_roll = wp_nav.get_desired_roll();
+        nav_pitch = wp_nav.get_desired_pitch();
         get_stabilize_roll(nav_roll);
         get_stabilize_pitch(nav_pitch);
 
@@ -1696,8 +1704,8 @@ void update_roll_pitch_mode(void)
         wp_nav.move_loiter_target(control_roll, control_pitch,0.01f);
 
         // copy latest output from nav controller to stabilize controller
-        nav_roll    += constrain_int32(wrap_180_cd(wp_nav.get_desired_roll()  - nav_roll),  -g.auto_slew_rate.get(), g.auto_slew_rate.get());  // 40 deg a second
-        nav_pitch   += constrain_int32(wrap_180_cd(wp_nav.get_desired_pitch() - nav_pitch), -g.auto_slew_rate.get(), g.auto_slew_rate.get());  // 40 deg a second
+        nav_roll = wp_nav.get_desired_roll();
+        nav_pitch = wp_nav.get_desired_pitch();
         get_stabilize_roll(nav_roll);
         get_stabilize_pitch(nav_pitch);
         break;
@@ -1916,6 +1924,7 @@ void update_throttle_mode(void)
             get_throttle_althold_with_slew(wp_nav.get_desired_alt(), -wp_nav.get_descent_velocity(), wp_nav.get_climb_velocity());
             set_target_alt_for_reporting(wp_nav.get_desired_alt()); // To-Do: return get_destination_alt if we are flying to a waypoint
         }
+        // To-Do: explicitly set what the throttle output should be (probably min throttle).  Without setting it the throttle is simply left in it's last position although that is probably zero throttle anyway
         break;
 
     case THROTTLE_LAND:
@@ -1926,13 +1935,13 @@ void update_throttle_mode(void)
     }
 }
 
-// set_target_alt_for_reporting - set target altitude for reporting purposes (logs and gcs)
-static void set_target_alt_for_reporting(float alt)
+// set_target_alt_for_reporting - set target altitude in cm for reporting purposes (logs and gcs)
+static void set_target_alt_for_reporting(float alt_cm)
 {
-    target_alt_for_reporting = alt;
+    target_alt_for_reporting = alt_cm;
 }
 
-// get_target_alt_for_reporting - returns target altitude for reporting purposes (logs and gcs)
+// get_target_alt_for_reporting - returns target altitude in cm for reporting purposes (logs and gcs)
 static float get_target_alt_for_reporting()
 {
     return target_alt_for_reporting;
@@ -1957,7 +1966,7 @@ static void read_AHRS(void)
 
 static void update_trig(void){
     Vector2f yawvector;
-    Matrix3f temp   = ahrs.get_dcm_matrix();
+    const Matrix3f &temp   = ahrs.get_dcm_matrix();
 
     yawvector.x     = temp.a.x;     // sin
     yawvector.y     = temp.b.x;         // cos
@@ -1966,20 +1975,20 @@ static void update_trig(void){
     cos_pitch_x     = safe_sqrt(1 - (temp.c.x * temp.c.x));     // level = 1
     cos_roll_x      = temp.c.z / cos_pitch_x;                       // level = 1
 
-    cos_pitch_x     = constrain(cos_pitch_x, 0, 1.0);
-    // this relies on constrain() of infinity doing the right thing,
+    cos_pitch_x     = constrain_float(cos_pitch_x, 0, 1.0);
+    // this relies on constrain_float() of infinity doing the right thing,
     // which it does do in avr-libc
-    cos_roll_x      = constrain(cos_roll_x, -1.0, 1.0);
+    cos_roll_x      = constrain_float(cos_roll_x, -1.0, 1.0);
 
-    sin_yaw         = constrain(yawvector.y, -1.0, 1.0);
-    cos_yaw         = constrain(yawvector.x, -1.0, 1.0);
+    sin_yaw         = constrain_float(yawvector.y, -1.0, 1.0);
+    cos_yaw         = constrain_float(yawvector.x, -1.0, 1.0);
 
     // added to convert earth frame to body frame for rate controllers
     sin_pitch       = -temp.c.x;
     sin_roll        = temp.c.y / cos_pitch_x;
 
     // update wp_nav controller with trig values
-    wp_nav.set_cos_sin_yaw(cos_yaw, sin_yaw, cos_roll_x);
+    wp_nav.set_cos_sin_yaw(cos_yaw, sin_yaw, cos_pitch_x);
 
     //flat:
     // 0 ° = cos_yaw:  1.00, sin_yaw:  0.00,
@@ -2075,10 +2084,6 @@ static void tuning(){
         g.pid_throttle.kD(tuning_value);
         break;
 
-    case CH6_TOP_BOTTOM_RATIO:
-        motors.top_bottom_ratio = tuning_value;
-        break;
-
     case CH6_RELAY:
         if (g.rc_6.control_in > 525) relay.on();
         if (g.rc_6.control_in < 475) relay.off();
@@ -2169,7 +2174,13 @@ static void tuning(){
 
     case CH6_DECLINATION:
         // set declination to +-20degrees
-        compass.set_declination(ToRad(20-g.rc_6.control_in/25), false);     // 2nd parameter is false because we do not want to save to eeprom because this would have a performance impact
+        compass.set_declination(ToRad((2.0f * g.rc_6.control_in - g.radio_tuning_high)/100.0f), false);     // 2nd parameter is false because we do not want to save to eeprom because this would have a performance impact
+        break;
+
+    case CH6_CIRCLE_RATE:
+        // set circle rate
+        g.circle_rate.set(g.rc_6.control_in/25-20);     // allow approximately 45 degree turn rate in either direction
+        //cliSerial->printf_P(PSTR("\nRate:%4.2f"),(float)g.circle_rate);
         break;
     }
 }

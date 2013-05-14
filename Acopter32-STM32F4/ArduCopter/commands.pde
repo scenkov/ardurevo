@@ -50,7 +50,7 @@ static struct Location get_cmd_with_index(int i)
     }
 
     // Add on home altitude if we are a nav command (or other command with altitude) and stored alt is relative
-    //if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && temp.options & MASK_OPTIONS_RELATIVE_ALT){
+    //if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && (temp.options & MASK_OPTIONS_RELATIVE_ALT)){
     //temp.alt += home.alt;
     //}
 
@@ -68,7 +68,7 @@ static struct Location get_cmd_with_index(int i)
 static void set_cmd_with_index(struct Location temp, int i)
 {
 
-    i = constrain(i, 0, g.command_total.get());
+    i = constrain_int16(i, 0, g.command_total.get());
     //cliSerial->printf("set_command: %d with id: %d\n", i, temp.id);
 
     // store home as 0 altitude!!!

@@ -50,17 +50,18 @@
 #define CH6_PWM_TRIGGER_HIGH 1800
 #define CH6_PWM_TRIGGER_LOW 1200
 
-#define CH7_DO_NOTHING 0
-#define CH7_SET_HOVER 1         // deprecated
-#define CH7_FLIP 2
-#define CH7_SIMPLE_MODE 3
-#define CH7_RTL 4
-#define CH7_SAVE_TRIM 5
-#define CH7_ADC_FILTER 6        // deprecated
-#define CH7_SAVE_WP 7
-#define CH7_MULTI_MODE 8
-#define CH7_CAMERA_TRIGGER 9
-#define CH7_SONAR 10            // allow enabling or disabling sonar in flight which helps avoid surface tracking when you are far above the ground
+#define CH7_DO_NOTHING      0
+#define CH7_SET_HOVER       1       // deprecated
+#define CH7_FLIP            2
+#define CH7_SIMPLE_MODE     3
+#define CH7_RTL             4
+#define CH7_SAVE_TRIM       5
+#define CH7_ADC_FILTER      6       // deprecated
+#define CH7_SAVE_WP         7
+#define CH7_MULTI_MODE      8
+#define CH7_CAMERA_TRIGGER  9
+#define CH7_SONAR           10      // allow enabling or disabling sonar in flight which helps avoid surface tracking when you are far above the ground
+#define CH7_FENCE           11      // allow enabling or disabling fence in flight
 
 
 
@@ -156,7 +157,6 @@
 #define CH6_THR_ACCEL_KP    34          // accel based throttle controller's P term
 #define CH6_THR_ACCEL_KI    35          // accel based throttle controller's I term
 #define CH6_THR_ACCEL_KD    36          // accel based throttle controller's D term
-#define CH6_TOP_BOTTOM_RATIO 8          // upper/lower motor ratio (not used)
 #define CH6_RELAY           9           // switch relay on if ch6 high, off if low
 #define CH6_WP_SPEED        10          // maximum speed to next way point (0 to 10m/s)
 #define CH6_LOITER_KP       12          // loiter distance controller's P term (position error to speed)
@@ -172,6 +172,7 @@
 #define CH6_AHRS_KP         31          // accelerometer effect on roll/pitch angle (0=low)
 #define CH6_INAV_TC         32          // inertial navigation baro/accel and gps/accel time constant (1.5 = strong baro/gps correction on accel estimatehas very strong does not correct accel estimate, 7 = very weak correction)
 #define CH6_DECLINATION     38          // compass declination in radians
+#define CH6_CIRCLE_RATE     39          // circle turn rate in degrees (hard coded to about 45 degrees in either direction)
 
 
 // Commands - Note that APM now uses a subset of the MAVLink protocol
@@ -192,6 +193,7 @@
 #define WP_YAW_BEHAVIOR_NONE                          0   // auto pilot will never control yaw during missions or rtl (except for DO_CONDITIONAL_YAW command received)
 #define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP               1   // auto pilot will face next waypoint or home during rtl
 #define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last 
+#define WP_YAW_BEHAVIOR_LOOK_AHEAD                    3   // auto pilot will look ahead during missions and rtl (primarily meant for traditional helicotpers)
 
 // TOY mixing options
 #define TOY_LOOKUP_TABLE 0
@@ -216,6 +218,10 @@
 #define RTL_STATE_LOITERING_AT_HOME 3
 #define RTL_STATE_FINAL_DESCENT     4
 #define RTL_STATE_LAND              5
+
+// LAND state
+#define LAND_STATE_FLY_TO_LOCATION  0
+#define LAND_STATE_DESCENDING       1
 
 //repeating events
 #define RELAY_TOGGLE 5
@@ -251,23 +257,14 @@ enum ap_message {
     MSG_RETRY_DEFERRED // this must be last
 };
 
-enum gcs_severity {
-    SEVERITY_LOW=1,
-    SEVERITY_MEDIUM,
-    SEVERITY_HIGH,
-    SEVERITY_CRITICAL
-};
-
 //  Logging parameters
 #define TYPE_AIRSTART_MSG               0x00
 #define TYPE_GROUNDSTART_MSG            0x01
 #define LOG_ATTITUDE_MSG                0x01
-#define LOG_GPS_MSG                     0x02
 #define LOG_MODE_MSG                    0x03
 #define LOG_CONTROL_TUNING_MSG          0x04
 #define LOG_NAV_TUNING_MSG              0x05
 #define LOG_PERFORMANCE_MSG             0x06
-#define LOG_IMU_MSG                     0x07
 #define LOG_CMD_MSG                     0x08
 #define LOG_CURRENT_MSG                 0x09
 #define LOG_STARTUP_MSG                 0x0A
@@ -286,7 +283,7 @@ enum gcs_severity {
 #define LOG_DATA_UINT32_MSG             0x17
 #define LOG_DATA_FLOAT_MSG              0x18
 #define LOG_WPNAV_MSG                   0x19
-#define LOG_DATA_INT8_MSG               0x1A
+#define LOG_DATA_INT8_MSG              	0x1A
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
 
@@ -312,30 +309,20 @@ enum gcs_severity {
 #define DATA_MAVLINK_INT32              2
 #define DATA_MAVLINK_INT16              3
 #define DATA_MAVLINK_INT8               4
-#define DATA_FAST_LOOP                  5
-#define DATA_MED_LOOP                   6
 #define DATA_AP_STATE                   7
-#define DATA_SIMPLE_BEARING             8
 #define DATA_INIT_SIMPLE_BEARING        9
 #define DATA_ARMED                      10
 #define DATA_DISARMED                   11
 #define DATA_AUTO_ARMED                 15
 #define DATA_TAKEOFF                    16
-#define DATA_DID_REACH_ALT              17
 #define DATA_LAND_COMPLETE              18
 #define DATA_LOST_GPS                   19
-#define DATA_LOST_COMPASS               20
 #define DATA_BEGIN_FLIP                 21
 #define DATA_END_FLIP                   22
 #define DATA_EXIT_FLIP                  23
-#define DATA_FLIP_ABORTED               24
 #define DATA_SET_HOME                   25
 #define DATA_SET_SIMPLE_ON              26
 #define DATA_SET_SIMPLE_OFF             27
-#define DATA_REACHED_ALT                28
-#define DATA_ASCENDING                  29
-#define DATA_DESCENDING                 30
-#define DATA_RTL_REACHED_ALT            31
 
 // battery monitoring macros
 #define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
@@ -440,6 +427,8 @@ enum gcs_severity {
 #define ERROR_SUBSYSTEM_FAILSAFE_RADIO      5
 #define ERROR_SUBSYSTEM_FAILSAFE_BATT       6
 #define ERROR_SUBSYSTEM_FAILSAFE_GPS        7
+#define ERROR_SUBSYSTEM_FAILSAFE_GCS        8
+#define ERROR_SUBSYSTEM_FAILSAFE_FENCE      9
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
@@ -448,6 +437,8 @@ enum gcs_severity {
 // subsystem specific error codes -- failsafe_thr, batt, gps
 #define ERROR_CODE_FAILSAFE_RESOLVED        0
 #define ERROR_CODE_FAILSAFE_OCCURRED        1
+// subsystem specific error codes -- compass
+#define ERROR_CODE_COMPASS_FAILED_TO_READ   2
 
 
 

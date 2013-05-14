@@ -96,7 +96,7 @@ public:
 	AP_Int8 stab_col_min;						// collective pitch minimum in Stabilize Mode
 	AP_Int8 stab_col_max;						// collective pitch maximum in Stabilize Mode
 	bool stab_throttle;							// true if we are in Stabilize Mode for reduced Swash Range
-	AP_Int16 coll_out;							// returns the actual collective in use to the main code
+	int16_t coll_out;							// returns the actual collective in use to the main code
 
     // init
     void Init();
@@ -107,11 +107,6 @@ public:
 
     // enable - starts allowing signals to be sent to motors
     void enable();
-
-    // get basic information about the platform
-    uint8_t get_num_motors() {
-        return 5;
-    };
 
     // motor test
     void output_test();

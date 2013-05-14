@@ -356,7 +356,7 @@ void VRBRAINRCInput::init(void* machtnichts)
 
 	    }
 
-uint8_t VRBRAINRCInput::valid()
+uint8_t VRBRAINRCInput::valid_channels()
 	    {
 	    return 1;
 	    }

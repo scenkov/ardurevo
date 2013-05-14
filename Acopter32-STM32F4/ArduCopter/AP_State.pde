@@ -14,21 +14,6 @@ void set_home_is_set(bool b)
 }
 
 // ---------------------------------------------
-void set_armed(bool b)
-{
-    // if no change, exit immediately
-    if( ap.armed == b )
-        return;
-
-    ap.armed = b;
-    if(b){
-        Log_Write_Event(DATA_ARMED);
-    }else{
-        Log_Write_Event(DATA_DISARMED);
-    }
-}
-
-// ---------------------------------------------
 void set_auto_armed(bool b)
 {
     // if no change, exit immediately
@@ -92,6 +77,12 @@ static void set_failsafe_gps(bool mode)
 }
 
 // ---------------------------------------------
+static void set_failsafe_gcs(bool mode)
+{
+    ap.failsafe_gcs = mode;
+}
+
+// ---------------------------------------------
 void set_takeoff_complete(bool b)
 {
     // if no change, exit immediately
@@ -121,9 +112,13 @@ void set_land_complete(bool b)
 
 void set_compass_healthy(bool b)
 {
-    if(ap.compass_status != b){
-        if(false == b){
-            Log_Write_Event(DATA_LOST_COMPASS);
+    if(ap.compass_status != b) {
+        if(b) {
+            // compass has just recovered so log to the dataflash
+            Log_Write_Error(ERROR_SUBSYSTEM_COMPASS,ERROR_CODE_ERROR_RESOLVED);
+        }else{
+            // compass has just failed so log an error to the dataflash
+            Log_Write_Error(ERROR_SUBSYSTEM_COMPASS,ERROR_CODE_COMPASS_FAILED_TO_READ);
         }
     }
     ap.compass_status = b;

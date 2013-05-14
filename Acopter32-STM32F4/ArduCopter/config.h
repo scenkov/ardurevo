@@ -59,11 +59,10 @@
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION	ROTATION_YAW_180
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
- #  define CONFIG_BARO     AP_BARO_MS5611
- #  define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
+ # define CONFIG_BARO     AP_BARO_MS5611
+ # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
  # define CONFIG_ADC        DISABLED
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
@@ -72,7 +71,6 @@
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION   AP_COMPASS_APM2_SHIELD
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
  # ifdef APM2_BETA_HARDWARE
@@ -85,7 +83,6 @@
  # define CONFIG_IMU_TYPE   CONFIG_IMU_SITL
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION   AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -93,7 +90,6 @@
  # define CONFIG_BARO       AP_BARO_PX4
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION   ROTATION_NONE
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
@@ -103,7 +99,6 @@
  # define CONFIG_ADC        DISABLED
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION   AP_COMPASS_COMPONENTS_DOWN_PINS_BACK
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
 #endif
@@ -128,7 +123,7 @@
 // Bulk defines for TradHeli
 #if FRAME_CONFIG == HELI_FRAME
   # define RC_FAST_SPEED 				125
-  # define RTL_YAW                  	YAW_LOOK_AT_HOME
+  # define WP_YAW_BEHAVIOR_DEFAULT      YAW_LOOK_AT_HOME
   # define RATE_INTEGRATOR_LEAK_RATE 	0.02f
   # define RATE_ROLL_D    				0
   # define RATE_PITCH_D       			0
@@ -344,12 +339,12 @@
  # define SONAR_ALT_HEALTH_MAX 3            // number of good reads that indicates a healthy sonar
 #endif
 
-#ifndef THR_SURFACE_TRACKING_P
- # define THR_SURFACE_TRACKING_P 0.2        // gain for controlling how quickly sonar range adjusts target altitude (lower means slower reaction)
+#ifndef SONAR_GAIN_DEFAULT
+ # define SONAR_GAIN_DEFAULT 0.2            // gain for controlling how quickly sonar range adjusts target altitude (lower means slower reaction)
 #endif
 
 #ifndef THR_SURFACE_TRACKING_VELZ_MAX
- # define THR_SURFACE_TRACKING_VELZ_MAX 30  // max speed number of good reads that indicates a healthy sonar
+ # define THR_SURFACE_TRACKING_VELZ_MAX 30  // max vertical speed change while surface tracking with sonar
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -435,15 +430,23 @@
  # define FAILSAFE_GPS_TIMEOUT_MS       5000    // gps failsafe triggers after 5 seconds with no GPS
 #endif
 
+// GCS failsafe
+#ifndef FS_GCS
+ # define FS_GCS                        DISABLED
+#endif
+#ifndef FS_GCS_TIMEOUT_MS
+ # define FS_GCS_TIMEOUT_MS             5000    // gcs failsafe triggers after 5 seconds with no GCS heartbeat
+#endif
+// possible values for FS_GCS parameter
+#define FS_GCS_DISABLED                     0
+#define FS_GCS_ENABLED_ALWAYS_RTL           1
+#define FS_GCS_ENABLED_CONTINUE_MISSION     2
+
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
  # define MAGNETOMETER                   ENABLED
 #endif
-#ifndef MAG_ORIENTATION
- # define MAG_ORIENTATION                AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
@@ -618,8 +621,9 @@
 #endif
 
 // AUTO Mode
-#ifndef AUTO_YAW
- # define AUTO_YAW                  YAW_LOOK_AT_NEXT_WP
+// Note: Auto mode yaw behaviour is controlled by WP_YAW_BEHAVIOR parameter
+#ifndef WP_YAW_BEHAVIOR_DEFAULT
+ # define WP_YAW_BEHAVIOR_DEFAULT   WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL     
 #endif
 
 #ifndef AUTO_RP
@@ -647,11 +651,12 @@
  # define CIRCLE_NAV           	    NAV_CIRCLE
 #endif
 
-// Guided Mode
-#ifndef GUIDED_YAW
- # define GUIDED_YAW                YAW_LOOK_AT_NEXT_WP
+#ifndef CIRCLE_RATE
+ # define CIRCLE_RATE               5.0f        // degrees per second turn rate
 #endif
 
+// Guided Mode
+// Note: Guided mode yaw behaviour is controlled by WP_YAW_BEHAVIOR parameter
 #ifndef GUIDED_RP
  # define GUIDED_RP                 ROLL_PITCH_AUTO
 #endif
@@ -691,7 +696,7 @@
 #endif
 
 #ifndef POSITION_THR
- # define POSITION_THR              THROTTLE_HOLD
+ # define POSITION_THR              THROTTLE_MANUAL_TILT_COMPENSATED
 #endif
 
 #ifndef POSITION_NAV
@@ -700,10 +705,7 @@
 
 
 // RTL Mode
-#ifndef RTL_YAW
- # define RTL_YAW                   YAW_LOOK_AT_NEXT_WP
-#endif
-
+// Note: RTL Yaw behaviour is controlled by WP_YAW_BEHAVIOR parameter
 #ifndef RTL_RP
  # define RTL_RP                    ROLL_PITCH_AUTO
 #endif
@@ -973,7 +975,7 @@
  # define THROTTLE_I            0.0f
 #endif
 #ifndef THROTTLE_D
- # define THROTTLE_D            0.2f
+ # define THROTTLE_D            0.0f
 #endif
 
 #ifndef THROTTLE_IMAX
@@ -1047,7 +1049,7 @@
 #endif
 // current
 #ifndef LOG_CURRENT
- # define LOG_CURRENT                   DISABLED
+ # define LOG_CURRENT                   ENABLED
 #endif
 // quad motor PWMs
 #ifndef LOG_MOTORS
@@ -1102,36 +1104,9 @@
 //
 
 // Enable/disable AP_Limits
-#ifndef AP_LIMITS
- #define AP_LIMITS ENABLED
+#ifndef AC_FENCE
+ #define AC_FENCE ENABLED
 #endif
-
-// Use PIN for displaying LIMITS status. 0 is disabled.
-#ifndef LIMITS_TRIGGERED_PIN
- #define LIMITS_TRIGGERED_PIN 0
-#endif
-
-// PWM of "on" state for LIM_CHANNEL
-#ifndef LIMITS_ENABLE_PWM
- #define LIMITS_ENABLE_PWM 1800
-#endif
-
-#ifndef LIM_ENABLED
- #define LIM_ENABLED 0
-#endif
-
-#ifndef LIM_ALT_ON
- #define LIM_ALT_ON 0
-#endif
-
-#ifndef LIM_FNC_ON
- #define LIM_FNC_ON 0
-#endif
-
-#ifndef LIM_GPSLCK_ON
- #define LIM_GPSLCK_ON 0
-#endif
-
 
 
 //////////////////////////////////////////////////////////////////////////////

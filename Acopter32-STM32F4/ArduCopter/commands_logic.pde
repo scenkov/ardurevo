@@ -47,6 +47,7 @@ static void process_nav_command()
 
 }
 
+// process_cond_command - main switch statement to initiate the next conditional command in the command_cond_queue
 static void process_cond_command()
 {
     switch(command_cond_queue.id) {
@@ -72,6 +73,8 @@ static void process_cond_command()
     }
 }
 
+// process_now_command - main switch statement to initiate the next now command in the command_cond_queue
+// now commands are conditional commands that are executed immediately so they do not require a corresponding verify to be run later
 static void process_now_command()
 {
     switch(command_cond_queue.id) {
@@ -136,9 +139,9 @@ static void process_now_command()
 // Verify command Handlers
 /********************************************************************************/
 
-// verify_must - switch statement to ensure the active navigation command is progressing
+// verify_nav_command - switch statement to ensure the active navigation command is progressing
 // returns true once the active navigation command completes successfully
-static bool verify_must()
+static bool verify_nav_command()
 {
     switch(command_nav_queue.id) {
 
@@ -181,9 +184,9 @@ static bool verify_must()
     }
 }
 
-// verify_may - switch statement to ensure the active conditional command is progressing
+// verify_cond_command - switch statement to ensure the active conditional command is progressing
 // returns true once the active conditional command completes successfully
-static bool verify_may()
+static bool verify_cond_command()
 {
     switch(command_cond_queue.id) {
 
@@ -254,7 +257,6 @@ static void do_takeoff()
 }
 
 // do_nav_wp - initiate move to next waypoint
-// note: caller should set yaw mode
 static void do_nav_wp()
 {
     // set roll-pitch mode
@@ -277,11 +279,13 @@ static void do_nav_wp()
     loiter_time     = 0;
     // this is the delay, stored in seconds and expanded to millis
     loiter_time_max = command_nav_queue.p1;
-
-    // reset control of yaw to default
-    if( g.wp_yaw_behavior == WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP || g.wp_yaw_behavior == WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL) {
-        set_yaw_mode(AUTO_YAW);
+    // if no delay set the waypoint as "fast"
+    if (loiter_time_max == 0 ) {
+        wp_nav.set_fast_waypoint(true);
     }
+
+    // set yaw_mode depending upon contents of WP_YAW_BEHAVIOR parameter
+    set_yaw_mode(get_wp_yaw_mode(false));
 }
 
 // do_land - initiate landing procedure
@@ -289,22 +293,46 @@ static void do_nav_wp()
 // caller should set yaw_mode
 static void do_land()
 {
-    if( ap.home_is_set ) {
-        // switch to loiter if we have gps
-        set_roll_pitch_mode(ROLL_PITCH_LOITER);
+    // To-Do: check if we have already landed
+
+    // if location provided we fly to that location at current altitude
+    if (command_nav_queue.lat != 0 || command_nav_queue.lng != 0) {
+        // set state to fly to location
+        land_state = LAND_STATE_FLY_TO_LOCATION;
+
+        // set roll-pitch mode
+        set_roll_pitch_mode(AUTO_RP);
+
+        // set yaw_mode depending upon contents of WP_YAW_BEHAVIOR parameter
+        set_yaw_mode(get_wp_yaw_mode(false));
+
+        // set throttle mode
+        set_throttle_mode(THROTTLE_AUTO);
+
+        // set nav mode
+        set_nav_mode(NAV_WP);
+
+        // calculate and set desired location above landing target
+        Vector3f pos = pv_location_to_vector(command_nav_queue);
+        pos.z = min(current_loc.alt, RTL_ALT_MAX);
+        wp_nav.set_destination(pos);
     }else{
-        // otherwise remain with stabilize roll and pitch
-        set_roll_pitch_mode(ROLL_PITCH_STABLE);
+        // set landing state
+        land_state = LAND_STATE_DESCENDING;
+
+        // switch to loiter which restores horizontal control to pilot
+        // To-Do: check that we are not in failsafe to ensure we don't process bad roll-pitch commands
+        set_roll_pitch_mode(ROLL_PITCH_LOITER);
+
+        // hold yaw while landing
+        set_yaw_mode(YAW_HOLD);
+
+        // set throttle mode to land
+        set_throttle_mode(THROTTLE_LAND);
+
+        // switch into loiter nav mode
+        set_nav_mode(NAV_LOITER);
     }
-
-    // hold yaw while landing
-    set_yaw_mode(YAW_HOLD);
-
-    // set throttle mode to land
-    set_throttle_mode(THROTTLE_LAND);
-
-    // switch into loiter nav mode
-    set_nav_mode(NAV_LOITER);
 }
 
 // do_loiter_unlimited - start loitering with no end conditions
@@ -316,6 +344,9 @@ static void do_loiter_unlimited()
 
     // set throttle mode to AUTO which, if not already active, will default to hold at our current altitude
     set_throttle_mode(THROTTLE_AUTO);
+
+    // hold yaw
+    set_yaw_mode(YAW_HOLD);
 
     // get current position
     // To-Do: change this to projection based on current location and velocity
@@ -382,6 +413,9 @@ static void do_loiter_time()
     // set throttle mode to AUTO which, if not already active, will default to hold at our current altitude
     set_throttle_mode(THROTTLE_AUTO);
 
+    // hold yaw
+    set_yaw_mode(YAW_HOLD);
+
     // get current position
     // To-Do: change this to projection based on current location and velocity
     Vector3f curr = inertial_nav.get_position();
@@ -429,8 +463,50 @@ static bool verify_takeoff()
 // verify_land - returns true if landing has been completed
 static bool verify_land()
 {
-    // rely on THROTTLE_LAND mode to correctly update landing status
-    return ap.land_complete;
+    bool retval = false;
+
+    switch( land_state ) {
+        case LAND_STATE_FLY_TO_LOCATION:
+            // check if we've reached the location
+            if (wp_nav.reached_destination()) {
+                // get destination so we can use it for loiter target
+                Vector3f dest = wp_nav.get_destination();
+
+                // switch into loiter nav mode
+                set_nav_mode(NAV_LOITER);
+
+                // override loiter target
+                wp_nav.set_loiter_target(dest);
+
+                // switch to loiter which restores horizontal control to pilot
+                // To-Do: check that we are not in failsafe to ensure we don't process bad roll-pitch commands
+                set_roll_pitch_mode(ROLL_PITCH_LOITER);
+
+                // give pilot control of yaw
+                set_yaw_mode(YAW_HOLD);
+
+                // set throttle mode to land
+                set_throttle_mode(THROTTLE_LAND);
+
+                // advance to next state
+                land_state = LAND_STATE_DESCENDING;
+            }
+            break;
+
+        case LAND_STATE_DESCENDING:
+            // rely on THROTTLE_LAND mode to correctly update landing status
+            retval = ap.land_complete;
+            break;
+
+        default:
+            // this should never happen
+            // TO-DO: log an error
+            retval = true;
+            break;
+    }
+
+    // true is returned if we've successfully landed
+    return retval;
 }
 
 // verify_nav_wp - check if we have reached the next way point
@@ -482,7 +558,7 @@ static bool verify_loiter_time()
 static bool verify_circle()
 {
     // have we rotated around the center enough times?
-    return fabs(circle_desired_rotations/M_PI) > circle_desired_rotations;
+    return fabsf(circle_angle_total/(2*M_PI)) >= circle_desired_rotations;
 }
 
 // verify_RTL - handles any state changes required to implement RTL
@@ -506,22 +582,26 @@ static bool verify_RTL()
                 // first stage of RTL is the initial climb so just hold current yaw
                 set_yaw_mode(YAW_HOLD);
 
-                // get current position
-                // To-Do: use projection of safe stopping point based on current location and velocity
-                Vector3f target_pos = inertial_nav.get_position();
-                target_pos.z = get_RTL_alt();
-                wp_nav.set_destination(target_pos);
+                // use projection of safe stopping point based on current location and velocity
+                Vector3f origin, dest;
+                wp_nav.get_stopping_point(inertial_nav.get_position(),inertial_nav.get_velocity(),origin);
+                dest.x = origin.x;
+                dest.y = origin.y;
+                dest.z = get_RTL_alt();
+                wp_nav.set_origin_and_destination(origin,dest);
 
                 // advance to next rtl state
                 rtl_state = RTL_STATE_INITIAL_CLIMB;
             }else{
-                // point nose towards home
-                if(g.wp_yaw_behavior == WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP) {
-                    set_yaw_mode(RTL_YAW);
-                }
+                // point nose towards home (maybe)
+                set_yaw_mode(get_wp_yaw_mode(true));
 
                 // Set wp navigation target to above home
                 wp_nav.set_destination(Vector3f(0,0,get_RTL_alt()));
+
+                // initialise original_wp_bearing which is used to point the nose home
+                wp_bearing = wp_nav.get_bearing_to_destination();
+                original_wp_bearing = wp_bearing;
                 
                 // advance to next rtl state
                 rtl_state = RTL_STATE_RETURNING_HOME;
@@ -536,9 +616,12 @@ static bool verify_RTL()
                 // Set wp navigation target to above home
                 wp_nav.set_destination(Vector3f(0,0,get_RTL_alt()));
 
-                // set yaw mode
-                // To-Do: make this user configurable whether RTL points towards home or not
-                set_yaw_mode(RTL_YAW);
+                // initialise original_wp_bearing which is used to point the nose home
+                wp_bearing = wp_nav.get_bearing_to_destination();
+                original_wp_bearing = wp_bearing;
+
+                // point nose towards home (maybe)
+                set_yaw_mode(get_wp_yaw_mode(true));
 
                 // advance to next rtl state
                 rtl_state = RTL_STATE_RETURNING_HOME;
@@ -566,11 +649,20 @@ static bool verify_RTL()
             if( millis() - rtl_loiter_start_time > (uint32_t)g.rtl_loiter_time.get() ) {
                 // initiate landing or descent
                 if(g.rtl_alt_final == 0 || ap.failsafe_radio) {
-                    // land - this will switch us into land throttle mode and loiter nav mode and give horizontal control back to pilot
-                    do_land();
-                    // override landing location (do_land defaults to current location)
-                    // Note: loiter controller ignores target altitude
+                    // switch to loiter which restores horizontal control to pilot
+                    // To-Do: check that we are not in failsafe to ensure we don't process bad roll-pitch commands
+                    set_roll_pitch_mode(ROLL_PITCH_LOITER);
+                    // switch into loiter nav mode
+                    set_nav_mode(NAV_LOITER);
+                    // override landing location (loiter defaults to a projection from current location)
                     wp_nav.set_loiter_target(Vector3f(0,0,0));
+
+                    // hold yaw while landing
+                    set_yaw_mode(YAW_HOLD);
+
+                    // set throttle mode to land
+                    set_throttle_mode(THROTTLE_LAND);
+
                     // update RTL state
                     rtl_state = RTL_STATE_LAND;
                 }else{
@@ -596,8 +688,8 @@ static bool verify_RTL()
             break;
 
         case RTL_STATE_LAND:
-            // rely on verify_land to return correct status
-            retval = verify_land();
+            // rely on land_complete flag to indicate if we have landed
+            retval = ap.land_complete;
             break;
 
         default:
@@ -663,7 +755,7 @@ static void do_yaw()
         yaw_look_at_heading_slew = AUTO_YAW_SLEW_RATE;
     }else{
         int32_t turn_rate = (wrap_180_cd(yaw_look_at_heading - nav_yaw) / 100) / command_cond_queue.lat;
-        yaw_look_at_heading_slew = constrain(turn_rate, 1, 360);    // deg / sec
+        yaw_look_at_heading_slew = constrain_int32(turn_rate, 1, 360);    // deg / sec
     }
 
     // set yaw mode

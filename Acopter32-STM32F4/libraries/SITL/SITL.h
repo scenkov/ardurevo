@@ -8,8 +8,7 @@
 #include <AP_Math.h>
 #include <GCS_MAVLink.h>
 
-#pragma pack(push,1)
-struct sitl_fdm {
+struct PACKED sitl_fdm {
 	// this is the packet sent by the simulator
 	// to the APM executable to update the simulator state
 	// All values are little-endian
@@ -23,7 +22,6 @@ struct sitl_fdm {
 	double airspeed; // m/s
 	uint32_t magic; // 0x4c56414f
 };
-#pragma pack(pop)
 
 
 class SITL
@@ -60,6 +58,7 @@ public:
 	AP_Int8  gps_delay;   // delay in samples
     AP_Int8  gps_type;    // see enum GPSType
     AP_Float gps_byteloss;// byte loss as a percent
+    AP_Int8  gps_numsats; // number of visible satellites
 
     // wind control
     AP_Float wind_speed;

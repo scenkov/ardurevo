@@ -17,6 +17,12 @@ static void arm_motors()
         return;
     }
 
+    // ensure pre-arm checks have been successful
+    if(!ap.pre_arm_check) {
+        return;
+    }
+
+    // ensure we are in Stabilize, Acro or TOY mode
     if ((control_mode > ACRO) && ((control_mode != TOY_A) && (control_mode != TOY_M))) {
         arming_counter = 0;
         return;
@@ -45,29 +51,7 @@ static void arm_motors()
 
         // arm the motors and configure for flight
         if (arming_counter == ARM_DELAY && !motors.armed()) {
-////////////////////////////////////////////////////////////////////////////////
-// Experimental AP_Limits library - set constraints, limits, fences, minima, maxima on various parameters
-////////////////////////////////////////////////////////////////////////////////
-#if AP_LIMITS == ENABLED
-            if (limits.enabled() && limits.required()) {
-                gcs_send_text_P(SEVERITY_LOW, PSTR("Limits - Running pre-arm checks"));
-
-                // check only pre-arm required modules
-                if (limits.check_required()) {
-                    gcs_send_text_P(SEVERITY_LOW, PSTR("ARMING PREVENTED - Limit Breached"));
-                    limits.set_state(LIMITS_TRIGGERED);
-                    gcs_send_message(MSG_LIMITS_STATUS);
-
-                    arming_counter++;                                 // restart timer by cycling
-                }else{
-                    init_arm_motors();
-                }
-            }else{
-                init_arm_motors();
-            }
-#else  // without AP_LIMITS, just arm motors
             init_arm_motors();
-#endif //AP_LIMITS_ENABLED
         }
 
         // arm the motors and configure for flight
@@ -103,10 +87,12 @@ static void init_arm_motors()
     // which calibrates the IMU
     static bool did_ground_start = false;
 
-    // disable failsafe because initialising everything takes a while
+    // disable cpu failsafe because initialising everything takes a while
     failsafe_disable();
+    
+    // start dataflash
+    start_logging();
 
-    //cliSerial->printf("\nARM\n");
 #if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
 #endif
@@ -158,14 +144,52 @@ static void init_arm_motors()
     ahrs2.set_fast_gains(false);
 #endif
 
+    // enable gps velocity based centrefugal force compensation
+    ahrs.set_correct_centrifugal(true);
+
     // finally actually arm the motors
     motors.armed(true);
-    set_armed(true);
+
+    // log arming to dataflash
+    Log_Write_Event(DATA_ARMED);
 
     // reenable failsafe
     failsafe_enable();
 }
 
+// perform pre-arm checks and set 
+static void pre_arm_checks()
+{
+    // exit immediately if we've already successfully performed the pre-arm check
+    if( ap.pre_arm_check ) {
+        return;
+    }
+
+    // check if radio has been calibrated
+    if(!g.rc_3.radio_min.load()) {
+        return;
+    }
+
+    // check accelerometers have been calibrated
+    if(!ins.calibrated()) {
+        return;
+    }
+
+    // check the compass is healthy
+    if(!compass.healthy) {
+        return;
+    }
+
+#if AC_FENCE == ENABLED
+    // check fence is initialised
+    if(!fence.pre_arm_check()) {
+        return;
+    }
+#endif
+
+    // if we've gotten this far then pre arm checks have completed
+    ap.pre_arm_check = true;
+}
 
 static void init_disarm_motors()
 {
@@ -174,7 +198,6 @@ static void init_disarm_motors()
 #endif
 
     motors.armed(false);
-    set_armed(false);
 
     compass.save_offsets();
 
@@ -192,6 +215,12 @@ static void init_disarm_motors()
 #if SECONDARY_DMP_ENABLED == ENABLED
     ahrs2.set_fast_gains(true);
 #endif
+
+    // log disarm to the dataflash
+    Log_Write_Event(DATA_DISARMED);
+
+    // disable gps velocity based centrefugal force compensation
+    ahrs.set_correct_centrifugal(false);
 }
 
 /*****************************************

@@ -10,7 +10,7 @@
 #ifndef DataFlash_File_h
 #define DataFlash_File_h
 
-class DataFlash_File : DataFlash_Class
+class DataFlash_File : public DataFlash_Class
 {
 public:
     // constructor
@@ -27,19 +27,17 @@ public:
     /* Write a block of data at current offset */
     void WriteBlock(const void *pBuffer, uint16_t size);
 
-    /*
-      read a packet. The header byte have already been read.
-    */
-    void ReadPacket(void *pkt, uint16_t size);
-
     // high level interface
     uint16_t find_last_log(void);
     void get_log_boundaries(uint16_t log_num, uint16_t & start_page, uint16_t & end_page);
     uint16_t get_num_logs(void);
     uint16_t start_new_log(void);
-    void log_read_process(uint16_t log_num,
-                          uint16_t start_page, uint16_t end_page, 
-                          void (*callback)(uint8_t msgid));
+    void LogReadProcess(uint16_t log_num,
+                        uint16_t start_page, uint16_t end_page, 
+                        uint8_t num_types,
+                        const struct LogStructure *structure,
+                        void (*print_mode)(AP_HAL::BetterStream *port, uint8_t mode),
+                        AP_HAL::BetterStream *port);
     void DumpPageInfo(AP_HAL::BetterStream *port);
     void ShowDeviceInfo(AP_HAL::BetterStream *port);
     void ListAvailableLogs(AP_HAL::BetterStream *port);
@@ -50,6 +48,11 @@ private:
     uint32_t _read_offset;
     static volatile bool _initialised;
     const char *_log_directory;
+
+    /*
+      read a block
+    */
+    void ReadBlock(void *pkt, uint16_t size);
 
     // write buffer
     static uint8_t *_writebuf;

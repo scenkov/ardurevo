@@ -65,7 +65,6 @@ static int16_t read_sonar(void)
 
 static void init_compass()
 {
-    compass.set_orientation(MAG_ORIENTATION);                                                   // set compass's orientation on aircraft
     if (!compass.init() || !compass.read()) {
         // make sure we don't pass a broken compass to DCM
         cliSerial->println_P(PSTR("COMPASS INIT ERROR"));
@@ -143,6 +142,6 @@ static void read_battery(void)
 void read_receiver_rssi(void)
 {
     rssi_analog_source->set_pin(g.rssi_pin);
-    float ret = rssi_analog_source->read_latest();
-    receiver_rssi = constrain(ret, 0, 255);
+    float ret = rssi_analog_source->voltage_average() * 50;
+    receiver_rssi = constrain_int16(ret, 0, 255);
 }

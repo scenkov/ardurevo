@@ -84,18 +84,25 @@ const AP_Param::GroupInfo AP_AHRS::var_info[] PROGMEM = {
     // @Increment: .01
     AP_GROUPINFO("COMP_BETA",  10, AP_AHRS, beta, 0.1f),
 
+    // @Param: GPS_MINSATS
+    // @DisplayName: AHRS GPS Minimum satellites
+    // @Description: Minimum number of satellites visible to use GPS for velocity based corrections attitude correction. This defaults to 6, which is about the point at which the velocity numbers from a GPS become too unreliable for accurate correction of the accelerometers.
+    // @Range: 0 10
+    // @User: Advanced
+    AP_GROUPINFO("GPS_MINSATS", 11, AP_AHRS, _gps_minsats, 6),
+
     AP_GROUPEND
 };
 
 // get pitch rate in earth frame, in radians/s
-float AP_AHRS::get_pitch_rate_earth(void) 
+float AP_AHRS::get_pitch_rate_earth(void) const
 {
 	Vector3f omega = get_gyro();
 	return cosf(roll) * omega.y - sinf(roll) * omega.z;
 }
 
 // get roll rate in earth frame, in radians/s
-float AP_AHRS::get_roll_rate_earth(void)  {
+float AP_AHRS::get_roll_rate_earth(void) const {
 	Vector3f omega = get_gyro();
 	return omega.x + tanf(pitch)*(omega.y*sinf(roll) + omega.z*cosf(roll));
 }
@@ -108,7 +115,7 @@ bool AP_AHRS::airspeed_estimate(float *airspeed_ret)
 		if (_wind_max > 0 && _gps && _gps->status() >= GPS::GPS_OK_FIX_2D) {
 			// constrain the airspeed by the ground speed
 			// and AHRS_WIND_MAX
-			*airspeed_ret = constrain(*airspeed_ret, 
+			*airspeed_ret = constrain_float(*airspeed_ret, 
 						  _gps->ground_speed*0.01f - _wind_max, 
 						  _gps->ground_speed*0.01f + _wind_max);
 		}
@@ -121,8 +128,8 @@ bool AP_AHRS::airspeed_estimate(float *airspeed_ret)
 void AP_AHRS::set_trim(Vector3f new_trim)
 {
     Vector3f trim;
-    trim.x = constrain(new_trim.x, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
-    trim.y = constrain(new_trim.y, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
+    trim.x = constrain_float(new_trim.x, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
+    trim.y = constrain_float(new_trim.y, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
     _trim.set_and_save(trim);
 }
 
@@ -132,8 +139,8 @@ void AP_AHRS::add_trim(float roll_in_radians, float pitch_in_radians, bool save_
     Vector3f trim = _trim.get();
 
     // add new trim
-    trim.x = constrain(trim.x + roll_in_radians, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
-    trim.y = constrain(trim.y + pitch_in_radians, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
+    trim.x = constrain_float(trim.x + roll_in_radians, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
+    trim.y = constrain_float(trim.y + pitch_in_radians, ToRad(-AP_AHRS_TRIM_LIMIT), ToRad(AP_AHRS_TRIM_LIMIT));
 
     // set new trim values
     _trim.set(trim);
@@ -177,15 +184,14 @@ Vector2f AP_AHRS::groundspeed_vector(void)
     if (gotAirspeed) {
 	    Vector3f wind = wind_estimate();
 	    Vector2f wind2d = Vector2f(wind.x, wind.y);
-	    Vector2f airspeed_vector = Vector2f(cos(yaw), sin(yaw)) * airspeed;
+	    Vector2f airspeed_vector = Vector2f(cosf(yaw), sinf(yaw)) * airspeed;
 	    gndVelADS = airspeed_vector - wind2d;
     }
     
     // Generate estimate of ground speed vector using GPS
     if (gotGPS) {
-	    Vector2f v;
 	    float cog = radians(_gps->ground_course*0.01f);
-	    gndVelGPS = Vector2f(cos(cog), sin(cog)) * _gps->ground_speed * 0.01f;
+	    gndVelGPS = Vector2f(cosf(cog), sinf(cog)) * _gps->ground_speed * 0.01f;
     }
     // If both ADS and GPS data is available, apply a complementary filter
     if (gotAirspeed && gotGPS) {
@@ -200,15 +206,13 @@ Vector2f AP_AHRS::groundspeed_vector(void)
 	    // To-Do - set Tau as a function of GPS lag.
 	    const float alpha = 1.0f - beta; 
 	    // Run LP filters
-	    _xlp = beta*gndVelGPS.x + alpha*_xlp;
-	    _ylp = beta*gndVelGPS.y + alpha*_ylp;
+	    _lp = gndVelGPS * beta  + _lp * alpha;
 	    // Run HP filters
-	    _xhp = gndVelADS.x - _lastGndVelADS.x + alpha*_xhp;
-	    _yhp = gndVelADS.y - _lastGndVelADS.y + alpha*_yhp;
+	    _hp = (gndVelADS - _lastGndVelADS) + _hp * alpha;
 	    // Save the current ADS ground vector for the next time step
 	    _lastGndVelADS = gndVelADS;
 	    // Sum the HP and LP filter outputs
-	    return Vector2f(_xhp + _xlp, _yhp + _ylp);
+	    return _hp + _lp;
     }
     // Only ADS data is available return ADS estimate
     if (gotAirspeed && !gotGPS) {
