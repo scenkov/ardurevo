@@ -157,28 +157,11 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
 #if COPTER_LEDS == ENABLED
     pinMode(PIEZO_PIN, OUTPUT);
-    digitalWrite(PIEZO_PIN, LED_ON);
-    pinMode(COPTER_LED_1, OUTPUT);              //Motor LED
-    digitalWrite(COPTER_LED_1, LED_ON);
-    pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
-    digitalWrite(COPTER_LED_3, LED_ON);
-    //pinMode(COPTER_LED_3, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_4, OUTPUT);              //Motor LED
-    //pinMode(COPTER_LED_5, OUTPUT);              //Motor or Aux LED
-    //pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
-    //pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
-    //pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
 
+    copter_leds_init();
     delay(300);
 
-    /*test on leds, switch all OFF*/
-    digitalWrite(PIEZO_PIN, LED_OFF);
-    digitalWrite(COPTER_LED_1, LED_OFF);
-    digitalWrite(COPTER_LED_3, LED_OFF);
 
-    if ( !bitRead(g.copter_leds_mode, 3) ) {
-        piezo_beep();
-    }
 
 #endif
     digitalWrite(A_LED_PIN, LED_OFF);

@@ -227,9 +227,9 @@
  # define CLI_SLIDER_ENABLED DISABLED
  # define OPTFLOW_CS_PIN   (-1)
  # define BATTERY_VOLT_PIN      6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      301      // Battery current on A1
+ # define BATTERY_CURR_PIN      200      // Battery current on A1
  # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      301
+ # define CURRENT_PIN_1      200
 #elif CONFIG_APM_HARDWARE == MP32V3F1
  # define A_LED_PIN 69
  # define B_LED_PIN 74
@@ -245,10 +245,10 @@
    # define USB_MUX_PIN      (-1)
   #endif
  # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      300      // Battery voltage on A0
- # define BATTERY_CURR_PIN      300      // Battery current on A1
- # define BATTERY_PIN_1      300 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      300
+ # define BATTERY_VOLT_PIN      200      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      200      // Battery current on A1
+ # define BATTERY_PIN_1      200 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      200
 #else
  # define A_LED_PIN 69
  # define B_LED_PIN 74
@@ -279,7 +279,13 @@
 
 #if CONFIG_APM_HARDWARE == VRBRAINF4
 #define COPTER_LED_1 102  	// Motor or Aux LED
-#define COPTER_LED_3 65  	// Motor LED or Beeper
+#define COPTER_LED_2 200  	// Motor LED or Beeper
+#define COPTER_LED_3 65 	// Motor LED
+#define COPTER_LED_4 200 	// Motor LED
+#define COPTER_LED_5 200  	// Motor or Aux LED
+#define COPTER_LED_6 200   	// Motor or Aux LED
+#define COPTER_LED_7 200 	// Motor or GPS LED
+#define COPTER_LED_8 200 	// Motor or GPS LED
 #else
 // COPTER LEDs
 #define COPTER_LED_1 83  	// Motor LED
