@@ -148,10 +148,7 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
     //
     // Initialize Wire and SPI libraries
     //
-//#ifndef DESKTOP_BUILD
     I2C2x.begin();
-//#endif
-
 
     EEPROM.init(&I2C2x,cliSerial);
 
@@ -160,10 +157,8 @@ Serial.begin(SERIAL_CLI_BAUD, 128, 256);
 
     copter_leds_init();
     delay(300);
-
-
-
 #endif
+
     digitalWrite(A_LED_PIN, LED_OFF);
     digitalWrite(B_LED_PIN, LED_OFF);
     digitalWrite(C_LED_PIN, LED_OFF);
