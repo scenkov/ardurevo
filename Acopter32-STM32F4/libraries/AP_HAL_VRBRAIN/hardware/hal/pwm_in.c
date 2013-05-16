@@ -35,6 +35,12 @@
 
 #include <boards.h>
 
+#define MINONWIDTH 950
+#define MAXONWIDTH 2075
+// PATCH FOR FAILSAFE AND FRSKY
+#define MINOFFWIDTH 1000
+#define MAXOFFWIDTH 22000
+
 typedef void (*rcc_clockcmd)(uint32_t, FunctionalState);
 /**************** PWM INPUT **************************************/
 
@@ -96,6 +102,8 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 {
     uint8_t i;
     uint16_t val = 0;
+    uint16_t time_on = 0;
+    uint16_t time_off = 0;
 
     for (i = 0; i < 8; i++) {
         struct TIM_Channel channel = Channels[i];
@@ -119,39 +127,45 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
                     break;
             }
 
-            if (input->state == 0)
-            {
-        	input->rise = val;
-            }
-            else
-            {
-        	input->fall = val;
-            }
 
             if (input->state == 0) {
+        	input->rise = val;
+        	if(input->rise > input->fall)
+        	    time_off = input->rise - input->fall;
+        	else
+        	    time_off = ((0xFFFF - input->fall) + input->rise);
+
                 // switch states
-        	input->state = 1;
+        	if ((time_off >= MINOFFWIDTH) && (time_off <= MAXOFFWIDTH)){
+        	    input->state = 1;
+                    TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+                    TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
+                    TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+        	}
 
-                TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
-                TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-                TIM_ICInit(channel.tim, &TIM_ICInitStructure);
             } else {
-                // compute capture
-                if (input->fall > input->rise)
-                    input->capture = (input->fall - input->rise);
+        	input->fall = val;
+        	if (input->fall > input->rise)
+                    time_on = (input->fall - input->rise);
                 else
-                    input->capture = ((0xFFFF - input->rise) + input->fall);
+                    time_on = ((0xFFFF - input->rise) + input->fall);
 
-                // switch state
-                input->state = 0;
+        	if ((time_on >= MINONWIDTH) && (time_on <= MAXONWIDTH))
+        	    {
+		    // compute capture
+		    input->capture = time_on;
 
-                TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
-                TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-                TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+		    // switch state
+		    input->state = 0;
+		    TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+		    TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
+		    TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+		    }
             }
         }
     }
 }
+
 
 static void pwmInitializeInput(void)
 {
@@ -174,7 +188,7 @@ static void pwmInitializeInput(void)
 		GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
 		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-		GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL ;
+		GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP ;
 		GPIO_Init(channel.gpio_port, &GPIO_InitStructure);
 // gpio_set_af_mode *************************************************************/
 		GPIO_PinAFConfig(channel.gpio_port, channel.gpio_af, channel.gpio_af_tim);
