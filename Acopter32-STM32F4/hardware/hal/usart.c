@@ -132,7 +132,7 @@ void usart_setup(usart_dev *dev,
 
 	dev->tx_timeout = tx_timeout;
 	dev->txbusy = 0;
-	dev->usetxrb = 0;
+	dev->usetxrb = 1;
 	dev->use_timeout = 0;
 
 	/* Disable USARTx */
