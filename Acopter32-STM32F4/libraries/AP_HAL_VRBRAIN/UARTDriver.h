@@ -53,6 +53,7 @@ private:
     uint8_t tx_pin;
     uint8_t rx_pin;
     bool _initialized;
+    uint8_t _isUSB;
 
 };
 
