@@ -808,7 +808,10 @@ uint32_t usb_data_available(void)
 {
     return rb_full_count(rxfifo);
 }
-
+uint16_t usb_tx_pending(void)
+{
+    return rb_full_count(txfifo);
+}
 /*----------------------------------------------------------------------------
  * end of file
  *---------------------------------------------------------------------------*/

@@ -12,10 +12,7 @@
 
 class VRBRAIN::VRBRAINUARTDriver : public AP_HAL::UARTDriver  {
 public:
-    uint8_t usb;
-    uint8_t usb_present;
-
-    VRBRAINUARTDriver(struct usart_dev *usart);
+    VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb);
   /* VRBRAIN implementations of UARTDriver virtual methods */
   void begin(uint32_t b);
   void begin(uint32_t b, uint16_t rxS, uint16_t txS);
@@ -47,14 +44,16 @@ public:
   /* Empty implementations of Print virtual methods */
   size_t write(uint8_t c);
 
+  uint8_t usb_present() { return _usb_present; }
+
 private:
     uint8_t _port;
     usart_dev *usart_device;
     uint8_t tx_pin;
     uint8_t rx_pin;
     bool _initialized;
-    uint8_t _isUSB;
-
+    uint8_t usb;
+    uint8_t _usb_present;
 };
 
 #endif // __AP_HAL_EMPTY_UARTDRIVER_H__

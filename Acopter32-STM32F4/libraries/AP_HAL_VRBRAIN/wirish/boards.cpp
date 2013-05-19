@@ -37,6 +37,7 @@
 #include "gpio_hal.h"
 #include "timer.h"
 #include "adc.h"
+#include <usb.h>
 
 static void setupFlash(void);
 static void setupClocks(void);
@@ -44,6 +45,7 @@ static void setupNVIC(void);
 static void setupADC(void);
 static void setupTimers(void);
 static void enableFPU(void);
+static void usb_init(void);
 
 void init(void) {
     enableFPU();
@@ -60,8 +62,22 @@ void init(void) {
     SystemCoreClockUpdate();
 
     boardInit();
+    usb_init();
 }
+void usb_init(void){
+    usb_attr_t usb_attr;
+    usb_open();
 
+    usb_default_attr(&usb_attr);
+	usb_attr.preempt_prio = 1;
+	usb_attr.sub_prio = 3;
+	usb_attr.use_present_pin = 1;
+	usb_attr.present_port = _GPIOD;
+	usb_attr.present_pin = 4;
+
+    usb_ioctl(I_USB_SETATTR, &usb_attr);
+
+}
 
 void enableFPU(void){
 #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)

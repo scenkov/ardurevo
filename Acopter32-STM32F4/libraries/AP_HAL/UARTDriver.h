@@ -38,6 +38,7 @@ public:
     virtual bool is_initialized() = 0;
     virtual void set_blocking_writes(bool blocking) = 0;
     virtual bool tx_pending() = 0;
+    virtual uint8_t usb_present() = 0;
 };
 
 #endif // __AP_HAL_UART_DRIVER_H__

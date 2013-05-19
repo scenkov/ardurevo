@@ -63,6 +63,7 @@ void usb_default_attr(usb_attr_t *attr);
 int usb_configure(usb_attr_t * attr);
 int8_t usb_getc(void);
 uint32_t usb_data_available(void);
+uint16_t usb_tx_pending(void);
 void usb_putc(uint8_t byte);
 void usb_reset_rx(void);
 void usb_reset_tx(void);
