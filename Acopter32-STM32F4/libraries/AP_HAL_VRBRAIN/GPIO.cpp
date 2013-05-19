@@ -22,7 +22,7 @@ void VRBRAINGPIO::pinMode(uint8_t pin, uint8_t output)
     gpio_pin_mode outputMode;
     bool pwm = false;
 
-    if (pin >= BOARD_NR_GPIO_PINS) {
+    if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
         return;
     }
 
@@ -96,7 +96,7 @@ int8_t  VRBRAINGPIO::analogPinToDigitalPin(uint8_t pin){
 
 uint8_t VRBRAINGPIO::read(uint8_t pin)
 {
-    if (pin >= BOARD_NR_GPIO_PINS) {
+    if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
         return 0;
     }
 
@@ -106,7 +106,7 @@ uint8_t VRBRAINGPIO::read(uint8_t pin)
 
 void VRBRAINGPIO::write(uint8_t pin, uint8_t value)
 {
-    if (pin >= BOARD_NR_GPIO_PINS) {
+    if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
         return;
     }
 
@@ -117,7 +117,7 @@ void VRBRAINGPIO::write(uint8_t pin, uint8_t value)
 /* Alternative interface: */
 AP_HAL::DigitalSource* VRBRAINGPIO::channel(uint16_t pin) {
 
-    if (pin >= BOARD_NR_GPIO_PINS) {
+    if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
         return NULL;
     }
 
@@ -133,7 +133,7 @@ AP_HAL::DigitalSource* VRBRAINGPIO::channel(uint16_t pin) {
 bool VRBRAINGPIO::attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p,
                                   uint8_t mode)
 {
-    if (interrupt_num >= BOARD_NR_GPIO_PINS || !p) {
+    if ((interrupt_num < 0) || (interrupt_num >= BOARD_NR_GPIO_PINS) || !p) {
         return false;
     }
 
