@@ -158,7 +158,7 @@ static DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
 static DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-static DataFlash_MP32 DataFlash;
+static DataFlash_VRBRAIN DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 //static DataFlash_File DataFlash("/tmp/APMlogs");
 static DataFlash_SITL DataFlash;
@@ -362,36 +362,38 @@ static AP_RangeFinder_MaxsonarXL *sonar;
 //Documentation of GLobals:
 static union {
     struct {
-        uint8_t home_is_set        : 1; // 0
-        uint8_t simple_mode        : 1; // 1    // This is the state of simple mode
-        uint8_t manual_attitude    : 1; // 2
-        uint8_t manual_throttle    : 1; // 3
+        uint8_t home_is_set         : 1; // 0
+        uint8_t simple_mode         : 1; // 1    // This is the state of simple mode
+        uint8_t manual_attitude     : 1; // 2
+        uint8_t manual_throttle     : 1; // 3
 
-        uint8_t low_battery        : 1; // 4    // Used to track if the battery is low - LED output flashes when the batt is low
-        uint8_t pre_arm_check      : 1; // 5    // true if the radio and accel calibration have been performed
-        uint8_t logging_started    : 1; // 6    // true if dataflash logging has started
-        uint8_t auto_armed         : 1; // 7    // stops auto missions from beginning until throttle is raised
+        uint8_t pre_arm_rc_check    : 1; // 5    // true if rc input pre-arm checks have been completed successfully
+        uint8_t pre_arm_check       : 1; // 6    // true if all pre-arm checks (rc, accel calibration, gps lock) have been performed
+        uint8_t auto_armed          : 1; // 7    // stops auto missions from beginning until throttle is raised
+        uint8_t logging_started     : 1; // 8    // true if dataflash logging has started
 
-        uint8_t failsafe_radio     : 1; // 8    // A status flag for the radio failsafe
-        uint8_t failsafe_batt      : 1; // 9    // A status flag for the battery failsafe
-        uint8_t failsafe_gps       : 1; // 10   // A status flag for the gps failsafe
-        uint8_t failsafe_gcs       : 1; // 11   // A status flag for the ground station failsafe
-        uint8_t rc_override_active : 1; // 12   // true if rc control are overwritten by ground station
-        uint8_t do_flip            : 1; // 13   // Used to enable flip code
-        uint8_t takeoff_complete   : 1; // 14
-        uint8_t land_complete      : 1; // 15
-        uint8_t compass_status     : 1; // 16
-        uint8_t gps_status         : 1; // 17
+        uint8_t low_battery         : 1; // 9    // Used to track if the battery is low - LED output flashes when the batt is low
+        uint8_t failsafe_radio      : 1; // 10   // A status flag for the radio failsafe
+        uint8_t failsafe_batt       : 1; // 11   // A status flag for the battery failsafe
+        uint8_t failsafe_gps        : 1; // 12   // A status flag for the gps failsafe
+        uint8_t failsafe_gcs        : 1; // 13   // A status flag for the ground station failsafe
+        uint8_t rc_override_active  : 1; // 14   // true if rc control are overwritten by ground station
+        uint8_t do_flip             : 1; // 15   // Used to enable flip code
+        uint8_t takeoff_complete    : 1; // 16
+        uint8_t land_complete       : 1; // 17
+        uint8_t compass_status      : 1; // 18
+        uint8_t gps_status          : 1; // 19
     };
-    uint16_t value;
+    uint32_t value;
 } ap;
 
 
 static struct AP_System{
-    uint8_t GPS_light               : 1; // 1   // Solid indicates we have full 3D lock and can navigate, flash = read
-    uint8_t motor_light             : 1; // 2   // Solid indicates Armed state
-    uint8_t new_radio_frame         : 1; // 3   // Set true if we have new PWM data to act on from the Radio
-    uint8_t CH7_flag                : 1; // 4   // manages state of the ch7 toggle switch
+    uint8_t GPS_light               : 1; // 0   // Solid indicates we have full 3D lock and can navigate, flash = read
+    uint8_t motor_light             : 1; // 1   // Solid indicates Armed state
+    uint8_t new_radio_frame         : 1; // 2   // Set true if we have new PWM data to act on from the Radio
+    uint8_t CH7_flag                : 1; // 3   // true if ch7 aux switch is high
+    uint8_t CH8_flag                : 1; // 4   // true if ch8 aux switch is high
     uint8_t usb_connected           : 1; // 5   // true if APM is powered from USB connection
     uint8_t yaw_stopped             : 1; // 6   // Used to manage the Yaw hold capabilities
 
@@ -588,11 +590,11 @@ static uint32_t loiter_time;
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// CH7 control
+// CH7 and CH8 save waypoint control
 ////////////////////////////////////////////////////////////////////////////////
 // This register tracks the current Mission Command index when writing
-// a mission using CH7 in flight
-static int8_t CH7_wp_index;
+// a mission using Ch7 or Ch8 aux switches in flight
+static int8_t aux_switch_wp_index;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1036,6 +1038,7 @@ static void fast_loop()
 #endif
 }
 
+// medium_loop - runs at 10hz
 static void medium_loop()
 {
     // This is the start of the medium (10 Hz) loop pieces
@@ -1118,10 +1121,8 @@ static void medium_loop()
     case 4:
         medium_loopCounter = 0;
 
-        // Accel trims      = hold > 2 seconds
-        // Throttle cruise  = switch less than 1 second
-        // --------------------------------------------
-        read_trim_switch();
+        // check ch7 and ch8 aux switches
+        read_aux_switches();
 
         // Check for engine arming
         // -----------------------
@@ -1285,7 +1286,7 @@ static void slow_loop()
 }
 
 #define AUTO_DISARMING_DELAY 25
-// 1Hz loop
+// super_slow_loop - runs at 1Hz
 static void super_slow_loop()
 {
     if (g.log_bitmask != 0) {

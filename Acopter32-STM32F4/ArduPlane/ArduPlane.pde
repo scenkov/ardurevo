@@ -118,7 +118,7 @@ DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-DataFlash_MP32 DataFlash;
+DataFlash_VRBRAIN DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 DataFlash_SITL DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4

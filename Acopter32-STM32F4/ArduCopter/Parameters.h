@@ -82,7 +82,8 @@ public:
         k_param_acro_trainer_enabled,
         k_param_pilot_velocity_z_max,
         k_param_circle_rate,
-        k_param_sonar_gain,             // 30
+        k_param_sonar_gain,
+        k_param_ch8_option,             // 31
 
         // 65: AP_Limits Library
         k_param_limits = 65,            // deprecated - remove
@@ -138,7 +139,7 @@ public:
         k_param_optflow_enabled,
         k_param_low_voltage,
         k_param_ch7_option,
-        k_param_auto_slew_rate,
+        k_param_auto_slew_rate,     // deprecated - can be deleted
         k_param_sonar_type,
         k_param_super_simple = 155,
         k_param_axis_enabled = 157,
@@ -337,7 +338,7 @@ public:
     AP_Int16        radio_tuning_low;
     AP_Int8         frame_orientation;
     AP_Int8         ch7_option;
-    AP_Int16        auto_slew_rate;
+    AP_Int8         ch8_option;
 
 #if FRAME_CONFIG ==     HELI_FRAME
     // Heli

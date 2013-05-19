@@ -111,7 +111,7 @@ protected:
 #include "DataFlash_APM2.h"
 #include "DataFlash_SITL.h"
 #include "DataFlash_Empty.h"
-#include "DataFlash_MP32.h"
+#include "DataFlash_VRBRAIN.h"
 
 #endif // DataFlash_block_h
 

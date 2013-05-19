@@ -11,7 +11,7 @@ static void arm_motors()
 {
     static int16_t arming_counter;
 
-    // don't allow arming/disarming in anything but manual
+    // ensure throttle is down
     if (g.rc_3.control_in > 0) {
         arming_counter = 0;
         return;
@@ -89,9 +89,11 @@ static void init_arm_motors()
 
     // disable cpu failsafe because initialising everything takes a while
     failsafe_disable();
-    
+
+#if LOGGING_ENABLED == ENABLED
     // start dataflash
     start_logging();
+#endif
 
 #if HIL_MODE != HIL_MODE_DISABLED || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
@@ -147,6 +149,9 @@ static void init_arm_motors()
     // enable gps velocity based centrefugal force compensation
     ahrs.set_correct_centrifugal(true);
 
+    // enable output to motors
+    output_min();
+
     // finally actually arm the motors
     motors.armed(true);
 
@@ -157,7 +162,7 @@ static void init_arm_motors()
     failsafe_enable();
 }
 
-// perform pre-arm checks and set 
+// perform pre-arm checks and set ap.pre_arm_check flag
 static void pre_arm_checks()
 {
     // exit immediately if we've already successfully performed the pre-arm check
@@ -165,8 +170,9 @@ static void pre_arm_checks()
         return;
     }
 
-    // check if radio has been calibrated
-    if(!g.rc_3.radio_min.load()) {
+    // pre-arm rc checks a prerequisite
+    pre_arm_rc_checks();
+    if(!ap.pre_arm_rc_check) {
         return;
     }
 
@@ -189,6 +195,28 @@ static void pre_arm_checks()
 
     // if we've gotten this far then pre arm checks have completed
     ap.pre_arm_check = true;
+}
+
+// perform pre_arm_rc_checks checks and set ap.pre_arm_rc_check flag
+static void pre_arm_rc_checks()
+{
+    // exit immediately if we've already successfully performed the pre-arm rc check
+    if( ap.pre_arm_rc_check ) {
+        return;
+    }
+
+    // check if radio has been calibrated
+    if(!g.rc_3.radio_min.load()) {
+        return;
+    }
+
+    // check if throttle min is reasonable
+    if(g.rc_3.radio_min > 1300) {
+        return;
+    }
+
+    // if we've gotten this far rc is ok
+    ap.pre_arm_rc_check = true;
 }
 
 static void init_disarm_motors()

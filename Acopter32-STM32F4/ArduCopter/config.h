@@ -179,11 +179,7 @@
  # define LED_ON           HIGH
  # define LED_OFF          LOW
  # define PUSHBUTTON_PIN   200
-  #if USB == ENABLED
-   # define USB_MUX_PIN      200
-  #else
-   # define USB_MUX_PIN      200
-  #endif
+ # define USB_MUX_PIN      -1
  # define OPTFLOW_CS_PIN   200
  # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
  # define BATTERY_CURR_PIN      200      // Battery current on A1
@@ -348,13 +344,16 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Channel 7 default option
+// Channel 7 and 8 default options
 //
 
 #ifndef CH7_OPTION
- # define CH7_OPTION             CH7_SAVE_WP
+ # define CH7_OPTION            AUX_SWITCH_SAVE_WP
 #endif
 
+#ifndef CH8_OPTION
+ # define CH8_OPTION            AUX_SWITCH_DO_NOTHING
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // HIL_MODE                                 OPTIONAL
@@ -762,27 +761,7 @@
 // Attitude Control
 //
 
-// Extra motor values that are changed from time to time by jani @ jDrones as software
-// and charachteristics changes.
-#ifdef MOTORS_JD880
- # define STABILIZE_ROLL_P          3.7f
- # define STABILIZE_ROLL_I          0.0f
- # define STABILIZE_ROLL_IMAX    	8.0f            // degrees
- # define STABILIZE_PITCH_P         3.7f
- # define STABILIZE_PITCH_I         0.0f
- # define STABILIZE_PITCH_IMAX   	8.0f            // degrees
-#endif
-
-#ifdef MOTORS_JD850
- # define STABILIZE_ROLL_P          4.2f
- # define STABILIZE_ROLL_I          0.0f
- # define STABILIZE_ROLL_IMAX    	8.0f            // degrees
- # define STABILIZE_PITCH_P         4.2f
- # define STABILIZE_PITCH_I         0.0f
- # define STABILIZE_PITCH_IMAX   	8.0f            // degrees
-#endif
-
-
+// Acro mode gains
 #ifndef ACRO_P
  # define ACRO_P                 4.5f
 #endif
@@ -791,7 +770,7 @@
  # define AXIS_LOCK_ENABLED      ENABLED
 #endif
 
-// Good for smaller payload motors.
+// Stabilize (angle controller) gains
 #ifndef STABILIZE_ROLL_P
  # define STABILIZE_ROLL_P          4.5f
 #endif
@@ -937,10 +916,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // Autopilot rotate rate limits
 //
-#ifndef AUTO_SLEW_RATE
- # define AUTO_SLEW_RATE         	45                     // degrees/sec
-#endif
-
 #ifndef AUTO_YAW_SLEW_RATE
  # define AUTO_YAW_SLEW_RATE        60                     // degrees/sec
 #endif
@@ -1038,9 +1013,6 @@
 #ifndef LOG_NTUN
  # define LOG_NTUN                      ENABLED
 #endif
-#ifndef LOG_MODE
- # define LOG_MODE                      ENABLED
-#endif
 #ifndef LOG_IMU
  # define LOG_IMU                       DISABLED
 #endif
@@ -1082,7 +1054,6 @@
     LOGBIT(PM)              | \
     LOGBIT(CTUN)            | \
     LOGBIT(NTUN)            | \
-    LOGBIT(MODE)            | \
     LOGBIT(IMU)             | \
     LOGBIT(CMD)             | \
     LOGBIT(CURRENT)         | \

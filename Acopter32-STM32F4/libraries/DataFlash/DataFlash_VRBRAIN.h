@@ -1,15 +1,15 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /* ************************************************************ */
-/* DataFlash_APM1 Log library                                 */
+/* DataFlash_VRBRAIN Log library                                 */
 /* ************************************************************ */
-#ifndef __DATAFLASH_MP32_H__
-#define __DATAFLASH_MP32_H__
+#ifndef __DATAFLASH_VRBRAIN_H__
+#define __DATAFLASH_VRBRAIN_H__
 
 #include <AP_HAL.h>
 #include "DataFlash.h"
 
-class DataFlash_MP32 : public DataFlash_Block
+class DataFlash_VRBRAIN : public DataFlash_Block
 {
 private:
     //Methods

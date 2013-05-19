@@ -26,7 +26,7 @@
  *
  */
 #include <AP_HAL.h>
-#include "DataFlash_MP32.h"
+#include "DataFlash_VRBRAIN.h"
 #include <wirish.h>
 
 extern const AP_HAL::HAL& hal;
@@ -68,7 +68,7 @@ extern const AP_HAL::HAL& hal;
 /*
   try to take a semaphore safely from both in a timer and outside
  */
-bool DataFlash_MP32::_sem_take(uint8_t timeout)
+bool DataFlash_VRBRAIN::_sem_take(uint8_t timeout)
 {
     if (hal.scheduler->in_timerprocess()) {
         return _spi_sem->take_nonblocking();
@@ -78,7 +78,7 @@ bool DataFlash_MP32::_sem_take(uint8_t timeout)
 
 
 // Public Methods //////////////////////////////////////////////////////////////
-void DataFlash_MP32::Init(void)
+void DataFlash_VRBRAIN::Init(void)
 {
     // init to zero
     df_NumPages = 0;
@@ -111,7 +111,7 @@ void DataFlash_MP32::Init(void)
 }
 
 // This function is mainly to test the device
-void DataFlash_MP32::ReadManufacturerID()
+void DataFlash_VRBRAIN::ReadManufacturerID()
 {
     if (!_sem_take(5))
         return;
@@ -133,14 +133,14 @@ void DataFlash_MP32::ReadManufacturerID()
 }
 
 // This function return 1 if Card is inserted on SD slot
-bool DataFlash_MP32::CardInserted()
+bool DataFlash_VRBRAIN::CardInserted()
 {
     return true;
 }
 
 // Read the status register
 // Assumes _spi_sem handled by caller
-uint8_t DataFlash_MP32::ReadStatusReg()
+uint8_t DataFlash_VRBRAIN::ReadStatusReg()
 {
     uint8_t tmp;
 
@@ -160,13 +160,13 @@ uint8_t DataFlash_MP32::ReadStatusReg()
 // Read the status of the DataFlash
 // Assumes _spi_sem handled by caller.
 inline
-uint8_t DataFlash_MP32::ReadStatus()
+uint8_t DataFlash_VRBRAIN::ReadStatus()
 {
     return(ReadStatusReg()&0x80); // We only want to extract the READY/BUSY bit
 }
 
 inline
-uint16_t DataFlash_MP32::PageSize()
+uint16_t DataFlash_VRBRAIN::PageSize()
 {
     if (!_sem_take(5))
         return 0;
@@ -179,12 +179,12 @@ uint16_t DataFlash_MP32::PageSize()
 
 // Wait until DataFlash is in ready state...
 // Assumes _spi_sem handled by caller.
-void DataFlash_MP32::WaitReady()
+void DataFlash_VRBRAIN::WaitReady()
 {
     while(!ReadStatus()) ;
 }
 
-void DataFlash_MP32::PageToBuffer(uint8_t BufferNum, uint16_t PageAdr)
+void DataFlash_VRBRAIN::PageToBuffer(uint8_t BufferNum, uint16_t PageAdr)
 {
     if (!_sem_take(1))
         return;
@@ -211,7 +211,7 @@ void DataFlash_MP32::PageToBuffer(uint8_t BufferNum, uint16_t PageAdr)
     _spi_sem->give();
 }
 
-void DataFlash_MP32::BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t wait)
+void DataFlash_VRBRAIN::BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t wait)
 {
     if (!_sem_take(1))
         return;
@@ -241,7 +241,7 @@ void DataFlash_MP32::BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t 
 
 }
 
-void DataFlash_MP32::BlockWrite (uint8_t BufferNum, uint16_t IntPageAdr,
+void DataFlash_VRBRAIN::BlockWrite (uint8_t BufferNum, uint16_t IntPageAdr,
                                  const void *pHeader, uint8_t hdr_size,
                                  const void *pBuffer, uint16_t size)
 {
@@ -271,7 +271,7 @@ void DataFlash_MP32::BlockWrite (uint8_t BufferNum, uint16_t IntPageAdr,
     _spi_sem->give();
 }
 
-bool DataFlash_MP32::BlockRead (uint8_t BufferNum, uint16_t IntPageAdr, void *pBuffer, uint16_t size)
+bool DataFlash_VRBRAIN::BlockRead (uint8_t BufferNum, uint16_t IntPageAdr, void *pBuffer, uint16_t size)
 {
     if (!_sem_take(1))
         return false;
@@ -301,7 +301,7 @@ bool DataFlash_MP32::BlockRead (uint8_t BufferNum, uint16_t IntPageAdr, void *pB
 
 // *** END OF INTERNAL FUNCTIONS ***
 
-void DataFlash_MP32::PageErase (uint16_t PageAdr)
+void DataFlash_VRBRAIN::PageErase (uint16_t PageAdr)
 {
     if (!_sem_take(1))
         return;
@@ -329,7 +329,7 @@ void DataFlash_MP32::PageErase (uint16_t PageAdr)
     while(!ReadStatus()) ;
 }
 
-void DataFlash_MP32::BlockErase (uint16_t BlockAdr)
+void DataFlash_VRBRAIN::BlockErase (uint16_t BlockAdr)
 {
     if (!_sem_take(1))
         return;
@@ -367,7 +367,7 @@ void DataFlash_MP32::BlockErase (uint16_t BlockAdr)
 }
 
 
-void DataFlash_MP32::ChipErase()
+void DataFlash_VRBRAIN::ChipErase()
 {
     if (!_sem_take(5))
         return;
