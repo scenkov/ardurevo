@@ -385,7 +385,7 @@ int usb_configure(usb_attr_t * attr)
 			{
 				return 0;
 			}
-			gpio_set_mode(attr->present_port, attr->present_pin, GPIO_INPUT_PU);
+			gpio_set_mode(attr->present_port, attr->present_pin, GPIO_INPUT_FLOATING);
 	}
 
 	preempt_prio = attr->preempt_prio;
@@ -662,7 +662,7 @@ int usb_close(void)
 	return 1;
 }
 
-U8 is_usb_connected(usb_attr_t *attr)
+uint8_t is_usb_connected(usb_attr_t *attr)
 {
 	if (usb_attr == NULL || (usb_attr && usb_attr->use_present_pin == 0))
 		return usb_connected;

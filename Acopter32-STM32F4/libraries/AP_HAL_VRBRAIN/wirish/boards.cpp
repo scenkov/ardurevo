@@ -66,6 +66,8 @@ void init(void) {
 }
 void usb_init(void){
     usb_attr_t usb_attr;
+
+
     usb_open();
 
     usb_default_attr(&usb_attr);
@@ -76,7 +78,8 @@ void usb_init(void){
 	usb_attr.present_pin = 4;
 
     usb_ioctl(I_USB_SETATTR, &usb_attr);
-
+    //usb_ioctl(I_USB_CONNECTED, &usb_connected);
+    //usb_found = usb_connected;
 }
 
 void enableFPU(void){

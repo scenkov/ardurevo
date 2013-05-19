@@ -118,8 +118,6 @@ static void init_ardupilot()
                          "\n\nFree RAM: %u\n"),
                     memcheck_available_memory());
 
-    hal.console->printf_P("USB:%d", hal.uartA->usb_present());
-
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
     //

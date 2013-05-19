@@ -15,8 +15,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <usart.h>
 #include <usb.h>
+#include <usart.h>
 #include <gpio_hal.h>
 
 static usb_attr_t usb_attr;
@@ -31,20 +31,19 @@ using namespace VRBRAIN;
 VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
     usart_device(usart)
 {
-    if(use_usb == 1){
-	usb_ioctl(I_USB_CONNECTED, &usb_connected);
-	_usb_present = 1;
-    }else{
-	_usb_present = 0;
-    }
-
+    this->usb =use_usb;
     this->tx_pin = usart_device->tx_pin;
     this->rx_pin = usart_device->rx_pin;
     this->_initialized = true;
-    begin(57600);
 }
 
 void VRBRAINUARTDriver::begin(uint32_t baud) {
+
+    if(usb == 1){
+	_usb_present = gpio_read_bit(_GPIOD,4);
+    }else{
+	_usb_present = 0;
+    }
 
     const stm32_pin_info *txi = &PIN_MAP[this->tx_pin];
     const stm32_pin_info *rxi = &PIN_MAP[this->rx_pin];

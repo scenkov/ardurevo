@@ -44,8 +44,6 @@ public:
   /* Empty implementations of Print virtual methods */
   size_t write(uint8_t c);
 
-  uint8_t usb_present() { return _usb_present; }
-
 private:
     uint8_t _port;
     usart_dev *usart_device;
