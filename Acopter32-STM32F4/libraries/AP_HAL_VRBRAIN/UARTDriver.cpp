@@ -29,11 +29,12 @@ using namespace VRBRAIN;
 //definisco qui i parametri per le varie seriali preconfigurate
 
 VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
-    usart_device(usart)
+    usart_device(usart),
+    tx_pin(200),
+    rx_pin(200),
+    usb(use_usb),
+    _usb_present(0)
 {
-    this->usb =use_usb;
-    this->tx_pin = usart_device->tx_pin;
-    this->rx_pin = usart_device->rx_pin;
     this->_initialized = true;
 }
 
