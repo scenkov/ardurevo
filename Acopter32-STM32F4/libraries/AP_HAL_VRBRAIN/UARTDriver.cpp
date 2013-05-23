@@ -28,22 +28,21 @@ using namespace VRBRAIN;
 
 //definisco qui i parametri per le varie seriali preconfigurate
 
-VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
-    usart_device(usart),
-    tx_pin(200),
-    rx_pin(200),
-    usb(use_usb),
-    _usb_present(0)
+VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb)
 {
+    this->usart_device = usart;
+    this->usb = use_usb;
+    this->tx_pin = usart_device->tx_pin;
+    this->rx_pin = usart_device->rx_pin;
     this->_initialized = true;
 }
 
 void VRBRAINUARTDriver::begin(uint32_t baud) {
 
-    if(usb == 1){
-	_usb_present = gpio_read_bit(_GPIOD,4);
+    if(this->usb == 1){
+	this->_usb_present = gpio_read_bit(_GPIOD,4);
     }else{
-	_usb_present = 0;
+	this->_usb_present = 0;
     }
 
     const stm32_pin_info *txi = &PIN_MAP[this->tx_pin];
@@ -64,14 +63,14 @@ void VRBRAINUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
 }
 
 void VRBRAINUARTDriver::end() {
-    if(_usb_present == 1)
+    if(this->_usb_present == 1)
 	usb_close();
     else
 	usart_disable(this->usart_device);
 }
 
 void VRBRAINUARTDriver::flush() {
-    if(_usb_present ==1){
+    if(this->_usb_present ==1){
 	usb_reset_rx();
 	usb_reset_tx();
     }else {
@@ -82,14 +81,14 @@ void VRBRAINUARTDriver::flush() {
 }
 
 void VRBRAINUARTDriver::set_blocking_writes(bool blocking) {
-    if(_usb_present == 0){
+    if(this->_usb_present == 0){
 	usart_reset_tx(this->usart_device);
 	this->usart_device->usetxrb = !blocking;
     }
 }
 
 bool VRBRAINUARTDriver::tx_pending() {
-    if(_usb_present == 1)
+    if(this->_usb_present == 1)
 	return usb_tx_pending();
     else
 	return (usart_txfifo_nbytes(this->usart_device) > 0 ? true : false);
@@ -200,21 +199,21 @@ void VRBRAINUARTDriver::_vprintf(const char *fmt, va_list ap)
 
 /* VRBRAIN implementations of Stream virtual methods */
 int16_t VRBRAINUARTDriver::available() {
-    if(_usb_present == 1)
+    if(this->_usb_present == 1)
 	return usb_data_available();
     else
     return usart_data_available(this->usart_device);
 }
 
 int16_t VRBRAINUARTDriver::txspace() {
-    if(_usb_present == 1)
+    if(this->_usb_present == 1)
 	return 255;
     else
 	return usart_txfifo_freebytes(this->usart_device);
 }
 
 int16_t VRBRAINUARTDriver::read() {
-    if(_usb_present == 1){
+    if(this->_usb_present == 1){
 	if (usb_data_available() <= 0)
 	    return (-1);
 	return usb_getc();
@@ -227,7 +226,7 @@ int16_t VRBRAINUARTDriver::read() {
 
 /* VRBRAIN implementations of Print virtual methods */
 size_t VRBRAINUARTDriver::write(uint8_t c) {
-    if(_usb_present == 1){
+    if(this->_usb_present == 1){
 	usb_putc(c);
 	return 1;
     } else {

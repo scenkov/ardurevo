@@ -10,7 +10,7 @@
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-static VRBRAINUARTDriver uartADriver(_USART3,0);
+static VRBRAINUARTDriver uartADriver(_USART3,1);
 static VRBRAINUARTDriver uartBDriver(_USART1,0);
 static VRBRAINUARTDriver uartCDriver(_USART2,0);
 static VRBRAINSemaphore  i2cSemaphore;
@@ -49,9 +49,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
   scheduler->init(NULL);
-  uartA->begin(115200);
-  uartB->begin(38400);
-  uartC->begin(57600);
+  uartA->begin(57600);
   console->init((void *)uartA);
   //_member->init();
   i2c->begin();

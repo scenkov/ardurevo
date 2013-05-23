@@ -2,6 +2,9 @@
 #include "AnalogIn.h"
 #include <adc.h>
 #include <boards.h>
+#include <gpio_hal.h>
+
+extern const AP_HAL::HAL& hal;
 
 using namespace VRBRAIN;
 
@@ -13,6 +16,10 @@ VRBRAINAnalogSource::VRBRAINAnalogSource(int16_t pin, float initial_value) :
     if ((_pin < 0) || (_pin >= BOARD_NR_GPIO_PINS)) {
             _pin = 200;
         }
+
+    //gpio_set_mode(PIN_MAP[_pin].gpio_device, PIN_MAP[_pin].gpio_bit, GPIO_INPUT_ANALOG);
+
+    hal.gpio->pinMode(_pin, INPUT_ANALOG);
 }
 
 float VRBRAINAnalogSource::read_average() {
