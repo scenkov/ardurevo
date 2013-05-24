@@ -179,7 +179,7 @@
  # define LED_ON           HIGH
  # define LED_OFF          LOW
  # define PUSHBUTTON_PIN   200
- # define USB_MUX_PIN      -1
+ # define USB_MUX_PIN      200
  # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
  # define BATTERY_CURR_PIN      200      // Battery current on A1
  # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
