@@ -45,12 +45,9 @@ public:
   size_t write(uint8_t c);
 
 private:
-    uint8_t _port;
-    usart_dev *usart_device;
-    uint8_t tx_pin;
-    uint8_t rx_pin;
+    struct usart_dev *usart_device;
     bool _initialized;
-    uint8_t usb;
+    uint8_t _usb;
     uint8_t _usb_present;
 };
 

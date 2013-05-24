@@ -13,12 +13,8 @@
 
 using namespace VRBRAIN;
 
-VRBRAINConsoleDriver::VRBRAINConsoleDriver(AP_HAL::BetterStream* delegate) :
-    _d(delegate)
-{}
-
-void VRBRAINConsoleDriver::init(void *args)
-{
+void VRBRAINConsoleDriver::init(void* base_uart){
+	_d = (AP_HAL::UARTDriver*) base_uart;
 }
 
 void VRBRAINConsoleDriver::backend_open()
