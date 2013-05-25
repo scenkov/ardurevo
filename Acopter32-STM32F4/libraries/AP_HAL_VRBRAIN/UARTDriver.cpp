@@ -29,24 +29,22 @@ using namespace VRBRAIN;
 //definisco qui i parametri per le varie seriali preconfigurate
 
 VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
-    usart_device(usart)
+    usart_device(usart),
+    _usb(use_usb)
 {
-    this->usb =use_usb;
-    this->tx_pin = usart_device->tx_pin;
-    this->rx_pin = usart_device->rx_pin;
-    this->_initialized = true;
+    this->_initialized = false;
 }
 
 void VRBRAINUARTDriver::begin(uint32_t baud) {
 
-    if(usb == 1){
+    if(_usb == 1){
 	_usb_present = gpio_read_bit(_GPIOD,4);
     }else{
 	_usb_present = 0;
     }
 
-    const stm32_pin_info *txi = &PIN_MAP[this->tx_pin];
-    const stm32_pin_info *rxi = &PIN_MAP[this->rx_pin];
+    const stm32_pin_info *txi = &PIN_MAP[usart_device->tx_pin];
+    const stm32_pin_info *rxi = &PIN_MAP[usart_device->rx_pin];
 
     gpio_set_af_mode(txi->gpio_device, txi->gpio_bit, this->usart_device->gpio_af);
     gpio_set_mode(txi->gpio_device, txi->gpio_bit, GPIO_AF_OUTPUT_PP);
@@ -56,6 +54,8 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
     usart_init(this->usart_device);
     usart_setup(this->usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
     usart_enable(this->usart_device);
+
+    _initialized = true;
 }
 
 void VRBRAINUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
