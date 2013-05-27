@@ -26,15 +26,15 @@ VRBRAINScheduler::VRBRAINScheduler()
 
 void VRBRAINScheduler::init(void* machtnichts)
 {
-    /*
+
     timer_pause(TIMER5);
     timer_set_prescaler(TIMER5,41);
     timer_set_count(TIMER5,0);
     timer_set_reload(TIMER5,999);
     timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer_isr_event);
     timer_resume(TIMER5);
-*/
-    systick_attach_callback(_timer_isr_event);
+
+    //systick_attach_callback(_timer_isr_event);
 }
 
 void VRBRAINScheduler::delay(uint16_t ms)

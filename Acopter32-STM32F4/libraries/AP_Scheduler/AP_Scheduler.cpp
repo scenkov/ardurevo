@@ -34,6 +34,7 @@ void AP_Scheduler::init(const AP_Scheduler::Task *tasks, uint8_t num_tasks)
     _last_run = new uint16_t[_num_tasks];
     memset(_last_run, 0, sizeof(_last_run[0]) * _num_tasks);
     _tick_counter = 0;
+    _debug = 1;
 }
 
 // one tick has passed

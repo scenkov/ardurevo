@@ -45,10 +45,10 @@ public:
   size_t write(uint8_t c);
 
 private:
-    struct usart_dev *usart_device;
-    bool _initialized;
+    usart_dev *usart_device;
     uint8_t _usb;
     uint8_t _usb_present;
+    bool _initialized;
 };
 
 #endif // __AP_HAL_EMPTY_UARTDRIVER_H__

@@ -191,6 +191,13 @@ static void do_aux_switch_function(int8_t ch_function, bool ch_flag)
             fence.enable(ch_flag);
             break;
 #endif
+        case AUX_SWITCH_RESETTOARMEDYAW:
+            if (ch_flag) {
+                set_yaw_mode(YAW_RESETTOARMEDYAW);
+            }else{
+                set_yaw_mode(YAW_HOLD);
+            }
+            break; 
     }
 }
 

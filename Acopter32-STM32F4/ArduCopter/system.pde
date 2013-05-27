@@ -82,7 +82,7 @@ static void init_ardupilot()
     // USB_MUX_PIN
     pinMode(USB_MUX_PIN, INPUT);
 
-    ap_system.usb_connected = !digitalReadFast(USB_MUX_PIN);
+    ap_system.usb_connected = !digitalRead(USB_MUX_PIN);
     if (!ap_system.usb_connected) {
         // USB is not connected, this means UART0 may be a Xbee, with
         // its darned bricking problem. We can't write to it for at
@@ -147,6 +147,10 @@ static void init_ardupilot()
     batt_curr_analog_source = hal.analogin->channel(g.battery_curr_pin);
     board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
+#if HIL_MODE != HIL_MODE_ATTITUDE
+    cliSerial->println("Baro init");
+    barometer.init();
+#endif
 
     // init the GCS
     cliSerial->println("GCS0 init");
@@ -166,8 +170,8 @@ static void init_ardupilot()
 #else
     cliSerial->println("GCS3 init");
     // we have a 2nd serial port for telemetry
-    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
-    gcs3.init(hal.uartC);
+    //hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+    //gcs3.init(hal.uartC);
 #endif
 
     // identify ourselves correctly with the ground station
@@ -208,9 +212,6 @@ static void init_ardupilot()
     // begin filtering the ADC Gyros
     adc.Init();           // APM ADC library initialization
  #endif // CONFIG_ADC
-    cliSerial->println("Baro init");
-    barometer.init();
-
 #endif // HIL_MODE
 
 
@@ -242,7 +243,7 @@ cliSerial->println("compass init");
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
 #if USB_MUX_PIN == 0
-    hal.uartC->println_P(msg);
+    //hal.uartC->println_P(msg);
 #endif
 #endif // CLI_ENABLED
 
@@ -554,7 +555,7 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
 #if USB_MUX_PIN > 0
 static void check_usb_mux(void)
 {
-    bool usb_check = !digitalReadFast(USB_MUX_PIN);
+    bool usb_check = !digitalRead(USB_MUX_PIN);
     if (usb_check == ap_system.usb_connected) {
         return;
     }

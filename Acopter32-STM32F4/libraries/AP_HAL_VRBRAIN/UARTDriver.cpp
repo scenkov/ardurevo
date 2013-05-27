@@ -30,9 +30,10 @@ using namespace VRBRAIN;
 
 VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
     usart_device(usart),
-    _usb(use_usb)
+    _usb(use_usb),
+    _usb_present(0),
+    _initialized(false)
 {
-    this->_initialized = false;
 }
 
 void VRBRAINUARTDriver::begin(uint32_t baud) {
@@ -42,6 +43,23 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
     }else{
 	_usb_present = 0;
     }
+
+    if(_usb_present == 1)
+	{
+	//usart_disable(usart_device);
+	//usb_attr_t usb_attr;
+	usb_open();
+	usb_default_attr(&usb_attr);
+	usb_attr.preempt_prio = 0;
+	usb_attr.sub_prio = 0;
+	usb_attr.use_present_pin = 1;
+	usb_attr.present_port = _GPIOD;
+	usb_attr.present_pin = 4;
+	usb_ioctl(I_USB_SETATTR, &usb_attr);
+
+	}
+    //else
+	//{
 
     const stm32_pin_info *txi = &PIN_MAP[usart_device->tx_pin];
     const stm32_pin_info *rxi = &PIN_MAP[usart_device->rx_pin];
@@ -54,7 +72,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
     usart_init(this->usart_device);
     usart_setup(this->usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
     usart_enable(this->usart_device);
-
+	//}
     _initialized = true;
 }
 
@@ -65,7 +83,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
 void VRBRAINUARTDriver::end() {
     if(_usb_present == 1)
 	usb_close();
-    else
+    //else
 	usart_disable(this->usart_device);
 }
 
@@ -73,10 +91,10 @@ void VRBRAINUARTDriver::flush() {
     if(_usb_present ==1){
 	usb_reset_rx();
 	usb_reset_tx();
-    }else {
+    }//else {
 	usart_reset_rx(this->usart_device);
 	usart_reset_tx(this->usart_device);
-    }
+    //}
 
 }
 
