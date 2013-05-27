@@ -196,7 +196,7 @@ static void init_ardupilot()
     motors.init_swash();              // heli initialisation
 #endif
 
-    cliSerial->println("RC init");
+    hal.console->println("RC init");
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up motors and output to escs
 
@@ -213,13 +213,13 @@ static void init_ardupilot()
  #endif // CONFIG_ADC
 #endif // HIL_MODE
 
-    cliSerial->println("GPS init");
+    hal.console->println("GPS init");
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
     g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
 
-    cliSerial->println("compass init");
+    hal.console->println("compass init");
 
     if(g.compass_enabled)
         init_compass();
@@ -261,7 +261,7 @@ static void init_ardupilot()
 
     // initialise sonar
 #if CONFIG_SONAR == ENABLED
-    cliSerial->printf_P("Init Sonar");
+    hal.console->println("Init Sonar");
     init_sonar();
 #endif
 
@@ -272,22 +272,22 @@ init_rate_controllers();
 
     // initialize commands
     // -------------------
-cliSerial->printf_P("Init Commands");
+hal.console->println_P("Init Commands");
     init_commands();
 
     // set the correct flight mode
     // ---------------------------
-    cliSerial->printf_P("Reset Control Switch");
+    hal.console->println_P("Reset Control Switch");
     reset_control_switch();
 
-    cliSerial->printf_P("StartUp Ground");
+    hal.console->println_P("StartUp Ground");
     startup_ground();
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
 #endif
 
-    cliSerial->print_P(PSTR("\nReady to FLY "));
+    hal.console->println_P(PSTR("\nReady to FLY "));
 }
 
 

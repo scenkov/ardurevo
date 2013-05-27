@@ -20,7 +20,7 @@
 #include <gpio_hal.h>
 
 static usb_attr_t usb_attr;
-static uint8_t usb_connected;
+//static uint8_t usb_connected;
 
 extern const AP_HAL::HAL& hal;
 

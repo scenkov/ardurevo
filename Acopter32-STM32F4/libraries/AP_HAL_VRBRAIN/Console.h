@@ -12,11 +12,12 @@
 #define __AP_HAL_VRBRAIN_CONSOLE_H__
 
 #include <AP_HAL_VRBRAIN.h>
+#include <AP_HAL_VRBRAIN_Namespace.h>
 
 class VRBRAIN::VRBRAINConsoleDriver : public AP_HAL::ConsoleDriver {
 public:
-    VRBRAINConsoleDriver(AP_HAL::BetterStream* delegate);
-    void init(void *arg);
+    VRBRAINConsoleDriver();
+    void init(void *uart);
     void backend_open();
     void backend_close();
     size_t backend_read(uint8_t *data, size_t len);
@@ -36,7 +37,7 @@ public:
 
     size_t write(uint8_t c);
 private:
-    AP_HAL::BetterStream *_d;
+    VRBRAINUARTDriver *_uart;
 };
 
 #endif // __AP_HAL_VRBRAIN_CONSOLE_H__

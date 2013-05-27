@@ -10,15 +10,16 @@
 
 #include <stdarg.h>
 #include "Console.h"
+#include "UARTDriver.h"
+#include <stdio.h>
 
 using namespace VRBRAIN;
 
-VRBRAINConsoleDriver::VRBRAINConsoleDriver(AP_HAL::BetterStream* delegate) :
-    _d(delegate)
-{}
+VRBRAINConsoleDriver::VRBRAINConsoleDriver(){}
 
-void VRBRAINConsoleDriver::init(void *args)
+void VRBRAINConsoleDriver::init(void *uart)
 {
+	_uart = (VRBRAINUARTDriver *)uart;
 }
 
 void VRBRAINConsoleDriver::backend_open()
@@ -36,49 +37,49 @@ size_t VRBRAINConsoleDriver::backend_write(const uint8_t *data, size_t len) {
 }
 
 void VRBRAINConsoleDriver::print_P(const prog_char_t *pstr) {
-    _d->print_P(pstr);
+    _uart->print_P(pstr);
 }
 
 void VRBRAINConsoleDriver::println_P(const prog_char_t *pstr)
 {
-  _d->println_P(pstr);
+  _uart->println_P(pstr);
 }
 
 void VRBRAINConsoleDriver::printf(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    _uart->vprintf(fmt, ap);
     va_end(ap);
 }
 
 void VRBRAINConsoleDriver::_printf_P(const prog_char *fmt, ...) {
     va_list ap;
     va_start(ap,fmt);
-    vprintf_P(fmt, ap);
+    _uart->vprintf(fmt, ap);
     va_end(ap);
 }
 
 void VRBRAINConsoleDriver::vprintf(const char *fmt, va_list ap) {
-    _d->vprintf(fmt, ap);
+    _uart->vprintf(fmt, ap);
 }
 
 void VRBRAINConsoleDriver::vprintf_P(const prog_char *fmt, va_list ap) {
-    _d->vprintf_P(fmt, ap);
+    _uart->vprintf(fmt, ap);
 }
 
 int16_t VRBRAINConsoleDriver::available() {
-    return _d->available();
+    return _uart->available();
 }
 
 int16_t VRBRAINConsoleDriver::txspace() {
-    return _d->txspace();
+    return _uart->txspace();
 }
 
 int16_t VRBRAINConsoleDriver::read() {
-    return _d->read();
+    return _uart->read();
 }
 
 size_t VRBRAINConsoleDriver::write(uint8_t c) {
-    return _d->write(c);
+    return _uart->write(c);
 }
 

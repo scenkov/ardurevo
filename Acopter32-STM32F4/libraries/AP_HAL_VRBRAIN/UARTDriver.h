@@ -33,8 +33,7 @@ public:
   void vprintf(const char* fmt, va_list ap);
   void vprintf_P(const prog_char* fmt, va_list ap);
 
-  void _internal_vprintf(const char *fmt, va_list ap);
-  void _vprintf(const char *fmt, va_list ap);
+
 
   /* VRBRAIN implementations of Stream virtual methods */
   int16_t available();
@@ -45,6 +44,8 @@ public:
   size_t write(uint8_t c);
 
 private:
+  void _vprintf(const char *fmt, va_list ap);
+  void _internal_vprintf(const char *fmt, va_list ap);
     usart_dev *usart_device;
     uint8_t _usb;
     uint8_t _usb_present;
