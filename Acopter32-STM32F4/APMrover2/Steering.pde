@@ -27,6 +27,13 @@ static bool auto_check_trigger(void)
         return true;
     }
 
+    // check for user pressing the auto trigger to off
+    if (auto_triggered && g.auto_trigger_pin != -1 && check_digital_pin(g.auto_trigger_pin) == 1) {
+        gcs_send_text_P(SEVERITY_LOW, PSTR("AUTO triggered off"));
+        auto_triggered = false;
+        return false; 
+    }
+
     // if already triggered, then return true, so you don't
     // need to hold the switch down
     if (auto_triggered) {
@@ -39,21 +46,10 @@ static bool auto_check_trigger(void)
         return true;
     }
  
-    if (g.auto_trigger_pin != -1) {
-        int8_t pin = hal.gpio->analogPinToDigitalPin(g.auto_trigger_pin);
-        if (pin != -1) {
-            // ensure we are in input mode
-            hal.gpio->pinMode(pin, GPIO_INPUT);
-
-            // enable pullup
-            hal.gpio->write(pin, 1);
-
-            if (hal.gpio->read(pin) == 0) {
-                gcs_send_text_P(SEVERITY_LOW, PSTR("Triggered AUTO with pin"));
-                auto_triggered = true;
-                return true;            
-            }
-        }
+    if (g.auto_trigger_pin != -1 && check_digital_pin(g.auto_trigger_pin) == 0) {
+        gcs_send_text_P(SEVERITY_LOW, PSTR("Triggered AUTO with pin"));
+        auto_triggered = true;
+        return true;            
     }
 
     if (g.auto_kickstart != 0.0f) {
@@ -91,8 +87,8 @@ static void calc_throttle(float target_speed)
       reduce target speed in proportion to turning rate, up to the
       SPEED_TURN_GAIN percentage.
     */
-    float steer_rate = fabsf((nav_steer/nav_gain_scaler) / (float)SERVO_MAX);
-    steer_rate = constrain(steer_rate, 0.0, 1.0);
+    float steer_rate = fabsf((nav_steer_cd/nav_gain_scaler) / (float)SERVO_MAX);
+    steer_rate = constrain_float(steer_rate, 0.0, 1.0);
     float reduction = 1.0 - steer_rate*(100 - g.speed_turn_gain)*0.01;
     
     if (control_mode >= AUTO && wp_distance <= g.speed_turn_dist) {
@@ -129,19 +125,19 @@ static void calc_nav_steer()
     } else {
         nav_gain_scaler = g.speed_cruise / ground_speed;
     }
-	nav_gain_scaler = constrain(nav_gain_scaler, 0.2f, 1.4f);
+	nav_gain_scaler = constrain_float(nav_gain_scaler, 0.2f, 1.4f);
 
 	// Calculate the required turn of the wheels rover
 	// ----------------------------------------
 
     // negative error = left turn
 	// positive error = right turn
-	nav_steer = g.pidNavSteer.get_pid_4500(bearing_error_cd, nav_gain_scaler);
+	nav_steer_cd = g.pidNavSteer.get_pid_4500(bearing_error_cd, nav_gain_scaler);
 
     // avoid obstacles, if any
-    nav_steer += obstacle.turn_angle*100;
+    nav_steer_cd += obstacle.turn_angle*100;
 
-    g.channel_steer.servo_out = nav_steer;
+    g.channel_steer.servo_out = nav_steer_cd;
 }
 
 /*****************************************

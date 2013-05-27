@@ -63,7 +63,7 @@
 #define AUX_SWITCH_CAMERA_TRIGGER   9       // trigger camera servo or relay
 #define AUX_SWITCH_SONAR            10      // allow enabling or disabling sonar in flight which helps avoid surface tracking when you are far above the ground
 #define AUX_SWITCH_FENCE            11      // allow enabling or disabling fence in flight
-
+#define AUX_SWITCH_RESETTOARMEDYAW  12      // changes yaw to be same as when quad was armed
 
 
 // Frame types

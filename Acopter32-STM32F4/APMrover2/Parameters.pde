@@ -18,9 +18,21 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(software_type,          "SYSID_SW_TYPE",    Parameters::k_software_type),
 
 	// misc
+    // @Param: LOG_BITMASK
+    // @DisplayName: Log bitmask
+    // @Description: Two byte bitmap of log types to enable in dataflash
+    // @Values: 0:Disabled,3950:Default,4078:Default+IMU
+    // @User: Advanced
 	GSCALAR(log_bitmask,            "LOG_BITMASK",      DEFAULT_LOG_BITMASK),
 	GSCALAR(num_resets,             "SYS_NUM_RESETS",   0),
 	GSCALAR(reset_switch_chan,      "RST_SWITCH_CH",    0),
+
+    // @Param: INITIAL_MODE
+    // @DisplayName: Initial driving mode
+    // @Description: This selects the mode to start in on boot. This is useful for when you want to start in AUTO mode on boot without a receiver. Usuallly used in combination with when AUTO_TRIGGER_PIN or AUTO_KICKSTART.
+    // @Values: 0:MANUAL,2:LEARNING,3:STEERING,4:HOLD,10:AUTO,11:RTL,15:GUIDED
+    // @User: Advanced
+	GSCALAR(initial_mode,        "INITIAL_MODE",     MANUAL),
 
     // @Param: RSSI_PIN
     // @DisplayName: Receiver RSSI sensing pin
@@ -110,6 +122,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @DisplayName: Battery Capacity
     // @Description: Battery capacity in milliamp-hours (mAh)
     // @Units: mAh
+	// @User: Standard
 	GSCALAR(pack_capacity,          "BATT_CAPACITY",    HIGH_DISCHARGE),
 
     // @Param: XTRK_GAIN_SC
@@ -131,7 +144,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
 	// @Param: AUTO_TRIGGER_PIN
 	// @DisplayName: Auto mode trigger pin
-	// @Description: pin number to use to trigger start of auto mode. If set to -1 then don't use a trigger, otherwise this is a pin number which if held low in auto mode will start the motor.
+	// @Description: pin number to use to trigger start of auto mode. If set to -1 then don't use a trigger, otherwise this is a pin number which if held low in auto mode will start the motor, and otherwise will force the throttle off. This can be used in combination with INITIAL_MODE to give a 'press button to start' rover with no receiver.
 	// @Values: -1:Disabled,0-9:TiggerPin
 	// @User: standard
 	GSCALAR(auto_trigger_pin,        "AUTO_TRIGGER_PIN", -1),
@@ -379,6 +392,9 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: SONAR_
     // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
     GOBJECT(sonar,                  "SONAR_", AP_RangeFinder_analog),
+
+    // @Group: SONAR2_
+    // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
     GOBJECT(sonar2,                 "SONAR2_", AP_RangeFinder_analog),
 
 #if HIL_MODE == HIL_MODE_DISABLED

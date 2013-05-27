@@ -106,7 +106,6 @@
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
- # define MAG_ORIENTATION	ROTATION_YAW_180
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
  # define CONFIG_BARO     AP_BARO_MS5611
@@ -148,7 +147,6 @@
 # define USB_MUX_PIN -1
 # define BATTERY_PIN_1	  1
 # define CURRENT_PIN_1	  2
-# define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
 # define CONFIG_INS_TYPE   CONFIG_INS_PX4
 # define CONFIG_COMPASS  AP_COMPASS_PX4
@@ -166,7 +164,6 @@
 # define USB_MUX_PIN -1
 # define BATTERY_PIN_1	  -1
 # define CURRENT_PIN_1	  -1
-# define MAG_ORIENTATION   ROTATION_NONE
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -305,9 +302,6 @@
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
 # define MAGNETOMETER			ENABLED
-#endif
-#ifndef MAG_ORIENTATION
-# define MAG_ORIENTATION		AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -462,51 +456,17 @@
 # define LOGGING_ENABLED		ENABLED
 #endif
 
-#ifndef LOG_ATTITUDE_FAST
-# define LOG_ATTITUDE_FAST		DISABLED
-#endif
-#ifndef LOG_ATTITUDE_MED
-# define LOG_ATTITUDE_MED 		ENABLED
-#endif
-#ifndef LOG_GPS
-# define LOG_GPS 				ENABLED
-#endif
-#ifndef LOG_PM
-# define LOG_PM 				DISABLED
-#endif
-#ifndef LOG_CTUN
-# define LOG_CTUN				ENABLED
-#endif
-#ifndef LOG_NTUN
-# define LOG_NTUN				DISABLED
-#endif
-#ifndef LOG_MODE
-# define LOG_MODE				ENABLED
-#endif
-#ifndef LOG_IMU
-# define LOG_IMU				DISABLED
-#endif
-#ifndef LOG_CMD
-# define LOG_CMD				ENABLED
-#endif
-#ifndef LOG_CURRENT
-# define LOG_CURRENT			DISABLED
-#endif
+#define DEFAULT_LOG_BITMASK     \
+    MASK_LOG_ATTITUDE_MED | \
+    MASK_LOG_GPS | \
+    MASK_LOG_PM | \
+    MASK_LOG_NTUN | \
+    MASK_LOG_MODE | \
+    MASK_LOG_CMD | \
+    MASK_LOG_SONAR | \
+    MASK_LOG_COMPASS | \
+    MASK_LOG_CURRENT
 
-// calculate the default log_bitmask
-#define LOGBIT(_s)	(LOG_##_s ? MASK_LOG_##_s : 0)
-
-#define DEFAULT_LOG_BITMASK \
-		LOGBIT(ATTITUDE_FAST)	| \
-		LOGBIT(ATTITUDE_MED)	| \
-		LOGBIT(GPS)				| \
-		LOGBIT(PM)				| \
-		LOGBIT(CTUN)			| \
-		LOGBIT(NTUN)			| \
-		LOGBIT(MODE)			| \
-		LOGBIT(IMU)				| \
-		LOGBIT(CMD)				| \
-		LOGBIT(CURRENT)
 
 
 //////////////////////////////////////////////////////////////////////////////

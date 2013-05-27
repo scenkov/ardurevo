@@ -229,6 +229,7 @@ static void init_ardupilot()
         //read_EEPROM_airstart_critical();
         ahrs.init();
         ahrs.set_fly_forward(true);
+        ahrs.set_wind_estimation(true);
 
         ins.init(AP_InertialSensor::WARM_START, 
                  ins_sample_rate,

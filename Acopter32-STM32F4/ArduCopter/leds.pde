@@ -140,14 +140,14 @@ static void copter_leds_init(void)
     pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
     hal.gpio->pinMode(PIEZO_PIN, OUTPUT);       // PIEZO PIN
 
-    digitalWriteFast(COPTER_LED_1, COPTER_LED_ON);              //Motor LED
-    digitalWriteFast(COPTER_LED_2, COPTER_LED_ON);              //Motor LED
-    digitalWriteFast(COPTER_LED_3, COPTER_LED_ON);              //Motor LED
-    digitalWriteFast(COPTER_LED_4, COPTER_LED_ON);              //Motor LED
-    digitalWriteFast(COPTER_LED_5, COPTER_LED_ON);              //Motor or Aux LED
-    digitalWriteFast(COPTER_LED_6, COPTER_LED_ON);              //Motor or Aux LED
-    digitalWriteFast(COPTER_LED_7, COPTER_LED_ON);              //Motor or GPS LED
-    digitalWriteFast(COPTER_LED_8, COPTER_LED_ON);              //Motor or GPS LED
+    digitalWrite(COPTER_LED_1, COPTER_LED_ON);              //Motor LED
+    digitalWrite(COPTER_LED_2, COPTER_LED_ON);              //Motor LED
+    digitalWrite(COPTER_LED_3, COPTER_LED_ON);              //Motor LED
+    digitalWrite(COPTER_LED_4, COPTER_LED_ON);              //Motor LED
+    digitalWrite(COPTER_LED_5, COPTER_LED_ON);              //Motor or Aux LED
+    digitalWrite(COPTER_LED_6, COPTER_LED_ON);              //Motor or Aux LED
+    digitalWrite(COPTER_LED_7, COPTER_LED_ON);              //Motor or GPS LED
+    digitalWrite(COPTER_LED_8, COPTER_LED_ON);              //Motor or GPS LED
 
     if (!(g.copter_leds_mode & COPTER_LEDS_BITMASK_BEEPER)) {
         piezo_beep();

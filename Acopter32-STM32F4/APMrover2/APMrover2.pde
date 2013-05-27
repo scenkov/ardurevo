@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduRover v2.40"
+#define THISFIRMWARE "ArduRover v2.42beta"
 
 /* 
 This is the APMrover2 firmware. It was originally derived from
@@ -117,18 +117,22 @@ static Parameters      g;
 // prototypes
 static void update_events(void);
 void gcs_send_text_fmt(const prog_char_t *fmt, ...);
+static void print_mode(AP_HAL::BetterStream *port, uint8_t mode);
 
 ////////////////////////////////////////////////////////////////////////////////
 // DataFlash
 ////////////////////////////////////////////////////////////////////////////////
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
-DataFlash_APM1 DataFlash;
+static DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
-DataFlash_APM2 DataFlash;
+static DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
-DataFlash_SITL DataFlash;
+//static DataFlash_File DataFlash("/tmp/APMlogs");
+static DataFlash_SITL DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
 static DataFlash_File DataFlash("/fs/microsd/APM/logs");
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+static DataFlash_VRBRAIN DataFlash;
 #else
 DataFlash_Empty DataFlash;
 #endif
@@ -154,7 +158,7 @@ static GPS         *g_gps;
 static AP_Int8		*modes = &g.mode1;
 
 #if CONFIG_ADC == ENABLED
-static AP_ADC_ADS7844          adc;
+static AP_ADC_ADS7844 adc;
 #endif
 
 #if CONFIG_COMPASS == AP_COMPASS_PX4
@@ -373,6 +377,8 @@ static struct {
     // have we detected an obstacle?
     uint8_t detected_count;
     float turn_angle;
+    uint16_t sonar1_distance_cm;
+    uint16_t sonar2_distance_cm;
 
     // time when we last detected an obstacle, in milliseconds
     uint32_t detected_time_ms;
@@ -425,7 +431,7 @@ static float	current_total1;
 // Navigation control variables
 ////////////////////////////////////////////////////////////////////////////////
 // The instantaneous desired steering angle.  Hundredths of a degree
-static int32_t nav_steer;
+static int32_t nav_steer_cd;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Waypoint distances
@@ -546,7 +552,7 @@ void setup() {
     // load the default values of variables listed in var_info[]
     AP_Param::setup_sketch_defaults();
 
-    rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE, 1.0);
+    rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE);
     vcc_pin = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
     batt_volt_pin = hal.analogin->channel(g.battery_volt_pin);
     batt_curr_pin = hal.analogin->channel(g.battery_curr_pin);
@@ -633,10 +639,10 @@ static void fast_loop()
 
 	# if HIL_MODE == HIL_MODE_DISABLED
 		if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
-			Log_Write_Attitude((int)ahrs.roll_sensor, (int)ahrs.pitch_sensor, (uint16_t)ahrs.yaw_sensor);
+			Log_Write_Attitude();
 
 		if (g.log_bitmask & MASK_LOG_IMU)
-			Log_Write_IMU();
+			DataFlash.Log_Write_IMU(&ins);
 	#endif
 
 	// custom code/exceptions for flight modes
@@ -673,6 +679,9 @@ static void medium_loop()
                 ahrs.set_compass(&compass);
                 // Calculate heading
                 compass.null_offsets();
+                if (g.log_bitmask & MASK_LOG_COMPASS) {
+                    Log_Write_Compass();
+                }
             } else {
                 ahrs.set_compass(NULL);
             }
@@ -704,7 +713,7 @@ static void medium_loop()
 			medium_loopCounter++;
 			#if HIL_MODE != HIL_MODE_ATTITUDE
 				if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
-					Log_Write_Attitude((int)ahrs.roll_sensor, (int)ahrs.pitch_sensor, (uint16_t)ahrs.yaw_sensor);
+					Log_Write_Attitude();
 
 				if (g.log_bitmask & MASK_LOG_CTUN)
 					Log_Write_Control_Tuning();
@@ -712,9 +721,6 @@ static void medium_loop()
 
 			if (g.log_bitmask & MASK_LOG_NTUN)
 				Log_Write_Nav_Tuning();
-
-			if (g.log_bitmask & MASK_LOG_GPS)
-				Log_Write_GPS(g_gps->time, current_loc.lat, current_loc.lng, g_gps->altitude, current_loc.alt, g_gps->ground_speed, g_gps->ground_course, g_gps->fix, g_gps->num_sats);
 			break;
 
 		// This case controls the slow loop
@@ -774,10 +780,7 @@ static void slow_loop()
 
             mavlink_system.sysid = g.sysid_this_mav;		// This is just an ugly hack to keep mavlink_system.sysid sync'd with our parameter
 
-#if USB_MUX_PIN > 0
             check_usb_mux();
-#endif
-
 			break;
 	}
 }
@@ -792,10 +795,18 @@ static void one_second_loop()
 
 static void update_GPS(void)
 {        
+    static uint32_t last_gps_reading;
 	g_gps->update();
 	update_GPS_light();
 
-    have_position = ahrs.get_position(&current_loc);
+    if (g_gps->last_message_time_ms() != last_gps_reading) {
+        last_gps_reading = g_gps->last_message_time_ms();
+        if (g.log_bitmask & MASK_LOG_GPS) {
+            DataFlash.Log_Write_GPS(g_gps, current_loc.alt);
+        }
+    }
+
+    have_position = ahrs.get_projected_position(&current_loc);
 
 	if (g_gps->new_data && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
 		gps_fix_count++;

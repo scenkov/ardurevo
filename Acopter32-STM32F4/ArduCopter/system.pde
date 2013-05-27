@@ -198,14 +198,13 @@ static void init_ardupilot()
 
     cliSerial->println("RC init");
     init_rc_in();               // sets up rc channels from radio
-    init_rc_out();              // sets up the timer libs
+    init_rc_out();              // sets up motors and output to escs
+
     /*
      *  setup the 'main loop is dead' check. Note that this relies on
      *  the RC library being initialised.
      */
     hal.scheduler->register_timer_failsafe(failsafe_check, 1000);
-
-
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
  #if CONFIG_ADC == ENABLED
@@ -214,15 +213,13 @@ static void init_ardupilot()
  #endif // CONFIG_ADC
 #endif // HIL_MODE
 
-
     cliSerial->println("GPS init");
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
     g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
 
-
-cliSerial->println("compass init");
+    cliSerial->println("compass init");
 
     if(g.compass_enabled)
         init_compass();

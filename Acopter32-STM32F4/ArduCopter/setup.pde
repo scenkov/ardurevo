@@ -1394,6 +1394,8 @@ init_esc()
 {
     // reduce update rate to motors to 50Hz
     motors.set_update_rate(50);
+
+    // we enable the motors directly here instead of calling output_min because output_min would send a low signal to the ESC and disrupt the calibration process
     motors.enable();
     motors.armed(true);
     while(1) {

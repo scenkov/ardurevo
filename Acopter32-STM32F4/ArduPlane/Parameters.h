@@ -87,6 +87,7 @@ public:
         k_param_nav_controller,
         k_param_elevon_output,
         k_param_att_controller,
+        k_param_mixing_gain,
 
         // 110: Telemetry control
         //
@@ -183,6 +184,8 @@ public:
         k_param_throttle_suppress_manual,
         k_param_throttle_passthru_stabilize,
         k_param_rc_12,
+        k_param_fs_batt_voltage,
+        k_param_fs_batt_mah,
 
         //
         // 200: Feed-forward gains
@@ -311,6 +314,8 @@ public:
     AP_Int8 short_fs_action;
     AP_Int8 long_fs_action;
     AP_Int8 gcs_heartbeat_fs_enabled;
+    AP_Float fs_batt_voltage;
+    AP_Float fs_batt_mah;
 
     // Flight modes
     //
@@ -335,6 +340,7 @@ public:
     AP_Int8 mix_mode;
     AP_Int8 vtail_output;
     AP_Int8 elevon_output;
+    AP_Float mixing_gain;
     AP_Int8 reverse_elevons;
     AP_Int8 reverse_ch1_elevon;
     AP_Int8 reverse_ch2_elevon;

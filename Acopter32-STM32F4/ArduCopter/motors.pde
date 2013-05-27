@@ -170,6 +170,13 @@ static void init_arm_motors()
     // enable gps velocity based centrefugal force compensation
     ahrs.set_correct_centrifugal(true);
 
+    // set hover throttle
+    motors.set_mid_throttle(g.throttle_mid);
+
+#if COPTER_LEDS == ENABLED
+    piezo_beep_twice();
+#endif
+
     // enable output to motors
     output_min();
 
