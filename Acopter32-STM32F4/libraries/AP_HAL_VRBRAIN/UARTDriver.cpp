@@ -28,7 +28,7 @@ using namespace VRBRAIN;
 
 //definisco qui i parametri per le varie seriali preconfigurate
 
-VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
+VRBRAINUARTDriver::VRBRAINUARTDriver(usart_dev *usart, uint8_t use_usb):
     usart_device(usart),
     _usb(use_usb),
     _usb_present(0),

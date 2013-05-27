@@ -10,9 +10,7 @@
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-static VRBRAINUARTDriver uartADriver(_USART3,1);
-static VRBRAINUARTDriver uartCDriver(_USART2,0);
-static VRBRAINUARTDriver uartBDriver(_USART1,0);
+
 static VRBRAINSemaphore  i2cSemaphore;
 static VRBRAINI2CDriver  i2cDriver(_I2C2,&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;
@@ -25,11 +23,15 @@ static VRBRAINRCOutput rcoutDriver;
 static VRBRAINScheduler schedulerInstance;
 static VRBRAINUtil utilInstance;
 
+static VRBRAINUARTDriver uartADriver(_USART3,1);
+static VRBRAINUARTDriver uartBDriver(_USART2,0);
+static VRBRAINUARTDriver uartCDriver(_USART1,0);
+
 HAL_VRBRAIN::HAL_VRBRAIN() :
     AP_HAL::HAL(
       &uartADriver,
-      &uartCDriver,
       &uartBDriver,
+      &uartCDriver,
       &i2cDriver,
       &spiDeviceManager,
       &analogIn,
@@ -43,15 +45,21 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
     //_member(new VRBRAINPrivateMember(123))
 {}
 
+extern const AP_HAL::HAL& hal;
+
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
 {
   /* initialize all drivers and private members here.
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
   scheduler->init(NULL);
-  uartA->begin(115200);
+  //uartA->begin(115200);
 
-  console->init((void *)uartA);
+  hal.uartA->begin(115200);
+  hal.uartB->begin(38400);
+  hal.uartC->begin(57600);
+
+  console->init((void *)hal.uartA);
   //_member->init();
   i2c->begin();
   spi->init(NULL);
