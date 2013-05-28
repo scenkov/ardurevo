@@ -92,16 +92,16 @@
  # define SLIDE_SWITCH_PIN (-1)
  # define PUSHBUTTON_PIN   (-1)
  #if USB == ENABLED
-   # define USB_MUX_PIN      1
+   # define USB_MUX_PIN      (-1)
   #else
    # define USB_MUX_PIN      (-1)
  #endif
  # define CLI_SLIDER_ENABLED DISABLED
  # define OPTFLOW_CS_PIN   (-1)
- # define BATTERY_VOLT_PIN      D6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
- # define BATTERY_PIN_1      D6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      1
+ # define BATTERY_VOLT_PIN      6      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      200      // Battery current on A1
+ # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      200
  # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED

@@ -144,8 +144,8 @@ static void init_ardupilot()
     }
 #else
     // we have a 2nd serial port for telemetry
-    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
-	gcs3.init(hal.uartC);
+    //hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+	//gcs3.init(hal.uartC);
 #endif
 
 	mavlink_system.sysid = g.sysid_this_mav;
