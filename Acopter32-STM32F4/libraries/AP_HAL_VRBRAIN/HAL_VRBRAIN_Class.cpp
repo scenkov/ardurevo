@@ -4,13 +4,19 @@
 
 #include "HAL_VRBRAIN_Class.h"
 #include "AP_HAL_VRBRAIN_Private.h"
+#include <AP_HAL_Empty.h>
+#include <AP_HAL_Empty_Private.h>
 #include <usart.h>
 #include <i2c.h>
 
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-
+static VRBRAINUARTDriver uartADriver(_USART1,1);
+static VRBRAINUARTDriver uartBDriver(_USART3,0);
+//static Empty::EmptyUARTDriver uartBDriver;
+//static Empty::EmptyUARTDriver uartCDriver;
+static VRBRAINUARTDriver uartCDriver(_USART2,0);
 static VRBRAINSemaphore  i2cSemaphore;
 static VRBRAINI2CDriver  i2cDriver(_I2C2,&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;
@@ -23,9 +29,7 @@ static VRBRAINRCOutput rcoutDriver;
 static VRBRAINScheduler schedulerInstance;
 static VRBRAINUtil utilInstance;
 
-static VRBRAINUARTDriver uartADriver(_USART1,1);
-static VRBRAINUARTDriver uartBDriver(_USART3,0);
-static VRBRAINUARTDriver uartCDriver(_USART2,0);
+
 
 HAL_VRBRAIN::HAL_VRBRAIN() :
     AP_HAL::HAL(
@@ -64,7 +68,6 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   i2c->begin();
   spi->init(NULL);
   storage->init(NULL);
-
   rcin->init(NULL);
   rcout->init(NULL);
 

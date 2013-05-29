@@ -234,9 +234,9 @@ void usart_foreach(void (*fn)(usart_dev*)) {
     fn(_USART1);
     fn(_USART2);
     fn(_USART3);
-    fn(_UART4);
-    fn(_UART5);
-    fn(_USART6);    
+    //fn(_UART4);
+    //fn(_UART5);
+    //fn(_USART6);
 }
 
 uint32_t usart_tx(usart_dev *dev, const uint8_t *buf, uint32_t len) {
