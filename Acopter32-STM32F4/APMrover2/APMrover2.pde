@@ -541,6 +541,27 @@ static uint8_t				counter_one_herz;
 // % MCU cycles used
 static float 			load;
 
+// Sonar for depth
+
+#define DIM 20
+#define DIM2 80
+#define DIM3 15
+
+static float Temp;
+static float Depth;
+
+struct tokens {
+ byte ready;
+ byte char_index;
+ char array[DIM2];
+ char *token[DIM3];
+} Sonar_tokens;
+
+
+int sonar_serial_timer;
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
 ////////////////////////////////////////////////////////////////////////////////
@@ -593,6 +614,7 @@ void loop()
 					Log_Write_Performance();
 					#endif
 				resetPerfData();
+
 			}
 		}
 
@@ -757,6 +779,9 @@ static void slow_loop()
 				#endif
 				superslow_loopCounter = 0;
 			}
+
+			read_Sonar();   //read echosounder depth and temperature
+
 			break;
 
 		case 1:

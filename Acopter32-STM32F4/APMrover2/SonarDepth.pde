@@ -2,22 +2,6 @@
 //#include <string.h>
 //#include <stdio.h>
 
-#define DIM 20
-#define DIM2 80
-#define DIM3 15
-
-int sonar_serial_timer;
-
-struct tokens {
- byte ready;
- byte char_index;
- char array[DIM2];
- char *token[DIM3];
-} Sonar_tokens;
-
-static float Temp;
-static float Depth;
-
 void read_Sonar() {
 
  while (hal.uartC->available()) {
@@ -45,14 +29,17 @@ hal.console->println("--------------------------------------");
 }
 
 int read_tokens (char character, struct tokens *buffer) {
- char i, *p, *token;
+ char *p, *token;
+ uint8_t i;
  if (character == '\r') {
   buffer->array[buffer->char_index] = 0;
   buffer->char_index = 0;
   if (!checksum(buffer->array)) return 0;
   p = buffer->array;
   i = 0;
-  while (token = strtok_r(p, ",", &p)) buffer->token[++i] = token;
+  while ((token = strtok_r(p, ",", &p))){
+      buffer->token[++i] = token;
+  }
   return i;
  }
  if (character == '\n') {

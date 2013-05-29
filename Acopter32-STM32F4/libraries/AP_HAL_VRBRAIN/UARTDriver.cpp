@@ -64,9 +64,9 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
     const stm32_pin_info *txi = &PIN_MAP[usart_device->tx_pin];
     const stm32_pin_info *rxi = &PIN_MAP[usart_device->rx_pin];
 
-    gpio_set_af_mode(txi->gpio_device, txi->gpio_bit, this->usart_device->gpio_af);
+    gpio_set_af_mode(txi->gpio_device, txi->gpio_bit, usart_device->gpio_af);
     gpio_set_mode(txi->gpio_device, txi->gpio_bit, GPIO_AF_OUTPUT_PP);
-    gpio_set_af_mode(rxi->gpio_device, rxi->gpio_bit, this->usart_device->gpio_af);
+    gpio_set_af_mode(rxi->gpio_device, rxi->gpio_bit, usart_device->gpio_af);
     gpio_set_mode(rxi->gpio_device, rxi->gpio_bit, GPIO_AF_OUTPUT_PP);
 
     usart_init(this->usart_device);
