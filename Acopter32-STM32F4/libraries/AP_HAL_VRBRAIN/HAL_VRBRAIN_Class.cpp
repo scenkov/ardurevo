@@ -23,9 +23,9 @@ static VRBRAINRCOutput rcoutDriver;
 static VRBRAINScheduler schedulerInstance;
 static VRBRAINUtil utilInstance;
 
-static VRBRAINUARTDriver uartADriver(_USART3,1);
-static VRBRAINUARTDriver uartBDriver(_USART2,0);
-static VRBRAINUARTDriver uartCDriver(_USART1,0);
+static VRBRAINUARTDriver uartADriver(_USART1,1);
+static VRBRAINUARTDriver uartBDriver(_USART3,0);
+static VRBRAINUARTDriver uartCDriver(_USART2,0);
 
 HAL_VRBRAIN::HAL_VRBRAIN() :
     AP_HAL::HAL(
