@@ -64,6 +64,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   i2c->begin();
   spi->init(NULL);
   storage->init(NULL);
+
   rcin->init(NULL);
   rcout->init(NULL);
 

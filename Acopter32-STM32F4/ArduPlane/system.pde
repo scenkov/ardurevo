@@ -159,8 +159,8 @@ static void init_ardupilot()
     }
 #endif
 
- #if CONFIG_ADC == ENABLED
-    adc.Init();      // APM ADC library initialization
+ #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+    apm1_adc.Init();      // APM ADC library initialization
  #endif
 
     if (g.compass_enabled==true) {
@@ -333,7 +333,6 @@ static void set_mode(enum FlightMode mode)
         trim_control_surfaces();
 
     control_mode = mode;
-    crash_timer = 0;
 
     switch(control_mode)
     {
@@ -385,6 +384,11 @@ static void set_mode(enum FlightMode mode)
 
     if (g.log_bitmask & MASK_LOG_MODE)
         Log_Write_Mode(control_mode);
+
+    // reset attitude integrators on mode change
+    g.rollController.reset_I();
+    g.pitchController.reset_I();
+    g.yawController.reset_I();    
 }
 
 static void check_long_failsafe()
@@ -458,6 +462,7 @@ static void startup_INS_ground(bool do_accel_init)
 
     ahrs.init();
     ahrs.set_fly_forward(true);
+    ahrs.set_wind_estimation(true);
 
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,

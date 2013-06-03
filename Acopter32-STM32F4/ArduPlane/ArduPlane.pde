@@ -148,8 +148,8 @@ static GPS         *g_gps;
 // flight modes convenience array
 static AP_Int8          *flight_modes = &g.flight_mode1;
 
-#if CONFIG_ADC == ENABLED
-static AP_ADC_ADS7844 adc;
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+AP_ADC_ADS7844 apm1_adc;
 #endif
 
 #if CONFIG_BARO == AP_BARO_BMP085
@@ -216,7 +216,7 @@ AP_InertialSensor_PX4 ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_STUB
 AP_InertialSensor_Stub ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_OILPAN
-AP_InertialSensor_Oilpan ins( &adc );
+AP_InertialSensor_Oilpan ins( &apm1_adc );
 #else
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
@@ -245,8 +245,6 @@ static AP_Navigation *nav_controller = &L1_controller;
 ////////////////////////////////////////////////////////////////////////////////
 // Analog Inputs
 ////////////////////////////////////////////////////////////////////////////////
-
-static AP_HAL::AnalogSource *pitot_analog_source;
 
 // a pin for reading the receiver RSSI voltage. 
 static AP_HAL::AnalogSource *rssi_analog_source;
@@ -329,9 +327,6 @@ static int16_t failsafe;
 // Used to track if the value on channel 3 (throtttle) has fallen below the failsafe threshold
 // RC receiver should be set up to output a low throttle value when signal is lost
 static bool ch3_failsafe;
-// A timer used to help recovery from unusual attitudes.  If we enter an unusual attitude
-// while in autonomous flight this variable is used  to hold roll at 0 for a recovery period
-static uint8_t crash_timer;
 
 // the time when the last HEARTBEAT message arrived from a GCS
 static uint32_t last_heartbeat_ms;
@@ -670,19 +665,11 @@ void setup() {
 
     rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE);
 
-#if CONFIG_PITOT_SOURCE == PITOT_SOURCE_ADC
-    pitot_analog_source = new AP_ADC_AnalogSource( &adc,
-                                         CONFIG_PITOT_SOURCE_ADC_CHANNEL, 1.0f);
-#elif CONFIG_PITOT_SOURCE == PITOT_SOURCE_ANALOG_PIN
-    pitot_analog_source = hal.analogin->channel(CONFIG_PITOT_SOURCE_ANALOG_PIN);
-    hal.gpio->write(hal.gpio->analogPinToDigitalPin(CONFIG_PITOT_SOURCE_ANALOG_PIN), 0);
-#endif
     vcc_pin = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
     batt_volt_pin = hal.analogin->channel(g.battery_volt_pin);
     batt_curr_pin = hal.analogin->channel(g.battery_curr_pin);
     
-    airspeed.init(pitot_analog_source);
     init_ardupilot();
 }
 
@@ -1031,7 +1018,6 @@ static void update_GPS(void)
 static void update_current_flight_mode(void)
 {
     if(control_mode == AUTO) {
-        crash_checker();
 
         switch(nav_command_ID) {
         case MAV_CMD_NAV_TAKEOFF:
@@ -1053,18 +1039,6 @@ static void update_current_flight_mode(void)
             } else {
                 nav_pitch_cd = (g_gps->ground_speed / (float)g.airspeed_cruise_cm) * takeoff_pitch_cd;
                 nav_pitch_cd = constrain_int32(nav_pitch_cd, 500, takeoff_pitch_cd);
-            }
-
-            float aspeed;
-            if (ahrs.airspeed_estimate(&aspeed)) {
-                // don't use a pitch/roll integrators during takeoff if we are
-                // below minimum speed
-                if (aspeed < g.flybywire_airspeed_min) {
-                    g.pidServoPitch.reset_I();
-                    g.pidServoRoll.reset_I();
-                    g.pitchController.reset_I();
-                    g.rollController.reset_I();
-                }
             }
 
             // max throttle for takeoff
@@ -1117,7 +1091,6 @@ static void update_current_flight_mode(void)
         case RTL:
         case LOITER:
         case GUIDED:
-            crash_checker();
             calc_nav_roll();
             calc_nav_pitch();
             calc_throttle();
