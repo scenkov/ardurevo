@@ -5,16 +5,6 @@
 
 extern const AP_HAL::HAL& hal;
 
-// MP32F4
-#define PPM_IN_CH1 22
-#define PPM_IN_CH2 63  // PA8
-#define PPM_IN_CH3 66  //
-#define PPM_IN_CH4 89
-#define PPM_IN_CH5 59
-#define PPM_IN_CH6 62
-#define PPM_IN_CH7 0 //57
-#define PPM_IN_CH8 60
-
 #define RISING_EDGE 1
 #define FALLING_EDGE 0
 #define MINONWIDTH 950
@@ -35,17 +25,7 @@ volatile uint16_t rcPinValue[8] =
     1500, 1500, 1000, 1500, 1500, 1500, 1500, 1500
     };
 // interval [1000;2000]
-static byte receiverPin[8] =
-    {
-	    PPM_IN_CH1,
-	    PPM_IN_CH2,
-	    PPM_IN_CH3,
-	    PPM_IN_CH4,
-	    PPM_IN_CH5,
-	    PPM_IN_CH6,
-	    PPM_IN_CH7,
-	    PPM_IN_CH8
-    };
+
 
 // ***PPM SUM SIGNAL***
 static uint8_t rcChannel[12];
@@ -102,7 +82,6 @@ volatile uint16_t rcTmpValue[20] =
 
 volatile unsigned char radio_status_rc = 0;
 volatile unsigned char sync = 0;
-static int analogOutPin[20];
 volatile unsigned int currentChannel = 0;
 static unsigned int last = 0;
 
@@ -118,16 +97,6 @@ typedef struct
     unsigned int lastGoodWidth;
     } tPinTimingData;
 volatile static tPinTimingData pinData[8];
-
-// PE5 is PIN69
-#define PIN69	69
-#define PIN69IN	(*((unsigned long int *) 0x42420214))
-#define PIN69OUT	(*((unsigned long int *) 0x42420294))
-
-// PE6 is PIN70
-#define PIN70	70
-#define PIN70IN	(*((unsigned long int *) 0x42420218))
-#define PIN70OUT	(*((unsigned long int *) 0x42420298))
 
 
 void rxIntPPMSUM(void)
@@ -176,11 +145,6 @@ void rxIntPPMSUM(void)
 
     hal.scheduler->resume_timer_procs();
     }
-
-// PE7 is PIN71
-#define PIN71	71
-#define PIN71IN	(*((unsigned long int *) 0x4242021C))
-#define PIN71OUT	(*((unsigned long int *) 0x4242029C))
 
 
 /*
@@ -337,24 +301,51 @@ VRBRAINRCInput::VRBRAINRCInput()
 
 void VRBRAINRCInput::init(void* machtnichts)
 	    {
-	    _iboard = 2;
-	    if (_iboard < 10)
-		{
-		// Init Radio In
-		hal.console->println("Init Default PPM");
-		InitPPM();
-		}
-	    else
-		{
-		// Init Radio In
-		hal.console->println("Init Default PPMSUM");
-		InitDefaultPPMSUM(_iboard);
-		hal.console->println("Init PPMSUM HWD");
-		InitPPMSUM();
+    _iboard = 2;
 
-		}
+    uint8_t channel3_status = 0;
+    uint8_t pin2, pin3;
+    pin2 = 80;
+    pin3 = 86;
+    hal.gpio->pinMode(pin2, OUTPUT);
+    hal.gpio->pinMode(pin3, INPUT);
 
-	    }
+    hal.gpio->write(pin3,0);
+
+    hal.scheduler->delay(1);
+
+    hal.gpio->write(pin2,1);
+
+    hal.scheduler->delay(1);
+
+    if(hal.gpio->read(pin3) == 1) channel3_status++;
+    hal.gpio->write(pin2,0);
+
+    hal.scheduler->delay(1);
+
+    if(hal.gpio->read(pin3) == 0) channel3_status++;
+    hal.gpio->write(pin2,1);
+
+    hal.scheduler->delay(1);
+
+    if(hal.gpio->read(pin3) == 1) channel3_status++;
+
+    if(channel3_status == 3) _iboard = 11;
+    if (_iboard < 10)
+	{
+	// Init Radio In
+	hal.console->println("Init Default PPM");
+	InitPPM();
+	}
+    else
+	{
+	// Init Radio In
+	hal.console->println("Init Default PPMSUM");
+	InitDefaultPPMSUM(_iboard);
+	hal.console->println("Init PPMSUM HWD");
+	InitPPMSUM();
+	}
+}
 
 uint8_t VRBRAINRCInput::valid_channels()
 	    {
