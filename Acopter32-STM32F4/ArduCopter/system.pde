@@ -121,6 +121,8 @@ static void init_ardupilot()
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
     //
+    hal.scheduler->delay(5000);
+
     report_version();
 
     // setup IO pins
@@ -148,12 +150,12 @@ static void init_ardupilot()
     board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
-    cliSerial->println("Baro init");
+    hal.console->println("Baro init");
     barometer.init();
 #endif
 
     // init the GCS
-    cliSerial->println("GCS0 init");
+    hal.console->println("GCS0 init");
     gcs0.init(hal.uartA);
 
     // Register the mavlink service callback. This will run
@@ -168,7 +170,7 @@ static void init_ardupilot()
         hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 #else
-    cliSerial->println("GCS3 init");
+    hal.console->println("GCS3 init");
     // we have a 2nd serial port for telemetry
     //hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
     //gcs3.init(hal.uartC);
@@ -179,7 +181,7 @@ static void init_ardupilot()
     mavlink_system.type = 2; //MAV_QUADROTOR;
 
 #if LOGGING_ENABLED == ENABLED
-    cliSerial->println("DataFlash init");
+    hal.console->println("DataFlash init");
     DataFlash.Init();
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash inserted"));
@@ -197,6 +199,7 @@ static void init_ardupilot()
 #endif
 
     hal.console->println("RC init");
+    hal.rcin->init(NULL);
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up motors and output to escs
 
@@ -272,22 +275,22 @@ init_rate_controllers();
 
     // initialize commands
     // -------------------
-hal.console->println_P("Init Commands");
+    hal.console->println("Init Commands");
     init_commands();
 
     // set the correct flight mode
     // ---------------------------
-    hal.console->println_P("Reset Control Switch");
+    hal.console->println("Reset Control Switch");
     reset_control_switch();
 
-    hal.console->println_P("StartUp Ground");
+    hal.console->println("StartUp Ground");
     startup_ground();
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
 #endif
 
-    hal.console->println_P(PSTR("\nReady to FLY "));
+    hal.console->println("\nReady to FLY ");
 }
 
 
@@ -329,14 +332,31 @@ static void startup_ground(void)
     reset_I_all();
 }
 
+// returns true or false whether mode requires GPS
+static bool mode_requires_GPS(uint8_t mode) {
+    switch(mode) {
+        case AUTO:
+        case GUIDED:
+        case LOITER: 
+        case RTL:
+        case CIRCLE:
+        case POSITION:
+            return true;
+        default:
+            return false;
+    }   
+
+    return false;
+}
+
 // set_mode - change flight mode and perform any necessary initialisation
 static void set_mode(uint8_t mode)
 {
     // Switch to stabilize mode if requested mode requires a GPS lock
-    if(!ap.home_is_set) {
-        if (mode > ALT_HOLD && mode != TOY_A && mode != TOY_M && mode != OF_LOITER && mode != LAND) {
+    if(g_gps->status() != GPS::GPS_OK_FIX_3D && mode_requires_GPS(mode)) {
             mode = STABILIZE;
-        }
+    } else if(mode == RTL && !ap.home_is_set) {
+            mode = STABILIZE;
     }
 
     // Switch to stabilize if OF_LOITER requested but no optical flow sensor
@@ -434,7 +454,7 @@ static void set_mode(uint8_t mode)
 
     case LAND:
         // To-Do: it is messy to set manual_attitude here because the do_land function is reponsible for setting the roll_pitch_mode
-        if( ap.home_is_set ) {
+        if( g_gps->status() == GPS::GPS_OK_FIX_3D ) {
             // switch to loiter if we have gps
             ap.manual_attitude = false;
         }else{
@@ -442,7 +462,7 @@ static void set_mode(uint8_t mode)
             ap.manual_attitude = true;
         }
     	ap.manual_throttle = false;
-        do_land();
+        do_land(NULL);  // land at current location
         break;
 
     case RTL:

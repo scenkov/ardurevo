@@ -50,6 +50,9 @@ float           safe_asin(float v);
 // a varient of sqrt() that always gives a valid answer.
 float           safe_sqrt(float v);
 
+// a faster varient of atan.  accurate to 6 decimal places for values between -1 ~ 1 but then diverges quickly
+float           fast_atan(float v);
+
 #if ROTATION_COMBINATION_SUPPORT
 // find a rotation that is the combination of two other
 // rotations. This is used to allow us to add an overall board
@@ -90,6 +93,11 @@ void        location_offset(struct Location *loc, float ofs_north, float ofs_eas
  */
 int32_t wrap_360_cd(int32_t error);
 int32_t wrap_180_cd(int32_t error);
+
+/*
+  wrap an angle defined in radians to -PI ~ PI (equivalent to +- 180 degrees)
+ */
+float wrap_PI(float angle_in_radians);
 
 /*
   print a int32_t lat/long in decimal degrees
