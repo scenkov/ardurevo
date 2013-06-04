@@ -168,11 +168,11 @@ extern const AP_HAL::HAL& hal;
  *  RM-MPU-6000A-00.pdf, page 33, section 4.25 lists LSB sensitivity of
  *  gyro as 16.4 LSB/DPS at scale factor of +/- 2000dps (FS_SEL==3)
  */
-//#if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-//const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 32.8);
-//#else
+#if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 32.8);
+#else
 const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532 / 16.4);
-//#endif
+#endif
 /* pch: I believe the accel and gyro indicies are correct
  *      but somone else should please confirm.
  *
@@ -586,36 +586,36 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
         // this is used for plane and rover, where noise resistance is
         // more important than update rate. Tests on an aerobatic plane
         // show that 10Hz is fine, and makes it very noise resistant
-/*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-	_sample_rate = MPUREG_SMPLRT_200HZ;
-	_sample_time = 0.005;
-#endif*/
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+	_sample_rate = MPUREG_SMPLRT_1000HZ;
+	_sample_time = 0.001;
+#endif
         default_filter = BITS_DLPF_CFG_10HZ;
         _sample_shift = 2;
 
         break;
     case RATE_100HZ:
-/*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 	_sample_rate = MPUREG_SMPLRT_200HZ;
 	_sample_time = 0.005;
-#endif*/
+#endif
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 1;
         break;
     case RATE_1000HZ:
-/*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 	_sample_rate = MPUREG_SMPLRT_1000HZ;
 	_sample_time = 0.001;
-#endif*/
+#endif
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;
         break;
     case RATE_200HZ:
     default:
-/*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 	_sample_rate = MPUREG_SMPLRT_200HZ;
 	_sample_time = 0.005;
-#endif*/
+#endif
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;
         break;
@@ -625,19 +625,19 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 
     // set sample rate to 200Hz, and use _sample_divider to give
     // the requested rate to the application
-/*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     register_write(MPUREG_SMPLRT_DIV, _sample_rate);
-#else*/
+#else
     register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
-//#endif
+#endif
 
     hal.scheduler->delay(1);
 
-//#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-//    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
-//#else
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
+#else
     register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
-//#endif
+#endif
 
     hal.scheduler->delay(1);
 
@@ -712,13 +712,13 @@ void AP_InertialSensor_MPU6000::_dump_registers(void)
 // get_delta_time returns the time period in seconds over which the sensor data was collected
 float AP_InertialSensor_MPU6000::get_delta_time() 
 {
-//#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // the sensor runs at 200Hz
-//    return _sample_time * _num_samples;
-//#else
+    return _sample_time * _num_samples;
+#else
     // the sensor runs at 200Hz
     return 0.005 * _num_samples;
-//#endif
+#endif
 }
 
 // Update gyro offsets with new values.  Offsets provided in as scaled deg/sec values

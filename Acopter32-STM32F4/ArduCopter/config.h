@@ -388,7 +388,7 @@
 // Serial port speeds.
 //
 #ifndef SERIAL0_BAUD
- # define SERIAL0_BAUD                   115200
+ # define SERIAL0_BAUD                   57600
 #endif
 #ifndef SERIAL3_BAUD
  # define SERIAL3_BAUD                    57600
@@ -829,10 +829,10 @@
 //
 
 #ifndef MAX_INPUT_ROLL_ANGLE
- # define MAX_INPUT_ROLL_ANGLE      4500
+ # define MAX_INPUT_ROLL_ANGLE      6000
 #endif
 #ifndef MAX_INPUT_PITCH_ANGLE
- # define MAX_INPUT_PITCH_ANGLE     4500
+ # define MAX_INPUT_PITCH_ANGLE     6000
 #endif
 #ifndef RATE_ROLL_P
  # define RATE_ROLL_P        		0.150f
