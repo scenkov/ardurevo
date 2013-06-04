@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V3.0.0-rc3"
+#define THISFIRMWARE "ArduCopter V3.0.0-rc5"
 /*
  *  ArduCopter Version 3.0
  *  Creator:        Jason Short
@@ -104,6 +104,7 @@
 #include <memcheck.h>           // memory limit checker
 #include <SITL.h>               // software in the loop support
 #include <AP_Scheduler.h>       // main loop scheduler
+#include <AP_RCMapper.h>        // RC input mapping library
 
 // AP_HAL to Arduino compatibility layer
 #include "compat.h"
@@ -408,6 +409,7 @@ static int8_t control_mode = STABILIZE;
 // Used to maintain the state of the previous control switch position
 // This is set to -1 when we need to re-read the switch
 static uint8_t oldSwitchPosition;
+static RCMapper rcmap;
 
 // receiver RSSI
 static uint8_t receiver_rssi;
@@ -929,9 +931,6 @@ static void barometer_accumulate(void)
     barometer.accumulate();
 }
 
-// enable this to get console logging of scheduler performance
-#define SCHEDULER_DEBUG 0
-
 static void perf_update(void)
 {
     if (g.log_bitmask & MASK_LOG_PM)
@@ -1305,6 +1304,12 @@ static void super_slow_loop()
 
     // auto disarm checks
     auto_disarm_check();
+
+    // make it possible to change orientation at runtime - useful
+    // during initial config
+    if (!motors.armed()) {
+        ahrs.set_orientation();
+    }
 
     // agmatthews - USERHOOKS
 #ifdef USERHOOK_SUPERSLOWLOOP

@@ -127,13 +127,13 @@ static void init_ardupilot()
 
     // setup IO pins
     hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_OFF);
+    hal.gpio->write(A_LED_PIN, LED_ON);
 
     hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_OFF);
+    hal.gpio->write(B_LED_PIN, LED_ON);
 
     hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_OFF);
+    hal.gpio->write(C_LED_PIN, LED_ON);
 
     relay.init(); 
 
@@ -199,7 +199,6 @@ static void init_ardupilot()
 #endif
 
     hal.console->println("RC init");
-    hal.rcin->init(NULL);
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up motors and output to escs
 
@@ -243,7 +242,7 @@ static void init_ardupilot()
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
 #if USB_MUX_PIN == 0
-    //hal.uartC->println_P(msg);
+    hal.uartC->println_P(msg);
 #endif
 #endif // CLI_ENABLED
 
