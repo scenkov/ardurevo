@@ -28,7 +28,7 @@ void VRBRAINScheduler::init(void* machtnichts)
 {
 
     timer_pause(TIMER5);
-    timer_set_prescaler(TIMER5,20);
+    timer_set_prescaler(TIMER5,41);
     timer_set_count(TIMER5,0);
     timer_set_reload(TIMER5,999);
     timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer_isr_event);

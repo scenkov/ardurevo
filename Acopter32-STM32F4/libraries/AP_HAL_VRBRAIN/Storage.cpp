@@ -34,13 +34,15 @@ uint8_t VRBRAINStorage::read_byte(uint16_t loc){
 }
 
 uint16_t VRBRAINStorage::read_word(uint16_t loc){
-return 0;
+    uint16_t val;
+    read_block(&val, loc,sizeof(val));
+    return val;
 }
 
 uint32_t VRBRAINStorage::read_dword(uint16_t loc){
 	uint32_t val = 0;
 	this->read_block(&val, loc, 4);
-	return val;
+    return val;
 }
 
 void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
@@ -77,7 +79,8 @@ void VRBRAINStorage::write_block(uint16_t dst,const void* src, size_t n)
 }
 void VRBRAINStorage::write_word(uint16_t loc, uint16_t value)
 {
-
+	write_block(loc,&value, sizeof(value));
+	return;
 }
 
 void VRBRAINStorage::write_dword(uint16_t loc, uint32_t value)
@@ -92,7 +95,8 @@ void VRBRAINStorage::write_byte(uint16_t loc, uint8_t value)
 	uint8_t numbytes = 1;
 	uint8_t buff[1] = {value};
 
-	uint32_t ret = sEE_WritePage(buff, loc, &numbytes);
+	uint32_t ret = sEE_WriteBuffer(buff, loc, numbytes);
+
 	if(ret == 1){
 	    hal.console->println_P("i2c timeout write byte");
 	}

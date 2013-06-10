@@ -27,16 +27,22 @@ void VRBRAINI2CDriver::setHighSpeed(bool active) {}
 
 uint8_t VRBRAINI2CDriver::write(uint8_t address, uint8_t len, uint8_t* tx_buffer)
 {
-	//if(i2c_is_busy())
-//	    hal.console->printf_P(PSTR("I2C Busy write1\n"));
+
 	uint8_t numbytes = len;
 	//uint32_t ret = i2c_write(this->_dev, address, tx_buffer, len);
 	uint32_t ret = i2c_write(this->_dev, address, tx_buffer, &numbytes);
 	sEE_WaitEepromStandby(this->_dev, address);
+/*
+	if(ret != 0){
+	    hal.console->printf_P(PSTR("Failed I2C write1: Event=0x%08X\n"),ret);
+	    return ret;
+	}
 
-	//if(ret != 0)
-	//hal.console->printf_P(PSTR("Failed I2C write1: Event=0x%08X\n"),ret);
+	if(numbytes > 1)
+	    while(numbytes > 0);
 
+	//sEE_WaitEepromStandby(this->_dev, address);
+	*/
 	return ret;
 }
 
@@ -57,10 +63,11 @@ uint8_t VRBRAINI2CDriver::writeRegister(uint8_t address, uint8_t registerAddress
 
 	uint8_t ret = i2c_write(this->_dev, address, ibuff, &numbytes);
 	sEE_WaitEepromStandby(this->_dev, address);
-
-	//if(ret != 0)
-	//hal.console->printf_P(PSTR("Failed I2C writeRegister: Event=0x%08X\n"),ret);
-
+/*
+	if(ret != 0){
+	    hal.console->printf_P(PSTR("Failed I2C writeRegister: Event=0x%08X\n"),ret);
+	}
+*/
 
 	return ret;
 }
@@ -73,17 +80,18 @@ uint8_t VRBRAINI2CDriver::writeRegisters(uint8_t addr, uint8_t reg,
 uint8_t VRBRAINI2CDriver::read(uint8_t addr, uint8_t numberBytes, uint8_t* data)
 {
 
-	//if(i2c_is_busy())
-	//    hal.console->printf_P(PSTR("I2C Busy read1\n"));
-
 	uint8_t ret = i2c_read(this->_dev, addr, NULL, 0, data, &numberBytes);
 	//sEE_WaitEepromStandbyState(this->_dev, addr);
-	//if(ret != 0)
-	//hal.console->printf_P(PSTR("Failed I2C read1: Event=0x%08X\n"),ret);
+/*
+	if(ret != 0){
+	    hal.console->printf_P(PSTR("Failed I2C read1: Event=0x%08X\n"),ret);
+	    return ret;
+	}
 
-
+	if(numberBytes > 1)
+	    while(numberBytes > 0);
+*/
 	return ret;
-
 }
 
 uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
@@ -118,17 +126,19 @@ uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numbe
 	 //hal.console->printf_P(PSTR("readRegisters \n"));
 
 	uint8_t ret = i2c_read(this->_dev, addr, ibuff, 1, data, &numbytes);
+
 	if(ret == 1){
 	    hal.console->println_P("i2c timeout read registers");
+	    return ret;
 	}
-	while(numbytes > 0);
+	//if(numbytes > 1)
+	    while(numbytes > 0);
 	//uint8_t ret = i2c_8bitaddr_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
 	//uint8_t ret = i2c_buffer_read(this->i2c_d, address, registerAddress, numberBytes, dataBuffer);
 	//sEE_WaitEepromStandbyState(this->_dev, addr);
 
 	//if(ret != 0)
 	//hal.console->printf_P(PSTR("Failed I2C readRegisters: Event=0x%08X\n"),ret);
-
 
 	return ret;
 }
