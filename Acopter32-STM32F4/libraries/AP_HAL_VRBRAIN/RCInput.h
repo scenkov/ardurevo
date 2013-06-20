@@ -40,6 +40,9 @@ private:
 
     unsigned char _iboard;
     static volatile uint8_t  _valid;
+
+    /* override state */
+    uint16_t _override[8];
 };
 
 #endif // __AP_HAL_VRBRAIN_RCINPUT_H__

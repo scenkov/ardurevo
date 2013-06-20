@@ -1,8 +1,8 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V3.0.0"
+#define THISFIRMWARE "ArduCopter V3.0.0rc6"
 /*
- *  ArduCopter Version 3.0
+ *  ArduCopter Version 3.0rc6
  *  Creator:        Jason Short
  *  Lead Developer: Randy Mackay
  *  Based on code and ideas from the Arducopter team: Pat Hickey, Jose Julio, Jani Hirvinen, Andrew Tridgell, Justin Beech, Adam Rivera, Jean-Louis Naudin, Roberto Navoni

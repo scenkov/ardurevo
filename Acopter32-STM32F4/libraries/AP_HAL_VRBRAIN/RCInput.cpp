@@ -374,7 +374,11 @@ uint16_t VRBRAINRCInput::read(uint8_t ch)
 	data = rcValue[rcChannel[ch + 1]];
 	}
     interrupts();
-    return data; // We return the value correctly copied when the IRQ's where disabled
+
+    /* Check for override */
+    uint16_t over = _override[ch];
+
+    return (over == 0) ? data : over;
     }
 
 uint8_t VRBRAINRCInput::read(uint16_t* periods, uint8_t len)
@@ -389,22 +393,40 @@ uint8_t VRBRAINRCInput::read(uint16_t* periods, uint8_t len)
 	    {
 	    periods[i] = rcValue[rcChannel[i + 1]];
 	    }
+	    if (_override[i] != 0) {
+	        periods[i] = _override[i];
+	    }
 	}
     interrupts();
+
     return len;
     }
 
 bool VRBRAINRCInput::set_overrides(int16_t *overrides, uint8_t len)
     {
-    return true;
+    bool res = false;
+    for (int i = 0; i < len; i++) {
+        res |= set_override(i, overrides[i]);
+    }
+    return res;
     }
 
 bool VRBRAINRCInput::set_override(uint8_t channel, int16_t override)
     {
-    return true;
+    if (override < 0) return false; /* -1: no change. */
+    if (channel < 8) {
+        _override[channel] = override;
+        if (override != 0) {
+            return true;
+        }
+    }
+    return false;
     }
 
 void VRBRAINRCInput::clear_overrides()
     {
+    for (int i = 0; i < 8; i++) {
+        _override[i] = 0;
+    }
     }
 
