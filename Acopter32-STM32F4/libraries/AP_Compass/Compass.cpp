@@ -38,7 +38,7 @@ const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // @Description: Enable or disable the automatic learning of compass offsets
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("LEARN",  3, Compass, _learn, 0), // true if learning calibration
+    AP_GROUPINFO("LEARN",  3, Compass, _learn, 1), // true if learning calibration
 
     // @Param: USE
     // @DisplayName: Use compass for yaw
@@ -53,7 +53,7 @@ const AP_Param::GroupInfo Compass::var_info[] PROGMEM = {
     // @Description: Enable or disable the automatic calculation of the declination based on gps location
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
-    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 0),
+    AP_GROUPINFO("AUTODEC",5, Compass, _auto_declination, 1),
 #endif
 
     // @Param: MOTCT

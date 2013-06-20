@@ -121,19 +121,19 @@ static void init_ardupilot()
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
     //
-    hal.scheduler->delay(5000);
+    hal.scheduler->delay(3000);
 
     report_version();
 
     // setup IO pins
     hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_ON);
+    hal.gpio->write(A_LED_PIN, LED_OFF);
 
     hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_ON);
+    hal.gpio->write(B_LED_PIN, LED_OFF);
 
     hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_ON);
+    hal.gpio->write(C_LED_PIN, LED_OFF);
 
     relay.init(); 
 

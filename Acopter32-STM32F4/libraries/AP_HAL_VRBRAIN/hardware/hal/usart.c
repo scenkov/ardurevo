@@ -314,6 +314,7 @@ void usart_putudec(usart_dev *dev, uint32_t val)
  * Interrupt handlers.
  */
 
+#define USART_SAFE_INSERT
 
 static inline void usart_rx_irq(usart_dev *dev) {
 #ifdef USART_SAFE_INSERT
@@ -345,37 +346,37 @@ static inline void usart_tx_irq(usart_dev *dev) {
 }
 
 void USART1_IRQHandler(void) {
-	uart1_lic_millis=0; // syncro last byte received
+	//uart1_lic_millis=0; // syncro last byte received
 	usart_rx_irq(_USART1);
 	usart_tx_irq(_USART1);
 }
 
 void USART2_IRQHandler(void) {
-	uart2_lic_millis=0; // syncro last byte received
+	//uart2_lic_millis=0; // syncro last byte received
 	usart_rx_irq(_USART2);
 	usart_tx_irq(_USART2);
 }
 
 void USART3_IRQHandler(void) {
-	uart3_lic_millis=0; // syncro last byte received
+	//uart3_lic_millis=0; // syncro last byte received
 	usart_rx_irq(_USART3);
 	usart_tx_irq(_USART3);
 }
 
 void UART4_IRQHandler(void) {
-	uart4_lic_millis=0; // syncro last byte received
+	//uart4_lic_millis=0; // syncro last byte received
     usart_rx_irq(_UART4);
     usart_tx_irq(_UART4);
 }
 
 void UART5_IRQHandler(void) {
-	uart5_lic_millis=0; // syncro last byte received
+	//uart5_lic_millis=0; // syncro last byte received
     usart_rx_irq(_UART5);
     usart_tx_irq(_UART5);
 }
 
 void USART6_IRQHandler(void) {
-	uart6_lic_millis=0; // syncro last byte received
+	//uart6_lic_millis=0; // syncro last byte received
     usart_rx_irq(_USART6);
     usart_tx_irq(_USART6);
 }

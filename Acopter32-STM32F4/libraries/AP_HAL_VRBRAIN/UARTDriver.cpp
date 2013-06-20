@@ -83,7 +83,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
 void VRBRAINUARTDriver::end() {
     if(_usb_present == 1)
 	usb_close();
-    //else
+    else
 	usart_disable(this->usart_device);
 }
 
@@ -91,10 +91,10 @@ void VRBRAINUARTDriver::flush() {
     if(_usb_present ==1){
 	usb_reset_rx();
 	usb_reset_tx();
-    }//else {
+    }else {
 	usart_reset_rx(this->usart_device);
 	usart_reset_tx(this->usart_device);
-    //}
+    }
 
 }
 

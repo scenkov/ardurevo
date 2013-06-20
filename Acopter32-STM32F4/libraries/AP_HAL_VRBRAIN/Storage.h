@@ -27,7 +27,7 @@
 class VRBRAIN::VRBRAINStorage : public AP_HAL::Storage
 {
 public:
-  VRBRAINStorage():Status(0){}
+  VRBRAINStorage(){};
   void init(void*);
   uint8_t  read_byte(uint16_t src);
   uint16_t read_word(uint16_t src);
@@ -39,13 +39,6 @@ public:
   void write_dword(uint16_t dst, uint32_t value);
   void write_block(uint16_t dst,const void* src, size_t n);
 
-private:
-  uint16_t format(void);
-  uint16_t read(uint16_t Address);
-  uint16_t read(uint16_t Address, uint16_t *Data);
-  uint16_t write(uint16_t Address, uint8_t Data);
-
-  uint16_t Status;
 };
 
 #endif // __AP_HAL_VRBRAIN_STORAGE_H__

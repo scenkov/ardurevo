@@ -669,7 +669,7 @@
 #endif
 
 #ifndef CIRCLE_RATE
- # define CIRCLE_RATE               5.0f        // degrees per second turn rate
+ # define CIRCLE_RATE               20.0f        // degrees per second turn rate
 #endif
 
 // Guided Mode
@@ -951,7 +951,7 @@
 #endif
 
 #ifndef ALT_HOLD_P
- # define ALT_HOLD_P            2.0f
+ # define ALT_HOLD_P            1.0f
 #endif
 #ifndef ALT_HOLD_I
  # define ALT_HOLD_I            0.0f
