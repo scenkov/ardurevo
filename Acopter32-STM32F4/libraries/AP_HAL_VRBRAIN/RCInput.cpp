@@ -353,6 +353,8 @@ void VRBRAINRCInput::init(void* machtnichts)
 	InitDefaultPPMSUM(_iboard);
 	InitPPMSUM();
 	}
+
+    clear_overrides();
     }
 
 uint8_t VRBRAINRCInput::valid_channels()
@@ -426,7 +428,7 @@ bool VRBRAINRCInput::set_override(uint8_t channel, int16_t override)
 void VRBRAINRCInput::clear_overrides()
     {
     for (int i = 0; i < 8; i++) {
-        _override[i] = 0;
+	set_override(i, 0);
     }
     }
 
