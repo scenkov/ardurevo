@@ -10,7 +10,7 @@
 //#define DMP_ENABLED           ENABLED             // use MPU6000's DMP instead of DCM for attitude estimation
 //#define SECONDARY_DMP_ENABLED ENABLED             // allows running DMP in parallel with DCM for testing purposes
 
-//#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG QUAD_FRAME
 /*
  *  options:
  *  QUAD_FRAME

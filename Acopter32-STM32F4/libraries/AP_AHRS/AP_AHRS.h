@@ -46,7 +46,7 @@ public:
 
     // init sets up INS board orientation
     virtual void init() {
-        set_orientation();
+        _ins->set_board_orientation((enum Rotation)_board_orientation.get());
     };
 
     // Accessors
@@ -60,19 +60,10 @@ public:
 
     void set_compass(Compass *compass) {
         _compass = compass;
-        set_orientation();
-    }
-
-
-    // allow for runtime change of orientation
-    // this makes initial config easier
-    void set_orientation() {
-        _ins->set_board_orientation((enum Rotation)_board_orientation.get());
         if (_compass != NULL) {
             _compass->set_board_orientation((enum Rotation)_board_orientation.get());
         }
     }
-
     void set_airspeed(AP_Airspeed *airspeed) {
         _airspeed = airspeed;
     }
