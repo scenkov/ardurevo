@@ -298,6 +298,7 @@ void usart_putudec(usart_dev *dev, uint32_t val)
 
 
 static inline void usart_rx_irq(usart_dev *dev) {
+    if( USART_GetITStatus(dev->USARTx, USART_IT_RXNE) != RESET ){
 #ifdef USART_SAFE_INSERT
     /* If the buffer is full and the user defines USART_SAFE_INSERT,
      * ignore new bytes. */
@@ -306,6 +307,7 @@ static inline void usart_rx_irq(usart_dev *dev) {
     /* By default, push bytes around in the ring buffer. */
     rb_push_insert(dev->rxrb, (uint8_t)dev->USARTx->DR);
 #endif
+    }
 }
 
 static inline void usart_tx_irq(usart_dev *dev) {
