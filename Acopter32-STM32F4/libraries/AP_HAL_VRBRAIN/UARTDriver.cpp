@@ -29,7 +29,7 @@ using namespace VRBRAIN;
 //definisco qui i parametri per le varie seriali preconfigurate
 
 VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
-    usart_device(usart),
+    _usart_device(usart),
     _usb(use_usb),
     _usb_present(0),
     _initialized(false)
@@ -46,7 +46,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
 
     if(_usb_present == 1)
 	{
-	//usart_disable(usart_device);
+	//usart_disable(_usart_device);
 	//usb_attr_t usb_attr;
 	usb_open();
 	usb_default_attr(&usb_attr);
@@ -61,17 +61,17 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
     //else
 	//{
 
-    const stm32_pin_info *txi = &PIN_MAP[usart_device->tx_pin];
-    const stm32_pin_info *rxi = &PIN_MAP[usart_device->rx_pin];
+    const stm32_pin_info *txi = &PIN_MAP[_usart_device->tx_pin];
+    const stm32_pin_info *rxi = &PIN_MAP[_usart_device->rx_pin];
 
-    gpio_set_af_mode(txi->gpio_device, txi->gpio_bit, usart_device->gpio_af);
+    gpio_set_af_mode(txi->gpio_device, txi->gpio_bit, _usart_device->gpio_af);
     gpio_set_mode(txi->gpio_device, txi->gpio_bit, GPIO_AF_OUTPUT_PP);
-    gpio_set_af_mode(rxi->gpio_device, rxi->gpio_bit, usart_device->gpio_af);
+    gpio_set_af_mode(rxi->gpio_device, rxi->gpio_bit, _usart_device->gpio_af);
     gpio_set_mode(rxi->gpio_device, rxi->gpio_bit, GPIO_AF_OUTPUT_PP);
 
-    usart_init(this->usart_device);
-    usart_setup(this->usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
-    usart_enable(this->usart_device);
+    usart_init(_usart_device);
+    usart_setup(_usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
+    usart_enable(_usart_device);
 	//}
     _initialized = true;
 }
@@ -84,7 +84,7 @@ void VRBRAINUARTDriver::end() {
     if(_usb_present == 1)
 	usb_close();
     else
-	usart_disable(this->usart_device);
+	usart_disable(_usart_device);
 }
 
 void VRBRAINUARTDriver::flush() {
@@ -92,24 +92,21 @@ void VRBRAINUARTDriver::flush() {
 	usb_reset_rx();
 	usb_reset_tx();
     }else {
-	usart_reset_rx(this->usart_device);
-	usart_reset_tx(this->usart_device);
+	usart_reset_rx(_usart_device);
+	usart_reset_tx(_usart_device);
     }
 
 }
 
 void VRBRAINUARTDriver::set_blocking_writes(bool blocking) {
     if(_usb_present == 0){
-	usart_reset_tx(this->usart_device);
-	this->usart_device->usetxrb = !blocking;
+	usart_reset_tx(_usart_device);
+	_usart_device->usetxrb = !blocking;
     }
 }
 
 bool VRBRAINUARTDriver::tx_pending() {
-    if(_usb_present == 1)
-	return usb_tx_pending();
-    else
-	return (usart_txfifo_nbytes(this->usart_device) > 0 ? true : false);
+	return false;
 }
 
 /* VRBRAIN implementations of BetterStream virtual methods */
@@ -153,50 +150,30 @@ void VRBRAINUARTDriver::vprintf_P(const prog_char *fmt, va_list ap) {
 
 void VRBRAINUARTDriver::_internal_vprintf(const char *fmt, va_list ap)
 {
-    //if (hal.scheduler->in_timerprocess()) {
+    if (hal.scheduler->in_timerprocess()) {
         // not allowed from timers
-      //  return;
-    //}
+        return;
+    }
 
-    unsigned char c;
     char buf[1024];  //destination buffer
-    int i = 0;
 
-    vsprintf(buf, fmt, ap);
+    int n = vsprintf(buf, fmt, ap);
 
-    //per sicurezza....
-    buf[1023] = 0;
-
-    c = buf[i];
-    while (c != 0)
-    {
-
-    	if (c == '\n')
-    	    write('\r');
-    	write(c);
-    	i++;
-    	c = buf[i];
+    if(n > 0){
+	for (int i = 0; i < n; i++)
+	{
+	    write(buf[i]);
+	}
     }
-
-    /*
-    char *buf = NULL;
-    int n = avsprintf(&buf, fmt, ap);
-    if (n > 0) {
-        write((const uint8_t *)buf, n);
-    }
-    if (buf != NULL) {
-        free(buf);    
-    }
-    */
 }
 
 // handle %S -> %s
 void VRBRAINUARTDriver::_vprintf(const char *fmt, va_list ap)
 {
-    //if (hal.scheduler->in_timerprocess()) {
+    if (hal.scheduler->in_timerprocess()) {
         // not allowed from timers
-    //    return;
-    //}
+        return;
+    }
     // we don't use vdprintf() as it goes directly to the file descriptor
 	if (strstr(fmt, "%S")) {
 		char *fmt2 = strdup(fmt);
@@ -220,14 +197,14 @@ int16_t VRBRAINUARTDriver::available() {
     if(_usb_present == 1)
 	return usb_data_available();
     else
-    return usart_data_available(this->usart_device);
+    return usart_data_available(_usart_device);
 }
 
 int16_t VRBRAINUARTDriver::txspace() {
     if(_usb_present == 1)
 	return 255;
     else
-	return usart_txfifo_freebytes(this->usart_device);
+	return usart_txfifo_freebytes(_usart_device);
 }
 
 int16_t VRBRAINUARTDriver::read() {
@@ -238,17 +215,23 @@ int16_t VRBRAINUARTDriver::read() {
     } else {
 	if (available() <= 0)
 	    return (-1);
-	return usart_getc(this->usart_device);
+	return usart_getc(_usart_device);
     }
 }
 
 /* VRBRAIN implementations of Print virtual methods */
 size_t VRBRAINUARTDriver::write(uint8_t c) {
+
+    if (hal.scheduler->in_timerprocess()) {
+        // not allowed from timers
+        return 0;
+    }
+
     if(_usb_present == 1){
 	usb_putc(c);
 	return 1;
     } else {
-	usart_putc(this->usart_device, c);
+	usart_putc(_usart_device, c);
 	return 1;
     }
 }

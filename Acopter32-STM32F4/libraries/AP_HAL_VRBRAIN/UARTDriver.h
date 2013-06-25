@@ -46,7 +46,7 @@ public:
 private:
   void _vprintf(const char *fmt, va_list ap);
   void _internal_vprintf(const char *fmt, va_list ap);
-    struct usart_dev *usart_device;
+    struct usart_dev *_usart_device;
     uint8_t _usb;
     uint8_t _usb_present;
     bool _initialized;
