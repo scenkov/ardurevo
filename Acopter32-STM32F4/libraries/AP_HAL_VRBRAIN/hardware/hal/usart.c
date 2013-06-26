@@ -318,7 +318,7 @@ void usart_putudec(usart_dev *dev, uint32_t val)
 static inline void usart_rx_irq(usart_dev *dev)
     {
 	/* Check on Receive Data register Not Empty interrupt */
-	if( USART_GetITStatus(dev->USARTx, USART_IT_RXNE) != RESET ){
+	if( USART_GetITStatus(dev->USARTx, USART_IT_RXNE) == SET ){
 #ifdef USART_SAFE_INSERT
 	    /* If the buffer is full and the user defines USART_SAFE_INSERT,
 	     * ignore new bytes. */
@@ -332,7 +332,7 @@ static inline void usart_rx_irq(usart_dev *dev)
 static inline void usart_tx_irq(usart_dev *dev)
     {
     /* Check USART Transmit Data Register Empty Interrupt */
-    if (USART_GetITStatus(dev->USARTx, USART_IT_TXE) != RESET)
+    if (USART_GetITStatus(dev->USARTx, USART_IT_TXE) == SET)
 	{
 	if (!rb_is_empty(dev->txrb))
 	    {
