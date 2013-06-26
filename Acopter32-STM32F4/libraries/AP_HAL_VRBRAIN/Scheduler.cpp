@@ -205,5 +205,5 @@ void VRBRAINScheduler::panic(const prog_char_t* errormsg) {
 }
 
 void VRBRAINScheduler::reboot() {
-    for(;;);
+    return;
 }
