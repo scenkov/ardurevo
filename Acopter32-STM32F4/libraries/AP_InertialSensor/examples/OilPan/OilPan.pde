@@ -10,7 +10,6 @@
 #include <AP_HAL.h>
 #include <AP_HAL_AVR.h>
 #include <AP_HAL_AVR_SITL.h>
-#include <AP_HAL_PX4.h>
 #include <AP_HAL_Empty.h>
 #include <AP_Math.h>
 #include <AP_Param.h>
@@ -18,18 +17,36 @@
 #include <AP_InertialSensor.h>
 #include <GCS_MAVLink.h>
 
+#define A_LED_PIN 37
+#define C_LED_PIN 35
+
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 
-AP_InertialSensor_PX4 ins;
+static AP_ADC_ADS7844 adc;
+AP_InertialSensor_Oilpan ins( &adc );
+
+static void flash_leds(bool on) {
+    hal.gpio->write(A_LED_PIN, on);
+    hal.gpio->write(C_LED_PIN, ~on);
+}
 
 void setup(void)
 {
     hal.console->println("AP_InertialSensor startup...");
 
+    hal.gpio->pinMode(A_LED_PIN, GPIO_OUTPUT);
+    hal.gpio->pinMode(C_LED_PIN, GPIO_OUTPUT);
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    // we need to stop the barometer from holding the SPI bus
+    hal.gpio->pinMode(40, GPIO_OUTPUT);
+    hal.gpio->write(40, 1);
+#endif
+
     ins.init(AP_InertialSensor::COLD_START, 
-			 AP_InertialSensor::RATE_100HZ,
+			 AP_InertialSensor::RATE_50HZ,
 			 NULL);
 
     // display initial values
@@ -85,14 +102,19 @@ void loop(void)
 
 void run_calibration()
 {
+    float roll_trim, pitch_trim;
     // clear off any other characters (like line feeds,etc)
     while( hal.console->available() ) {
         hal.console->read();
     }
 
 
+#if !defined( __AVR_ATmega1280__ )
     AP_InertialSensor_UserInteractStream interact(hal.console);
-    ins.calibrate_accel(NULL, &interact);
+    ins.calibrate_accel(NULL, &interact, roll_trim, pitch_trim);
+#else
+	hal.console->println_P(PSTR("calibrate_accel not available on 1280"));
+#endif
 }
 
 void display_offsets_and_scaling()
@@ -117,10 +139,6 @@ void display_offsets_and_scaling()
                     gyro_offsets.x,
                     gyro_offsets.y,
                     gyro_offsets.z);
-}
-
-static void flash_leds(bool on) {
-	// no LEDs yet on PX4
 }
 
 void run_level()
@@ -167,9 +185,7 @@ void run_test()
     while( !hal.console->available() ) {
 
         // wait until we have a sample
-        while (ins.num_samples_available() == 0) {
-			hal.scheduler->delay(1);
-		}
+        while (ins.num_samples_available() == 0) /* noop */ ;
 
         // read samples from ins
         ins.update();
@@ -180,9 +196,8 @@ void run_test()
 
 		if (counter++ % 50 == 0) {
 			// display results
-			hal.console->printf_P(PSTR("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f \t len:%4.2f \t Gyro X:%4.2f \t Y:%4.2f \t Z:%4.2f \t dt:%u\n"), 
-								  accel.x, accel.y, accel.z, length, gyro.x, gyro.y, gyro.z,
-								  (unsigned)(1.0e6*ins.get_delta_time()));
+			hal.console->printf_P(PSTR("Accel X:%4.2f Y:%4.2f Z:%4.2f len:%4.2f Gyro X:%4.2f Y:%4.2f Z:%4.2f\n"), 
+								  accel.x, accel.y, accel.z, length, degrees(gyro.x), degrees(gyro.y), degrees(gyro.z));
 		}
     }
 
@@ -193,8 +208,10 @@ void run_test()
 }
 
 #else
-void setup() {}
-void loop() {}
-#endif // CONFIG_HAL_BOARD
+void loop(void) {}
+void setup(void) {
+    hal.console->println("No OilPan on this board");
+}
+#endif
 
 AP_HAL_MAIN();

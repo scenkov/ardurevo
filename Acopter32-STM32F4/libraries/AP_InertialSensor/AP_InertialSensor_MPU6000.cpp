@@ -1,7 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_HAL.h>
-#include <gpio_hal.h>
 #include "AP_InertialSensor_MPU6000.h"
 
 extern const AP_HAL::HAL& hal;
@@ -602,14 +601,16 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 1;
         break;
+/*
     case RATE_1000HZ:
-/*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 	_sample_rate = MPUREG_SMPLRT_1000HZ;
 	_sample_time = 0.001;
-#endif*/
+#endif
         default_filter = BITS_DLPF_CFG_20HZ;
         _sample_shift = 0;
         break;
+*/
     case RATE_200HZ:
     default:
 /*#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN

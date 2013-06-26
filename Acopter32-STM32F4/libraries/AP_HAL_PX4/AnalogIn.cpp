@@ -19,10 +19,6 @@
 // for a range of known inputs from 1.3V to 5.0V
 #define PX4_AIRSPEED_VOLTAGE_SCALING (6.76f/4096.0f)
 
-// the FMU battery mon port has some additional scaling to make it
-// safe for up to 18.68V.
-#define PX4_FMU_BATTERY_VOLTAGE_SCALING (18.68f/4096.0f)
-
 // pin4 in the SPI port is analog input 13, marked as analog3 on the
 // PX4IO schematic v1.3, and is scaled quite strangely
 #define PX4_ANALOG3_VOLTAGE_SCALING (16.88f/4096.0f)
