@@ -26,8 +26,6 @@
 #define YAW_TOY                         8       // THOR This is the Yaw mode
 #define YAW_RESETTOARMEDYAW				9       // point towards heading at time motors were armed
 
-#define RADIO_TYPE 0  // 0 Standard Radio 1 PPMSUM  2 OTHER
-
 #define ROLL_PITCH_STABLE           0       // pilot input roll, pitch angles
 #define ROLL_PITCH_ACRO             1       // pilot inputs roll, pitch rotation rates
 #define ROLL_PITCH_AUTO             2       // no pilot input.  autopilot roll, pitch is sent to stabilize controller inputs
@@ -282,7 +280,9 @@ enum ap_message {
 #define LOG_DATA_INT32_MSG              0x16
 #define LOG_DATA_UINT32_MSG             0x17
 #define LOG_DATA_FLOAT_MSG              0x18
-#define LOG_DATA_INT8_MSG              	0x1A
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ # define LOG_DATA_INT8_MSG              	0x1A
+#endif
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
 
@@ -342,17 +342,17 @@ enum ap_message {
 // AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
 // next to SW2 switch
 // Look more ArduCopter Wiki for voltage dividers and other ports
-#define AN0  200  // resistor, vdiv use, divider 1 closest to relay
-#define AN1  200  // resistor, vdiv use, divider 2
-#define AN2  200  // resistor, vdiv use, divider 3
-#define AN3  200  // resistor, vdiv use, divider 4 closest to SW2
-#define AN4  200  // direct GPIO pin, default as analog input, next to SW2
+#define AN0  54  // resistor, vdiv use, divider 1 closest to relay
+#define AN1  55  // resistor, vdiv use, divider 2
+#define AN2  56  // resistor, vdiv use, divider 3
+#define AN3  57  // resistor, vdiv use, divider 4 closest to SW2
+#define AN4  58  // direct GPIO pin, default as analog input, next to SW2
                  // switch
-#define AN5  200  // direct GPIO pin, default as analog input, next to SW2
+#define AN5  59  // direct GPIO pin, default as analog input, next to SW2
                  // switch
-#define AN6  200  // direct GPIO pin, default as analog input, close to
+#define AN6  60  // direct GPIO pin, default as analog input, close to
                  // Pressure sensor, Expansion Ports
-#define AN7  200  // direct GPIO pin, default as analog input, close to
+#define AN7  61  // direct GPIO pin, default as analog input, close to
                  // Pressure sensor, Expansion Ports
 
 // AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and
@@ -361,17 +361,17 @@ enum ap_message {
 // on edge of the board above Expansion Ports
 // even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on
 // inner row
-#define AN8  200  // NC
-#define AN9  200  // NC
-#define AN10  200 // NC
-#define AN11  200 // NC
-#define AN12  200 // NC
-#define AN13  200 // NC
-#define AN14  200 // NC
-#define AN15  200 // NC
+#define AN8  62  // NC
+#define AN9  63  // NC
+#define AN10  64 // NC
+#define AN11  65 // NC
+#define AN12  66 // NC
+#define AN13  67 // NC
+#define AN14  68 // NC
+#define AN15  69 // NC
 
-#define RELAY_APM1_PIN 200
-#define RELAY_APM2_PIN 200
+#define RELAY_APM1_PIN 47
+#define RELAY_APM2_PIN 13
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector

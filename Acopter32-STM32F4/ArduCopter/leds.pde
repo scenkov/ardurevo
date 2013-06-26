@@ -138,21 +138,13 @@ static void copter_leds_init(void)
     pinMode(COPTER_LED_6, OUTPUT);              //Motor or Aux LED
     pinMode(COPTER_LED_7, OUTPUT);              //Motor or GPS LED
     pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
-    hal.gpio->pinMode(PIEZO_PIN, OUTPUT);       // PIEZO PIN
-
-    digitalWrite(COPTER_LED_1, COPTER_LED_ON);              //Motor LED
-    digitalWrite(COPTER_LED_2, COPTER_LED_ON);              //Motor LED
-    digitalWrite(COPTER_LED_3, COPTER_LED_ON);              //Motor LED
-    digitalWrite(COPTER_LED_4, COPTER_LED_ON);              //Motor LED
-    digitalWrite(COPTER_LED_5, COPTER_LED_ON);              //Motor or Aux LED
-    digitalWrite(COPTER_LED_6, COPTER_LED_ON);              //Motor or Aux LED
-    digitalWrite(COPTER_LED_7, COPTER_LED_ON);              //Motor or GPS LED
-    digitalWrite(COPTER_LED_8, COPTER_LED_ON);              //Motor or GPS LED
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    pinMode(PIEZO_PIN, OUTPUT);       // PIEZO PIN
+#endif
 
     if (!(g.copter_leds_mode & COPTER_LEDS_BITMASK_BEEPER)) {
         piezo_beep();
     }
-    copter_leds_reset();
 }
 
 static void update_copter_leds(void)

@@ -55,19 +55,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // APM2 HARDWARE DEFAULTS
 //
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
- # define CONFIG_PUSHBUTTON DISABLED
- # define CONFIG_RELAY      DISABLED
- # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
- # define MAGNETOMETER ENABLED
- # define CONFIG_BARO     AP_BARO_MS5611
- # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
- # define CONFIG_ADC        DISABLED
- # define CONFIG_PUSHBUTTON DISABLED
- # define CONFIG_RELAY      DISABLED
- # define LOGGING_ENABLED ENABLED
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
@@ -101,6 +90,19 @@
  # define CONFIG_RELAY      DISABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define MAGNETOMETER ENABLED
+ # define CONFIG_BARO     AP_BARO_MS5611
+ # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
+ # define CONFIG_ADC        DISABLED
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define LOGGING_ENABLED ENABLED
+ # define SERIAL0_BAUD 57600
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -172,19 +174,7 @@
 ////////////////////////////////////////////////////////
 // LED and IO Pins
 //
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define A_LED_PIN        19
- # define B_LED_PIN        20
- # define C_LED_PIN        21
- # define LED_ON           HIGH
- # define LED_OFF          LOW
- # define PUSHBUTTON_PIN   200
- # define USB_MUX_PIN      -1
- # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      200      // Battery current on A1
- # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
- # define CURRENT_PIN_1      200
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define A_LED_PIN        37
  # define B_LED_PIN        36
  # define C_LED_PIN        35
@@ -235,6 +225,19 @@
  # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN -1
  # define BATTERY_CURR_PIN -1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ # define A_LED_PIN        19
+ # define B_LED_PIN        20
+ # define C_LED_PIN        21
+ # define LED_ON           HIGH
+ # define LED_OFF          LOW
+ # define PUSHBUTTON_PIN   200
+ # define USB_MUX_PIN      -1
+ # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      200      // Battery current on A1
+ # define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
+ # define CURRENT_PIN_1      200
+ # define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -257,15 +260,6 @@
  #define COPTER_LED_6 AN9       // Motor LED
  #define COPTER_LED_7 AN10      // Motor LED
  #define COPTER_LED_8 AN11      // Motor LED
-#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- #define COPTER_LED_1 102  	// Motor or Aux LED
- #define COPTER_LED_2 65  	// Motor LED or Beeper
- #define COPTER_LED_3 200  	// Motor or GPS LED
- #define COPTER_LED_4 200  	// Motor or GPS LED
- #define COPTER_LED_5 200  	// Motor or GPS LED
- #define COPTER_LED_6 200  	// Motor or GPS LED
- #define COPTER_LED_7 200  	// Motor or GPS LED
- #define COPTER_LED_8 200  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || HAL_BOARD_SMACCM
  #define COPTER_LED_1 AN8       // Motor or Aux LED
  #define COPTER_LED_2 AN9       // Motor LED
@@ -275,6 +269,15 @@
  #define COPTER_LED_6 AN13      // Motor LED
  #define COPTER_LED_7 AN14      // Motor LED
  #define COPTER_LED_8 AN15      // Motor LED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ #define COPTER_LED_1 102  	// Motor or Aux LED
+ #define COPTER_LED_2 65  	// Motor LED or Beeper
+ #define COPTER_LED_3 200  	// Motor or GPS LED
+ #define COPTER_LED_4 200  	// Motor or GPS LED
+ #define COPTER_LED_5 200  	// Motor or GPS LED
+ #define COPTER_LED_6 200  	// Motor or GPS LED
+ #define COPTER_LED_7 200  	// Motor or GPS LED
+ #define COPTER_LED_8 200  	// Motor or GPS LED
 #endif
 
 
@@ -319,7 +322,7 @@
  # endif
 #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
  # ifndef CONFIG_SONAR_SOURCE_ANALOG_PIN
-  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
+  #  define CONFIG_SONAR_SOURCE_ANALOG_PIN 0
  # endif
 #else
  # warning Invalid value for CONFIG_SONAR_SOURCE, disabling sonar
@@ -388,7 +391,7 @@
 // Serial port speeds.
 //
 #ifndef SERIAL0_BAUD
- # define SERIAL0_BAUD                   57600
+ # define SERIAL0_BAUD                   115200
 #endif
 #ifndef SERIAL3_BAUD
  # define SERIAL3_BAUD                    57600

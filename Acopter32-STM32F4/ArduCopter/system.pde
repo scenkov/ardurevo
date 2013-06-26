@@ -126,14 +126,14 @@ static void init_ardupilot()
     report_version();
 
     // setup IO pins
-    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_OFF);
+    pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
+    digitalWrite(A_LED_PIN, LED_OFF);
 
-    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_OFF);
+    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+    digitalWrite(B_LED_PIN, LED_OFF);
 
-    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_OFF);
+    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
+    digitalWrite(C_LED_PIN, LED_OFF);
 
     relay.init(); 
 
@@ -144,18 +144,12 @@ static void init_ardupilot()
     copter_leds_init();
 #endif
 
-    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
-    batt_volt_analog_source = hal.analogin->channel(g.battery_volt_pin);
-    batt_curr_analog_source = hal.analogin->channel(g.battery_curr_pin);
-    board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
-    hal.console->println("Baro init");
     barometer.init();
 #endif
 
     // init the GCS
-    hal.console->println("GCS0 init");
     gcs0.init(hal.uartA);
 
     // Register the mavlink service callback. This will run
@@ -170,7 +164,6 @@ static void init_ardupilot()
         hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
 #else
-    hal.console->println("GCS3 init");
     // we have a 2nd serial port for telemetry
     hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
     gcs3.init(hal.uartC);
@@ -181,7 +174,6 @@ static void init_ardupilot()
     mavlink_system.type = 2; //MAV_QUADROTOR;
 
 #if LOGGING_ENABLED == ENABLED
-    hal.console->println("DataFlash init");
     DataFlash.Init();
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash inserted"));
@@ -198,7 +190,6 @@ static void init_ardupilot()
     motors.init_swash();              // heli initialisation
 #endif
 
-    hal.console->println("RC init");
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up motors and output to escs
 
@@ -215,13 +206,10 @@ static void init_ardupilot()
  #endif // CONFIG_ADC
 #endif // HIL_MODE
 
-    hal.console->println("GPS init");
     // Do GPS init
     g_gps = &g_gps_driver;
     // GPS Initialization
     g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
-
-    hal.console->println("compass init");
 
     if(g.compass_enabled)
         init_compass();
@@ -263,33 +251,30 @@ static void init_ardupilot()
 
     // initialise sonar
 #if CONFIG_SONAR == ENABLED
-    hal.console->println("Init Sonar");
     init_sonar();
 #endif
 
 #if FRAME_CONFIG == HELI_FRAME
-// initialise controller filters
-init_rate_controllers();
+    // initialise controller filters
+    init_rate_controllers();
 #endif // HELI_FRAME
 
     // initialize commands
     // -------------------
-    hal.console->println("Init Commands");
     init_commands();
 
     // set the correct flight mode
     // ---------------------------
-    hal.console->println("Reset Control Switch");
     reset_control_switch();
 
-    hal.console->println("StartUp Ground");
+
     startup_ground();
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
 #endif
 
-    hal.console->println("\nReady to FLY ");
+    cliSerial->print_P(PSTR("\nReady to FLY "));
 }
 
 
@@ -299,13 +284,12 @@ init_rate_controllers();
 static void startup_ground(void)
 {
     gcs_send_text_P(SEVERITY_LOW,PSTR("GROUND START"));
-    cliSerial->printf_P("Start Up Ground");
+
     // initialise ahrs (may push imu calibration into the mpu6000 if using that device).
     ahrs.init();
 
     // Warm up and read Gyro offsets
     // -----------------------------
-    cliSerial->printf_P("Ins Init");
     ins.init(AP_InertialSensor::COLD_START,
              ins_sample_rate,
              flash_leds);
@@ -453,7 +437,7 @@ static void set_mode(uint8_t mode)
 
     case LAND:
         // To-Do: it is messy to set manual_attitude here because the do_land function is reponsible for setting the roll_pitch_mode
-        if( g_gps->status() == GPS::GPS_OK_FIX_3D ) {
+        if( ap.home_is_set && g_gps->status() == GPS::GPS_OK_FIX_3D ) {
             // switch to loiter if we have gps
             ap.manual_attitude = false;
         }else{
