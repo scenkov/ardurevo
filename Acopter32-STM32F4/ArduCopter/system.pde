@@ -126,14 +126,14 @@ static void init_ardupilot()
     report_version();
 
     // setup IO pins
-    pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
-    digitalWrite(A_LED_PIN, LED_OFF);
+    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                                 // GPS status LED
+    hal.gpio->write(A_LED_PIN, LED_OFF);
 
-    pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    digitalWrite(B_LED_PIN, LED_OFF);
+    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(B_LED_PIN, LED_OFF);
 
-    pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
-    digitalWrite(C_LED_PIN, LED_OFF);
+    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                         // GPS status LED
+    hal.gpio->write(C_LED_PIN, LED_OFF);
 
     relay.init(); 
 
@@ -144,6 +144,12 @@ static void init_ardupilot()
     copter_leds_init();
 #endif
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
+    batt_volt_analog_source = hal.analogin->channel(g.battery_volt_pin);
+    batt_curr_analog_source = hal.analogin->channel(g.battery_curr_pin);
+    board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
+#endif
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
     barometer.init();

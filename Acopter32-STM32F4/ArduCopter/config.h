@@ -260,15 +260,6 @@
  #define COPTER_LED_6 AN9       // Motor LED
  #define COPTER_LED_7 AN10      // Motor LED
  #define COPTER_LED_8 AN11      // Motor LED
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || HAL_BOARD_SMACCM
- #define COPTER_LED_1 AN8       // Motor or Aux LED
- #define COPTER_LED_2 AN9       // Motor LED
- #define COPTER_LED_3 AN10      // Motor or GPS LED
- #define COPTER_LED_4 AN11      // Motor LED
- #define COPTER_LED_5 AN12      // Motor LED
- #define COPTER_LED_6 AN13      // Motor LED
- #define COPTER_LED_7 AN14      // Motor LED
- #define COPTER_LED_8 AN15      // Motor LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  #define COPTER_LED_1 102  	// Motor or Aux LED
  #define COPTER_LED_2 65  	// Motor LED or Beeper
@@ -278,6 +269,15 @@
  #define COPTER_LED_6 200  	// Motor or GPS LED
  #define COPTER_LED_7 200  	// Motor or GPS LED
  #define COPTER_LED_8 200  	// Motor or GPS LED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+ #define COPTER_LED_1 AN8       // Motor or Aux LED
+ #define COPTER_LED_2 AN9       // Motor LED
+ #define COPTER_LED_3 AN10      // Motor or GPS LED
+ #define COPTER_LED_4 AN11      // Motor LED
+ #define COPTER_LED_5 AN12      // Motor LED
+ #define COPTER_LED_6 AN13      // Motor LED
+ #define COPTER_LED_7 AN14      // Motor LED
+ #define COPTER_LED_8 AN15      // Motor LED
 #endif
 
 

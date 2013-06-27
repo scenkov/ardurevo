@@ -342,6 +342,7 @@ enum ap_message {
 // AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
 // next to SW2 switch
 // Look more ArduCopter Wiki for voltage dividers and other ports
+#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
 #define AN0  54  // resistor, vdiv use, divider 1 closest to relay
 #define AN1  55  // resistor, vdiv use, divider 2
 #define AN2  56  // resistor, vdiv use, divider 3
@@ -372,6 +373,7 @@ enum ap_message {
 
 #define RELAY_APM1_PIN 47
 #define RELAY_APM2_PIN 13
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector

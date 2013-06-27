@@ -903,10 +903,12 @@ void setup() {
             &sonar_mode_filter);
 #endif
 
+#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
     rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
     batt_volt_analog_source = hal.analogin->channel(g.battery_volt_pin);
     batt_curr_analog_source = hal.analogin->channel(g.battery_curr_pin);
     board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
+#endif
 
     init_ardupilot();
 
