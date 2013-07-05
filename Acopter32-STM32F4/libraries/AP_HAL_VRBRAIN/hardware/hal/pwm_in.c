@@ -131,11 +131,11 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
             if (input->state == 0) {
         	input->rise = val;
-        	//if(input->rise > input->fall)
+        	//if(input->rise > input->fall){
         	//    time_off = input->rise - input->fall;
-        	//else
+        	//}else{
         	//    time_off = ((0xFFFF - input->fall) + input->rise);
-
+		//}
         	    input->state = 1;
                     TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
                     TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
@@ -156,11 +156,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 		    //reset error count
 		    input->error = 0;
 		    }
-        	else
-        	    {
-        	    //add error count
-        	    input->error++;
-        	    }
+
 		    // switch state
 		    input->state = 0;
 		    TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
