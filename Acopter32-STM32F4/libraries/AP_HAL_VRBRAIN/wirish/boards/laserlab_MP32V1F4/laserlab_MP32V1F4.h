@@ -54,10 +54,10 @@ void boardInit(void);
 #define BOARD_SPI2_SCK_PIN      3
 #define BOARD_SPI2_MISO_PIN     4
 #define BOARD_SPI2_MOSI_PIN     5
-#define BOARD_SPI3_NSS_PIN      //103
-#define BOARD_SPI3_MOSI_PIN     //37
-#define BOARD_SPI3_MISO_PIN     //105
-#define BOARD_SPI3_SCK_PIN      //104
+#define BOARD_SPI3_NSS_PIN      22
+#define BOARD_SPI3_MOSI_PIN     18
+#define BOARD_SPI3_MISO_PIN     17
+#define BOARD_SPI3_SCK_PIN      16
 
 #define MPU6000_CS_PIN			77
 #define MPU6000_INT_PIN			99

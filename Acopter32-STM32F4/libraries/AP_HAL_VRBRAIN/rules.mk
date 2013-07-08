@@ -23,6 +23,7 @@ cppSRCS_$(d) += Scheduler.cpp
 cppSRCS_$(d) += Semaphores.cpp
 cppSRCS_$(d) += SPIDevice_SPI1.cpp
 cppSRCS_$(d) += SPIDevice_SPI2.cpp
+cppSRCS_$(d) += SPIDevice_SPI3.cpp
 cppSRCS_$(d) += SPIDeviceManager.cpp
 cppSRCS_$(d) += Storage.cpp
 cppSRCS_$(d) += UARTDriver.cpp

@@ -35,11 +35,11 @@
 
 #include <boards.h>
 
-#define MINONWIDTH 950
-#define MAXONWIDTH 2075
+#define MINONWIDTH 920 * 2
+#define MAXONWIDTH 2120 * 2
 // PATCH FOR FAILSAFE AND FRSKY
-#define MINOFFWIDTH 1000
-#define MAXOFFWIDTH 22000
+#define MINOFFWIDTH 1000 * 2
+#define MAXOFFWIDTH 22000 * 2
 
 typedef void (*rcc_clockcmd)(uint32_t, FunctionalState);
 /**************** PWM INPUT **************************************/
@@ -81,6 +81,7 @@ static struct PWM_State {
     uint16_t rise;
     uint16_t fall;
     uint16_t capture;
+    uint16_t error;
 } Inputs[8];
 
 static TIM_ICInitTypeDef  TIM_ICInitStructure;
@@ -103,7 +104,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
     uint8_t i;
     uint16_t val = 0;
     uint16_t time_on = 0;
-    uint16_t time_off = 0;
+    //uint16_t time_off = 0;
 
     for (i = 0; i < 8; i++) {
         struct TIM_Channel channel = Channels[i];
@@ -130,18 +131,15 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
             if (input->state == 0) {
         	input->rise = val;
-        	if(input->rise > input->fall)
-        	    time_off = input->rise - input->fall;
-        	else
-        	    time_off = ((0xFFFF - input->fall) + input->rise);
+        	//if(input->rise > input->fall)
+        	//    time_off = input->rise - input->fall;
+        	//else
+        	//    time_off = ((0xFFFF - input->fall) + input->rise);
 
-                // switch states
-        	if ((time_off >= MINOFFWIDTH) && (time_off <= MAXOFFWIDTH)){
         	    input->state = 1;
                     TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
                     TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
                     TIM_ICInit(channel.tim, &TIM_ICInitStructure);
-        	}
 
             } else {
         	input->fall = val;
@@ -152,15 +150,23 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
         	if ((time_on >= MINONWIDTH) && (time_on <= MAXONWIDTH))
         	    {
-		    // compute capture
-		    input->capture = time_on;
+		    // compute capture. 1 tick value is 0.5us
+		    input->capture = time_on >> 1;
 
+		    //reset error count
+		    input->error = 0;
+		    }
+        	else
+        	    {
+        	    //add error count
+        	    input->error++;
+        	    }
 		    // switch state
 		    input->state = 0;
 		    TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
 		    TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
 		    TIM_ICInit(channel.tim, &TIM_ICInitStructure);
-		    }
+
             }
         }
     }
@@ -201,7 +207,7 @@ static void pwmInitializeInput(void)
 // TIM configuration base *******************************************************/
 
 		TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-		TIM_TimeBaseStructure.TIM_Prescaler = 167; //100KHz
+		TIM_TimeBaseStructure.TIM_Prescaler = 83; //200KHz
 		TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 		TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
@@ -233,6 +239,7 @@ void pwmInit(void)
 	Inputs[i].capture = 1500;
 	Inputs[i].rise = 0;
 	Inputs[i].fall = 0;
+	Inputs[i].error = 0;
 	}
 
 	pwmInitializeInput();

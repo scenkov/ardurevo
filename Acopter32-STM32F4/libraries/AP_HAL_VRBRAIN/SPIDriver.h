@@ -17,7 +17,9 @@ public:
     AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice);
 private:    
     VRBRAINSPI2DeviceDriver* _mpu6k;
-    
+
+    VRBRAINSPI3DeviceDriver* _mpu6k_ext;
+
     VRBRAINSPI1DeviceDriver* _ms5611;
     VRBRAINSPI1DeviceDriver* _dataflash;
 

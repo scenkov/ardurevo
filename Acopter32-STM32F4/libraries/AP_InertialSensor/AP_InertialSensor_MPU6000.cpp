@@ -259,8 +259,7 @@ uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
             if (_data_ready()) {
                 break;
             } else {
-                hal.console->println_P(
-                        PSTR("MPU6000 startup failed: no data ready"));
+                hal.console->println_P(PSTR("MPU6000 startup failed: no data ready"));
             }
         }
         if (tries++ > 5) {

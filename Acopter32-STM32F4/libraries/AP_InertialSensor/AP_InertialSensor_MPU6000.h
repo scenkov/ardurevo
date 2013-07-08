@@ -27,8 +27,8 @@ public:
 
     AP_InertialSensor_MPU6000();
 
-    static void         dmp_init(); // Initialise MPU6000's DMP
-    static void         dmp_reset();    // Reset the DMP (required for changes in gains or offsets to take effect)
+    static void         dmp_init();  // Initialise MPU6000's DMP
+    static void         dmp_reset(); // Reset the DMP (required for changes in gains or offsets to take effect)
 
     /* Concrete implementation of AP_InertialSensor functions: */
     bool                update();

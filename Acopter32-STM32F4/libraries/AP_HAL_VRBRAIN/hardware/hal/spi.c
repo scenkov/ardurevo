@@ -21,6 +21,14 @@ static spi_dev spi2 = {
 /** SPI device 2 */
 spi_dev *_SPI2 = &spi2;
 
+static spi_dev spi3 = {
+    .SPIx     = SPI3,
+    .afio     = GPIO_AF_SPI3,
+    .irq	  = SPI3_IRQn,
+};
+/** SPI device 2 */
+spi_dev *_SPI3 = &spi3;
+
 
 void spi_init(spi_dev *dev) {
 	SPI_I2S_DeInit(dev->SPIx);
@@ -33,6 +41,7 @@ void spi_init(spi_dev *dev) {
 void spi_foreach(void (*fn)(spi_dev*)) {
     fn(_SPI1);
     fn(_SPI2);
+    fn(_SPI3);
 }
 
 /**
@@ -96,8 +105,10 @@ static void spi_reconfigure(spi_dev *dev, uint8_t ismaster, uint16_t baudPrescal
 	/* Enable the SPI clock */
 	if (dev->SPIx == SPI1)
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);  
-	else
+	else if (dev->SPIx == SPI2)
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+	else
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
 	
 	/* SPI configuration */
 	SPI_StructInit(&SPI_InitStructure);

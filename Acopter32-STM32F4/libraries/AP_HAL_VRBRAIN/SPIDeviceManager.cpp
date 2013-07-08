@@ -21,6 +21,10 @@ void VRBRAINSPIDeviceManager::init(void* machtnichts) {
     _mpu6k = new VRBRAINSPI2DeviceDriver(77);
     _mpu6k->init();
 
+    _mpu6k_ext = new VRBRAINSPI3DeviceDriver(22);
+    _mpu6k_ext->init();
+
+
     _ms5611 = new VRBRAINSPI1DeviceDriver(94);
     _ms5611->init();
 
@@ -38,6 +42,8 @@ AP_HAL::SPIDeviceDriver* VRBRAINSPIDeviceManager::device(enum AP_HAL::SPIDevice 
             return _ms5611;
         case AP_HAL::SPIDevice_MPU6000:
             return _mpu6k;
+        case AP_HAL::SPIDevice_MPU6000_Ext:
+            return _mpu6k_ext;
         default:
             return NULL;
     };

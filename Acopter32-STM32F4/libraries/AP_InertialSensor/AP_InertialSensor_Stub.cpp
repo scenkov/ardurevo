@@ -21,10 +21,12 @@ uint16_t AP_InertialSensor_Stub::_init_sensor( Sample_rate sample_rate ) {
     case RATE_200HZ:
         _sample_period_ms = 5;
         break;
-    /*case RATE_1000HZ:
+    case RATE_500HZ:
+        _sample_period_ms = 2;
+        break;
+    case RATE_1000HZ:
         _sample_period_ms = 1;
         break;
-		*/
     }
     return AP_PRODUCT_ID_NONE;
 }
@@ -52,6 +54,5 @@ uint16_t AP_InertialSensor_Stub::num_samples_available()
 {
     uint16_t ret = (hal.scheduler->millis() - _last_update_ms) 
         / _sample_period_ms;
-    
     return ret;
 }

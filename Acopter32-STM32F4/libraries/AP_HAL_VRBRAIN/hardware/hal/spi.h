@@ -19,6 +19,7 @@ typedef struct spi_dev {
 
 extern spi_dev *_SPI1;
 extern spi_dev *_SPI2;
+extern spi_dev *_SPI3;
 
 typedef enum spi_firstbit {
 	LSBFIRST,

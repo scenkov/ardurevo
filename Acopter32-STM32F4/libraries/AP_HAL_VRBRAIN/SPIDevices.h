@@ -45,12 +45,10 @@ static const spi_pins board_spi_pins[] __FLASH__ = {
      BOARD_SPI2_SCK_PIN,
      BOARD_SPI2_MISO_PIN,
      BOARD_SPI2_MOSI_PIN},
-#ifdef STM32_HIGH_DENSITY
     {BOARD_SPI3_NSS_PIN,
      BOARD_SPI3_SCK_PIN,
      BOARD_SPI3_MISO_PIN,
-     BOARD_SPI3_MOSI_PIN},
-#endif
+     BOARD_SPI3_MOSI_PIN}
 };
 
 class VRBRAIN::VRBRAINSPI1DeviceDriver : public AP_HAL::SPIDeviceDriver {
@@ -93,6 +91,41 @@ public:
     VRBRAINSPI2DeviceDriver(uint8_t cs_pin)
     :
         _dev(_SPI2),
+        _cs_pin(cs_pin)
+    {}
+
+    void init();
+    AP_HAL::Semaphore* get_semaphore();
+
+    void transaction(const uint8_t *tx, uint8_t *rx, uint16_t len);
+
+    void cs_assert();
+    void cs_release();
+    uint8_t transfer(uint8_t data);
+    void transfer(const uint8_t *data, uint16_t len);
+
+
+private:
+    void _cs_assert();
+    void _cs_release();
+    uint8_t _transfer(uint8_t data);
+    const spi_pins* dev_to_spi_pins(spi_dev *dev);
+    void configure_gpios(spi_dev *dev, bool as_master);
+    const spi_baud_rate determine_baud_rate(SPIFrequency freq);
+
+    static VRBRAIN::VRBRAINSemaphore _semaphore;
+
+    spi_dev *_dev;
+    uint8_t _cs_pin;
+};
+
+
+
+class VRBRAIN::VRBRAINSPI3DeviceDriver : public AP_HAL::SPIDeviceDriver {
+public:
+    VRBRAINSPI3DeviceDriver(uint8_t cs_pin)
+    :
+        _dev(_SPI3),
         _cs_pin(cs_pin)
     {}
 

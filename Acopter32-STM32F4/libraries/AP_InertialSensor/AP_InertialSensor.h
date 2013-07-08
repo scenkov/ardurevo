@@ -32,7 +32,9 @@ public:
     enum Sample_rate {
         RATE_50HZ,
         RATE_100HZ,
-        RATE_200HZ
+        RATE_200HZ,
+        RATE_500HZ,
+        RATE_1000HZ
     };
 
     /// Perform startup initialisation.
@@ -134,10 +136,10 @@ public:
 protected:
 
     // sensor specific init to be overwritten by descendant classes
-    virtual uint16_t        _init_sensor( Sample_rate sample_rate ) = 0;
+    virtual uint16_t _init_sensor( Sample_rate sample_rate ) = 0;
 
     // no-save implementations of accel and gyro initialisation routines
-    virtual void  _init_accel(void (*flash_leds_cb)(bool on) = NULL);
+    virtual void _init_accel(void (*flash_leds_cb)(bool on) = NULL);
 
     virtual void _init_gyro(void (*flash_leds_cb)(bool on) = NULL);
 
@@ -180,6 +182,7 @@ protected:
 
 #include "AP_InertialSensor_Oilpan.h"
 #include "AP_InertialSensor_MPU6000.h"
+#include "AP_InertialSensor_MPU6000_Ext.h"
 #include "AP_InertialSensor_Stub.h"
 #include "AP_InertialSensor_PX4.h"
 #include "AP_InertialSensor_UserInteract_Stream.h"
