@@ -867,7 +867,7 @@
  # define RATE_YAW_P              	0.200f
 #endif
 #ifndef RATE_YAW_I
- # define RATE_YAW_I              	0.015f
+ # define RATE_YAW_I              	0.020f
 #endif
 #ifndef RATE_YAW_D
  # define RATE_YAW_D              	0.000f
@@ -909,7 +909,7 @@
 // Loiter position control gains
 //
 #ifndef LOITER_P
- # define LOITER_P             		0.2f
+ # define LOITER_P             		1.0f
 #endif
 #ifndef LOITER_I
  # define LOITER_I             		0.0f
