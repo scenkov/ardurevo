@@ -51,19 +51,24 @@ uint32_t VRBRAINScheduler::millis() {
 }
 
 uint32_t VRBRAINScheduler::micros() {
-    uint32 ms;
+    uint32 fms, lms;
     uint32 cycle_cnt;
-
+    uint32 res;
     do {
-        ms = millis();
+        // make sure millis() return the same value before and after
+        // getting the systick count
+        fms = millis();
         cycle_cnt = systick_get_count();
-    } while (ms != millis());
+        lms = millis();
+    } while (lms != fms);
 
 #define US_PER_MS               1000
     /* SYSTICK_RELOAD_VAL is 1 less than the number of cycles it
-     * actually takes to complete a SysTick reload */
-    return ((ms * US_PER_MS) +
-            (SYSTICK_RELOAD_VAL + 1 - cycle_cnt) / CYCLES_PER_MICROSECOND);
+       actually takes to complete a SysTick reload */
+    res = (fms * US_PER_MS) +
+        (SYSTICK_RELOAD_VAL + 1 - cycle_cnt) / CYCLES_PER_MICROSECOND;
+
+    return res;
 #undef US_PER_MS
 }
 

@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V3.0.2"
+#define THISFIRMWARE "ArduCopter V3.0.3"
 /*
  *  ArduCopter Version 3.0
  *  Creator:        Jason Short
@@ -1907,9 +1907,9 @@ void update_throttle_mode(void)
             // update estimate of throttle cruise
             #if FRAME_CONFIG == HELI_FRAME
             update_throttle_cruise(motors.coll_out);
-			#else
-			update_throttle_cruise(pilot_throttle_scaled);
-			#endif  //HELI_FRAME
+	    #else
+	    update_throttle_cruise(pilot_throttle_scaled);
+	    #endif  //HELI_FRAME
 
             if (!ap.takeoff_complete && motors.armed()) {
                 if (pilot_throttle_scaled > g.throttle_cruise) {

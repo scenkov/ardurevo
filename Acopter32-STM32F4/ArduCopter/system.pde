@@ -121,8 +121,6 @@ static void init_ardupilot()
     //
     // Report firmware version code expect on console (check of actual EEPROM format version is done in load_parameters function)
     //
-    hal.scheduler->delay(3000);
-
     report_version();
 
     // setup IO pins

@@ -10,6 +10,7 @@
 
 #include <AP_HAL.h>
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #include "UARTDriver.h"
 
 #include <stdio.h>
@@ -22,7 +23,7 @@
 #include <usart.h>
 #include <gpio_hal.h>
 
-static usb_attr_t usb_attr;
+//static usb_attr_t usb_attr;
 
 using namespace VRBRAIN;
 
@@ -47,6 +48,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
 
     if(_usb_present == 1)
     {
+	/*
 	usb_open();
 	usb_default_attr(&usb_attr);
 	usb_attr.preempt_prio = 0;
@@ -55,6 +57,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
 	usb_attr.present_port = _GPIOD;
 	usb_attr.present_pin = 4;
 	usb_ioctl(I_USB_SETATTR, &usb_attr);
+	*/
     }
     else
     {
@@ -146,27 +149,6 @@ void VRBRAINUARTDriver::vprintf_P(const prog_char *fmt, va_list ap) {
 
 }
 
-void VRBRAINUARTDriver::_vprintf(const char *fmt, va_list ap)
-{
-    if (hal.scheduler->in_timerprocess()) {
-        // not allowed from timers
-        return;
-    }
-    // we don't use vdprintf() as it goes directly to the file descriptor
-    if (strstr(fmt, "%S")) {
-	char *fmt2 = strdup(fmt);
-	if (fmt2 != NULL) {
-	    for (uint16_t i=0; fmt2[i]; i++) {
-		if (fmt2[i] == '%' && fmt2[i+1] == 'S')
-		    fmt2[i+1] = 's';
-	    }
-            _internal_vprintf(fmt2, ap);
-	    free(fmt2);
-	}
-    }
-    else
-	_internal_vprintf(fmt, ap);
-}
 
 void VRBRAINUARTDriver::_internal_vprintf(const char *fmt, va_list ap)
 {
@@ -186,6 +168,31 @@ void VRBRAINUARTDriver::_internal_vprintf(const char *fmt, va_list ap)
         }
     }
 }
+
+void VRBRAINUARTDriver::_vprintf(const char *fmt, va_list ap)
+{
+    if (hal.scheduler->in_timerprocess()) {
+        // not allowed from timers
+        return;
+    }
+    // we don't use vdprintf() as it goes directly to the file descriptor
+    if (strstr(fmt, "%S")) {
+	char *fmt2 = strdup(fmt);
+	if (fmt2 != NULL) {
+	    for (uint16_t i=0; fmt2[i]; i++) {
+		if (fmt2[i] == '%' && fmt2[i+1] == 'S') {
+		    fmt2[i+1] = 's';
+			}
+	    }
+            _internal_vprintf(fmt2, ap);
+	    free(fmt2);
+	}
+    } else {
+	_internal_vprintf(fmt, ap);
+	}
+}
+
+
 
 
 /* VRBRAIN implementations of Stream virtual methods */
@@ -232,3 +239,6 @@ size_t VRBRAINUARTDriver::write(uint8_t c) {
 	return 1;
     }
 }
+
+#endif // CONFIG_HAL_BOARD
+
