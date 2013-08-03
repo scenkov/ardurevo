@@ -1024,7 +1024,7 @@ static void do_roi()
     //		4: point at a target given a target id (can't be implemented)
 #else
     // if we have no camera mount aim the quad at the location
-    yaw_look_at_WP = pv_location_to_vector(command_nav_queue);
+    yaw_look_at_WP = pv_location_to_vector(command_cond_queue);
     set_yaw_mode(YAW_LOOK_AT_LOCATION);
 #endif
 }

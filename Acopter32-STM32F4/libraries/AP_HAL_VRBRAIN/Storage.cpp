@@ -61,7 +61,7 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
 	while(numbytes > 0);
 }
 
-void VRBRAINStorage::write_block(uint16_t dst, void* src, size_t n)
+void VRBRAINStorage::write_block(uint16_t dst,const void* src, size_t n)
 {
 	uint8_t * buff = (uint8_t *)src;
 

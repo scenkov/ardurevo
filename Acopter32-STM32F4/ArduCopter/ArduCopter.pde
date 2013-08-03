@@ -173,7 +173,7 @@ static DataFlash_Empty DataFlash;
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
 ////////////////////////////////////////////////////////////////////////////////
-static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_200HZ;
+static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_100HZ;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Sensors
@@ -923,9 +923,6 @@ static void barometer_accumulate(void)
     barometer.accumulate();
 }
 
-// enable this to get console logging of scheduler performance
-#define SCHEDULER_DEBUG 0
-
 static void perf_update(void)
 {
     if (g.log_bitmask & MASK_LOG_PM)
@@ -947,7 +944,7 @@ void loop()
 
     // We want this to execute fast
     // ----------------------------
-    if (ins.num_samples_available() >= 2) {
+    if (ins.num_samples_available() >= 1) {
 
         // check loop time
         perf_info_check_loop_time(timer - fast_loopTimer);
@@ -964,12 +961,14 @@ void loop()
 
         // tell the scheduler one tick has passed
         scheduler.tick();
-    } else {
-        uint16_t dt = timer - fast_loopTimer;
-        if (dt < 10000) {
-            uint16_t time_to_next_loop = 10000 - dt;
-            scheduler.run(time_to_next_loop);
-        }
+
+        // run all the tasks that are due to run. Note that we only
+        // have to call this once per loop, as the tasks are scheduled
+        // in multiples of the main loop tick. So if they don't run on
+        // the first call to the scheduler they won't run on a later
+        // call until scheduler.tick() is called again
+        uint32_t time_available = (timer + 10000) - micros();
+        scheduler.run(time_available - 500);
     }
 }
 
@@ -1765,6 +1764,7 @@ void update_roll_pitch_mode(void)
         // copy latest output from nav controller to stabilize controller
         nav_roll = wp_nav.get_desired_roll();
         nav_pitch = wp_nav.get_desired_pitch();
+
         get_stabilize_roll(nav_roll);
         get_stabilize_pitch(nav_pitch);
         break;
@@ -1962,9 +1962,9 @@ void update_throttle_mode(void)
             // update estimate of throttle cruise
             #if FRAME_CONFIG == HELI_FRAME
             update_throttle_cruise(motors.coll_out);
-	    #else
-	    update_throttle_cruise(pilot_throttle_scaled);
-	    #endif  //HELI_FRAME
+			#else
+			update_throttle_cruise(pilot_throttle_scaled);
+			#endif  //HELI_FRAME
 
             if (!ap.takeoff_complete && motors.armed()) {
                 if (pilot_throttle_scaled > g.throttle_cruise) {

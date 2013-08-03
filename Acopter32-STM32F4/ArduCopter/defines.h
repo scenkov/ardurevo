@@ -375,7 +375,6 @@ enum ap_message {
 
 #define RELAY_APM1_PIN 47
 #define RELAY_APM2_PIN 13
-#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector
@@ -446,4 +445,4 @@ enum ap_message {
 
 
 
-
+#endif // _DEFINES_H

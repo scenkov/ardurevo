@@ -1,4 +1,4 @@
-// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
+// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #ifndef __AP_YAW_CONTROLLER_H__
 #define __AP_YAW_CONTROLLER_H__
@@ -21,7 +21,7 @@ public:
 		_ins = _ahrs->get_ins();
 	}
 
-	int32_t get_servo_out(float scaler = 1.0, bool stabilize = false);
+	int32_t get_servo_out(float scaler, bool disable_integrator);
 
 	void reset_I();
 

@@ -301,6 +301,7 @@ test_ins(uint8_t argc, const Menu::arg *argv)
     ins.init(AP_InertialSensor::COLD_START, 
              ins_sample_rate,
              flash_leds);
+    cliSerial->printf_P(PSTR("...done\n"));
 
     delay(50);
 

@@ -290,7 +290,7 @@ static void startup_ground(void)
     // we don't want writes to the serial port to cause us to pause
     // mid-flight, so set the serial ports non-blocking once we are
     // ready to fly
-    hal.uartC->set_blocking_writes(false);
+    hal.uartA->set_blocking_writes(false);
     if (gcs3.initialised) {
         hal.uartC->set_blocking_writes(false);
     }

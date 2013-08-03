@@ -136,10 +136,10 @@ public:
 protected:
 
     // sensor specific init to be overwritten by descendant classes
-    virtual uint16_t _init_sensor( Sample_rate sample_rate ) = 0;
+    virtual uint16_t        _init_sensor( Sample_rate sample_rate ) = 0;
 
     // no-save implementations of accel and gyro initialisation routines
-    virtual void _init_accel(void (*flash_leds_cb)(bool on) = NULL);
+    virtual void  _init_accel(void (*flash_leds_cb)(bool on) = NULL);
 
     virtual void _init_gyro(void (*flash_leds_cb)(bool on) = NULL);
 

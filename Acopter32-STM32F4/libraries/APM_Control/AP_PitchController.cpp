@@ -28,7 +28,7 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] PROGMEM = {
 	// @Param: P
 	// @DisplayName: Proportional Gain
 	// @Description: This is the gain from pitch angle to elevator. This gain works the same way as PTCH2SRV_P in the old PID controller and can be set to the same value.
-	// @Range: 0.1 1.0
+	// @Range: 0.1 2.0
 	// @Increment: 0.1
 	// @User: User
 	AP_GROUPINFO("P",        1, AP_PitchController, _K_P,          0.4f),
@@ -96,7 +96,7 @@ const AP_Param::GroupInfo AP_PitchController::var_info[] PROGMEM = {
  4) minimum FBW airspeed (metres/sec)
  5) maximum FBW airspeed (metres/sec)
 */
-int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool stabilize, float aspeed)
+int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool disable_integrator, float aspeed)
 {
 	uint32_t tnow = hal.scheduler->millis();
 	uint32_t dt = tnow - _last_t;
@@ -117,7 +117,7 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 	
 	// Multiply pitch rate error by _ki_rate and integrate
 	// Don't integrate if in stabilise mode as the integrator will wind up against the pilots inputs
-	if (!stabilize && _K_I > 0) {
+	if (!disable_integrator && _K_I > 0) {
         float ki_rate = _K_I * _tau;
 		//only integrate if gain and time step are positive and airspeed above min value.
 		if (dt > 0 && aspeed > 0.5f*float(aparm.airspeed_min)) {
@@ -230,7 +230,7 @@ float AP_PitchController::get_coordination_rate_offset(void) const
 // 4) minimum FBW airspeed (metres/sec)
 // 5) maximum FBW airspeed (metres/sec)
 //
-int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool stabilize)
+int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool disable_integrator)
 {
 	// Calculate offset to pitch rate demand required to maintain pitch angle whilst banking
 	// Calculate ideal turn rate from bank angle and airspeed assuming a level coordinated turn
@@ -266,7 +266,7 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
 	// Apply the turn correction offset
 	desired_rate = desired_rate + rate_offset;
 
-    return _get_rate_out(desired_rate, scaler, stabilize, aspeed);
+    return _get_rate_out(desired_rate, scaler, disable_integrator, aspeed);
 }
 
 void AP_PitchController::reset_I()
