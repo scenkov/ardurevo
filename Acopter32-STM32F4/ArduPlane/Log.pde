@@ -49,6 +49,8 @@ print_log_menu(void)
         PLOG(CMD);
         PLOG(CURRENT);
         PLOG(COMPASS);
+        PLOG(TECS);
+        PLOG(CAMERA);
  #undef PLOG
     }
 
@@ -138,6 +140,8 @@ select_logs(uint8_t argc, const Menu::arg *argv)
         TARG(CMD);
         TARG(CURRENT);
         TARG(COMPASS);
+        TARG(TECS);
+        TARG(CAMERA);
  #undef TARG
     }
 
@@ -186,7 +190,6 @@ struct PACKED log_Performance {
     int16_t  gyro_drift_x;
     int16_t  gyro_drift_y;
     int16_t  gyro_drift_z;
-    int16_t  pm_test;
     uint8_t  i2c_lockup_count;
 };
 
@@ -204,7 +207,6 @@ static void Log_Write_Performance()
         gyro_drift_x    : (int16_t)(ahrs.get_gyro_drift().x * 1000),
         gyro_drift_y    : (int16_t)(ahrs.get_gyro_drift().y * 1000),
         gyro_drift_z    : (int16_t)(ahrs.get_gyro_drift().z * 1000),
-        pm_test         : pmTest1,
         i2c_lockup_count: hal.i2c->lockup_count()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
@@ -312,11 +314,17 @@ static void Log_Write_Control_Tuning()
         roll            : (int16_t)ahrs.roll_sensor,
         nav_pitch_cd    : (int16_t)nav_pitch_cd,
         pitch           : (int16_t)ahrs.pitch_sensor,
-        throttle_out    : (int16_t)g.channel_throttle.servo_out,
-        rudder_out      : (int16_t)g.channel_rudder.servo_out,
+        throttle_out    : (int16_t)channel_throttle->servo_out,
+        rudder_out      : (int16_t)channel_rudder->servo_out,
         accel_y         : accel.y
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
+// Write a TECS tuning packet
+static void Log_Write_TECS_Tuning(void)
+{
+    SpdHgt_Controller->log_data(DataFlash, LOG_TECS_MSG);
 }
 
 struct PACKED log_Nav_Tuning {
@@ -374,7 +382,7 @@ static void Log_Write_Current()
 {
     struct log_Current pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CURRENT_MSG),
-        throttle_in             : g.channel_throttle.control_in,
+        throttle_in             : channel_throttle->control_in,
         battery_voltage         : (int16_t)(battery.voltage * 100.0),
         current_amps            : (int16_t)(battery.current_amps * 100.0),
         board_voltage           : board_voltage(),
@@ -432,7 +440,7 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
       "ATT", "ccC",        "Roll,Pitch,Yaw" },
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
-      "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,PMT,I2CErr" },
+      "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,I2CErr" },
     { LOG_CMD_MSG, sizeof(log_Cmd),                 
       "CMD", "BBBBBeLL",   "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
     { LOG_CAMERA_MSG, sizeof(log_Camera),                 
@@ -444,11 +452,12 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
       "NTUN", "CICCcc",     "Yaw,WpDist,TargBrg,NavBrg,AltErr,Arspd" },
     { LOG_MODE_MSG, sizeof(log_Mode),             
-      "MODE", "MB",         "Mode" },
+      "MODE", "MB",         "Mode,ModeNum" },
     { LOG_CURRENT_MSG, sizeof(log_Current),             
       "CURR", "hhhHf",      "Thr,Volt,Curr,Vcc,CurrTot" },
     { LOG_COMPASS_MSG, sizeof(log_Compass),             
       "MAG", "hhhhhhhhh",   "MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" },
+    TECS_LOG_FORMAT(LOG_TECS_MSG),
 };
 
 // Read the DataFlash.log memory : Packet Parser
@@ -480,6 +489,7 @@ static void Log_Write_Startup(uint8_t type) {}
 static void Log_Write_Cmd(uint8_t num, const struct Location *wp) {}
 static void Log_Write_Current() {}
 static void Log_Write_Nav_Tuning() {}
+static void Log_Write_TECS_Tuning() {}
 static void Log_Write_Performance() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_Control_Tuning() {}

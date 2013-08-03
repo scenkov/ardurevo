@@ -15,7 +15,7 @@
 using namespace VRBRAIN;
 
 // XXX make sure these are assigned correctly
-static VRBRAINUARTDriver uartADriver(_USART1,1);
+static VRBRAINUARTDriver uartADriver(_USART1,0);
 static VRBRAINUARTDriver uartBDriver(_USART3,0);
 static VRBRAINUARTDriver uartCDriver(_USART2,0);
 static VRBRAINSemaphore  i2cSemaphore;

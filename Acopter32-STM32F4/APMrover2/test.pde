@@ -140,9 +140,7 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 		// ------------------------------
 		set_servos();
 
-        tuning_value = constrain_float(((float)(g.rc_7.radio_in - g.rc_7.radio_min) / (float)(g.rc_7.radio_max - g.rc_7.radio_min)),0,1);
-                
-		cliSerial->printf_P(PSTR("IN 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d  Tuning = %2.3f\n"),
+		cliSerial->printf_P(PSTR("IN 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
 							channel_steer->control_in,
 							g.rc_2.control_in,
 							channel_throttle->control_in,
@@ -150,8 +148,7 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 							g.rc_5.control_in,
 							g.rc_6.control_in,
 							g.rc_7.control_in,
-							g.rc_8.control_in,
-                                                        tuning_value);
+							g.rc_8.control_in);
 
 		if(cliSerial->available() > 0){
 			return (0);
@@ -360,7 +357,7 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 			cliSerial->printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
 					g_gps->latitude,
 					g_gps->longitude,
-					g_gps->altitude/100,
+					g_gps->altitude_cm/100,
 					g_gps->num_sats);
 		}else{
 			cliSerial->printf_P(PSTR("."));
@@ -513,13 +510,11 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_sonar(uint8_t argc, const Menu::arg *argv)
 {
-    /*
     if (!sonar.enabled()) {
         cliSerial->println_P(PSTR("WARNING: Sonar is not enabled"));
     }
-     */
+
     print_hit_enter();
-    /*
     init_sonar();
     
     float sonar_dist_cm_min = 0.0f;
@@ -528,12 +523,12 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
     float sonar2_dist_cm_min = 0.0f;
     float sonar2_dist_cm_max = 0.0f;
     float voltage2_min=0.0f, voltage2_max = 0.0f;
-    */
     uint32_t last_print = 0;
+
 	while (true) {
         delay(20);
         uint32_t now = millis();
-        /*
+
         float dist_cm = sonar.distance_cm();
         float voltage = sonar.voltage();
         if (sonar_dist_cm_min == 0.0f) {
@@ -555,11 +550,8 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
         sonar2_dist_cm_min = min(sonar2_dist_cm_min, dist_cm);
         voltage2_min = min(voltage2_min, voltage);
         voltage2_max = max(voltage2_max, voltage);
-	*/
-	read_Sonar();   //read echosounder depth and temperature
 
         if (now - last_print >= 200) {
-            /*
             cliSerial->printf_P(PSTR("sonar1 dist=%.1f:%.1fcm volt1=%.2f:%.2f   sonar2 dist=%.1f:%.1fcm volt2=%.2f:%.2f\n"), 
                                 sonar_dist_cm_min, 
                                 sonar_dist_cm_max, 
@@ -574,11 +566,6 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
             sonar_dist_cm_min = sonar_dist_cm_max = 0.0f;
             sonar2_dist_cm_min = sonar2_dist_cm_max = 0.0f;
             last_print = now;
-            */
-            hal.console->println();
-            hal.console->printf("--------------------------------------");
-            hal.console->printf("Sonar Depth : %f Temp: %f",Depth,Temp);        //Debug Echo Data
-            hal.console->println("--------------------------------------");
         }
         if (cliSerial->available() > 0) {
             break;

@@ -111,7 +111,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: VOLT_DIVIDER
     // @DisplayName: Voltage Divider
-    // @Description: Used to convert the voltage of the voltage sensing pin (BATT_VOLT_PIN) to the actual battery's voltage (pin voltage * INPUT_VOLTS/1024 * VOLT_DIVIDER)
+    // @Description: Used to convert the voltage of the voltage sensing pin (BATT_VOLT_PIN) to the actual battery's voltage (pin_voltage * VOLT_DIVIDER). For the 3DR Power brick, this should be set to 10.1. For the PX4 using the PX4IO power supply this should be set to 1.
     // @User: Advanced
 	GSCALAR(volt_div_ratio,         "VOLT_DIVIDER",     VOLT_DIV_RATIO),
 
@@ -227,6 +227,28 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_8,                    "RC8_", RC_Channel_aux),
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC9_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_9,                    "RC9_", RC_Channel_aux),
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC10_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_10,                    "RC10_", RC_Channel_aux),
+
+    // @Group: RC11_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_11,                    "RC11_", RC_Channel_aux),
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC12_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_12,                    "RC12_", RC_Channel_aux),
+#endif
+
     // @Param: THR_MIN
     // @DisplayName: Minimum Throttle
     // @Description: The minimum throttle setting to which the autopilot will apply. This is mostly useful for rovers with internal combustion motors, to prevent the motor from cutting out in auto mode.
@@ -301,6 +323,8 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: FS_THR_VALUE
     // @DisplayName: Throttle Failsafe Value
     // @Description: The PWM level on channel 3 below which throttle sailsafe triggers.
+    // @Range: 925 1100
+    // @Increment: 1
     // @User: Standard
 	GSCALAR(fs_throttle_value,      "FS_THR_VALUE",     910),
 
@@ -345,6 +369,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 1
 	// @User: Standard
 	GSCALAR(sonar_debounce,   "SONAR_DEBOUNCE",    2),
+
+    // @Param: LEARN_CH
+    // @DisplayName: Learning channel
+    // @Description: RC Channel to use for learning waypoints
+    // @User: Advanced
+	GSCALAR(learn_channel,    "LEARN_CH",       7),
 
     // @Param: MODE_CH
     // @DisplayName: Mode channel
@@ -420,6 +450,10 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
     GOBJECT(scheduler, "SCHED_", AP_Scheduler),
 
+    // @Group: RELAY_
+    // @Path: ../libraries/AP_Relay/AP_Relay.cpp
+    GOBJECT(relay,                  "RELAY_", AP_Relay),
+
     // @Group: RCMAP_
     // @Path: ../libraries/AP_RCMapper/AP_RCMapper.cpp
     GOBJECT(rcmap,                 "RCMAP_",         RCMapper),
@@ -448,6 +482,18 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: AHRS_
     // @Path: ../libraries/AP_AHRS/AP_AHRS.cpp
     GOBJECT(ahrs,                   "AHRS_",    AP_AHRS),
+
+#if CAMERA == ENABLED
+    // @Group: CAM_
+    // @Path: ../libraries/AP_Camera/AP_Camera.cpp
+    GOBJECT(camera,                  "CAM_", AP_Camera),
+#endif
+
+#if MOUNT == ENABLED
+    // @Group: MNT_
+    // @Path: ../libraries/AP_Mount/AP_Mount.cpp
+    GOBJECT(camera_mount,           "MNT_", AP_Mount),
+#endif
 
 	AP_VAREND
 };

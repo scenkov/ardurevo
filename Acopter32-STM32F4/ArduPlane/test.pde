@@ -113,10 +113,10 @@ test_radio_pwm(uint8_t argc, const Menu::arg *argv)
         read_radio();
 
         cliSerial->printf_P(PSTR("IN:\t1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
-                        (int)g.channel_roll.radio_in,
-                        (int)g.channel_pitch.radio_in,
-                        (int)g.channel_throttle.radio_in,
-                        (int)g.channel_rudder.radio_in,
+                        (int)channel_roll->radio_in,
+                        (int)channel_pitch->radio_in,
+                        (int)channel_throttle->radio_in,
+                        (int)channel_rudder->radio_in,
                         (int)g.rc_5.radio_in,
                         (int)g.rc_6.radio_in,
                         (int)g.rc_7.radio_in,
@@ -169,20 +169,20 @@ test_radio(uint8_t argc, const Menu::arg *argv)
         delay(20);
         read_radio();
 
-        g.channel_roll.calc_pwm();
-        g.channel_pitch.calc_pwm();
-        g.channel_throttle.calc_pwm();
-        g.channel_rudder.calc_pwm();
+        channel_roll->calc_pwm();
+        channel_pitch->calc_pwm();
+        channel_throttle->calc_pwm();
+        channel_rudder->calc_pwm();
 
         // write out the servo PWM values
         // ------------------------------
         set_servos();
 
         cliSerial->printf_P(PSTR("IN 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
-                        (int)g.channel_roll.control_in,
-                        (int)g.channel_pitch.control_in,
-                        (int)g.channel_throttle.control_in,
-                        (int)g.channel_rudder.control_in,
+                        (int)channel_roll->control_in,
+                        (int)channel_pitch->control_in,
+                        (int)channel_throttle->control_in,
+                        (int)channel_rudder->control_in,
                         (int)g.rc_5.control_in,
                         (int)g.rc_6.control_in,
                         (int)g.rc_7.control_in,
@@ -211,7 +211,7 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
     oldSwitchPosition = readSwitch();
 
     cliSerial->printf_P(PSTR("Unplug battery, throttle in neutral, turn off radio.\n"));
-    while(g.channel_throttle.control_in > 0) {
+    while(channel_throttle->control_in > 0) {
         delay(20);
         read_radio();
     }
@@ -220,8 +220,8 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
         delay(20);
         read_radio();
 
-        if(g.channel_throttle.control_in > 0) {
-            cliSerial->printf_P(PSTR("THROTTLE CHANGED %d \n"), (int)g.channel_throttle.control_in);
+        if(channel_throttle->control_in > 0) {
+            cliSerial->printf_P(PSTR("THROTTLE CHANGED %d \n"), (int)channel_throttle->control_in);
             fail_test++;
         }
 
@@ -232,8 +232,8 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
             fail_test++;
         }
 
-        if(g.throttle_fs_enabled && g.channel_throttle.get_failsafe()) {
-            cliSerial->printf_P(PSTR("THROTTLE FAILSAFE ACTIVATED: %d, "), (int)g.channel_throttle.radio_in);
+        if(g.throttle_fs_enabled && channel_throttle->get_failsafe()) {
+            cliSerial->printf_P(PSTR("THROTTLE FAILSAFE ACTIVATED: %d, "), (int)channel_throttle->radio_in);
             print_flight_mode(cliSerial, readSwitch());
             cliSerial->println();
             fail_test++;
@@ -254,7 +254,6 @@ test_battery(uint8_t argc, const Menu::arg *argv)
 {
     if (g.battery_monitoring == 3 || g.battery_monitoring == 4) {
         print_hit_enter();
-        delta_ms_medium_loop = 100;
 
         while(1) {
             delay(100);
@@ -454,7 +453,7 @@ test_gps(uint8_t argc, const Menu::arg *argv)
             cliSerial->printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
                             (long)g_gps->latitude,
                             (long)g_gps->longitude,
-                            (long)g_gps->altitude/100,
+                            (long)g_gps->altitude_cm/100,
                             (int)g_gps->num_sats);
         }else{
             cliSerial->printf_P(PSTR("."));
@@ -480,6 +479,8 @@ test_ins(uint8_t argc, const Menu::arg *argv)
 
     print_hit_enter();
     delay(1000);
+    
+    uint8_t counter = 0;
 
     while(1) {
         delay(20);
@@ -493,10 +494,10 @@ test_ins(uint8_t argc, const Menu::arg *argv)
             ahrs.update();
 
             if(g.compass_enabled) {
-                medium_loopCounter++;
-                if(medium_loopCounter == 5) {
+                counter++;
+                if(counter == 5) {
                     compass.read();
-                    medium_loopCounter = 0;
+                    counter = 0;
                 }
             }
 
@@ -543,7 +544,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
              flash_leds);
     ahrs.reset();
 
-    int16_t counter = 0;
+    uint16_t counter = 0;
     float heading = 0;
 
     print_hit_enter();
@@ -559,15 +560,13 @@ test_mag(uint8_t argc, const Menu::arg *argv)
             // ---
             ahrs.update();
 
-            medium_loopCounter++;
-            if(medium_loopCounter == 5) {
+            if(counter % 5 == 0) {
                 if (compass.read()) {
                     // Calculate heading
                     const Matrix3f &m = ahrs.get_dcm_matrix();
                     heading = compass.calculate_heading(m);
                     compass.null_offsets();
                 }
-                medium_loopCounter = 0;
             }
 
             counter++;

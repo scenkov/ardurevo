@@ -1,7 +1,7 @@
 #line 1 "./APMRover2/APMrover2.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduRover v2.42beta"
+#define THISFIRMWARE "ArduRover v2.43beta2"
 
 /* 
 This is the APMrover2 firmware. It was originally derived from
@@ -70,11 +70,14 @@ version 2.1 of the License, or (at your option) any later version.
 #include <AverageFilter.h>	// Mode Filter from Filter library
 #include <AP_Relay.h>       // APM relay
 #include <AP_Mount.h>		// Camera/Antenna mount
+#include <AP_Camera.h>		// Camera triggering
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
 #include <AP_Airspeed.h>    // needed for AHRS build
 #include <memcheck.h>
 #include <DataFlash.h>
+#include <AP_RCMapper.h>        // RC input mapping library
 #include <SITL.h>
+#include <AP_Scheduler.h>       // main loop scheduler
 #include <stdarg.h>
 
 #include <AP_HAL_VRBRAIN.h>
@@ -90,12 +93,16 @@ version 2.1 of the License, or (at your option) any later version.
 
 #include <AP_Declination.h> // ArduPilot Mega Declination Helper Library
 
-  void setup() ;
-  void loop() ;
+ void setup() ;
+ void loop() ;
  static void fast_loop() ;
-  static void medium_loop() ;
-  static void slow_loop() ;
-  static void one_second_loop() ;
+ static void mount_update(void) ;
+ static void failsafe_check(void) ;
+ static void compass_accumulate(void) ;
+ static void update_compass(void) ;
+ static void update_logging(void) ;
+ static void update_aux(void) ;
+ static void one_second_loop(void) ;
   static void update_GPS(void) ;
   static void update_current_mode(void) ;
   static void update_navigation() ;
@@ -131,6 +138,7 @@ version 2.1 of the License, or (at your option) any later version.
    static void do_erase_logs(void) ;
  static void Log_Write_Performance() ;
  static void Log_Write_Cmd(uint8_t num, const struct Location *wp) ;
+ static void Log_Write_Camera() ;
   static void Log_Write_Startup(uint8_t type) ;
  static void Log_Write_Control_Tuning() ;
  static void Log_Write_Nav_Tuning() ;
@@ -153,11 +161,6 @@ version 2.1 of the License, or (at your option) any later version.
  static void Log_Write_Compass() ;
  static void start_logging() ;
    static void load_parameters(void) ;
-  void read_Sonar() ;
-  int read_tokens (char character, struct tokens *buffer) ;
-  int checksum(char *str) ;
-  int hex2int(char a) ;
-  float fixDM(float DM) ;
  static void throttle_slew_limit(int16_t last_throttle) ;
  static bool auto_check_trigger(void) ;
  static void calc_throttle(float target_speed) ;
@@ -194,6 +197,7 @@ version 2.1 of the License, or (at your option) any later version.
   static void do_set_relay() ;
   static void do_repeat_servo() ;
   static void do_repeat_relay() ;
+ static void do_take_picture() ;
  static void change_command(uint8_t cmd_index) ;
  static void update_commands(void) ;
   static void verify_commands(void) ;
@@ -217,6 +221,7 @@ version 2.1 of the License, or (at your option) any later version.
   static void update_crosstrack(void) ;
   static void reset_crosstrack() ;
   void reached_waypoint() ;
+ static void set_control_channels(void) ;
   static void init_rc_in() ;
   static void init_rc_out() ;
   static void read_radio() ;
@@ -224,8 +229,7 @@ version 2.1 of the License, or (at your option) any later version.
   static void trim_control_surfaces() ;
   static void trim_radio() ;
   static void init_sonar(void) ;
-  void ReadSCP1000(void) ;
-  static void read_battery(void) ;
+ static void read_battery(void) ;
  void read_receiver_rssi(void) ;
  static void read_sonars(void) ;
   static void report_batt_monitor() ;
@@ -257,9 +261,10 @@ version 2.1 of the License, or (at your option) any later version.
  uint16_t board_voltage(void) ;
  static void reboot_apm(void) ;
  static uint8_t check_digital_pin(uint8_t pin) ;
+ static void servo_write(uint8_t ch, uint16_t pwm) ;
   static void print_hit_enter() ;
   static void test_wp_print(const struct Location *cmd, uint8_t wp_index) ;
-#line 92 "./APMRover2/APMrover2.pde"
+#line 95 "./APMRover2/APMrover2.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -283,6 +288,16 @@ static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor:
 //
 static Parameters      g;
 
+// main loop scheduler
+static AP_Scheduler scheduler;
+
+// mapping between input channels
+static RCMapper rcmap;
+
+// primary control channels
+static RC_Channel *channel_steer;
+static RC_Channel *channel_throttle;
+static RC_Channel *channel_learn;
 
 ////////////////////////////////////////////////////////////////////////////////
 // prototypes
@@ -328,7 +343,7 @@ static GPS         *g_gps;
 // flight modes convenience array
 static AP_Int8		*modes = &g.mode1;
 
-#if CONFIG_ADC == ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 static AP_ADC_ADS7844 adc;
 #endif
 
@@ -383,11 +398,7 @@ AP_InertialSensor_Oilpan ins( &adc );
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 
-#if HIL_MODE == HIL_MODE_ATTITUDE
-AP_AHRS_HIL ahrs(&ins, g_gps);
-#else
 AP_AHRS_DCM ahrs(&ins, g_gps);
-#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 SITL sitl;
@@ -419,10 +430,21 @@ static AP_RangeFinder_analog sonar2;
 // relay support
 AP_Relay relay;
 
+// Camera
+#if CAMERA == ENABLED
+static AP_Camera camera(&relay);
+#endif
+
+// The rover's current location
+static struct 	Location current_loc;
+
+
 // Camera/Antenna mount tracking and stabilisation stuff
 // --------------------------------------
 #if MOUNT == ENABLED
-AP_Mount camera_mount(g_gps, &dcm);
+// current_loc uses the baro/gps soloution for altitude rather than gps only.
+// mabe one could use current_loc for lat/lon too and eliminate g_gps alltogether?
+AP_Mount camera_mount(&current_loc, g_gps, &ahrs, 0);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -442,7 +464,7 @@ static bool usb_connected;
 			4   ---
 			5   Aux5
 			6   Aux6
-			7   Aux7
+			7   Aux7/learn
 			8   Aux8/Mode
 		Each Aux channel can be configured to have any of the available auxiliary functions assigned to it.
 		See libraries/RC_Channel/RC_Channel_aux.h for more information
@@ -585,7 +607,6 @@ static bool ch7_flag;
 // This register tracks the current Mission Command index when writing
 // a mission using CH7 in flight
 static int8_t CH7_wp_index;
-float tuning_value;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Battery Sensors
@@ -650,8 +671,6 @@ static struct 	Location home;
 static bool	home_is_set;
 // The location of the previous waypoint.  Used for track following and altitude ramp calculations
 static struct 	Location prev_WP;
-// The rover's current location
-static struct 	Location current_loc;
 // The location of the current/active waypoint.  Used for track following
 static struct 	Location next_WP;
 // The location of the active waypoint in Guided mode.
@@ -695,48 +714,41 @@ static uint8_t 		delta_ms_fast_loop;
 // Counter of main loop executions.  Used for performance monitoring and failsafe processing
 static uint16_t			mainLoop_count;
 
-// Time in miliseconds of start of medium control loop.  Milliseconds
-static uint32_t 	medium_loopTimer;
-// Counters for branching from main control loop to slower loops
-static uint8_t 			medium_loopCounter;	
-// Number of milliseconds used in last medium loop cycle
-static uint8_t			delta_ms_medium_loop;
-
-// Counters for branching from medium control loop to slower loops
-static uint8_t 			slow_loopCounter;
-// Counter to trigger execution of very low rate processes
-static uint8_t 			superslow_loopCounter;
-// Counter to trigger execution of 1 Hz processes
-static uint8_t				counter_one_herz;
-
 // % MCU cycles used
 static float 			load;
-
-// Sonar for depth
-
-#define DIM 20
-#define DIM2 80
-#define DIM3 15
-
-static float Temp;
-static float Depth;
-
-struct tokens {
- byte ready;
- byte char_index;
- char array[DIM2];
- char *token[DIM3];
-} Sonar_tokens;
-
-
-int sonar_serial_timer;
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
 ////////////////////////////////////////////////////////////////////////////////
 
+/*
+  scheduler table - all regular tasks apart from the fast_loop()
+  should be listed here, along with how often they should be called
+  (in 20ms units) and the maximum time they are expected to take (in
+  microseconds)
+ */
+static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
+    { update_GPS,             5,   2500 },
+    { navigate,               5,   1600 },
+    { update_compass,         5,   2000 },
+    { update_commands,        5,   1000 },
+    { update_logging,         5,   1000 },
+    { read_battery,           5,   1000 },
+    { read_receiver_rssi,     5,   1000 },
+    { read_trim_switch,       5,   1000 },
+    { read_control_switch,   15,   1000 },
+    { update_events,         15,   1000 },
+    { check_usb_mux,         15,   1000 },
+    { mount_update,           1,    500 },
+    { failsafe_check,         5,    500 },
+    { compass_accumulate,     1,    900 },
+    { one_second_loop,       50,   3000 }
+};
+
+
+/*
+  setup is called when the sketch starts
+ */
 void setup() {
 	memcheck_init();
     cliSerial = hal.console;
@@ -750,17 +762,25 @@ void setup() {
     batt_curr_pin = hal.analogin->channel(g.battery_curr_pin);
 
 	init_ardupilot();
+
+    // initialise the main loop scheduler
+    scheduler.init(&scheduler_tasks[0], sizeof(scheduler_tasks)/sizeof(scheduler_tasks[0]));
 }
 
+/*
+  loop() is called rapidly while the sketch is running
+ */
 void loop()
 {
+    uint32_t timer = millis();
+
     // We want this to execute at 50Hz, but synchronised with the gyro/accel
     uint16_t num_samples = ins.num_samples_available();
     if (num_samples >= 1) {
-		delta_ms_fast_loop	= millis() - fast_loopTimer;
+		delta_ms_fast_loop	= timer - fast_loopTimer;
 		load                = (float)(fast_loopTimeStamp - fast_loopTimer)/delta_ms_fast_loop;
 		G_Dt                = (float)delta_ms_fast_loop / 1000.f;
-		fast_loopTimer      = millis();
+		fast_loopTimer      = timer;
 
 		mainLoop_count++;
 
@@ -768,36 +788,14 @@ void loop()
 		// ---------------------
 		fast_loop();
 
-		// Execute the medium loop
-		// -----------------------
-		medium_loop();
-
-		counter_one_herz++;
-		if(counter_one_herz == 50){
-			one_second_loop();
-			counter_one_herz = 0;
-		}
-
-		if (millis() - perf_mon_timer > 20000) {
-			if (mainLoop_count != 0) {
-				if (g.log_bitmask & MASK_LOG_PM)
-					#if HIL_MODE != HIL_MODE_ATTITUDE
-					Log_Write_Performance();
-					#endif
-				resetPerfData();
-
-			}
-		}
-
+        // tell the scheduler one tick has passed
+        scheduler.tick();
 		fast_loopTimeStamp = millis();
-    } else if (millis() - fast_loopTimeStamp < 19) {
-        // less than 19ms has passed. We have at least one millisecond
-        // of free time. The most useful thing to do with that time is
-        // to accumulate some sensor readings, specifically the
-        // compass, which is often very noisy but is not interrupt
-        // driven, so it can't accumulate readings by itself
-        if (g.compass_enabled) {
-            compass.accumulate();
+    } else {
+        uint16_t dt = timer - fast_loopTimer;
+        if (dt < 20) {
+            uint16_t time_to_next_loop = 20 - dt;
+            scheduler.run(time_to_next_loop * 1000U);
         }
     }
 }
@@ -818,7 +816,7 @@ static void fast_loop()
     // some space available
     gcs_send_message(MSG_RETRY_DEFERRED);
 
-	#if HIL_MODE == HIL_MODE_SENSORS
+	#if HIL_MODE != HIL_MODE_DISABLED
 		// update hil before dcm update
 		gcs_update();
 	#endif
@@ -830,13 +828,11 @@ static void fast_loop()
 	// uses the yaw from the DCM to give more accurate turns
 	calc_bearing_error();
 
-	# if HIL_MODE == HIL_MODE_DISABLED
-		if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
-			Log_Write_Attitude();
+    if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
+        Log_Write_Attitude();
 
-		if (g.log_bitmask & MASK_LOG_IMU)
-			DataFlash.Log_Write_IMU(&ins);
-	#endif
+    if (g.log_bitmask & MASK_LOG_IMU)
+        DataFlash.Log_Write_IMU(&ins);
 
 	// custom code/exceptions for flight modes
 	// ---------------------------------------
@@ -850,143 +846,131 @@ static void fast_loop()
     gcs_data_stream_send();
 }
 
-static void medium_loop()
+/*
+  update camera mount - 50Hz
+ */
+static void mount_update(void)
 {
 #if MOUNT == ENABLED
 	camera_mount.update_mount_position();
 #endif
-
-	// This is the start of the medium (10 Hz) loop pieces
-	// -----------------------------------------
-	switch(medium_loopCounter) {
-
-		// This case deals with the GPS
-		//-------------------------------
-		case 0:
-            failsafe_trigger(FAILSAFE_EVENT_GCS, last_heartbeat_ms != 0 && (millis() - last_heartbeat_ms) > 2000);
-			medium_loopCounter++;
-            update_GPS();
-            
-			#if HIL_MODE != HIL_MODE_ATTITUDE
-            if (g.compass_enabled && compass.read()) {
-                ahrs.set_compass(&compass);
-                // Calculate heading
-                compass.null_offsets();
-                if (g.log_bitmask & MASK_LOG_COMPASS) {
-                    Log_Write_Compass();
-                }
-            } else {
-                ahrs.set_compass(NULL);
-            }
-			#endif
-			break;
-
-		// This case performs some navigation computations
-		//------------------------------------------------
-		case 1:
-			medium_loopCounter++;
-            navigate();
-			break;
-
-		// command processing
-		//------------------------------
-		case 2:
-			medium_loopCounter++;
-
-            read_receiver_rssi();
-
-			// perform next command
-			// --------------------
-			update_commands();
-			break;
-
-		// This case deals with sending high rate telemetry
-		//-------------------------------------------------
-		case 3:
-			medium_loopCounter++;
-			#if HIL_MODE != HIL_MODE_ATTITUDE
-				if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
-					Log_Write_Attitude();
-
-				if (g.log_bitmask & MASK_LOG_CTUN)
-					Log_Write_Control_Tuning();
-			#endif
-
-			if (g.log_bitmask & MASK_LOG_NTUN)
-				Log_Write_Nav_Tuning();
-			break;
-
-		// This case controls the slow loop
-		//---------------------------------
-		case 4:
-			medium_loopCounter = 0;
-			delta_ms_medium_loop	= millis() - medium_loopTimer;
-			medium_loopTimer      	= millis();
-
-			if (g.battery_monitoring != 0){
-				read_battery();
-			}
-
-			read_trim_switch();
-
-			slow_loop();
-			break;
-	}
-}
-
-static void slow_loop()
-{
-	// This is the slow (3 1/3 Hz) loop pieces
-	//----------------------------------------
-	switch (slow_loopCounter){
-		case 0:
-			slow_loopCounter++;
-			superslow_loopCounter++;
-			if(superslow_loopCounter >=200) {				//	200 = Execute every minute
-				#if HIL_MODE != HIL_MODE_ATTITUDE
-					if(g.compass_enabled) {
-						compass.save_offsets();
-					}
-				#endif
-				superslow_loopCounter = 0;
-			}
-
-			read_Sonar();   //read echosounder depth and temperature
-
-			break;
-
-		case 1:
-			slow_loopCounter++;
-
-			// Read 3-position switch on radio
-			// -------------------------------
-			read_control_switch();
-
-			update_aux_servo_function(&g.rc_2, &g.rc_4, &g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
-
-#if MOUNT == ENABLED
-			camera_mount.update_mount_type();
+#if CAMERA == ENABLED
+    camera.trigger_pic_cleanup();
 #endif
-			break;
-
-		case 2:
-			slow_loopCounter = 0;
-                        
-			update_events();
-
-            mavlink_system.sysid = g.sysid_this_mav;		// This is just an ugly hack to keep mavlink_system.sysid sync'd with our parameter
-
-            check_usb_mux();
-			break;
-	}
 }
 
-static void one_second_loop()
+/*
+  check for GCS failsafe - 10Hz
+ */
+static void failsafe_check(void)
+{
+    failsafe_trigger(FAILSAFE_EVENT_GCS, last_heartbeat_ms != 0 && (millis() - last_heartbeat_ms) > 2000);
+}
+
+/*
+  if the compass is enabled then try to accumulate a reading
+ */
+static void compass_accumulate(void)
+{
+    if (g.compass_enabled) {
+        compass.accumulate();
+    }    
+}
+
+/*
+  check for new compass data - 10Hz
+ */
+static void update_compass(void)
+{
+    if (g.compass_enabled && compass.read()) {
+        ahrs.set_compass(&compass);
+        // update offsets
+        compass.null_offsets();
+        if (g.log_bitmask & MASK_LOG_COMPASS) {
+            Log_Write_Compass();
+        }
+    } else {
+        ahrs.set_compass(NULL);
+    }
+}
+
+/*
+  log some key data - 10Hz
+ */
+static void update_logging(void)
+{
+    if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
+        Log_Write_Attitude();
+    
+    if (g.log_bitmask & MASK_LOG_CTUN)
+        Log_Write_Control_Tuning();
+
+    if (g.log_bitmask & MASK_LOG_NTUN)
+        Log_Write_Nav_Tuning();
+}
+
+
+/*
+  update aux servo mappings
+ */
+static void update_aux(void)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_10, &g.rc_11);
+#else
+    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
+#endif
+    enable_aux_servos();
+        
+#if MOUNT == ENABLED
+    camera_mount.update_mount_type();
+#endif
+}
+/*
+  once a second events
+ */
+static void one_second_loop(void)
 {
 	if (g.log_bitmask & MASK_LOG_CURRENT)
 		Log_Write_Current();
 	// send a heartbeat
 	gcs_send_message(MSG_HEARTBEAT);
+
+    // allow orientation change at runtime to aid config
+    ahrs.set_orientation();
+
+    set_control_channels();
+
+    // cope with changes to aux functions
+    update_aux();
+
+#if MOUNT == ENABLED
+    camera_mount.update_mount_type();
+#endif
+
+    // cope with changes to mavlink system ID
+    mavlink_system.sysid = g.sysid_this_mav;
+
+    static uint8_t counter;
+
+    counter++;
+
+    // write perf data every 20s
+    if (counter == 20) {
+        if (g.log_bitmask & MASK_LOG_PM)
+            Log_Write_Performance();
+        resetPerfData();
+    }
+
+    // save compass offsets once a minute
+    if (counter >= 60) {				
+        if (g.compass_enabled) {
+            compass.save_offsets();
+        }
+        counter = 0;
+    }
 }
 
 static void update_GPS(void)
@@ -1009,7 +993,7 @@ static void update_GPS(void)
 
 		if(ground_start_count > 1){
 			ground_start_count--;
-			ground_start_avg += g_gps->ground_speed;
+			ground_start_avg += g_gps->ground_speed_cm;
 
 		} else if (ground_start_count == 1) {
 			// We countdown N number of good GPS fixes
@@ -1027,7 +1011,13 @@ static void update_GPS(void)
 				ground_start_count = 0;
 			}
 		}
-        ground_speed   = g_gps->ground_speed * 0.01;
+        ground_speed   = g_gps->ground_speed_cm * 0.01;
+
+#if CAMERA == ENABLED
+        if (camera.update_location(current_loc) == true) {
+            do_take_picture();
+        }
+#endif        
 	}
 }
 
@@ -1047,12 +1037,12 @@ static void update_current_mode(void)
           the same type of steering control as auto mode. The throttle
           controls the target speed, in proportion to the throttle
          */
-        bearing_error_cd = g.channel_steer.pwm_to_angle();
+        bearing_error_cd = channel_steer->pwm_to_angle();
         calc_nav_steer();
 
         /* we need to reset the I term or it will build up */
         g.pidNavSteer.reset_I();
-        calc_throttle(g.channel_throttle.pwm_to_angle() * 0.01 * g.speed_cruise);
+        calc_throttle(channel_throttle->pwm_to_angle() * 0.01 * g.speed_cruise);
         break;
 
     case LEARNING:
@@ -1063,14 +1053,14 @@ static void update_current_mode(void)
           we set the exact value in set_servos(), but it helps for
           logging
          */
-        g.channel_throttle.servo_out = g.channel_throttle.control_in;
-        g.channel_steer.servo_out = g.channel_steer.pwm_to_angle();
+        channel_throttle->servo_out = channel_throttle->control_in;
+        channel_steer->servo_out = channel_steer->pwm_to_angle();
         break;
 
     case HOLD:
         // hold position - stop motors and center steering
-        g.channel_throttle.servo_out = 0;
-        g.channel_steer.servo_out = 0;
+        channel_throttle->servo_out = 0;
+        channel_steer->servo_out = 0;
         break;
 
     case INITIALISING:
@@ -1098,7 +1088,7 @@ static void update_navigation()
         calc_nav_steer();
         calc_bearing_error();
         if (verify_RTL()) {  
-            g.channel_throttle.servo_out = g.throttle_min.get();
+            channel_throttle->servo_out = g.throttle_min.get();
             set_mode(HOLD);
         }
         break;
@@ -1336,7 +1326,7 @@ static void NOINLINE send_location(mavlink_channel_t chan)
         fix_time,
         current_loc.lat,                // in 1E7 degrees
         current_loc.lng,                // in 1E7 degrees
-        g_gps->altitude * 10,             // millimeters above sea level
+        g_gps->altitude_cm * 10,             // millimeters above sea level
         (current_loc.alt - home.alt) * 10,           // millimeters above ground
         g_gps->velocity_north() * 100,  // X speed cm/s (+ve North)
         g_gps->velocity_east()  * 100,  // Y speed cm/s (+ve East)
@@ -1367,11 +1357,11 @@ static void NOINLINE send_gps_raw(mavlink_channel_t chan)
         g_gps->status(),
         g_gps->latitude,      // in 1E7 degrees
         g_gps->longitude,     // in 1E7 degrees
-        g_gps->altitude * 10, // in mm
+        g_gps->altitude_cm * 10, // in mm
         g_gps->hdop,
         65535,
-        g_gps->ground_speed,  // cm/s
-        g_gps->ground_course, // 1/100 degrees,
+        g_gps->ground_speed_cm,  // cm/s
+        g_gps->ground_course_cd, // 1/100 degrees,
         g_gps->num_sats);
 }
 
@@ -1384,9 +1374,9 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
         chan,
         millis(),
         0, // port 0
-        10000 * g.channel_steer.norm_output(),
+        10000 * channel_steer->norm_output(),
         0,
-        10000 * g.channel_throttle.norm_output(),
+        10000 * channel_throttle->norm_output(),
         0,
         0,
         0,
@@ -1428,19 +1418,18 @@ static void NOINLINE send_radio_out(mavlink_channel_t chan)
         hal.rcout->read(6),
         hal.rcout->read(7));
 #else
-    extern RC_Channel* rc_ch[8];
     mavlink_msg_servo_output_raw_send(
         chan,
         micros(),
         0,     // port
-        rc_ch[0]->radio_out,
-        rc_ch[1]->radio_out,
-        rc_ch[2]->radio_out,
-        rc_ch[3]->radio_out,
-        rc_ch[4]->radio_out,
-        rc_ch[5]->radio_out,
-        rc_ch[6]->radio_out,
-        rc_ch[7]->radio_out);
+        RC_Channel::rc_channel(0)->radio_out,
+        RC_Channel::rc_channel(1)->radio_out,
+        RC_Channel::rc_channel(2)->radio_out,
+        RC_Channel::rc_channel(3)->radio_out,
+        RC_Channel::rc_channel(4)->radio_out,
+        RC_Channel::rc_channel(5)->radio_out,
+        RC_Channel::rc_channel(6)->radio_out,
+        RC_Channel::rc_channel(7)->radio_out);
 #endif
 }
 
@@ -1448,10 +1437,10 @@ static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
 {
     mavlink_msg_vfr_hud_send(
         chan,
-        (float)g_gps->ground_speed / 100.0,
-        (float)g_gps->ground_speed / 100.0,
+        (float)g_gps->ground_speed_cm / 100.0,
+        (float)g_gps->ground_speed_cm / 100.0,
         (ahrs.yaw_sensor / 100) % 360,
-        (uint16_t)(100 * g.channel_throttle.norm_output()),
+        (uint16_t)(100 * channel_throttle->norm_output()),
         current_loc.alt / 100.0,
         0);
 }
@@ -2810,16 +2799,23 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
             ins.set_accel(accels);
             compass.setHIL(packet.roll, packet.pitch, packet.yaw);
-			
- #if HIL_MODE == HIL_MODE_ATTITUDE
-			// set AHRS hil sensor
-            ahrs.setHil(packet.roll,packet.pitch,packet.yaw,packet.rollspeed,
-            packet.pitchspeed,packet.yawspeed);
- #endif
-        
-			break;
+            break;
 		}
 #endif // HIL_MODE
+
+#if CAMERA == ENABLED
+    case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:
+    {
+        camera.configure_msg(msg);
+        break;
+    }
+
+    case MAVLINK_MSG_ID_DIGICAM_CONTROL:
+    {
+        camera.control_msg(msg);
+        break;
+    }
+#endif // CAMERA == ENABLED
 
 #if MOUNT == ENABLED
     case MAVLINK_MSG_ID_MOUNT_CONFIGURE:
@@ -3114,6 +3110,7 @@ print_log_menu(void)
 		PLOG(CURRENT);
 		PLOG(SONAR);
 		PLOG(COMPASS);
+		PLOG(CAMERA);
 		#undef PLOG
 	}
 
@@ -3205,6 +3202,7 @@ select_logs(uint8_t argc, const Menu::arg *argv)
 		TARG(CURRENT);
 		TARG(SONAR);
 		TARG(COMPASS);
+		TARG(CAMERA);
 		#undef TARG
 	}
 
@@ -3239,7 +3237,6 @@ struct PACKED log_Performance {
 };
 
 // Write a performance monitoring packet. Total length : 19 bytes
-#if HIL_MODE != HIL_MODE_ATTITUDE
 static void Log_Write_Performance()
 {
     struct log_Performance pkt = {
@@ -3258,7 +3255,6 @@ static void Log_Write_Performance()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
-#endif
 
 struct PACKED log_Cmd {
     LOG_PACKET_HEADER;
@@ -3287,6 +3283,33 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
         waypoint_longitude  : wp->lng
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
+struct PACKED log_Camera {
+    LOG_PACKET_HEADER;
+    uint32_t gps_time;
+    int32_t  latitude;
+    int32_t  longitude;
+    int16_t  roll;
+    int16_t  pitch;
+    uint16_t yaw;
+};
+
+// Write a Camera packet. Total length : 26 bytes
+static void Log_Write_Camera()
+{
+#if CAMERA == ENABLED
+    struct log_Camera pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
+        gps_time    : g_gps->time,
+        latitude    : current_loc.lat,
+        longitude   : current_loc.lng,
+        roll        : (int16_t)ahrs.roll_sensor,
+        pitch       : (int16_t)ahrs.pitch_sensor,
+        yaw         : (uint16_t)ahrs.yaw_sensor
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+#endif
 }
 
 struct PACKED log_Startup {
@@ -3322,21 +3345,19 @@ struct PACKED log_Control_Tuning {
 };
 
 // Write a control tuning packet. Total length : 22 bytes
-#if HIL_MODE != HIL_MODE_ATTITUDE
 static void Log_Write_Control_Tuning()
 {
     Vector3f accel = ins.get_accel();
     struct log_Control_Tuning pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CTUN_MSG),
-        steer_out       : (int16_t)g.channel_steer.servo_out,
+        steer_out       : (int16_t)channel_steer->servo_out,
         roll            : (int16_t)ahrs.roll_sensor,
         pitch           : (int16_t)ahrs.pitch_sensor,
-        throttle_out    : (int16_t)g.channel_throttle.servo_out,
+        throttle_out    : (int16_t)channel_throttle->servo_out,
         accel_y         : accel.y
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
-#endif
 
 struct PACKED log_Nav_Tuning {
     LOG_PACKET_HEADER;
@@ -3358,7 +3379,7 @@ static void Log_Write_Nav_Tuning()
         target_bearing_cd   : (uint16_t)target_bearing,
         nav_bearing_cd      : (uint16_t)nav_bearing,
         nav_gain_scalar     : (int16_t)(nav_gain_scaler*1000),
-        throttle            : (int8_t)(100 * g.channel_throttle.norm_output())
+        throttle            : (int8_t)(100 * channel_throttle->norm_output())
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -3414,7 +3435,6 @@ struct PACKED log_Sonar {
 };
 
 // Write a sonar packet
-#if HIL_MODE != HIL_MODE_ATTITUDE
 static void Log_Write_Sonar()
 {
     uint16_t turn_time = 0;
@@ -3430,11 +3450,10 @@ static void Log_Write_Sonar()
         turn_angle      : (int8_t)obstacle.turn_angle,
         turn_time       : turn_time,
         ground_speed    : (uint16_t)(ground_speed*100),
-        throttle        : (int8_t)(100 * g.channel_throttle.norm_output())
+        throttle        : (int8_t)(100 * channel_throttle->norm_output())
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
-#endif
 
 struct PACKED log_Current {
     LOG_PACKET_HEADER;
@@ -3449,7 +3468,7 @@ static void Log_Write_Current()
 {
     struct log_Current pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CURRENT_MSG),
-        throttle_in             : g.channel_throttle.control_in,
+        throttle_in             : channel_throttle->control_in,
         battery_voltage         : (int16_t)(battery_voltage1 * 100.0),
         current_amps            : (int16_t)(current_amps1 * 100.0),
         board_voltage           : board_voltage(),
@@ -3500,6 +3519,8 @@ static const struct LogStructure log_structure[] PROGMEM = {
       "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,PMT,I2CErr" },
     { LOG_CMD_MSG, sizeof(log_Cmd),                 
       "CMD", "BBBBBeLL",   "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
+    { LOG_CAMERA_MSG, sizeof(log_Camera),                 
+      "CAM", "ILLccC",   "GPSTime,Lat,Lng,Roll,Pitch,Yaw" },
     { LOG_STARTUP_MSG, sizeof(log_Startup),         
       "STRT", "BB",         "SType,CTot" },
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     
@@ -3558,7 +3579,7 @@ static void start_logging() {}
 #endif // LOGGING_ENABLED
 
 #line 1 "./APMRover2/Parameters.pde"
-/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
+/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /*
   ArduPlane parameter definitions
@@ -3585,6 +3606,11 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Advanced
 	GSCALAR(log_bitmask,            "LOG_BITMASK",      DEFAULT_LOG_BITMASK),
 	GSCALAR(num_resets,             "SYS_NUM_RESETS",   0),
+
+    // @Param: RST_SWITCH_CH
+    // @DisplayName: Reset Switch Channel
+    // @Description: RC channel to use to reset to last flight mode	after geofence takeover.
+    // @User: Advanced
 	GSCALAR(reset_switch_chan,      "RST_SWITCH_CH",    0),
 
     // @Param: INITIAL_MODE
@@ -3603,19 +3629,17 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: BATT_VOLT_PIN
     // @DisplayName: Battery Voltage sensing pin
-    // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13.
-    // @Values: -1:Disabled, 0:A0, 1:A1, 13:A13
+    // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13. For the 3DR power brick on APM2.5 it should be set to 13. On the PX4 it should be set to 100.
+    // @Values: -1:Disabled, 0:A0, 1:A1, 13:A13, 100:PX4
     // @User: Standard
     GSCALAR(battery_volt_pin,    "BATT_VOLT_PIN",    1),
 
     // @Param: BATT_CURR_PIN
     // @DisplayName: Battery Current sensing pin
-    // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13.
-    // @Values: -1:Disabled, 1:A1, 2:A2, 12:A12
+    // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13. For the 3DR power brick on APM2.5 it should be set to 12. On the PX4 it should be set to 101. 
+    // @Values: -1:Disabled, 1:A1, 2:A2, 12:A12, 101:PX4
     // @User: Standard
     GSCALAR(battery_curr_pin,    "BATT_CURR_PIN",    2),
-
-
 
     // @Param: SYSID_THIS_MAV
     // @DisplayName: MAVLink system ID
@@ -3668,7 +3692,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: VOLT_DIVIDER
     // @DisplayName: Voltage Divider
-    // @Description: Used to convert the voltage of the voltage sensing pin (BATT_VOLT_PIN) to the actual battery's voltage (pin voltage * INPUT_VOLTS/1024 * VOLT_DIVIDER)
+    // @Description: Used to convert the voltage of the voltage sensing pin (BATT_VOLT_PIN) to the actual battery's voltage (pin_voltage * VOLT_DIVIDER). For the 3DR Power brick, this should be set to 10.1. For the PX4 using the PX4IO power supply this should be set to 1.
     // @User: Advanced
 	GSCALAR(volt_div_ratio,         "VOLT_DIVIDER",     VOLT_DIV_RATIO),
 
@@ -3704,8 +3728,8 @@ const AP_Param::Info var_info[] PROGMEM = {
 
 	// @Param: AUTO_TRIGGER_PIN
 	// @DisplayName: Auto mode trigger pin
-	// @Description: pin number to use to trigger start of auto mode. If set to -1 then don't use a trigger, otherwise this is a pin number which if held low in auto mode will start the motor, and otherwise will force the throttle off. This can be used in combination with INITIAL_MODE to give a 'press button to start' rover with no receiver.
-	// @Values: -1:Disabled,0-9:TiggerPin
+	// @Description: pin number to use to enable the throttle in auto mode. If set to -1 then don't use a trigger, otherwise this is a pin number which if held low in auto mode will enable the motor to run. If the switch is released while in AUTO then the motor will stop again. This can be used in combination with INITIAL_MODE to give a 'press button to start' rover with no receiver.
+	// @Values: -1:Disabled,0-8:TiggerPin
 	// @User: standard
 	GSCALAR(auto_trigger_pin,        "AUTO_TRIGGER_PIN", -1),
 
@@ -3752,14 +3776,59 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(ch7_option,             "CH7_OPTION",          CH7_OPTION),
 
-	GGROUP(channel_steer,           "RC1_", RC_Channel),
+    // @Group: RC1_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+	GGROUP(rc_1,                    "RC1_", RC_Channel),
+
+    // @Group: RC2_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_2,                    "RC2_", RC_Channel_aux),
-	GGROUP(channel_throttle,        "RC3_", RC_Channel),
+
+    // @Group: RC3_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+	GGROUP(rc_3,                    "RC3_", RC_Channel),
+
+    // @Group: RC4_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_4,                    "RC4_", RC_Channel_aux),
+
+    // @Group: RC5_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_5,                    "RC5_", RC_Channel_aux),
+
+    // @Group: RC6_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_6,                    "RC6_", RC_Channel_aux),
+
+    // @Group: RC7_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_7,                    "RC7_", RC_Channel_aux),
+
+    // @Group: RC8_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_8,                    "RC8_", RC_Channel_aux),
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC9_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_9,                    "RC9_", RC_Channel_aux),
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC10_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_10,                    "RC10_", RC_Channel_aux),
+
+    // @Group: RC11_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_11,                    "RC11_", RC_Channel_aux),
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    // @Group: RC12_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_12,                    "RC12_", RC_Channel_aux),
+#endif
 
     // @Param: THR_MIN
     // @DisplayName: Minimum Throttle
@@ -3835,6 +3904,8 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: FS_THR_VALUE
     // @DisplayName: Throttle Failsafe Value
     // @Description: The PWM level on channel 3 below which throttle sailsafe triggers.
+    // @Range: 925 1100
+    // @Increment: 1
     // @User: Standard
 	GSCALAR(fs_throttle_value,      "FS_THR_VALUE",     910),
 
@@ -3879,6 +3950,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 1
 	// @User: Standard
 	GSCALAR(sonar_debounce,   "SONAR_DEBOUNCE",    2),
+
+    // @Param: LEARN_CH
+    // @DisplayName: Learning channel
+    // @Description: RC Channel to use for learning waypoints
+    // @User: Advanced
+	GSCALAR(learn_channel,    "LEARN_CH",       7),
 
     // @Param: MODE_CH
     // @DisplayName: Mode channel
@@ -3945,7 +4022,23 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(pidSpeedThrottle,        "SPEED2THR_", PID),
 
 	// variables not in the g class which contain EEPROM saved variables
+
+    // @Group: COMPASS_
+    // @Path: ../libraries/AP_Compass/Compass.cpp
 	GOBJECT(compass,                "COMPASS_",	Compass),
+
+    // @Group: SCHED_
+    // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
+    GOBJECT(scheduler, "SCHED_", AP_Scheduler),
+
+    // @Group: RELAY_
+    // @Path: ../libraries/AP_Relay/AP_Relay.cpp
+    GOBJECT(relay,                  "RELAY_", AP_Relay),
+
+    // @Group: RCMAP_
+    // @Path: ../libraries/AP_RCMapper/AP_RCMapper.cpp
+    GOBJECT(rcmap,                 "RCMAP_",         RCMapper),
+
 	GOBJECT(gcs0,					"SR0_",     GCS_MAVLINK),
 	GOBJECT(gcs3,					"SR3_",     GCS_MAVLINK),
 
@@ -3957,11 +4050,9 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
     GOBJECT(sonar2,                 "SONAR2_", AP_RangeFinder_analog),
 
-#if HIL_MODE == HIL_MODE_DISABLED
     // @Group: INS_
     // @Path: ../libraries/AP_InertialSensor/AP_InertialSensor.cpp
     GOBJECT(ins,                            "INS_", AP_InertialSensor),
-#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
     // @Group: SIM_
@@ -3972,6 +4063,18 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: AHRS_
     // @Path: ../libraries/AP_AHRS/AP_AHRS.cpp
     GOBJECT(ahrs,                   "AHRS_",    AP_AHRS),
+
+#if CAMERA == ENABLED
+    // @Group: CAM_
+    // @Path: ../libraries/AP_Camera/AP_Camera.cpp
+    GOBJECT(camera,                  "CAM_", AP_Camera),
+#endif
+
+#if MOUNT == ENABLED
+    // @Group: MNT_
+    // @Path: ../libraries/AP_Mount/AP_Mount.cpp
+    GOBJECT(camera_mount,           "MNT_", AP_Mount),
+#endif
 
 	AP_VAREND
 };
@@ -3997,86 +4100,6 @@ static void load_parameters(void)
 	    cliSerial->printf_P(PSTR("load_all took %luus\n"), micros() - before);
 	}
 }
-#line 1 "./APMRover2/SonarDepth.pde"
-
-//#include <string.h>
-//#include <stdio.h>
-
-void read_Sonar() {
-
- while (hal.uartC->available()) {
-  if (read_tokens(hal.uartC->read(), &Sonar_tokens)) {
-   if (!strcmp(Sonar_tokens.token[1],"$SDDPT")) Depth = atof(Sonar_tokens.token[2]);
-   if (!strcmp(Sonar_tokens.token[1],"$SDMTW")) Temp = atof(Sonar_tokens.token[2]);
-   
-   sonar_serial_timer = hal.scheduler->millis(); //timer to detect bad serial or no serial connected
-   
-  }
-  
-  if ( hal.scheduler->millis()-sonar_serial_timer > 4000 ) { // check if serial stream is not present for 4 sec
-    
-    Depth = 999; // debug value that means no serial or bad serial for more than 4 sec
-    Temp = 999;  // debug value that means no serial or bad serial for more than 4 sec
-    
-    }
- }
-/*
-hal.console->println();
-hal.console->printf("--------------------------------------");
-hal.console->printf("Sonar Depth : %f Temp: %f",Depth,Temp);        //Debug Echo Data
-hal.console->println("--------------------------------------");
-*/
-}
-
-int read_tokens (char character, struct tokens *buffer) {
- char *p, *token;
- uint8_t i;
- if (character == '\r') {
-  buffer->array[buffer->char_index] = 0;
-  buffer->char_index = 0;
-  if (!checksum(buffer->array)) return 0;
-  p = buffer->array;
-  i = 0;
-  while ((token = strtok_r(p, ",", &p))){
-      buffer->token[++i] = token;
-  }
-  return i;
- }
- if (character == '\n') {
-  buffer->char_index = 0;
-  return 0;
- }
- buffer->array[buffer->char_index] = character;
- if (buffer->char_index < DIM2) (buffer->char_index)++;
- return 0;
-}
-
-int checksum(char *str) {
- int j, len, xor1, xor2;
- len = strlen(str);
- if (str[0] != '$') return 0;
- if (str[len-3] != '*') return 0;
- xor1 = 16*hex2int(str[len-2]) + hex2int(str[len-1]);
- xor2 = 0;
- for (j=1;j<len-3;j++) xor2 = xor2 ^ str[j];
- if (xor1 != xor2) return 0;
- return 1;
-}
-
-int hex2int(char a) {
- if (a>='A' && a<='F') return 10+(a-'A');
- if (a>='a' && a<='f') return 10+(a-'a');
- if (a>='0' && a<='9') return a-'0';
- return 0;
-}
-
-float fixDM(float DM) {
- int D; float F;
- F = DM /100;
- D = int (F);
- return D + (F - D)/0.6;
-}
-
 #line 1 "./APMRover2/Steering.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -4088,12 +4111,12 @@ static void throttle_slew_limit(int16_t last_throttle)
     // if slew limit rate is set to zero then do not slew limit
     if (g.throttle_slewrate) {                   
         // limit throttle change by the given percentage per second
-        float temp = g.throttle_slewrate * G_Dt * 0.01f * fabsf(g.channel_throttle.radio_max - g.channel_throttle.radio_min);
+        float temp = g.throttle_slewrate * G_Dt * 0.01f * fabsf(channel_throttle->radio_max - channel_throttle->radio_min);
         // allow a minimum change of 1 PWM per cycle
         if (temp < 1) {
             temp = 1;
         }
-        g.channel_throttle.radio_out = constrain_int16(g.channel_throttle.radio_out, last_throttle - temp, last_throttle + temp);
+        channel_throttle->radio_out = constrain_int16(channel_throttle->radio_out, last_throttle - temp, last_throttle + temp);
     }
 }
 
@@ -4151,13 +4174,13 @@ static bool auto_check_trigger(void)
 static void calc_throttle(float target_speed)
 {  
     if (!auto_check_trigger()) {
-        g.channel_throttle.servo_out = g.throttle_min.get();
+        channel_throttle->servo_out = g.throttle_min.get();
         return;
     }
 
     if (target_speed <= 0) {
         // cope with zero requested speed
-        g.channel_throttle.servo_out = g.throttle_min.get();
+        channel_throttle->servo_out = g.throttle_min.get();
         return;
     }
 
@@ -4190,7 +4213,7 @@ static void calc_throttle(float target_speed)
     // much faster response in turns
     throttle *= reduction;
 
-    g.channel_throttle.servo_out = constrain_int16(throttle, g.throttle_min.get(), g.throttle_max.get());
+    channel_throttle->servo_out = constrain_int16(throttle, g.throttle_min.get(), g.throttle_max.get());
 }
 
 /*****************************************
@@ -4217,7 +4240,7 @@ static void calc_nav_steer()
     // avoid obstacles, if any
     nav_steer_cd += obstacle.turn_angle*100;
 
-    g.channel_steer.servo_out = nav_steer_cd;
+    channel_steer->servo_out = nav_steer_cd;
 }
 
 /*****************************************
@@ -4225,30 +4248,30 @@ static void calc_nav_steer()
 *****************************************/
 static void set_servos(void)
 {
-    int16_t last_throttle = g.channel_throttle.radio_out;
+    int16_t last_throttle = channel_throttle->radio_out;
 
 	if ((control_mode == MANUAL || control_mode == LEARNING) &&
         (g.skid_steer_out == g.skid_steer_in)) {
         // do a direct pass through of radio values
-        g.channel_steer.radio_out       = hal.rcin->read(CH_STEER);
-        g.channel_throttle.radio_out    = hal.rcin->read(CH_THROTTLE);
+        channel_steer->radio_out       = channel_steer->read();
+        channel_throttle->radio_out    = channel_throttle->read();
         if (failsafe.bits & FAILSAFE_EVENT_THROTTLE) {
             // suppress throttle if in failsafe and manual
-            g.channel_throttle.radio_out = g.channel_throttle.radio_trim;
+            channel_throttle->radio_out = channel_throttle->radio_trim;
         }
 	} else {       
-        g.channel_steer.calc_pwm();
-		g.channel_throttle.servo_out = constrain_int16(g.channel_throttle.servo_out, 
+        channel_steer->calc_pwm();
+		channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
                                                        g.throttle_min.get(), 
                                                        g.throttle_max.get());
 
         if ((failsafe.bits & FAILSAFE_EVENT_THROTTLE) && control_mode < AUTO) {
             // suppress throttle if in failsafe
-            g.channel_throttle.servo_out = 0;
+            channel_throttle->servo_out = 0;
         }
 
         // convert 0 to 100% into PWM
-        g.channel_throttle.calc_pwm();
+        channel_throttle->calc_pwm();
 
         // limit throttle movement speed
         throttle_slew_limit(last_throttle);
@@ -4262,14 +4285,14 @@ static void set_servos(void)
               motor1 = throttle + 0.5*steering
               motor2 = throttle - 0.5*steering
             */          
-            float steering_scaled = g.channel_steer.norm_output();
-            float throttle_scaled = g.channel_throttle.norm_output();
+            float steering_scaled = channel_steer->norm_output();
+            float throttle_scaled = channel_throttle->norm_output();
             float motor1 = throttle_scaled + 0.5*steering_scaled;
             float motor2 = throttle_scaled - 0.5*steering_scaled;
-            g.channel_steer.servo_out = 4500*motor1;
-            g.channel_throttle.servo_out = 100*motor2;
-            g.channel_steer.calc_pwm();
-            g.channel_throttle.calc_pwm();
+            channel_steer->servo_out = 4500*motor1;
+            channel_throttle->servo_out = 100*motor2;
+            channel_steer->calc_pwm();
+            channel_throttle->calc_pwm();
         }
     }
 
@@ -4277,8 +4300,8 @@ static void set_servos(void)
 #if HIL_MODE == HIL_MODE_DISABLED || HIL_SERVOS
 	// send values to the PWM timers for output
 	// ----------------------------------------
-    hal.rcout->write(CH_1, g.channel_steer.radio_out);     // send to Servos
-    hal.rcout->write(CH_3, g.channel_throttle.radio_out);     // send to Servos
+    channel_steer->output(); 
+    channel_throttle->output();
 
 	// Route configurable aux. functions to their respective servos
 	g.rc_2.output_ch(CH_2);
@@ -4287,6 +4310,16 @@ static void set_servos(void)
 	g.rc_6.output_ch(CH_6);
 	g.rc_7.output_ch(CH_7);
 	g.rc_8.output_ch(CH_8);
+ #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    g.rc_9.output_ch(CH_9);
+ #endif
+ #if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    g.rc_10.output_ch(CH_10);
+    g.rc_11.output_ch(CH_11);
+ #endif
+ #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    g.rc_12.output_ch(CH_12);
+ #endif
 
 #endif
 }
@@ -4479,8 +4512,8 @@ void init_home()
 
 	home.lng 	= g_gps->longitude;				// Lon * 10**7
 	home.lat 	= g_gps->latitude;				// Lat * 10**7
-    gps_base_alt    = max(g_gps->altitude, 0);
-    home.alt        = g_gps->altitude;
+    gps_base_alt    = max(g_gps->altitude_cm, 0);
+    home.alt        = g_gps->altitude_cm;
 	home_is_set = true;
 
 	// Save Home to EEPROM - Command 0
@@ -4594,6 +4627,18 @@ static void handle_process_do_command()
 			do_repeat_relay();
 			break;
 
+#if CAMERA == ENABLED
+    case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
+        break;
+
+    case MAV_CMD_DO_DIGICAM_CONFIGURE:                  // Mission command to configure an on-board camera controller system. |Modes: P, TV, AV, M, Etc| Shutter speed: Divisor number for one second| Aperture: F stop number| ISO number e.g. 80, 100, 200, Etc| Exposure type enumerator| Command Identity| Main engine cut-off time before camera trigger in seconds/10 (0 means no cut-off)|
+        break;
+
+    case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
+        do_take_picture();
+        break;
+#endif
+
 #if MOUNT == ENABLED
 		// Sets the region of interest (ROI) for a sensor set or the
 		// vehicle itself. This can then be used by the vehicles control
@@ -4601,7 +4646,10 @@ static void handle_process_do_command()
 		// devices such as cameras.
 		//    |Region of interest mode. (see MAV_ROI enum)| Waypoint index/ target ID. (see MAV_ROI enum)| ROI index (allows a vehicle to manage multiple cameras etc.)| Empty| x the location of the fixed ROI (see MAV_FRAME)| y| z|
 		case MAV_CMD_DO_SET_ROI:
+#if 0
+            // not supported yet
 			camera_mount.set_roi_cmd();
+#endif
 			break;
 
 		case MAV_CMD_DO_MOUNT_CONFIGURE:	// Mission command to configure a camera mount |Mount operation mode (see MAV_CONFIGURE_MOUNT_MODE enum)| stabilize roll? (1 = yes, 0 = no)| stabilize pitch? (1 = yes, 0 = no)| stabilize yaw? (1 = yes, 0 = no)| Empty| Empty| Empty|
@@ -4883,32 +4931,11 @@ static void do_repeat_servo()
 	event_id = next_nonnav_command.p1 - 1;
 
 	if(next_nonnav_command.p1 >= CH_5 + 1 && next_nonnav_command.p1 <= CH_8 + 1) {
-
 		event_timer 	= 0;
 		event_delay 	= next_nonnav_command.lng * 500.0;	// /2 (half cycle time) * 1000 (convert to milliseconds)
 		event_repeat 	= next_nonnav_command.lat * 2;
 		event_value 	= next_nonnav_command.alt;
-
-		switch(next_nonnav_command.p1) {
-			case CH_2:
-				event_undo_value = g.rc_2.radio_trim;
-				break;
-			case CH_4:
-				event_undo_value = g.rc_4.radio_trim;
-				break;
-			case CH_5:
-				event_undo_value = g.rc_5.radio_trim;
-				break;
-			case CH_6:
-				event_undo_value = g.rc_6.radio_trim;
-				break;
-			case CH_7:
-				event_undo_value = g.rc_7.radio_trim;
-				break;
-			case CH_8:
-				event_undo_value = g.rc_8.radio_trim;
-				break;
-		}
+        event_undo_value  = RC_Channel::rc_channel(next_nonnav_command.p1-1)->radio_trim;
 		update_events();
 	}
 }
@@ -4922,6 +4949,17 @@ static void do_repeat_relay()
 	update_events();
 }
 
+
+// do_take_picture - take a picture with the camera library
+static void do_take_picture()
+{
+#if CAMERA == ENABLED
+    camera.trigger_pic();
+    if (g.log_bitmask & MASK_LOG_CAMERA) {
+        Log_Write_Camera();
+    }
+#endif
+}
 #line 1 "./APMRover2/commands_process.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -5163,7 +5201,7 @@ static void read_trim_switch()
     case CH7_DO_NOTHING:
         break;
     case CH7_SAVE_WP:
-		if (g.rc_7.radio_in > CH_7_PWM_TRIGGER) {
+		if (channel_learn->radio_in > CH_7_PWM_TRIGGER) {
             // switch is engaged
 			ch7_flag = true;
 		} else { // switch is disengaged
@@ -5177,7 +5215,7 @@ static void read_trim_switch()
                     g.command_total = 0;
                     g.command_index =0;
                     nav_command_index = 0;
-                    if (g.channel_steer.control_in > 3000) {
+                    if (channel_steer->control_in > 3000) {
 						// if roll is full right store the current location as home
                         init_home();
                     }
@@ -5281,7 +5319,7 @@ void failsafe_check(uint32_t tnow)
     }
 
     if (in_failsafe && tnow - last_timestamp > 20000 && 
-        hal.rcin->read(CH_3) >= (uint16_t)g.fs_throttle_value) {
+        channel_throttle->read() >= (uint16_t)g.fs_throttle_value) {
         // pass RC inputs to outputs every 20ms        
         last_timestamp = tnow;
         hal.rcin->clear_overrides();
@@ -5370,74 +5408,61 @@ void reached_waypoint()
 #line 1 "./APMRover2/radio.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+/*
+  allow for runtime change of control channel ordering
+ */
+static void set_control_channels(void)
+{
+    channel_steer    = RC_Channel::rc_channel(rcmap.roll()-1);
+    channel_throttle = RC_Channel::rc_channel(rcmap.throttle()-1);
+    channel_learn    = RC_Channel::rc_channel(g.learn_channel-1);
+
+	// set rc channel ranges
+	channel_steer->set_angle(SERVO_MAX);
+	channel_throttle->set_angle(100);
+}
+
 static void init_rc_in()
 {
-	// set rc channel ranges
-	g.channel_steer.set_angle(SERVO_MAX);
-	g.channel_throttle.set_angle(100);
-
 	// set rc dead zones
-	g.channel_steer.set_dead_zone(60);
-	g.channel_throttle.set_dead_zone(6);
+	channel_steer->set_default_dead_zone(30);
+	channel_throttle->set_default_dead_zone(30);
 
 	//set auxiliary ranges
-    update_aux_servo_function(&g.rc_2, &g.rc_4, &g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
+    update_aux();
 }
 
 static void init_rc_out()
 {
-    hal.rcout->enable_ch(CH_1);
-    hal.rcout->enable_ch(CH_2);
-    hal.rcout->enable_ch(CH_3);
-    hal.rcout->enable_ch(CH_4);
-    hal.rcout->enable_ch(CH_5);
-    hal.rcout->enable_ch(CH_6);
-    hal.rcout->enable_ch(CH_7);
-    hal.rcout->enable_ch(CH_8);
+    for (uint8_t i=0; i<8; i++) {
+        RC_Channel::rc_channel(i)->enable_out();
+        RC_Channel::rc_channel(i)->output_trim();
+    }
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
-	hal.rcout->write(CH_1, 	g.channel_steer.radio_trim);					// Initialization of servo outputs
-	hal.rcout->write(CH_3, 	g.channel_throttle.radio_trim);
-
-	hal.rcout->write(CH_2, 	g.rc_2.radio_trim);
-	hal.rcout->write(CH_4, 	g.rc_4.radio_trim);
-	hal.rcout->write(CH_5, 	g.rc_5.radio_trim);
-	hal.rcout->write(CH_6, 	g.rc_6.radio_trim);
-	hal.rcout->write(CH_7,   g.rc_7.radio_trim);
-    hal.rcout->write(CH_8,   g.rc_8.radio_trim);
-#else
-	hal.rcout->write(CH_1, 	1500);					// Initialization of servo outputs
-	hal.rcout->write(CH_2, 	1500);
-	hal.rcout->write(CH_3, 	1000);
-	hal.rcout->write(CH_4, 	1500);
-
-	hal.rcout->write(CH_5, 	1500);
-	hal.rcout->write(CH_6, 	1500);
-	hal.rcout->write(CH_7,   1500);
-    hal.rcout->write(CH_8,   2000);
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    servo_write(CH_9,   g.rc_9.radio_trim);
 #endif
-
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    servo_write(CH_10,  g.rc_10.radio_trim);
+    servo_write(CH_11,  g.rc_11.radio_trim);
+#endif
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    servo_write(CH_12,  g.rc_12.radio_trim);
+#endif
 }
 
 static void read_radio()
 {
-    g.channel_steer.set_pwm(hal.rcin->read(CH_STEER));
+    for (uint8_t i=0; i<8; i++) {
+        RC_Channel::rc_channel(i)->set_pwm(RC_Channel::rc_channel(i)->read());
+    }
 
-	g.channel_throttle.set_pwm(hal.rcin->read(CH_3));
+	control_failsafe(channel_throttle->radio_in);
 
-  	g.rc_2.set_pwm(hal.rcin->read(CH_2));
-  	g.rc_4.set_pwm(hal.rcin->read(CH_4));
-  	g.rc_5.set_pwm(hal.rcin->read(CH_5));
- 	g.rc_6.set_pwm(hal.rcin->read(CH_6));        
-	g.rc_7.set_pwm(hal.rcin->read(CH_7));
-	g.rc_8.set_pwm(hal.rcin->read(CH_8));
+	channel_throttle->servo_out = channel_throttle->control_in;
 
-	control_failsafe(g.channel_throttle.radio_in);
-
-	g.channel_throttle.servo_out = g.channel_throttle.control_in;
-
-	if (g.channel_throttle.servo_out > 50) {
-        throttle_nudge = (g.throttle_max - g.throttle_cruise) * ((g.channel_throttle.norm_input()-0.5) / 0.5);
+	if (channel_throttle->servo_out > 50) {
+        throttle_nudge = (g.throttle_max - g.throttle_cruise) * ((channel_throttle->norm_input()-0.5) / 0.5);
 	} else {
 		throttle_nudge = 0;
 	}
@@ -5452,24 +5477,24 @@ static void read_radio()
           motor2 = throttle - 0.5*steering
         */          
 
-        float motor1 = g.channel_steer.norm_input();
-        float motor2 = g.channel_throttle.norm_input();
+        float motor1 = channel_steer->norm_input();
+        float motor2 = channel_throttle->norm_input();
         float steering_scaled = motor1 - motor2;
         float throttle_scaled = 0.5f*(motor1 + motor2);
-        int16_t steer = g.channel_steer.radio_trim;
-        int16_t thr   = g.channel_throttle.radio_trim;
+        int16_t steer = channel_steer->radio_trim;
+        int16_t thr   = channel_throttle->radio_trim;
         if (steering_scaled > 0.0f) {
-            steer += steering_scaled*(g.channel_steer.radio_max-g.channel_steer.radio_trim);
+            steer += steering_scaled*(channel_steer->radio_max-channel_steer->radio_trim);
         } else {
-            steer += steering_scaled*(g.channel_steer.radio_trim-g.channel_steer.radio_min);
+            steer += steering_scaled*(channel_steer->radio_trim-channel_steer->radio_min);
         }
         if (throttle_scaled > 0.0f) {
-            thr += throttle_scaled*(g.channel_throttle.radio_max-g.channel_throttle.radio_trim);
+            thr += throttle_scaled*(channel_throttle->radio_max-channel_throttle->radio_trim);
         } else {
-            thr += throttle_scaled*(g.channel_throttle.radio_trim-g.channel_throttle.radio_min);
+            thr += throttle_scaled*(channel_throttle->radio_trim-channel_throttle->radio_min);
         }
-        g.channel_steer.set_pwm(steer);
-        g.channel_throttle.set_pwm(thr);
+        channel_steer->set_pwm(steer);
+        channel_throttle->set_pwm(thr);
     }
 }
 
@@ -5493,10 +5518,10 @@ static void trim_control_surfaces()
 	read_radio();
 	// Store control surface trim values
 	// ---------------------------------
-    if (g.channel_steer.radio_in > 1400) {
-		g.channel_steer.radio_trim = g.channel_steer.radio_in;
+    if (channel_steer->radio_in > 1400) {
+		channel_steer->radio_trim = channel_steer->radio_in;
         // save to eeprom
-        g.channel_steer.save_eeprom();
+        channel_steer->save_eeprom();
     }
 }
 
@@ -5521,13 +5546,9 @@ static void init_sonar(void)
 #endif
 }
 
-// Sensors are not available in HIL_MODE_ATTITUDE
-#if HIL_MODE != HIL_MODE_ATTITUDE
-
-void ReadSCP1000(void) {}
-
-#endif // HIL_MODE != HIL_MODE_ATTITUDE
-
+/*
+  read and update the battery
+ */
 static void read_battery(void)
 {
 	if(g.battery_monitoring == 0) {
@@ -5540,11 +5561,19 @@ static void read_battery(void)
         batt_volt_pin->set_pin(g.battery_volt_pin);
         battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin);
     }
-    if(g.battery_monitoring == 4) {
-        // this copes with changing the pin at runtime
-        batt_curr_pin->set_pin(g.battery_curr_pin);
-        current_amps1    = CURRENT_AMPS(batt_curr_pin);
-        current_total1   += current_amps1 * (float)delta_ms_medium_loop * 0.0002778;                                    // .0002778 is 1/3600 (conversion to hours)
+
+    if (g.battery_monitoring == 4) {
+        static uint32_t last_time_ms;
+        uint32_t tnow = hal.scheduler->millis();
+        float dt = tnow - last_time_ms;
+        if (last_time_ms != 0 && dt < 2000) {
+            // this copes with changing the pin at runtime
+            batt_curr_pin->set_pin(g.battery_curr_pin);
+            current_amps1    = CURRENT_AMPS(batt_curr_pin);
+            // .0002778 is 1/3600 (conversion to hours)
+            current_total1   += current_amps1 * dt * 0.0002778f; 
+        }
+        last_time_ms = tnow;
     }
 }
 
@@ -5577,8 +5606,8 @@ static void read_sonars(void)
                 obstacle.detected_count++;
             }
             if (obstacle.detected_count == g.sonar_debounce) {
-                gcs_send_text_fmt(PSTR("Sonar1 obstacle %.0fcm"),
-                                  obstacle.sonar1_distance_cm);
+                gcs_send_text_fmt(PSTR("Sonar1 obstacle %u cm"),
+                                  (unsigned)obstacle.sonar1_distance_cm);
             }
             obstacle.detected_time_ms = hal.scheduler->millis();
             obstacle.turn_angle = g.sonar_turn_angle;
@@ -5588,8 +5617,8 @@ static void read_sonars(void)
                 obstacle.detected_count++;
             }
             if (obstacle.detected_count == g.sonar_debounce) {
-                gcs_send_text_fmt(PSTR("Sonar2 obstacle %.0fcm"),
-                                  obstacle.sonar2_distance_cm);
+                gcs_send_text_fmt(PSTR("Sonar2 obstacle %u cm"),
+                                  (unsigned)obstacle.sonar2_distance_cm);
             }
             obstacle.detected_time_ms = hal.scheduler->millis();
             obstacle.turn_angle = -g.sonar_turn_angle;
@@ -5604,8 +5633,8 @@ static void read_sonars(void)
                 obstacle.detected_count++;
             }
             if (obstacle.detected_count == g.sonar_debounce) {
-                gcs_send_text_fmt(PSTR("Sonar obstacle %.0fcm"),
-                                  obstacle.sonar1_distance_cm);
+                gcs_send_text_fmt(PSTR("Sonar obstacle %u cm"),
+                                  (unsigned)obstacle.sonar1_distance_cm);
             }
             obstacle.detected_time_ms = hal.scheduler->millis();
             obstacle.turn_angle = g.sonar_turn_angle;
@@ -5850,7 +5879,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 	}
 
 
-	if(g.channel_steer.radio_in < 500){
+	if(channel_steer->radio_in < 500){
 		while(1){
 			cliSerial->printf_P(PSTR("\nNo radio; Check connectors."));
 			delay(1000);
@@ -5858,8 +5887,8 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 		}
 	}
 
-	g.channel_steer.radio_min 		= g.channel_steer.radio_in;
-	g.channel_throttle.radio_min 	= g.channel_throttle.radio_in;
+	channel_steer->radio_min 		= channel_steer->radio_in;
+	channel_throttle->radio_min 	= channel_throttle->radio_in;
 	g.rc_2.radio_min = g.rc_2.radio_in;
 	g.rc_4.radio_min = g.rc_4.radio_in;
 	g.rc_5.radio_min = g.rc_5.radio_in;
@@ -5867,8 +5896,8 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 	g.rc_7.radio_min = g.rc_7.radio_in;
 	g.rc_8.radio_min = g.rc_8.radio_in;
 
-	g.channel_steer.radio_max 		= g.channel_steer.radio_in;
-	g.channel_throttle.radio_max 	= g.channel_throttle.radio_in;
+	channel_steer->radio_max 		= channel_steer->radio_in;
+	channel_throttle->radio_max 	= channel_throttle->radio_in;
 	g.rc_2.radio_max = g.rc_2.radio_in;
 	g.rc_4.radio_max = g.rc_4.radio_in;
 	g.rc_5.radio_max = g.rc_5.radio_in;
@@ -5876,7 +5905,7 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 	g.rc_7.radio_max = g.rc_7.radio_in;
 	g.rc_8.radio_max = g.rc_8.radio_in;
 
-	g.channel_steer.radio_trim 		= g.channel_steer.radio_in;
+	channel_steer->radio_trim 		= channel_steer->radio_in;
 	g.rc_2.radio_trim = 1500;
 	g.rc_4.radio_trim = 1500;
 	g.rc_5.radio_trim = 1500;
@@ -5892,8 +5921,8 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
 		// ----------------------------------------------------------
 		read_radio();
 
-		g.channel_steer.update_min_max();
-		g.channel_throttle.update_min_max();
+		channel_steer->update_min_max();
+		channel_throttle->update_min_max();
 		g.rc_2.update_min_max();
 		g.rc_4.update_min_max();
 		g.rc_5.update_min_max();
@@ -5905,8 +5934,8 @@ setup_radio(uint8_t argc, const Menu::arg *argv)
             while (cliSerial->available() > 0) {
                 cliSerial->read();
             }
-			g.channel_steer.save_eeprom();
-			g.channel_throttle.save_eeprom();
+			channel_steer->save_eeprom();
+			channel_throttle->save_eeprom();
 			g.rc_2.save_eeprom();
 			g.rc_4.save_eeprom();
 			g.rc_5.save_eeprom();
@@ -6243,9 +6272,9 @@ print_PID(PID * pid)
 static void
 print_radio_values()
 {
-	cliSerial->printf_P(PSTR("CH1: %d | %d | %d\n"), (int)g.channel_steer.radio_min, (int)g.channel_steer.radio_trim, (int)g.channel_steer.radio_max);
+	cliSerial->printf_P(PSTR("CH1: %d | %d | %d\n"), (int)channel_steer->radio_min, (int)channel_steer->radio_trim, (int)channel_steer->radio_max);
 	cliSerial->printf_P(PSTR("CH2: %d | %d | %d\n"), (int)g.rc_2.radio_min, (int)g.rc_2.radio_trim, (int)g.rc_2.radio_max);
-	cliSerial->printf_P(PSTR("CH3: %d | %d | %d\n"), (int)g.channel_throttle.radio_min, (int)g.channel_throttle.radio_trim, (int)g.channel_throttle.radio_max);
+	cliSerial->printf_P(PSTR("CH3: %d | %d | %d\n"), (int)channel_throttle->radio_min, (int)channel_throttle->radio_trim, (int)channel_throttle->radio_max);
 	cliSerial->printf_P(PSTR("CH4: %d | %d | %d\n"), (int)g.rc_4.radio_min, (int)g.rc_4.radio_trim, (int)g.rc_4.radio_max);
 	cliSerial->printf_P(PSTR("CH5: %d | %d | %d\n"), (int)g.rc_5.radio_min, (int)g.rc_5.radio_trim, (int)g.rc_5.radio_max);
 	cliSerial->printf_P(PSTR("CH6: %d | %d | %d\n"), (int)g.rc_6.radio_min, (int)g.rc_6.radio_trim, (int)g.rc_6.radio_max);
@@ -6292,10 +6321,10 @@ radio_input_switch(void)
 	static int8_t bouncer = 0;
 
 
-	if (int16_t(g.channel_steer.radio_in - g.channel_steer.radio_trim) > 100) {
+	if (int16_t(channel_steer->radio_in - channel_steer->radio_trim) > 100) {
 	    bouncer = 10;
 	}
-	if (int16_t(g.channel_steer.radio_in - g.channel_steer.radio_trim) < -100) {
+	if (int16_t(channel_steer->radio_in - channel_steer->radio_trim) < -100) {
 	    bouncer = -10;
 	}
 	if (bouncer >0) {
@@ -6458,6 +6487,8 @@ static void init_ardupilot()
 	
     load_parameters();
 
+    set_control_channels();
+
     // after parameter load setup correct baud rate on uartA
     hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
@@ -6480,9 +6511,8 @@ static void init_ardupilot()
     }
 #else
     // we have a 2nd serial port for telemetry
-    //hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
-	//gcs3.init(hal.uartC);
-   hal.uartC->begin(4800);
+    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+	gcs3.init(hal.uartC);
 #endif
 
 	mavlink_system.sysid = g.sysid_this_mav;
@@ -6501,9 +6531,7 @@ static void init_ardupilot()
 	}
 #endif
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
-
-#if CONFIG_ADC == ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
     adc.Init();      // APM ADC library initialization
 #endif
 
@@ -6520,7 +6548,6 @@ static void init_ardupilot()
 	// initialise sonar
     init_sonar();
 
-#endif
 	// Do GPS init
 	g_gps = &g_gps_driver;
     // GPS initialisation
@@ -6629,6 +6656,10 @@ static void startup_ground(void)
 	// -----------------------
 	demo_servos(3);
 
+    hal.uartA->set_blocking_writes(false);
+    hal.uartB->set_blocking_writes(false);
+    hal.uartC->set_blocking_writes(false);
+
 	gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
 }
 
@@ -6717,7 +6748,6 @@ static void failsafe_trigger(uint8_t failsafe_type, bool on)
 
 static void startup_INS_ground(bool force_accel_level)
 {
-#if HIL_MODE != HIL_MODE_ATTITUDE
     gcs_send_text_P(SEVERITY_MEDIUM, PSTR("Warming up ADC..."));
  	mavlink_delay(500);
 
@@ -6740,8 +6770,6 @@ static void startup_INS_ground(bool force_accel_level)
         ahrs.set_trim(Vector3f(0, 0, 0));
 	}
     ahrs.reset();
-
-#endif // HIL_MODE_ATTITUDE
 
 	digitalWrite(B_LED_PIN, LED_ON);		// Set LED B high to indicate INS ready
 	digitalWrite(A_LED_PIN, LED_OFF);
@@ -6900,6 +6928,21 @@ static uint8_t check_digital_pin(uint8_t pin)
 
     return hal.gpio->read(dpin);
 }
+
+/*
+  write to a servo
+ */
+static void servo_write(uint8_t ch, uint16_t pwm)
+{
+#if HIL_MODE != HIL_MODE_DISABLED
+    if (ch < 8) {
+        RC_Channel::rc_channel(ch)->radio_out = pwm;
+    }
+#else
+    hal.rcout->enable_ch(ch);
+    hal.rcout->write(ch, pwm);
+#endif
+}
 #line 1 "./APMRover2/test.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -6912,9 +6955,6 @@ static int8_t	test_radio(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_passthru(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_failsafe(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_gps(uint8_t argc, 			const Menu::arg *argv);
-#if CONFIG_ADC == ENABLED
-static int8_t	test_adc(uint8_t argc, 			const Menu::arg *argv);
-#endif
 static int8_t	test_ins(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_battery(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_relay(uint8_t argc,	 	const Menu::arg *argv);
@@ -6943,21 +6983,10 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
 
 	// Tests below here are for hardware sensors only present
 	// when real sensors are attached or they are emulated
-#if HIL_MODE == HIL_MODE_DISABLED
-#if CONFIG_ADC == ENABLED
-	{"adc", 		test_adc},
-#endif
 	{"gps",			test_gps},
 	{"ins",			test_ins},
 	{"sonartest",	test_sonar},
 	{"compass",		test_mag},
-#elif HIL_MODE == HIL_MODE_SENSORS
-	{"adc", 		test_adc},
-	{"gps",			test_gps},
-	{"ins",			test_ins},
-	{"compass",		test_mag},
-#elif HIL_MODE == HIL_MODE_ATTITUDE
-#endif
 	{"logging",		test_logging},
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     {"shell", 				test_shell},
@@ -6994,9 +7023,9 @@ test_radio_pwm(uint8_t argc, const Menu::arg *argv)
 		read_radio();
 
 		cliSerial->printf_P(PSTR("IN:\t1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
-							g.channel_steer.radio_in,
+							channel_steer->radio_in,
 							g.rc_2.radio_in,
-							g.channel_throttle.radio_in,
+							channel_throttle->radio_in,
 							g.rc_4.radio_in,
 							g.rc_5.radio_in,
 							g.rc_6.radio_in,
@@ -7050,25 +7079,22 @@ test_radio(uint8_t argc, const Menu::arg *argv)
 		delay(20);
 		read_radio();
 
-		g.channel_steer.calc_pwm();
-		g.channel_throttle.calc_pwm();
+		channel_steer->calc_pwm();
+		channel_throttle->calc_pwm();
 
 		// write out the servo PWM values
 		// ------------------------------
 		set_servos();
 
-        tuning_value = constrain_float(((float)(g.rc_7.radio_in - g.rc_7.radio_min) / (float)(g.rc_7.radio_max - g.rc_7.radio_min)),0,1);
-                
-		cliSerial->printf_P(PSTR("IN 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d  Tuning = %2.3f\n"),
-							g.channel_steer.control_in,
+		cliSerial->printf_P(PSTR("IN 1: %d\t2: %d\t3: %d\t4: %d\t5: %d\t6: %d\t7: %d\t8: %d\n"),
+							channel_steer->control_in,
 							g.rc_2.control_in,
-							g.channel_throttle.control_in,
+							channel_throttle->control_in,
 							g.rc_4.control_in,
 							g.rc_5.control_in,
 							g.rc_6.control_in,
 							g.rc_7.control_in,
-							g.rc_8.control_in,
-                                                        tuning_value);
+							g.rc_8.control_in);
 
 		if(cliSerial->available() > 0){
 			return (0);
@@ -7093,7 +7119,7 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
 	oldSwitchPosition = readSwitch();
 
 	cliSerial->printf_P(PSTR("Unplug battery, throttle in neutral, turn off radio.\n"));
-	while(g.channel_throttle.control_in > 0){
+	while(channel_throttle->control_in > 0){
 		delay(20);
 		read_radio();
 	}
@@ -7102,8 +7128,8 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
 		delay(20);
 		read_radio();
 
-		if(g.channel_throttle.control_in > 0){
-			cliSerial->printf_P(PSTR("THROTTLE CHANGED %d \n"), g.channel_throttle.control_in);
+		if(channel_throttle->control_in > 0){
+			cliSerial->printf_P(PSTR("THROTTLE CHANGED %d \n"), channel_throttle->control_in);
 			fail_test++;
 		}
 
@@ -7114,8 +7140,8 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
 			fail_test++;
 		}
 
-		if (g.fs_throttle_enabled && g.channel_throttle.get_failsafe()){
-			cliSerial->printf_P(PSTR("THROTTLE FAILSAFE ACTIVATED: %d, "), g.channel_throttle.radio_in);
+		if (g.fs_throttle_enabled && channel_throttle->get_failsafe()){
+			cliSerial->printf_P(PSTR("THROTTLE FAILSAFE ACTIVATED: %d, "), channel_throttle->radio_in);
             print_mode(cliSerial, readSwitch());
             cliSerial->println();
 			fail_test++;
@@ -7136,7 +7162,6 @@ test_battery(uint8_t argc, const Menu::arg *argv)
 {
 if (g.battery_monitoring == 3 || g.battery_monitoring == 4) {
 	print_hit_enter();
-	delta_ms_medium_loop = 100;
 
 	while(1){
 		delay(100);
@@ -7259,29 +7284,6 @@ test_logging(uint8_t argc, const Menu::arg *argv)
 //-------------------------------------------------------------------------------------------
 // tests in this section are for real sensors or sensors that have been simulated
 
-#if HIL_MODE == HIL_MODE_DISABLED || HIL_MODE == HIL_MODE_SENSORS
-
-#if CONFIG_ADC == ENABLED
-static int8_t
-test_adc(uint8_t argc, const Menu::arg *argv)
-{
-	print_hit_enter();
-	adc.Init();
-	delay(1000);
-	cliSerial->printf_P(PSTR("ADC\n"));
-	delay(1000);
-
-	while(1){
-		for (int i=0;i<9;i++) cliSerial->printf_P(PSTR("%.1f\t"),adc.Ch(i));
-		cliSerial->println();
-		delay(100);
-		if(cliSerial->available() > 0){
-			return (0);
-		}
-	}
-}
-#endif // CONFIG_ADC
-
 static int8_t
 test_gps(uint8_t argc, const Menu::arg *argv)
 {
@@ -7301,7 +7303,7 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 			cliSerial->printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
 					g_gps->latitude,
 					g_gps->longitude,
-					g_gps->altitude/100,
+					g_gps->altitude_cm/100,
 					g_gps->num_sats);
 		}else{
 			cliSerial->printf_P(PSTR("."));
@@ -7326,6 +7328,8 @@ test_ins(uint8_t argc, const Menu::arg *argv)
 	print_hit_enter();
 	delay(1000);
 
+    uint8_t medium_loopCounter = 0;
+
 	while(1){
 		delay(20);
 		if (millis() - fast_loopTimer > 19) {
@@ -7339,7 +7343,7 @@ test_ins(uint8_t argc, const Menu::arg *argv)
 
 			if(g.compass_enabled) {
 				medium_loopCounter++;
-				if(medium_loopCounter == 5){
+				if(medium_loopCounter >= 5){
 					compass.read();
                     medium_loopCounter = 0;
 				}
@@ -7392,6 +7396,8 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 
     print_hit_enter();
 
+    uint8_t medium_loopCounter = 0;
+
     while(1) {
 		delay(20);
 		if (millis() - fast_loopTimer > 19) {
@@ -7404,7 +7410,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 			ahrs.update();
 
             medium_loopCounter++;
-            if(medium_loopCounter == 5){
+            if(medium_loopCounter >= 5){
                 if (compass.read()) {
                     // Calculate heading
                     Matrix3f m = ahrs.get_dcm_matrix();
@@ -7444,21 +7450,17 @@ test_mag(uint8_t argc, const Menu::arg *argv)
     return (0);
 }
 
-#endif // HIL_MODE == HIL_MODE_DISABLED || HIL_MODE == HIL_MODE_SENSORS
-
 //-------------------------------------------------------------------------------------------
 // real sensors that have not been simulated yet go here
 
 static int8_t
 test_sonar(uint8_t argc, const Menu::arg *argv)
 {
-    /*
     if (!sonar.enabled()) {
         cliSerial->println_P(PSTR("WARNING: Sonar is not enabled"));
     }
-     */
+
     print_hit_enter();
-    /*
     init_sonar();
     
     float sonar_dist_cm_min = 0.0f;
@@ -7467,12 +7469,12 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
     float sonar2_dist_cm_min = 0.0f;
     float sonar2_dist_cm_max = 0.0f;
     float voltage2_min=0.0f, voltage2_max = 0.0f;
-    */
     uint32_t last_print = 0;
+
 	while (true) {
         delay(20);
         uint32_t now = millis();
-        /*
+
         float dist_cm = sonar.distance_cm();
         float voltage = sonar.voltage();
         if (sonar_dist_cm_min == 0.0f) {
@@ -7494,11 +7496,8 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
         sonar2_dist_cm_min = min(sonar2_dist_cm_min, dist_cm);
         voltage2_min = min(voltage2_min, voltage);
         voltage2_max = max(voltage2_max, voltage);
-	*/
-	read_Sonar();   //read echosounder depth and temperature
 
         if (now - last_print >= 200) {
-            /*
             cliSerial->printf_P(PSTR("sonar1 dist=%.1f:%.1fcm volt1=%.2f:%.2f   sonar2 dist=%.1f:%.1fcm volt2=%.2f:%.2f\n"), 
                                 sonar_dist_cm_min, 
                                 sonar_dist_cm_max, 
@@ -7513,11 +7512,6 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
             sonar_dist_cm_min = sonar_dist_cm_max = 0.0f;
             sonar2_dist_cm_min = sonar2_dist_cm_max = 0.0f;
             last_print = now;
-            */
-            hal.console->println();
-            hal.console->printf("--------------------------------------");
-            hal.console->printf("Sonar Depth : %f Temp: %f",Depth,Temp);        //Debug Echo Data
-            hal.console->println("--------------------------------------");
         }
         if (cliSerial->available() > 0) {
             break;

@@ -256,15 +256,6 @@ AP_AHRS_DCM::yaw_error_compass(void)
     return rb % _mag_earth;
 }
 
-// produce a yaw error value using the GPS. The returned value is proportional
-// to sin() of the current heading error in earth frame
-float
-AP_AHRS_DCM::yaw_error_gps(void)
-{
-    return sinf(ToRad(_gps->ground_course * 0.01f) - yaw);
-}
-
-
 // the _P_gain raises the gain of the PI controller
 // when we are spinning fast. See the fastRotations
 // paper from Bill.
@@ -281,7 +272,7 @@ AP_AHRS_DCM::_P_gain(float spin_rate)
 }
 
 // return true if we have and should use GPS
-bool AP_AHRS_DCM::have_gps(void)
+bool AP_AHRS_DCM::have_gps(void) const
 {
     if (!_gps || _gps->status() <= GPS::NO_FIX || !_gps_use) {
         return false;
@@ -290,7 +281,7 @@ bool AP_AHRS_DCM::have_gps(void)
 }
 
 // return true if we should use the compass for yaw correction
-bool AP_AHRS_DCM::use_compass(void)
+bool AP_AHRS_DCM::use_compass(void) const
 {
     if (!_compass || !_compass->use_for_yaw()) {
         // no compass available
@@ -300,7 +291,7 @@ bool AP_AHRS_DCM::use_compass(void)
         // we don't have any alterative to the compass
         return true;
     }
-    if (_gps->ground_speed < GPS_SPEED_MIN) {
+    if (_gps->ground_speed_cm < GPS_SPEED_MIN) {
         // we are not going fast enough to use the GPS
         return true;
     }
@@ -309,8 +300,8 @@ bool AP_AHRS_DCM::use_compass(void)
     // degrees and the estimated wind speed is less than 80% of the
     // ground speed, then switch to GPS navigation. This will help
     // prevent flyaways with very bad compass offsets
-    int32_t error = abs(wrap_180_cd(yaw_sensor - _gps->ground_course));
-    if (error > 4500 && _wind.length() < _gps->ground_speed*0.008f) {
+    int32_t error = abs(wrap_180_cd(yaw_sensor - _gps->ground_course_cd));
+    if (error > 4500 && _wind.length() < _gps->ground_speed_cm*0.008f) {
         // start using the GPS for heading
         return false;
     }
@@ -330,6 +321,9 @@ AP_AHRS_DCM::drift_correction_yaw(void)
     float yaw_deltat;
 
     if (use_compass()) {
+        /*
+          we are using compass for yaw
+         */
         if (_compass->last_update != _compass_last_update) {
             yaw_deltat = (_compass->last_update - _compass_last_update) * 1.0e-6f;
             _compass_last_update = _compass->last_update;
@@ -346,17 +340,43 @@ AP_AHRS_DCM::drift_correction_yaw(void)
             yaw_error = yaw_error_compass();
         }
     } else if (_flags.fly_forward && have_gps()) {
+        /*
+          we are using GPS for yaw
+         */
         if (_gps->last_fix_time != _gps_last_update &&
-            _gps->ground_speed >= GPS_SPEED_MIN) {
+            _gps->ground_speed_cm >= GPS_SPEED_MIN) {
             yaw_deltat = (_gps->last_fix_time - _gps_last_update) * 1.0e-3f;
             _gps_last_update = _gps->last_fix_time;
-            if (!_flags.have_initial_yaw) {
-                _dcm_matrix.from_euler(roll, pitch, ToRad(_gps->ground_course*0.01f));
+            new_value = true;
+            float gps_course_rad = ToRad(_gps->ground_course_cd * 0.01f);
+            float yaw_error_rad = gps_course_rad - yaw;
+            yaw_error = sinf(yaw_error_rad);
+
+            /* reset yaw to match GPS heading under any of the
+               following 3 conditions:
+
+               1) if we have reached GPS_SPEED_MIN and have never had
+               yaw information before
+
+               2) if the last time we got yaw information from the GPS
+               is more than 20 seconds ago, which means we may have
+               suffered from considerable gyro drift
+
+               3) if we are over 3*GPS_SPEED_MIN (which means 9m/s)
+               and our yaw error is over 60 degrees, which means very
+               poor yaw. This can happen on bungee launch when the
+               operator pulls back the plane rapidly enough then on
+               release the GPS heading changes very rapidly
+            */
+            if (!_flags.have_initial_yaw || 
+                yaw_deltat > 20 ||
+                (_gps->ground_speed_cm >= 3*GPS_SPEED_MIN && fabsf(yaw_error_rad) >= 1.047f)) {
+                // reset DCM matrix based on current yaw
+                _dcm_matrix.from_euler(roll, pitch, gps_course_rad);
                 _omega_yaw_P.zero();
                 _flags.have_initial_yaw = true;
+                yaw_error = 0;
             }
-            new_value = true;
-            yaw_error = yaw_error_gps();
         }
     }
 
@@ -420,7 +440,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
     drift_correction_yaw();
 
     // apply trim
-    temp_dcm.rotate(_trim);
+    temp_dcm.rotateXY(_trim);
 
     // rotate accelerometer values into the earth frame
     _accel_ef = temp_dcm * _accel_vector;
@@ -591,7 +611,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
     }
 
     if (_flags.fly_forward && _gps && _gps->status() >= GPS::GPS_OK_FIX_2D && 
-        _gps->ground_speed < GPS_SPEED_MIN && 
+        _gps->ground_speed_cm < GPS_SPEED_MIN && 
         _accel_vector.x >= 7 &&
 	    pitch_sensor > -3000 && pitch_sensor < 3000) {
             // assume we are in a launch acceleration, and reduce the
@@ -691,7 +711,7 @@ void AP_AHRS_DCM::estimate_wind(Vector3f &velocity)
     } else if (now - _last_wind_time > 2000 && _airspeed && _airspeed->use()) {
         // when flying straight use airspeed to get wind estimate if available
         Vector3f airspeed = _dcm_matrix.colx() * _airspeed->get_airspeed();
-        Vector3f wind = velocity - airspeed;
+        Vector3f wind = velocity - (airspeed * get_EAS2TAS());
         _wind = _wind * 0.92f + wind * 0.08f;
     }    
 }
@@ -778,9 +798,12 @@ bool AP_AHRS_DCM::airspeed_estimate(float *airspeed_ret)
 	if (ret && _wind_max > 0 && _gps && _gps->status() >= GPS::GPS_OK_FIX_2D) {
 		// constrain the airspeed by the ground speed
 		// and AHRS_WIND_MAX
-		*airspeed_ret = constrain_float(*airspeed_ret, 
-					  _gps->ground_speed*0.01f - _wind_max, 
-					  _gps->ground_speed*0.01f + _wind_max);
+        float gnd_speed = _gps->ground_speed_cm*0.01f;
+        float true_airspeed = *airspeed_ret * get_EAS2TAS();
+		true_airspeed = constrain_float(true_airspeed,
+                                        gnd_speed - _wind_max, 
+                                        gnd_speed + _wind_max);
+        *airspeed_ret = true_airspeed / get_EAS2TAS();
 	}
 	return ret;
 }

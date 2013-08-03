@@ -60,7 +60,7 @@ public:
     // if we have an estimate
     bool airspeed_estimate(float *airspeed_ret);
 
-    bool            use_compass(void);
+    bool            use_compass(void) const;
 
 private:
     float _ki;
@@ -74,10 +74,9 @@ private:
     void            drift_correction(float deltat);
     void            drift_correction_yaw(void);
     float           yaw_error_compass();
-    float           yaw_error_gps();
     void            euler_angles(void);
     void            estimate_wind(Vector3f &velocity);
-    bool            have_gps(void);
+    bool            have_gps(void) const;
 
     // primary representation of attitude
     Matrix3f _dcm_matrix;

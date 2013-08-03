@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduRover v2.42beta3"
+#define THISFIRMWARE "ArduRover v2.43beta2"
 
 /* 
 This is the APMrover2 firmware. It was originally derived from
@@ -69,6 +69,7 @@ version 2.1 of the License, or (at your option) any later version.
 #include <AverageFilter.h>	// Mode Filter from Filter library
 #include <AP_Relay.h>       // APM relay
 #include <AP_Mount.h>		// Camera/Antenna mount
+#include <AP_Camera.h>		// Camera triggering
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
 #include <AP_Airspeed.h>    // needed for AHRS build
 #include <memcheck.h>
@@ -123,6 +124,7 @@ static RCMapper rcmap;
 // primary control channels
 static RC_Channel *channel_steer;
 static RC_Channel *channel_throttle;
+static RC_Channel *channel_learn;
 
 ////////////////////////////////////////////////////////////////////////////////
 // prototypes
@@ -255,10 +257,21 @@ static AP_RangeFinder_analog sonar2;
 // relay support
 AP_Relay relay;
 
+// Camera
+#if CAMERA == ENABLED
+static AP_Camera camera(&relay);
+#endif
+
+// The rover's current location
+static struct 	Location current_loc;
+
+
 // Camera/Antenna mount tracking and stabilisation stuff
 // --------------------------------------
 #if MOUNT == ENABLED
-AP_Mount camera_mount(g_gps, &dcm);
+// current_loc uses the baro/gps soloution for altitude rather than gps only.
+// mabe one could use current_loc for lat/lon too and eliminate g_gps alltogether?
+AP_Mount camera_mount(&current_loc, g_gps, &ahrs, 0);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -278,7 +291,7 @@ static bool usb_connected;
 			4   ---
 			5   Aux5
 			6   Aux6
-			7   Aux7
+			7   Aux7/learn
 			8   Aux8/Mode
 		Each Aux channel can be configured to have any of the available auxiliary functions assigned to it.
 		See libraries/RC_Channel/RC_Channel_aux.h for more information
@@ -421,7 +434,6 @@ static bool ch7_flag;
 // This register tracks the current Mission Command index when writing
 // a mission using CH7 in flight
 static int8_t CH7_wp_index;
-float tuning_value;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Battery Sensors
@@ -486,8 +498,6 @@ static struct 	Location home;
 static bool	home_is_set;
 // The location of the previous waypoint.  Used for track following and altitude ramp calculations
 static struct 	Location prev_WP;
-// The rover's current location
-static struct 	Location current_loc;
 // The location of the current/active waypoint.  Used for track following
 static struct 	Location next_WP;
 // The location of the active waypoint in Guided mode.
@@ -671,6 +681,9 @@ static void mount_update(void)
 #if MOUNT == ENABLED
 	camera_mount.update_mount_position();
 #endif
+#if CAMERA == ENABLED
+    camera.trigger_pic_cleanup();
+#endif
 }
 
 /*
@@ -723,6 +736,25 @@ static void update_logging(void)
         Log_Write_Nav_Tuning();
 }
 
+
+/*
+  update aux servo mappings
+ */
+static void update_aux(void)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_10, &g.rc_11);
+#else
+    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
+#endif
+    enable_aux_servos();
+        
+#if MOUNT == ENABLED
+    camera_mount.update_mount_type();
+#endif
+}
 /*
   once a second events
  */
@@ -739,8 +771,7 @@ static void one_second_loop(void)
     set_control_channels();
 
     // cope with changes to aux functions
-    update_aux_servo_function(&g.rc_2, &g.rc_4, &g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
-    enable_aux_servos();
+    update_aux();
 
 #if MOUNT == ENABLED
     camera_mount.update_mount_type();
@@ -789,7 +820,7 @@ static void update_GPS(void)
 
 		if(ground_start_count > 1){
 			ground_start_count--;
-			ground_start_avg += g_gps->ground_speed;
+			ground_start_avg += g_gps->ground_speed_cm;
 
 		} else if (ground_start_count == 1) {
 			// We countdown N number of good GPS fixes
@@ -807,7 +838,13 @@ static void update_GPS(void)
 				ground_start_count = 0;
 			}
 		}
-        ground_speed   = g_gps->ground_speed * 0.01;
+        ground_speed   = g_gps->ground_speed_cm * 0.01;
+
+#if CAMERA == ENABLED
+        if (camera.update_location(current_loc) == true) {
+            do_take_picture();
+        }
+#endif        
 	}
 }
 

@@ -44,8 +44,9 @@
 #define SONAR_SOURCE_ADC 1
 #define SONAR_SOURCE_ANALOG_PIN 2
 
-// Ch7 and Ch8 aux switch control
-#define AUX_SWITCH_PWM_TRIGGER  1800        // pwm value above which the ch7 or ch8 option will be invoked
+// Ch6, Ch7 and Ch8 aux switch control
+#define AUX_SWITCH_PWM_TRIGGER_HIGH 1800   // pwm value above which the ch7 or ch8 option will be invoked
+#define AUX_SWITCH_PWM_TRIGGER_LOW  1200   // pwm value below which the ch7 or ch8 option will be disabled
 #define CH6_PWM_TRIGGER_HIGH    1800
 #define CH6_PWM_TRIGGER_LOW     1200
 
@@ -62,7 +63,12 @@
 #define AUX_SWITCH_SONAR            10      // allow enabling or disabling sonar in flight which helps avoid surface tracking when you are far above the ground
 #define AUX_SWITCH_FENCE            11      // allow enabling or disabling fence in flight
 #define AUX_SWITCH_RESETTOARMEDYAW  12      // changes yaw to be same as when quad was armed
+#define AUX_SWITCH_SUPERSIMPLE_MODE 13      // change to simple mode in middle, super simple at top
 
+// values used by the ap.ch7_opt and ap.ch8_opt flags
+#define AUX_SWITCH_LOW              0       // indicates auxiliar switch is in the low position (pwm <1200)
+#define AUX_SWITCH_MIDDLE           1       // indicates auxiliar switch is in the middle position (pwm >1200, <1800)
+#define AUX_SWITCH_HIGH             2       // indicates auxiliar switch is in the high position (pwm >1800)
 
 // Frame types
 #define QUAD_FRAME 0
@@ -137,41 +143,36 @@
 
 // CH_6 Tuning
 // -----------
-#define CH6_NONE            0           // no tuning performed
-#define CH6_STABILIZE_KP    1           // stabilize roll/pitch angle controller's P term
-#define CH6_STABILIZE_KI    2           // stabilize roll/pitch angle controller's I term
-#define CH6_STABILIZE_KD    29          // stabilize roll/pitch angle controller's D term
-#define CH6_YAW_KP          3           // stabilize yaw heading controller's P term
-#define CH6_YAW_KI          24          // stabilize yaw heading controller's P term
-#define CH6_ACRO_KP         25          // acro controller's P term.  converts pilot input to a desired roll, pitch or yaw rate
-#define CH6_RATE_KP         4           // body frame roll/pitch rate controller's P term
-#define CH6_RATE_KI         5           // body frame roll/pitch rate controller's I term
-#define CH6_RATE_KD         21          // body frame roll/pitch rate controller's D term
-#define CH6_YAW_RATE_KP     6           // body frame yaw rate controller's P term
-#define CH6_YAW_RATE_KD     26          // body frame yaw rate controller's D term
-#define CH6_THR_HOLD_KP     14          // altitude hold controller's P term (alt error to desired rate)
-#define CH6_THROTTLE_KP     7           // throttle rate controller's P term (desired rate to acceleration or motor output)
-#define CH6_THROTTLE_KI     33          // throttle rate controller's I term (desired rate to acceleration or motor output)
-#define CH6_THROTTLE_KD     37          // throttle rate controller's D term (desired rate to acceleration or motor output)
-#define CH6_THR_ACCEL_KP    34          // accel based throttle controller's P term
-#define CH6_THR_ACCEL_KI    35          // accel based throttle controller's I term
-#define CH6_THR_ACCEL_KD    36          // accel based throttle controller's D term
-#define CH6_RELAY           9           // switch relay on if ch6 high, off if low
-#define CH6_WP_SPEED        10          // maximum speed to next way point (0 to 10m/s)
-#define CH6_LOITER_KP       12          // loiter distance controller's P term (position error to speed)
-#define CH6_LOITER_KI       27          // loiter distance controller's I term (position error to speed)
-#define CH6_HELI_EXTERNAL_GYRO 13       // TradHeli specific external tail gyro gain
-#define CH6_OPTFLOW_KP      17          // optical flow loiter controller's P term (position error to tilt angle)
-#define CH6_OPTFLOW_KI      18          // optical flow loiter controller's I term (position error to tilt angle)
-#define CH6_OPTFLOW_KD      19          // optical flow loiter controller's D term (position error to tilt angle)
-#define CH6_LOITER_RATE_KP  22          // loiter rate controller's P term (speed error to tilt angle)
-#define CH6_LOITER_RATE_KI  28          // loiter rate controller's I term (speed error to tilt angle)
-#define CH6_LOITER_RATE_KD  23          // loiter rate controller's D term (speed error to tilt angle)
-#define CH6_AHRS_YAW_KP     30          // ahrs's compass effect on yaw angle (0 = very low, 1 = very high)
-#define CH6_AHRS_KP         31          // accelerometer effect on roll/pitch angle (0=low)
-#define CH6_INAV_TC         32          // inertial navigation baro/accel and gps/accel time constant (1.5 = strong baro/gps correction on accel estimatehas very strong does not correct accel estimate, 7 = very weak correction)
-#define CH6_DECLINATION     38          // compass declination in radians
-#define CH6_CIRCLE_RATE     39          // circle turn rate in degrees (hard coded to about 45 degrees in either direction)
+#define CH6_NONE                        0   // no tuning performed
+#define CH6_STABILIZE_ROLL_PITCH_KP     1   // stabilize roll/pitch angle controller's P term
+#define CH6_RATE_ROLL_PITCH_KP          4   // body frame roll/pitch rate controller's P term
+#define CH6_RATE_ROLL_PITCH_KI          5   // body frame roll/pitch rate controller's I term
+#define CH6_RATE_ROLL_PITCH_KD          21  // body frame roll/pitch rate controller's D term
+#define CH6_STABILIZE_YAW_KP            3   // stabilize yaw heading controller's P term
+#define CH6_YAW_RATE_KP                 6   // body frame yaw rate controller's P term
+#define CH6_YAW_RATE_KD                 26  // body frame yaw rate controller's D term
+#define CH6_ALTITUDE_HOLD_KP            14  // altitude hold controller's P term (alt error to desired rate)
+#define CH6_THROTTLE_RATE_KP            7   // throttle rate controller's P term (desired rate to acceleration or motor output)
+#define CH6_THROTTLE_RATE_KD            37  // throttle rate controller's D term (desired rate to acceleration or motor output)
+#define CH6_THROTTLE_ACCEL_KP           34  // accel based throttle controller's P term
+#define CH6_THROTTLE_ACCEL_KI           35  // accel based throttle controller's I term
+#define CH6_THROTTLE_ACCEL_KD           36  // accel based throttle controller's D term
+#define CH6_LOITER_POSITION_KP          12  // loiter distance controller's P term (position error to speed)
+#define CH6_LOITER_RATE_KP              22  // loiter rate controller's P term (speed error to tilt angle)
+#define CH6_LOITER_RATE_KI              28  // loiter rate controller's I term (speed error to tilt angle)
+#define CH6_LOITER_RATE_KD              23  // loiter rate controller's D term (speed error to tilt angle)
+#define CH6_WP_SPEED                    10  // maximum speed to next way point (0 to 10m/s)
+#define CH6_ACRO_KP                     25  // acro controller's P term.  converts pilot input to a desired roll, pitch or yaw rate
+#define CH6_RELAY                       9   // switch relay on if ch6 high, off if low
+#define CH6_HELI_EXTERNAL_GYRO          13  // TradHeli specific external tail gyro gain
+#define CH6_OPTFLOW_KP                  17  // optical flow loiter controller's P term (position error to tilt angle)
+#define CH6_OPTFLOW_KI                  18  // optical flow loiter controller's I term (position error to tilt angle)
+#define CH6_OPTFLOW_KD                  19  // optical flow loiter controller's D term (position error to tilt angle)
+#define CH6_AHRS_YAW_KP                 30  // ahrs's compass effect on yaw angle (0 = very low, 1 = very high)
+#define CH6_AHRS_KP                     31  // accelerometer effect on roll/pitch angle (0=low)
+#define CH6_INAV_TC                     32  // inertial navigation baro/accel and gps/accel time constant (1.5 = strong baro/gps correction on accel estimatehas very strong does not correct accel estimate, 7 = very weak correction)
+#define CH6_DECLINATION                 38  // compass declination in radians
+#define CH6_CIRCLE_RATE                 39  // circle turn rate in degrees (hard coded to about 45 degrees in either direction)
 
 
 // Commands - Note that APM now uses a subset of the MAVLink protocol
@@ -315,6 +316,7 @@ enum ap_message {
 #define DATA_AUTO_ARMED                 15
 #define DATA_TAKEOFF                    16
 #define DATA_LAND_COMPLETE              18
+#define DATA_NOT_LANDED                 28
 #define DATA_LOST_GPS                   19
 #define DATA_BEGIN_FLIP                 21
 #define DATA_END_FLIP                   22
@@ -322,6 +324,7 @@ enum ap_message {
 #define DATA_SET_HOME                   25
 #define DATA_SET_SIMPLE_ON              26
 #define DATA_SET_SIMPLE_OFF             27
+#define DATA_SET_SUPERSIMPLE_ON         28
 
 // battery monitoring macros
 #define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
@@ -342,7 +345,6 @@ enum ap_message {
 // AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
 // next to SW2 switch
 // Look more ArduCopter Wiki for voltage dividers and other ports
-#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
 #define AN0  54  // resistor, vdiv use, divider 1 closest to relay
 #define AN1  55  // resistor, vdiv use, divider 2
 #define AN2  56  // resistor, vdiv use, divider 3
@@ -430,6 +432,7 @@ enum ap_message {
 #define ERROR_SUBSYSTEM_FAILSAFE_GPS        7
 #define ERROR_SUBSYSTEM_FAILSAFE_GCS        8
 #define ERROR_SUBSYSTEM_FAILSAFE_FENCE      9
+#define ERROR_SUBSYSTEM_FLGHT_MODE          10
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
@@ -443,4 +446,4 @@ enum ap_message {
 
 
 
-#endif // _DEFINES_H
+

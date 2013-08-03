@@ -46,7 +46,7 @@ public:
 
     // init sets up INS board orientation
     virtual void init() {
-        _ins->set_board_orientation((enum Rotation)_board_orientation.get());
+        set_orientation();
     };
 
     // Accessors
@@ -60,6 +60,14 @@ public:
 
     void set_compass(Compass *compass) {
         _compass = compass;
+        set_orientation();
+    }
+
+
+    // allow for runtime change of orientation
+    // this makes initial config easier
+    void set_orientation() {
+        _ins->set_board_orientation((enum Rotation)_board_orientation.get());
         if (_compass != NULL) {
             _compass->set_board_orientation((enum Rotation)_board_orientation.get());
         }
@@ -87,10 +95,6 @@ public:
     int32_t roll_sensor;
     int32_t pitch_sensor;
     int32_t yaw_sensor;
-
-    // roll and pitch rates in earth frame, in radians/s
-    float get_pitch_rate_earth(void) const;
-    float get_roll_rate_earth(void) const;
 
     // return a smoothed and corrected gyro vector
     virtual const Vector3f get_gyro(void) const = 0;
@@ -145,14 +149,35 @@ public:
     // if we have an estimate
     virtual bool airspeed_estimate(float *airspeed_ret);
 
+    // return a true airspeed estimate (navigation airspeed) if
+    // available. return true if we have an estimate
+    bool airspeed_estimate_true(float *airspeed_ret) {
+        if (!airspeed_estimate(airspeed_ret)) {
+            return false;
+        }
+        *airspeed_ret *= get_EAS2TAS();
+        return true;
+    }
+
+    // get apparent to true airspeed ratio
+    float get_EAS2TAS(void) const {
+        if (_airspeed) {
+            return _airspeed->get_EAS2TAS();
+        }
+        return 1.0f;
+    }
+
+    // return true if airspeed comes from an airspeed sensor, as
+    // opposed to an IMU estimate
+    bool airspeed_sensor_enabled(void) const {
+        return _airspeed != NULL && _airspeed->use();
+    }
+
     // return a ground vector estimate in meters/second, in North/East order
     Vector2f groundspeed_vector(void);
 
     // return true if we will use compass for yaw
     virtual bool use_compass(void) const { return _compass && _compass->use_for_yaw(); }
-
-    // correct a bearing in centi-degrees for wind
-    void wind_correct_bearing(int32_t &nav_bearing_cd);
 
     // return true if yaw has been initialised
     bool yaw_initialised(void) const {
@@ -179,20 +204,21 @@ public:
     // add_trim - adjust the roll and pitch trim up to a total of 10 degrees
     virtual void            add_trim(float roll_in_radians, float pitch_in_radians, bool save_to_eeprom = true);
 
-    // settable parameters
-    AP_Float beta;
+    // for holding parameters
+    static const struct AP_Param::GroupInfo var_info[];
+
+    // these are public for ArduCopter
 	AP_Float _kp_yaw;
     AP_Float _kp;
     AP_Float gps_gain;
+
+protected:
+    // settable parameters
+    AP_Float beta;
     AP_Int8 _gps_use;
     AP_Int8 _wind_max;
     AP_Int8 _board_orientation;
     AP_Int8 _gps_minsats;
-
-    // for holding parameters
-    static const struct AP_Param::GroupInfo var_info[];
-
-protected:
 
     // flags structure
     struct ahrs_flags {
