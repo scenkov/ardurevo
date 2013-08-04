@@ -26,67 +26,6 @@ extern const AP_HAL::HAL& hal;
 volatile uint16_t VRBRAINRCInput::_pulse_capt[VRBRAIN_RC_INPUT_NUM_CHANNELS] = {0};
 volatile uint8_t  VRBRAINRCInput::_valid_channels = 0;
 
-// STANDARD PPM VARIABLE
-
-volatile uint16_t rcPinValue[8] =
-    {
-    1500, 1500, 1000, 1500, 1500, 1500, 1500, 1500
-    };
-// interval [1000;2000]
-
-// ***PPM SUM SIGNAL***
-static uint8_t rcChannel[12];
-volatile uint16_t rcValue[20] =
-    {
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500
-    }; // interval [1000;2000]
-volatile uint16_t rcTmpValue[20] =
-    {
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500,
-	    1500
-    }; // interval [1000;2000]
-
-// Variable definition for Input Capture interrupt
-//volatile uint16_t APM_RC_MP32::_PWM_RAW[NUM_CHANNELS] = {2400,2400,2400,2400,2400,2400,2400,2400};
-//volatile uint8_t APM_RC_MP32::_radio_status=0;
-
 volatile unsigned char radio_status_rc = 0;
 volatile unsigned char sync = 0;
 volatile unsigned int currentChannel = 0;
@@ -135,62 +74,6 @@ void VRBRAINRCInput::rxIntPPMSUM(uint8_t state, uint16_t value)
 	}
     }
 
-/*
- 0 PE9		75	PWM_IN0		 IRQ 5-9  * Conflict  PPM1
- 1 PE11		80	PWM_IN1		 IRQ 10-15			  PPM2
- 2 PE13		86	PWM_IN2		 IRQ 10-15			  PPM3
- 3 PE14		89	PWM_IN3		 IRQ 10-15			  PPM4
- 4 PC6		12	PWM_IN4		 IRQ 5-9			  PPM5
- 5 PC7		13	PWM_IN5		 IRQ 5-9			  PPM6
- 6 PC8		14	PWM_IN6		 IRQ 5-9			  PPM7
- 7 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
- */
-
-
-
-/* ADD ON PIN NORMALLY AVAILABLE ON RX BUT IF PPM SUM ACTIVE AVAILABLE AS SERVO OUTPUT */
-
-void VRBRAINRCInput::InitDefaultPPMSUM(char board)
-    {
-    switch (board)
-	{
-    case 10:
-	ppm_sum_channel = 75;
-	rcChannel[0] = 0;
-	rcChannel[1] = 1;
-	rcChannel[2] = 2;
-	rcChannel[3] = 3;
-	rcChannel[4] = 4;
-	rcChannel[5] = 5;
-	rcChannel[6] = 6;
-	rcChannel[7] = 7;
-	rcChannel[8] = 8;
-	break;
-
-    case 11:
-	ppm_sum_channel = 75;
-	rcChannel[0] = 0;
-	rcChannel[1] = 1;
-	rcChannel[2] = 2;
-	rcChannel[3] = 3;
-	rcChannel[4] = 4;
-	rcChannel[5] = 5;
-	rcChannel[6] = 6;
-	rcChannel[7] = 7;
-	rcChannel[8] = 8;
-
-	break;
-	}
-    }
-
-void VRBRAINRCInput::InitPPM(void)
-    {
-    for (byte channel = 0; channel < 8; channel++)
-	pinData[channel].edge = FALLING_EDGE;
-
-    //attachPWMCaptureCallback(PWMCaptureCallback);
-    pwmInit(false);
-    }
 
 void VRBRAINRCInput::InitDefaultPPM(char board)
     {
@@ -228,18 +111,6 @@ void VRBRAINRCInput::InitDefaultPPM(char board)
     case 2:
 
 	// VRBRAIN
-	//PIN 13 freeze board (was USB DISC)
-	/*
-	 PE9		75	PWM_IN0		IRQ 5-9  * Conflict  PPM1
-	 PE11		80	PWM_IN1		IRQ 10-15			  PPM2
-	 PE13		86	PWM_IN2		IRQ 10-15			  PPM3
-	 PE14		89	PWM_IN3		IRQ 10-15			  PPM4
-	 PC6		12	PWM_IN4		IRQ 5-9			  PPM5
-	 PC7		13	PWM_IN5		IRQ 5-9			  PPM6
-	 PC8		14	PWM_IN6		IRQ 5-9			  PPM7
-	 PC9		15	PWM_IN7	     	IRQ 5-9   * Conflict (PPMSUM)
-	 */
-
 	input_channel_ch1 = 75;
 	input_channel_ch2 = 80;
 	input_channel_ch3 = 86;
@@ -255,31 +126,6 @@ void VRBRAINRCInput::InitDefaultPPM(char board)
 	}
     }
 
-// Public Methods //////////////////////////////////////////////////////////////
-void VRBRAINRCInput::InitPPMSUM(void)
-    {
-    //hal.gpio->pinMode(ppm_sum_channel, INPUT);
-    //hal.gpio->attach_interrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
-    }
-
-uint16_t VRBRAINRCInput::InputCh(unsigned char ch)
-    {
-    uint16_t data;
-    noInterrupts();
-    if (_iboard < 10)
-	data = pwmRead(ch);
-    else
-	{
-	data = rcValue[rcChannel[ch + 1]];
-	}
-    interrupts();
-    return data; // We return the value correctly copied when the IRQ's where disabled
-    }
-
-unsigned char VRBRAINRCInput::GetState(void)
-    {
-    return (radio_status_rc);
-    }
 
 VRBRAINRCInput::VRBRAINRCInput()
     {
@@ -344,7 +190,6 @@ void VRBRAINRCInput::init(void* machtnichts)
 	{
 	// Init Radio In
 	hal.console->println("Init Default PPMSUM");
-	//InitDefaultPPMSUM(_iboard);
 	attachPWMCaptureCallback(rxIntPPMSUM);
 	pwmInit(true);
 	}
@@ -354,7 +199,11 @@ void VRBRAINRCInput::init(void* machtnichts)
 
 uint8_t VRBRAINRCInput::valid_channels()
     {
-    return 1;
+    if(_iboard < 10)
+	return 1;
+    else
+	return _valid_channels;
+
     }
 
 uint16_t VRBRAINRCInput::read(uint8_t ch)
