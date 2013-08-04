@@ -14,7 +14,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define SONAR_DEFAULT_PIN 0
+#define SONAR_DEFAULT_PIN 47
 
 // table of user settable parameters
 const AP_Param::GroupInfo AP_RangeFinder_analog::var_info[] PROGMEM = {

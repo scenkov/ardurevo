@@ -95,26 +95,16 @@
  # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define SLIDE_SWITCH_PIN 200
- # define PUSHBUTTON_PIN   200
  #if TELEMETRY_UART2 == ENABLED
-   # define USB_MUX_PIN      200
+   # define USB_MUX_PIN      (-1)
   #else
    # define USB_MUX_PIN      200
   #endif
- # define CLI_SLIDER_ENABLED DISABLED
-# define OPTFLOW_CS_PIN   200
 # define BATTERY_VOLT_PIN      6      // Battery voltage on A0
 # define BATTERY_CURR_PIN      200      // Battery current on A1
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
-# define CONFIG_PUSHBUTTON DISABLED
-# define CONFIG_RELAY      DISABLED
-# define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
-# define MAGNETOMETER ENABLED
 # define CONFIG_BARO     AP_BARO_MS5611
 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
-# define CONFIG_MAG MP32NAVYSENSOR
-# define LOGGING_ENABLED ENABLED
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
 # define CONFIG_PITOT_SCALING (4.0*5.0/3.3) // TO VERIFY
 # define SERIAL0_BAUD 57600

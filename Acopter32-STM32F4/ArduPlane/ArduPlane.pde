@@ -36,11 +36,13 @@
 #include <AP_HAL.h>
 #include <AP_Menu.h>
 #include <AP_Param.h>
-
-#include <AP_HAL_VRBRAIN.h>
+// AP_HAL
+#include <AP_HAL.h>
 //#include <AP_HAL_AVR.h>
 //#include <AP_HAL_AVR_SITL.h>
+//#include <AP_HAL_SMACCM.h>
 //#include <AP_HAL_PX4.h>
+#include <AP_HAL_VRBRAIN.h>
 #include <AP_HAL_Empty.h>
 
 #include <AP_GPS.h>         // ArduPilot GPS library
@@ -91,6 +93,8 @@ static AP_SpdHgtControl::AircraftParameters aparm;
 
 #include "Parameters.h"
 #include "GCS.h"
+
+
 
 
 

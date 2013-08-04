@@ -62,6 +62,27 @@ static void init_rc_out()
 #endif
 }
 
+static void init_rc_default()
+{
+    hal.rcout->enable_ch(CH_1);
+    hal.rcout->enable_ch(CH_2);
+    hal.rcout->enable_ch(CH_3);
+    hal.rcout->enable_ch(CH_4);
+    enable_aux_servos();
+
+    // Initialization of servo outputs
+    hal.rcout->write(CH_1,   1500);
+    hal.rcout->write(CH_2,   1500);
+    hal.rcout->write(CH_3,   1000);
+    hal.rcout->write(CH_4,   1500);
+
+    hal.rcout->write(CH_5,   1000);
+    hal.rcout->write(CH_6,   1000);
+    hal.rcout->write(CH_7,   1000);
+    hal.rcout->write(CH_8,   1000);
+
+}
+
 static void read_radio()
 {
     elevon.ch1_temp = channel_roll->read();

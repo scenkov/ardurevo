@@ -33,6 +33,8 @@ extern const AP_HAL::HAL& hal;
  #include <drivers/drv_airspeed.h>
  #include <uORB/topics/differential_pressure.h>
  #define ARSPD_DEFAULT_PIN 11
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ #define ARSPD_DEFAULT_PIN 47
 #else
  #define ARSPD_DEFAULT_PIN 0
 #endif
