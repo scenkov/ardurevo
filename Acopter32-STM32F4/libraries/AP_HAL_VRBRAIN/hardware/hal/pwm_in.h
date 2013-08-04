@@ -34,7 +34,7 @@
 #define _PWM_IN_H_
 
 #include "hal_types.h"
-
+#include <stdbool.h>
 
 #ifdef __cplusplus
   extern "C" {
@@ -50,9 +50,9 @@
  * @param duty_cycle Duty cycle to set.
  */
 
-void pwmInit(void);
+void pwmInit(bool ppmsum);
 uint16_t pwmRead(uint8_t channel);
-void attachPWMCaptureCallback(void (*callback)(uint8_t, uint8_t, int16_t));
+void attachPWMCaptureCallback(void (*callback)(uint8_t state, uint16_t value));
 
 
 #ifdef __cplusplus

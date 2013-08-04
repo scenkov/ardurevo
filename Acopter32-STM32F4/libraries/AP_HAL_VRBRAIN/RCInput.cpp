@@ -3,6 +3,12 @@
 #include "RCInput.h"
 #include <pwm_in.h>
 
+
+// Constructors ////////////////////////////////////////////////////////////////
+using namespace AP_HAL;
+using namespace VRBRAIN;
+
+
 extern const AP_HAL::HAL& hal;
 
 #define RISING_EDGE 1
@@ -15,6 +21,10 @@ extern const AP_HAL::HAL& hal;
 
 #define MINCHECK 900
 #define MAXCHECK 2100
+
+/* private variables to communicate with input capture isr */
+volatile uint16_t VRBRAINRCInput::_pulse_capt[VRBRAIN_RC_INPUT_NUM_CHANNELS] = {0};
+volatile uint8_t  VRBRAINRCInput::_valid_channels = 0;
 
 // STANDARD PPM VARIABLE
 
@@ -80,7 +90,6 @@ volatile uint16_t rcTmpValue[20] =
 volatile unsigned char radio_status_rc = 0;
 volatile unsigned char sync = 0;
 volatile unsigned int currentChannel = 0;
-static unsigned int last = 0;
 
 unsigned int uiRcErrCnt1 = 0;
 unsigned int uiRcErrCnt2 = 0;
@@ -95,51 +104,35 @@ typedef struct
     } tPinTimingData;
 volatile static tPinTimingData pinData[8];
 
-void rxIntPPMSUM(void)
+/* constrain captured pulse to be between min and max pulsewidth. */
+static inline uint16_t constrain_pulse(uint16_t p) {
+    if (p > RC_INPUT_MAX_PULSEWIDTH) return RC_INPUT_MAX_PULSEWIDTH;
+    if (p < RC_INPUT_MIN_PULSEWIDTH) return RC_INPUT_MIN_PULSEWIDTH;
+    return p;
+}
+
+void VRBRAINRCInput::rxIntPPMSUM(uint8_t state, uint16_t value)
     {
-    volatile unsigned int now;
-    volatile unsigned int diff;
-    int i;
+    static uint8_t  channel_ctr;
 
-    //hal.scheduler->suspend_timer_procs();
-
-    now = hal.scheduler->micros();
-    diff = now - last;
-    last = now;
-    if (diff > 4000 && diff < 21000) // Sincro del frame
+    if (value >= 4000) // Frame synchronization
 	{
-	currentChannel = 0;
-	radio_status_rc = 0;
-	if (uiRcErrCnt1 == 0)
-	    {		// if the frame is error free, copy it to rcValue Array
-	    for (i = 0; i < 9; i++)
-		{
-		rcValue[i] = rcTmpValue[i]; // THE PPMSUM VALUE START FROM 10 ' STANDARD PPM channel < 10
-		}
+	    if( channel_ctr >= VRBRAIN_RC_INPUT_MIN_CHANNELS ) {
+		_valid_channels = channel_ctr;
 	    }
-	sync = 1;
-	uiRcErrCnt1 = 0;	// Reset Error counter
+	    channel_ctr = 0;
 	}
-    else if ((diff > 2400) || (diff < 650))
-	{// the signal from my jeti receiver goes around 740 to 1550 ms, with <650 or >2000 bad data will be recorded
-	uiRcErrCnt1++;
-	}
-    if (sync == 1)
+    else
 	{
-	//rcValue[currentChannel] = diff;
-	rcTmpValue[currentChannel] = diff;
-	currentChannel++;
-	if (diff <= MAXCHECK && diff >= MINCHECK)
-	    radio_status_rc++;
-	}
-    if (currentChannel > 9)
-	{
-	//currentChannel=0;
-	sync = 0;
-	radio_status_rc = 0;
-	}
+        if (channel_ctr < VRBRAIN_RC_INPUT_NUM_CHANNELS) {
+            _pulse_capt[channel_ctr] = value;
+            channel_ctr++;
+            if (channel_ctr == VRBRAIN_RC_INPUT_NUM_CHANNELS) {
+                _valid_channels = VRBRAIN_RC_INPUT_NUM_CHANNELS;
+            }
+        }
 
-    //hal.scheduler->resume_timer_procs();
+	}
     }
 
 /*
@@ -153,8 +146,7 @@ void rxIntPPMSUM(void)
  7 PC9		15	PWM_IN7	     IRQ 5-9   * Conflict (PPMSUM)
  */
 
-// Constructors ////////////////////////////////////////////////////////////////
-using namespace VRBRAIN;
+
 
 /* ADD ON PIN NORMALLY AVAILABLE ON RX BUT IF PPM SUM ACTIVE AVAILABLE AS SERVO OUTPUT */
 
@@ -197,7 +189,7 @@ void VRBRAINRCInput::InitPPM(void)
 	pinData[channel].edge = FALLING_EDGE;
 
     //attachPWMCaptureCallback(PWMCaptureCallback);
-    pwmInit();
+    pwmInit(false);
     }
 
 void VRBRAINRCInput::InitDefaultPPM(char board)
@@ -266,8 +258,8 @@ void VRBRAINRCInput::InitDefaultPPM(char board)
 // Public Methods //////////////////////////////////////////////////////////////
 void VRBRAINRCInput::InitPPMSUM(void)
     {
-    hal.gpio->pinMode(ppm_sum_channel, INPUT);
-    hal.gpio->attach_interrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
+    //hal.gpio->pinMode(ppm_sum_channel, INPUT);
+    //hal.gpio->attach_interrupt(ppm_sum_channel, rxIntPPMSUM, RISING);
     }
 
 uint16_t VRBRAINRCInput::InputCh(unsigned char ch)
@@ -340,18 +332,21 @@ void VRBRAINRCInput::init(void* machtnichts)
     if (channel3_status == 3)
 	_iboard = 11;
 
-    if (_iboard < 10)
+    if (_iboard < 10) //PWM
 	{
+	for (byte channel = 0; channel < 8; channel++)
+	    pinData[channel].edge = FALLING_EDGE;
 	// Init Radio In
 	hal.console->println("Init Default PPM");
-	InitPPM();
+	pwmInit(false);
 	}
-    else
+    else //PPMSUM
 	{
 	// Init Radio In
 	hal.console->println("Init Default PPMSUM");
-	InitDefaultPPMSUM(_iboard);
-	InitPPMSUM();
+	//InitDefaultPPMSUM(_iboard);
+	attachPWMCaptureCallback(rxIntPPMSUM);
+	pwmInit(true);
 	}
 
     clear_overrides();
@@ -373,7 +368,7 @@ uint16_t VRBRAINRCInput::read(uint8_t ch)
 	}
     else
 	{
-	data = rcValue[rcChannel[ch + 1]];
+	data = _pulse_capt[ch];
 	}
     interrupts();
 
@@ -388,16 +383,13 @@ uint8_t VRBRAINRCInput::read(uint16_t* periods, uint8_t len)
     noInterrupts();
     for (uint8_t i = 0; i < len; i++)
 	{
-	if (_iboard < 10)
-	    //periods[i] = rcPinValue[i];
-	    periods[i] = pwmRead(i);
-	else
-	    {
-	    periods[i] = rcValue[rcChannel[i + 1]];
-	    }
-	    if (_override[i] != 0) {
-	        periods[i] = _override[i];
-	    }
+	    if (_iboard < 10)
+		periods[i] = pwmRead(i);
+	    else
+		periods[i] = _pulse_capt[i];
+
+	    if (_override[i] != 0)
+		periods[i] = _override[i];
 	}
     interrupts();
 

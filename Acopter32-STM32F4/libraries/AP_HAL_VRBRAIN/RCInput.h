@@ -5,6 +5,8 @@
 #include <AP_HAL_VRBRAIN.h>
 #include <AP_HAL.h>
 
+#define VRBRAIN_RC_INPUT_MIN_CHANNELS 4
+#define VRBRAIN_RC_INPUT_NUM_CHANNELS 8
 
 class VRBRAIN::VRBRAINRCInput : public AP_HAL::RCInput {
 public:
@@ -18,6 +20,7 @@ public:
     bool set_override(uint8_t channel, int16_t override);
     void clear_overrides();
 private:
+    static void rxIntPPMSUM(uint8_t state, uint16_t value);
     void InitDefaultPPM(char board);
     void InitDefaultPPMSUM(char board);
     void InitPPM(void);
@@ -43,6 +46,10 @@ private:
 
     /* override state */
     uint16_t _override[8];
+
+    /* private variables to communicate with input capture isr */
+    static volatile uint16_t _pulse_capt[VRBRAIN_RC_INPUT_NUM_CHANNELS];
+    static volatile uint8_t  _valid_channels;
 };
 
 #endif // __AP_HAL_VRBRAIN_RCINPUT_H__
