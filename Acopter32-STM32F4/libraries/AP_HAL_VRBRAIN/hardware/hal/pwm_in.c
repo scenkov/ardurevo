@@ -230,44 +230,22 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 	    TIM_ClearITPendingBit(channel.tim, channel.tim_cc);
 	    val = TIM_GetCapture1(channel.tim);
 
-	    if (input->state == 0)
+	    input->rise = val;
+
+	    if (input->rise > last_val)
 		{
-		input->rise = val;
-
-		if (input->rise > last_val)
-		    {
-		    time_off = input->rise - last_val;
-		    }
-		else
-		    {
-		    time_off = ((0xFFFF - last_val) + input->rise);
-		    }
-
-		last_val = val;
-
-		if ((time_off >= MINONWIDTH) && (time_off <= MAXONWIDTH))
-		    {
-		    if (pwm_capture_callback)
-			{
-			pwm_capture_callback(input->state, time_off >> 1);
-			}
-		    }
-
-		input->state = 1;
-		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
-		TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-		TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+		time_off = input->rise - last_val;
 		}
 	    else
 		{
-		input->fall = val;
-		// switch state
-		input->state = 0;
+		time_off = ((0xFFFF - last_val) + input->rise);
+		}
 
-		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
-		TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-		TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+	    last_val = val;
 
+	    if (pwm_capture_callback)
+		{
+		pwm_capture_callback(input->state, time_off >> 1);
 		}
 
 	    }
@@ -445,7 +423,7 @@ void pwmInit(bool ppmsum)
     {
     uint8_t i;
 
-    // preset channels to center
+// preset channels to center
     for (i = 0; i < 8; i++)
 	{
 	Inputs[i].state = 0;
