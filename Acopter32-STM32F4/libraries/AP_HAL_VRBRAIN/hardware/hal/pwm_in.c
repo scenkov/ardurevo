@@ -109,73 +109,98 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
     uint16_t val = 0;
     uint16_t time_on = 0;
     uint16_t time_off = 0;
+    static uint16_t last_val = 0;
 
-    for (i = 0; i < 8; i++) {
-        struct TIM_Channel channel = Channels[i];
-        struct PWM_State *input = &Inputs[i];
-
-        if (channel.tim == tim && (TIM_GetITStatus(tim, channel.tim_cc) == SET)) {
+    if(_is_ppmsum)
+	{
+        struct TIM_Channel channel = Channels[0];
+        struct PWM_State *input = &Inputs[0];
+        if (channel.tim == tim && (TIM_GetITStatus(tim, channel.tim_cc) == SET))
+            {
             TIM_ClearITPendingBit(channel.tim, channel.tim_cc);
+            val = TIM_GetCapture1(channel.tim);
 
-            switch (channel.tim_channel) {
-                case TIM_Channel_1:
-                    val = TIM_GetCapture1(channel.tim);
-                    break;
-                case TIM_Channel_2:
-                    val = TIM_GetCapture2(channel.tim);
-                    break;
-                case TIM_Channel_3:
-                    val = TIM_GetCapture3(channel.tim);
-                    break;
-                case TIM_Channel_4:
-                    val = TIM_GetCapture4(channel.tim);
-                    break;
+            input->rise = val;
+
+            if(input->rise > last_val)
+        	{
+        	time_off = input->rise - last_val;
+        	}
+            else
+        	{
+        	time_off = ((0xFFFF - last_val) + input->rise);
+		}
+            last_val = val;
+            if ((time_off >= MINONWIDTH) && (time_off <= MAXONWIDTH))
+        	{
+                if (pwm_capture_callback)
+                    {
+                    pwm_capture_callback(input->state, time_off >> 1);
+                    }
+        	}
             }
+	}
+    else
+	{
+	for (i = 0; i < 8; i++)
+	    {
+	    struct TIM_Channel channel = Channels[i];
+	    struct PWM_State *input = &Inputs[i];
 
+	    if (channel.tim == tim && (TIM_GetITStatus(tim, channel.tim_cc) == SET))
+		{
+	        TIM_ClearITPendingBit(channel.tim, channel.tim_cc);
 
-            if (input->state == 0) {
-        	input->rise = val;
-        	if(input->rise > input->fall){
-        	    time_off = input->rise - input->fall;
-        	}else{
-        	    time_off = ((0xFFFF - input->fall) + input->rise);
-		}
+		switch (channel.tim_channel)
+		    {
+		    case TIM_Channel_1:
+			val = TIM_GetCapture1(channel.tim);
+			break;
+		    case TIM_Channel_2:
+			val = TIM_GetCapture2(channel.tim);
+			break;
+		    case TIM_Channel_3:
+			val = TIM_GetCapture3(channel.tim);
+			break;
+		    case TIM_Channel_4:
+			val = TIM_GetCapture4(channel.tim);
+			break;
+	            }
+	            if (input->state == 0)
+	        	{
+	        	input->rise = val;
 
-		if (pwm_capture_callback) {
-			pwm_capture_callback(input->state, time_off >> 1);
-		}
-        	    input->state = 1;
-                    TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
-                    TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-                    TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+	        	input->state = 1;
+	                TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+	                TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
+	                TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+	        	}
+	            else
+	        	{
+	        	input->fall = val;
+	        	if (input->fall > input->rise)
+	                    time_on = (input->fall - input->rise);
+	                else
+	                    time_on = ((0xFFFF - input->rise) + input->fall);
 
-            } else {
-        	input->fall = val;
-        	if (input->fall > input->rise)
-                    time_on = (input->fall - input->rise);
-                else
-                    time_on = ((0xFFFF - input->rise) + input->fall);
+	        	if ((time_on >= MINONWIDTH) && (time_on <= MAXONWIDTH))
+	        	    {
+			    // compute capture. 1 tick value is 0.5us
+			    input->capture = time_on >> 1;
+	        	    }
 
-        	if ((time_on >= MINONWIDTH) && (time_on <= MAXONWIDTH))
-        	    {
-		    // compute capture. 1 tick value is 0.5us
-		    input->capture = time_on >> 1;
+			// switch state
+			input->state = 0;
 
-		    //reset error count
-		    input->error = 0;
-		    }
-		if (pwm_capture_callback) {
-			pwm_capture_callback(input->state, input->capture);
-		}
-		// switch state
-		input->state = 0;
-		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
-		TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-		TIM_ICInit(channel.tim, &TIM_ICInitStructure);
+			TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+			TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
+			TIM_ICInit(channel.tim, &TIM_ICInitStructure);
 
-            }
-        }
-    }
+	            }
+	        }
+	    }
+	}
+
 }
 
 
