@@ -242,7 +242,9 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 		    {
 		    time_off = ((0xFFFF - last_val) + input->rise);
 		    }
+
 		last_val = val;
+
 		if ((time_off >= MINONWIDTH) && (time_off <= MAXONWIDTH))
 		    {
 		    if (pwm_capture_callback)
@@ -250,6 +252,11 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 			pwm_capture_callback(input->state, time_off >> 1);
 			}
 		    }
+
+		input->state = 1;
+		TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+		TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
+		TIM_ICInit(channel.tim, &TIM_ICInitStructure);
 		}
 	    else
 		{
