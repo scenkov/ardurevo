@@ -26,7 +26,7 @@ void VRBRAINSPI3DeviceDriver::init() {
     spi_baud_rate baud = determine_baud_rate(freq);
 
     //set mode
-    spi_mode m = (spi_mode)0;
+    //spi_mode m = (spi_mode)0;
 
     //set master
     bool as_master = true;

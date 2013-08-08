@@ -19,6 +19,7 @@ public:
         AP_HAL::UARTDriver* _uartB,
         AP_HAL::UARTDriver* _uartC,
         AP_HAL::I2CDriver*  _i2c,
+//        AP_HAL::I2CDriver*  _i2c2,
         AP_HAL::SPIDeviceManager* _spi,
         AP_HAL::AnalogIn*   _analogin,
         AP_HAL::Storage*    _storage,
@@ -33,6 +34,7 @@ public:
         uartB(_uartB),
         uartC(_uartC),
         i2c(_i2c),
+//        i2c2(_i2c2),
         spi(_spi),
         analogin(_analogin),
         storage(_storage),
@@ -50,6 +52,7 @@ public:
     AP_HAL::UARTDriver* uartB;
     AP_HAL::UARTDriver* uartC;
     AP_HAL::I2CDriver*  i2c;
+//    AP_HAL::I2CDriver*  i2c2;
     AP_HAL::SPIDeviceManager* spi;
     AP_HAL::AnalogIn*   analogin;
     AP_HAL::Storage*    storage;
