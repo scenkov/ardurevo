@@ -79,7 +79,6 @@
 # define SLIDE_SWITCH_PIN 40
 # define PUSHBUTTON_PIN   41
 # define USB_MUX_PIN      -1
-# define CONFIG_RELAY     ENABLED
 # define BATTERY_PIN_1	  0
 # define CURRENT_PIN_1	  1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
@@ -105,7 +104,6 @@
  # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  # define CONFIG_PUSHBUTTON DISABLED
- # define CONFIG_RELAY      DISABLED
  # define MAGNETOMETER ENABLED
  # define CONFIG_BARO     AP_BARO_MS5611
  # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
@@ -115,7 +113,6 @@
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
 # define CONFIG_PUSHBUTTON DISABLED
-# define CONFIG_RELAY      DISABLED
 # define A_LED_PIN        27
 # define B_LED_PIN        26
 # define C_LED_PIN        25
@@ -131,7 +128,6 @@
 # define CONFIG_INS_TYPE CONFIG_INS_STUB
 # define CONFIG_COMPASS  AP_COMPASS_HIL
 # define CONFIG_PUSHBUTTON DISABLED
-# define CONFIG_RELAY      DISABLED
 # define A_LED_PIN        27
 # define B_LED_PIN        26
 # define C_LED_PIN        25
@@ -147,7 +143,6 @@
 # define CONFIG_INS_TYPE   CONFIG_INS_PX4
 # define CONFIG_COMPASS  AP_COMPASS_PX4
 # define CONFIG_PUSHBUTTON DISABLED
-# define CONFIG_RELAY      DISABLED
 # define A_LED_PIN        27
 # define B_LED_PIN        26
 # define C_LED_PIN        25
@@ -327,12 +322,14 @@
 // MOUNT (ANTENNA OR CAMERA)
 //
 #ifndef MOUNT
-# define MOUNT		DISABLED
-// CAMERA control
-#endif//
+# define MOUNT		ENABLED
+#endif
 
+//////////////////////////////////////////////////////////////////////////////
+// CAMERA control
+//
 #ifndef CAMERA
-# define CAMERA DISABLED
+# define CAMERA ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////

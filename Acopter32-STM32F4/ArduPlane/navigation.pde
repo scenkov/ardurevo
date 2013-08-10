@@ -60,7 +60,7 @@ static void navigate()
 
     // waypoint distance from plane
     // ----------------------------
-    wp_distance = get_distance(&current_loc, &next_WP);
+    wp_distance = get_distance(current_loc, next_WP);
 
     if (wp_distance < 0) {
         gcs_send_text_P(SEVERITY_HIGH,PSTR("WP error - distance < 0"));
@@ -142,7 +142,7 @@ static void calc_altitude_error()
         target_altitude_cm = next_WP.alt - (offset_altitude_cm*((float)(wp_distance-30) / (float)(wp_totalDistance-30)));
 
         // stay within a certain range
-        if(prev_WP.alt > next_WP.alt) {
+        if (prev_WP.alt > next_WP.alt) {
             target_altitude_cm = constrain_int32(target_altitude_cm, next_WP.alt, prev_WP.alt);
         }else{
             target_altitude_cm = constrain_int32(target_altitude_cm, prev_WP.alt, next_WP.alt);
@@ -186,9 +186,9 @@ static void update_cruise()
     if (cruise_state.locked_heading) {
         next_WP = prev_WP;
         // always look 1km ahead
-        location_update(&next_WP, 
+        location_update(next_WP, 
                         cruise_state.locked_heading_cd*0.01f, 
-                        get_distance(&prev_WP, &current_loc) + 1000);
+                        get_distance(prev_WP, current_loc) + 1000);
         nav_controller->update_waypoint(prev_WP, next_WP);
     }
 }
@@ -233,7 +233,7 @@ static void setup_glide_slope(void)
 {
     // establish the distance we are travelling to the next waypoint,
     // for calculating out rate of change of altitude
-    wp_totalDistance        = get_distance(&current_loc, &next_WP);
+    wp_totalDistance        = get_distance(current_loc, next_WP);
     wp_distance             = wp_totalDistance;
 
     /*

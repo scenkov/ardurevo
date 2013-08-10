@@ -501,6 +501,11 @@
  #define OPTFLOW_IMAX 1
 #endif
 
+//////////////////////////////////////////////////////////////////////////////
+//  Crop Sprayer
+#ifndef SPRAYER
+ # define SPRAYER  DISABLED
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // RADIO CONFIGURATION
@@ -622,6 +627,23 @@
  # define ACRO_THR           	    THROTTLE_MANUAL
 #endif
 
+#ifndef ACRO_LEVEL_MAX_ANGLE
+ # define ACRO_LEVEL_MAX_ANGLE      3000
+#endif
+
+// Sport Mode
+#ifndef SPORT_YAW
+ # define SPORT_YAW           	    YAW_HOLD
+#endif
+
+#ifndef SPORT_RP
+ # define SPORT_RP            	    ROLL_PITCH_SPORT
+#endif
+
+#ifndef SPORT_THR
+ # define SPORT_THR           	    THROTTLE_HOLD
+#endif
+
 // Alt Hold Mode
 #ifndef ALT_HOLD_YAW
  # define ALT_HOLD_YAW           	YAW_HOLD
@@ -664,6 +686,10 @@
 
 #ifndef CIRCLE_NAV
  # define CIRCLE_NAV           	    NAV_CIRCLE
+#endif
+
+#ifndef CIRCLE_RADIUS
+ # define CIRCLE_RADIUS             10              // radius in meters for circle mode
 #endif
 
 #ifndef CIRCLE_RATE
@@ -778,12 +804,12 @@
 //
 
 // Acro mode gains
-#ifndef ACRO_P
- # define ACRO_P                 4.5f
+#ifndef ACRO_RP_P
+ # define ACRO_RP_P                 4.5f
 #endif
 
-#ifndef AXIS_LOCK_ENABLED
- # define AXIS_LOCK_ENABLED      ENABLED
+#ifndef ACRO_YAW_P
+ # define ACRO_YAW_P                4.5f
 #endif
 
 // Stabilize (angle controller) gains
@@ -889,15 +915,11 @@
 #endif
 
 #ifndef ACRO_BALANCE_ROLL
- #define ACRO_BALANCE_ROLL			200
+ #define ACRO_BALANCE_ROLL			1.0f
 #endif
 
 #ifndef ACRO_BALANCE_PITCH
- #define ACRO_BALANCE_PITCH			200
-#endif
-
-#ifndef ACRO_TRAINER_ENABLED
- #define ACRO_TRAINER_ENABLED       ENABLED
+ #define ACRO_BALANCE_PITCH			1.0f
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1078,13 +1100,6 @@
     LOGBIT(PID)             | \
     LOGBIT(COMPASS)         | \
     LOGBIT(INAV)
-
-//////////////////////////////////////////////////////////////////////////////
-// Circle navigation defaults
-//
-#ifndef CIRCLE_RADIUS
- # define CIRCLE_RADIUS 10              // meters for circle mode
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // AP_Limits Defaults

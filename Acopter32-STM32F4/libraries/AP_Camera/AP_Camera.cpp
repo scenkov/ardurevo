@@ -1,4 +1,4 @@
-// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
+// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include <AP_Camera.h>
 #include <AP_Relay.h>
@@ -178,7 +178,7 @@ bool AP_Camera::update_location(const struct Location &loc)
         // be called without a new GPS fix
         return false;
     }
-    if (get_distance(&loc, &_last_location) < _trigg_dist) {
+    if (get_distance(loc, _last_location) < _trigg_dist) {
         return false;
     }
     _last_location = loc;
