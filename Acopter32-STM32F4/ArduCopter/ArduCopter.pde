@@ -105,6 +105,7 @@
 #include <SITL.h>               // software in the loop support
 #include <AP_Scheduler.h>       // main loop scheduler
 #include <AP_RCMapper.h>        // RC input mapping library
+#include <AC_Sprayer.h>         // Crop sprayer library
 
 // AP_HAL to Arduino compatibility layer
 #include "compat.h"
@@ -840,6 +841,13 @@ AC_Fence    fence(&inertial_nav);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
+// Crop Sprayer
+////////////////////////////////////////////////////////////////////////////////
+#if SPRAYER == ENABLED
+static AC_Sprayer sprayer(&inertial_nav);
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
 // function definitions to keep compiler from complaining about undeclared functions
 ////////////////////////////////////////////////////////////////////////////////
 void get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate);
@@ -876,6 +884,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { perf_update,        1000,     500 }
 };
 
+static void update_toy_throttle();
 
 void setup() {
     // this needs to be the first call, as it fills memory with
@@ -1264,6 +1273,10 @@ static void slow_loop()
         camera_mount2.update_mount_type();
 #endif
 
+#if SPRAYER == ENABLED
+        sprayer.update();
+#endif
+
         // agmatthews - USERHOOKS
 #ifdef USERHOOK_SLOWLOOP
         USERHOOK_SLOWLOOP
@@ -1298,6 +1311,9 @@ static void super_slow_loop()
 
     // pass latest alt hold kP value to navigation controller
     wp_nav.set_althold_kP(g.pi_alt_hold.kP());
+
+    // update latest lean angle to navigation controller
+    wp_nav.set_lean_angle_max(g.angle_max);
 
     // log battery info to the dataflash
     if ((g.log_bitmask & MASK_LOG_CURRENT) && motors.armed())
@@ -1704,9 +1720,8 @@ void update_roll_pitch_mode(void)
             update_simple_mode();
         }
 
-        // copy control_roll and pitch for reporting purposes
-        control_roll            = g.rc_1.control_in;
-        control_pitch           = g.rc_2.control_in;
+        // convert pilot input to lean angles
+        get_pilot_desired_lean_angles(g.rc_1.control_in, g.rc_2.control_in, control_roll, control_pitch);
 
         // pass desired roll, pitch to stabilize attitude controllers
         get_stabilize_roll(control_roll);
@@ -1732,9 +1747,8 @@ void update_roll_pitch_mode(void)
             update_simple_mode();
         }
 
-        // copy pilot input to control_roll and pitch for reporting purposes
-        control_roll            = g.rc_1.control_in;
-        control_pitch           = g.rc_2.control_in;
+        // convert pilot input to lean angles
+        get_pilot_desired_lean_angles(g.rc_1.control_in, g.rc_2.control_in, control_roll, control_pitch);
 
         // mix in user control with optical flow
         get_stabilize_roll(get_of_roll(control_roll));

@@ -18,7 +18,7 @@ static const int16_t toy_lookup[] = {
 #endif
 
 //called at 10hz
-void update_toy_throttle()
+static void update_toy_throttle()
 {
     // look for a change in throttle position to exit throttle hold
     if(abs(g.rc_3.control_in - saved_toy_throttle) > 40) {
