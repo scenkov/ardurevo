@@ -852,6 +852,7 @@ static AC_Sprayer sprayer(&inertial_nav);
 ////////////////////////////////////////////////////////////////////////////////
 void get_throttle_althold(int32_t target_alt, int16_t min_climb_rate, int16_t max_climb_rate);
 static void pre_arm_checks(bool display_failure);
+static void update_toy_throttle();
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
@@ -884,7 +885,6 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { perf_update,        1000,     500 }
 };
 
-static void update_toy_throttle();
 
 void setup() {
     // this needs to be the first call, as it fills memory with
