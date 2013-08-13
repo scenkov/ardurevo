@@ -9,7 +9,11 @@ static void init_sonar(void)
   #if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
     sonar->calculate_scaler(g.sonar_type, 3.3f);
   #else
+   #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    sonar->calculate_scaler(g.sonar_type, 3.3f);
+   #else
     sonar->calculate_scaler(g.sonar_type, 5.0f);
+   #endif
   #endif
 }
  #endif
