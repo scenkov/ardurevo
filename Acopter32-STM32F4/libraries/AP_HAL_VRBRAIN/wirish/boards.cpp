@@ -139,7 +139,7 @@ static void setupTimers() {
 
 static void timerDefaultConfig(timer_dev *dev) {
     //const uint16_t full_overflow = 0xFFFF;
-    const uint16_t half_duty = 0x8FFF;
+    const uint16_t half_duty = 2000;
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	
     timer_reset(dev);
@@ -176,9 +176,12 @@ static void timerDefaultConfig(timer_dev *dev) {
 			 * The objective is to generate PWM signal at 490 Hz 
 			 * The lowest possible prescaler is 2
 			 * Period = (SystemCoreClock / 2 / (490 * 3)) - 1 = 57141
-			 */			
-			TIM_TimeBaseStructure.TIM_Prescaler = 2;
-			TIM_TimeBaseStructure.TIM_Period = 57141;					
+			 */
+		        uint32_t period = (2000000UL / 50) - 1; // 50 Hz
+		        uint32_t prescaler =  (uint16_t) ((SystemCoreClock /2) / 2000000) - 1; //2MHz 0.5us ticks
+
+		        TIM_TimeBaseStructure.TIM_Prescaler = prescaler;
+			TIM_TimeBaseStructure.TIM_Period = period;
 		}
 
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;

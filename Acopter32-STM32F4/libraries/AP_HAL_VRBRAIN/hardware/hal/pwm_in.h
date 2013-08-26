@@ -53,6 +53,7 @@
 void pwmInit(bool ppmsum);
 uint16_t pwmRead(uint8_t channel);
 void attachPWMCaptureCallback(void (*callback)(uint8_t state, uint16_t value));
+extern uint8_t _is_ppmsum;
 
 
 #ifdef __cplusplus

@@ -9,6 +9,7 @@
 #include "Util.h"
 #include <AP_HAL_Empty.h>
 #include <AP_HAL_Empty_Private.h>
+#include <pwm_in.h>
 #include <usart.h>
 #include <i2c.h>
 
@@ -70,11 +71,12 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   hal.console->init((void *)hal.uartA);
   //_member->init();
   hal.i2c->begin();
-//  hal.i2c2->begin();
+  //hal.i2c2->begin();
   hal.spi->init(NULL);
   hal.storage->init(NULL);
   hal.rcin->init(NULL);
-  hal.rcout->init(NULL);
+
+  hal.rcout->init((void *)&_is_ppmsum);
 
 }
 

@@ -2,11 +2,10 @@
 #include "RCOutput.h"
 
 extern const AP_HAL::HAL& hal;
+using namespace VRBRAIN;
 
-static int analogOutPin[20];
+static int analogOutPin[VRBRAIN_MAX_OUTPUT_CHANNELS];
 
-//#define AC32PLANE
-#define AC32COPTER
 
 static inline long map(long value, long fromStart, long fromEnd,
                 long toStart, long toEnd) {
@@ -14,79 +13,36 @@ static inline long map(long value, long fromStart, long fromEnd,
         toStart;
 }
 
-using namespace VRBRAIN;
 void VRBRAINRCOutput::InitDefaultPWM(void)
 {
-
-#ifdef AC32PLANE
-        output_channel_ch1=248; //Timer2
-	output_channel_ch2=249; //Timer2
-	output_channel_ch3=250; //Timer2
-	output_channel_ch4=236; //Timer3
-	output_channel_ch5=246; //Timer3
-	output_channel_ch6=245; //Timer3
-	output_channel_ch7=301; //Timer4
-	output_channel_ch8=225; //Timer4
-#endif
-
-#ifdef AC32COPTER
-        output_channel_ch1=48; //Timer2
+    output_channel_ch1=48; //Timer2
 	output_channel_ch2=49; //Timer2
 	output_channel_ch3=50; //Timer2
 	output_channel_ch4=36; //Timer3
 	output_channel_ch5=46; //Timer3
 	output_channel_ch6=45; //Timer3
-	output_channel_ch7=301; //Timer4
-	output_channel_ch8=225; //Timer4
-#endif
-
-#ifdef AC32ROVER
-
-        output_channel_ch1=48; //Timer2
-	output_channel_ch2=49; //Timer2
-	output_channel_ch3=50; //Timer2
-	output_channel_ch4=36; //Timer3
-	output_channel_ch5=46; //Timer3
-	output_channel_ch6=45; //Timer3
-	output_channel_ch7=301; //Timer4
-	output_channel_ch8=225; //Timer4
-
-#endif
-
-	/*
+	output_channel_ch7=101; //Timer4
+	output_channel_ch8=25; //Timer4
 	output_channel_ch9=23;
 	output_channel_ch10=24;
 	output_channel_ch11=89;
 	output_channel_ch12=60;
-	*/
+
 }
 
-void VRBRAINRCOutput::init(void* machtnichts)
+void VRBRAINRCOutput::init(void* is_ppm)
 {
-    // Init Pwm Out
-    //_serial->println("Init DefaultPWM");
+    uint8_t is_ppmsum = *((uint8_t*)is_ppm);
 
     InitDefaultPWM();
-    //_serial->println("Init PWM HWD");
 
     InitPWM();
 
-
-}
-
-unsigned short VRBRAINRCOutput::GetTimerReloadValue(unsigned short uFreq){
-  unsigned int uiReload;
-  if (uFreq>550) uFreq=550;
-  if (uFreq<50) uFreq=50;
-  uiReload=0xFFFF*50/uFreq;
-  return (unsigned short)uiReload;
 }
 
 
 void VRBRAINRCOutput::InitPWM()
 {
-unsigned int valout=0;
-
   analogOutPin[MOTORID1] = output_channel_ch1;
   analogOutPin[MOTORID2] = output_channel_ch2;
   analogOutPin[MOTORID3] = output_channel_ch3;
@@ -96,143 +52,54 @@ unsigned int valout=0;
   analogOutPin[MOTORID7] = output_channel_ch7;
   analogOutPin[MOTORID8] = output_channel_ch8;
 
-  for(int i=MOTORID1;i<MOTORID8+1;i++)
-	{
-
-	if (analogOutPin[i] > 200)
-		{
-		valout=analogOutPin[i]-200;
-		InitFQUpdate(valout);
-		hal.gpio->pinMode(valout,PWM);
-
-		hal.console->_printf_P(PSTR("PWM OUT 50 HZ: "));
-		hal.console->_printf_P("%d",i);
-		hal.console->_printf_P(PSTR(":"));
-		hal.console->_printf_P(PSTR("%d\n\r"),analogOutPin[i]);
-
-		}
-		else
-		{
-		hal.gpio->pinMode(analogOutPin[i],PWM);
-
-		hal.console->_printf_P(PSTR("PWM OUT 490 HZ: "));
-		hal.console->_printf_P("%d",i);
-		hal.console->_printf_P(PSTR(":"));
-		hal.console->_printf_P(PSTR("%d\n\r"),analogOutPin[i]);
-
-		}
-	}
-
+  for(int8_t i = MOTORID1; i <= MOTORID8; i++)
+      {
+      hal.gpio->pinMode(analogOutPin[i],PWM);
+      }
 }
 
-void VRBRAINRCOutput::InitFQUpdate(unsigned char channel)
-{
-	unsigned char timer_select = 0;
-	unsigned short Reload;
-	timer_dev *ccr_select;
-	ccr_select = PIN_MAP[channel].timer_device;
-	if (ccr_select == TIMER1)
-	{
-		//_serial->println("Motor SERVO: TIMER 1");
-		timer_select=1;
-	}
-	if (ccr_select == TIMER2)
-	{
-		//_serial->println("Motor SERVO: TIMER 2");
-		timer_select=2;
-	}
-	if (ccr_select == TIMER3)
-	{
-		//_serial->println("Motor SERVO: TIMER 3");
-		timer_select=3;
-	}
-	if (ccr_select == TIMER4)
-	{
-		//_serial->println("Motor SERVO: TIMER 4");
-		timer_select=4;
-	}
-	if (ccr_select == TIMER5)
-	{
-		//_serial->println("Motor SERVO: TIMER 5");
-		timer_select=5;
-	}
-	if (ccr_select == TIMER8)
-	{
-		//_serial->println("Motor SERVO: TIMER 8");
-		timer_select=8;
-	}
+#define _BV(bit) (1 << (bit))
 
-	switch (timer_select)
-	{
-		case 1:
-			//_serial->println("Motor ESC: TIMER 1");
-			//timer_init(TIMER1);
-			timer_set_prescaler(TIMER1, 21);
-			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
-			timer_pause(TIMER1);
-			timer_set_count(TIMER1,0);
-			timer_set_reload(TIMER1,Reload);
-			timer_resume(TIMER1);
-			break;
-		case 2:
-			//_serial->println("Motor ESC: TIMER 2");
-			//timer_init(TIMER2);
-			timer_set_prescaler(TIMER2, 21);
-			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
-			timer_pause(TIMER2);
-			timer_set_count(TIMER2,0);
-			timer_set_reload(TIMER2,Reload);
-			timer_resume(TIMER2);
-			break;
-		case 3:
-			//_serial->println("Motor ESC: TIMER 3");
-			//timer_init(TIMER3);
-			timer_set_prescaler(TIMER3, 21);
-			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
-			timer_pause(TIMER3);
-			timer_set_count(TIMER3,0);
-			timer_set_reload(TIMER3,Reload);
-			timer_resume(TIMER3);
-			break;
-		case 4:
-			//_serial->println("Motor ESC: TIMER 4");
-			//timer_init(TIMER4);
-			timer_set_prescaler(TIMER4, 21);
-			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
-			timer_pause(TIMER4);
-			timer_set_count(TIMER4,0);
-			timer_set_reload(TIMER4,Reload);
-			timer_resume(TIMER4);
-			break;
-		case 5:
-			//_serial->println("Motor ESC: TIMER 5");
-			//timer_init(TIMER5);
-			timer_set_prescaler(TIMER5, 21);
-			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
-			timer_pause(TIMER5);
-			timer_set_count(TIMER5,0);
-			timer_set_reload(TIMER5,Reload);
-			timer_resume(TIMER5);
-			break;
-		case 8:
-			//_serial->println("Motor ESC: TIMER 8");
-			//timer_init(TIMER8);
-			timer_set_prescaler(TIMER8, 21);
-			Reload=GetTimerReloadValue(MOTOR_PWM_FREQ);
-			timer_pause(TIMER8);
-			timer_set_count(TIMER8,0);
-			timer_set_reload(TIMER8,Reload);
-			timer_resume(TIMER8);
-			break;
-	}
+void VRBRAINRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
+    {
+    uint32_t icr = _timer_period(freq_hz);
+
+    if ((chmask & ( _BV(CH_1) | _BV(CH_2) | _BV(CH_3))) != 0) {
+	TIM2->ARR = icr;
+    }
+
+    if ((chmask & ( _BV(CH_4) | _BV(CH_5) | _BV(CH_6))) != 0) {
+	TIM3->ARR = icr;
+    }
+
+    if ((chmask & ( _BV(CH_7) | _BV(CH_8))) != 0) {
+	TIM4->ARR = icr;
+    }
 
 }
-
-
-void VRBRAINRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {}
 
 uint16_t VRBRAINRCOutput::get_freq(uint8_t ch) {
-    return 50;
+    uint32_t icr;
+    switch (ch) {
+        case CH_1:
+        case CH_2:
+        case CH_3:
+            icr =(TIMER2->regs)->ARR;
+            break;
+        case CH_4:
+        case CH_5:
+        case CH_6:
+            icr = (TIMER3->regs)->ARR;
+            break;
+        case CH_7:
+        case CH_8:
+            icr = (TIMER4->regs)->ARR;
+            break;
+        default:
+            return 0;
+    }
+    /* transform to period by inverse of _time_period(icr). */
+    return (uint16_t)(2000000UL / icr);
 }
 
 void VRBRAINRCOutput::enable_ch(uint8_t ch)
@@ -247,30 +114,60 @@ void VRBRAINRCOutput::disable_ch(uint8_t ch)
 void VRBRAINRCOutput::disable_mask(uint32_t chmask)
 {}
 
-void VRBRAINRCOutput::write(uint8_t ch, uint16_t period_us)
-{
-	if (analogOutPin[ch]>200)
-	{
-		output_channel_raw[ch]=period_us;
-		period_us = map(period_us, 1000, 2000, 3300, 8000); // PATCH FOR GIMBAL CONTROLL 69 HZ
-		analogWrite(analogOutPin[ch]-200, period_us);
-	}
-	else
-	{
-		output_channel_raw[ch]=period_us;
-		period_us = map(period_us, 1000, 2000, 28000, 57141);	// MP32F4 PWM 490 HZ
-		analogWrite(analogOutPin[ch], period_us);
-	}
-
+/* constrain pwm to be between min and max pulsewidth. */
+static inline uint16_t constrain_period(uint16_t p) {
+    if (p > RC_INPUT_MAX_PULSEWIDTH) return RC_INPUT_MAX_PULSEWIDTH;
+    if (p < RC_INPUT_MIN_PULSEWIDTH) return RC_INPUT_MIN_PULSEWIDTH;
+    return p;
 }
 
-void VRBRAINRCOutput::write(uint8_t ch, uint16_t* period_us, uint8_t len)
-{}
+void VRBRAINRCOutput::write(uint8_t ch, uint16_t period_us)
+{
+    uint16_t pwm = constrain_period(period_us) << 1;
 
-uint16_t VRBRAINRCOutput::read(uint8_t ch) {
-    return output_channel_raw[ch];
+
+    uint8_t pin = analogOutPin[ch];
+    timer_dev *dev = PIN_MAP[pin].timer_device;
+
+    if (pin >= BOARD_NR_GPIO_PINS || dev == NULL || dev->type == TIMER_BASIC)
+	{
+	return;
+	}
+
+    timer_set_compare(dev, PIN_MAP[pin].timer_channel, pwm);
+    TIM_Cmd(dev->regs, ENABLE);
+}
+
+
+void VRBRAINRCOutput::write(uint8_t ch, uint16_t* period_us, uint8_t len)
+{
+    for (int i = 0; i < len; i++) {
+        write(i + ch, period_us[i]);
+    }
+}
+
+uint16_t VRBRAINRCOutput::read(uint8_t ch) 
+{
+
+    uint16_t pin = analogOutPin[ch];
+    timer_dev *dev = PIN_MAP[pin].timer_device;
+    if (pin >= BOARD_NR_GPIO_PINS || dev == NULL || dev->type == TIMER_BASIC)
+	{
+	return RC_INPUT_MIN_PULSEWIDTH;
+	}
+
+    uint16_t pwm;
+    pwm =     timer_get_compare(dev, PIN_MAP[pin].timer_channel);
+    return pwm >> 1;
 }
 
 void VRBRAINRCOutput::read(uint16_t* period_us, uint8_t len)
-{}
+{
+    for (int i = 0; i < len; i++) {
+        period_us[i] = read(i);
+    }
+}
 
+uint32_t VRBRAINRCOutput::_timer_period(uint16_t speed_hz) {
+    return (uint32_t)(2000000UL / speed_hz);
+}

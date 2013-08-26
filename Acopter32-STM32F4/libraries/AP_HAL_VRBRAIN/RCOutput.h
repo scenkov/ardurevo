@@ -4,9 +4,9 @@
 
 #include <AP_HAL_VRBRAIN.h>
 #include <AP_HAL.h>
+#include <timer.h>
 
-
-#include <fastserial.h>
+#define VRBRAIN_MAX_OUTPUT_CHANNELS 12
 
 #define MOTORID1 0
 #define MOTORID2 1
@@ -22,7 +22,7 @@
 #define MOTORID12 11
 
 class VRBRAIN::VRBRAINRCOutput : public AP_HAL::RCOutput {
-    void     init(void* machtnichts);
+    void     init(void* is_ppm);
     void     set_freq(uint32_t chmask, uint16_t freq_hz);
     uint16_t get_freq(uint8_t ch);
     void     enable_ch(uint8_t ch);
@@ -35,10 +35,8 @@ class VRBRAIN::VRBRAINRCOutput : public AP_HAL::RCOutput {
     void     read(uint16_t* period_us, uint8_t len);
 private:
     void InitDefaultPWM(void);
-    unsigned short GetTimerReloadValue(unsigned short uFreq);
     void InitPWM(void);
-    void InitFQUpdate(unsigned char channel);
-private:
+    uint32_t _timer_period(uint16_t speed_hz);
 
     unsigned int output_channel_ch1;
     unsigned int output_channel_ch2;
@@ -52,7 +50,7 @@ private:
     unsigned int output_channel_ch10;
     unsigned int output_channel_ch11;
     unsigned int output_channel_ch12;
-    unsigned int output_channel_raw[12];
+    unsigned int output_channel_raw[VRBRAIN_MAX_OUTPUT_CHANNELS];
 
 };
 

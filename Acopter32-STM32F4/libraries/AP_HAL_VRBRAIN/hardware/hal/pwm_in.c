@@ -49,7 +49,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim);
 static void (*pwm_capture_callback)( uint8_t, uint16_t);
 static void pwmInitializeInput(uint8_t ppmsum);
 
-static uint8_t _is_ppmsum;
+uint8_t _is_ppmsum;
 
 // local vars
 static struct TIM_Channel
