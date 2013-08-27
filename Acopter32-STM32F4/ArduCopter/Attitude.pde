@@ -489,7 +489,7 @@ void init_rate_controllers()
    // rate_pitch_filter.set_cutoff_frequency(0.01f, 0.1f);
 }
 
-static void heli_integrated_swash_controller(int32_t target_roll_rate, int32_t target_pitch_rate)
+void heli_integrated_swash_controller(int32_t target_roll_rate, int32_t target_pitch_rate)
 {
     int32_t         roll_p, roll_i, roll_d, roll_ff;            // used to capture pid values for logging
     int32_t         pitch_p, pitch_i, pitch_d, pitch_ff;
@@ -564,8 +564,7 @@ static void heli_integrated_swash_controller(int32_t target_roll_rate, int32_t t
 	g.rc_2.servo_out = pitch_output;
 }
 
-static int16_t
-get_heli_rate_yaw(int32_t target_rate)
+int16_t get_heli_rate_yaw(int32_t target_rate)
 {
     int32_t         p,i,d,ff;               // used to capture pid values for logging
 	int32_t         current_rate;           // this iteration's rate
@@ -1284,6 +1283,17 @@ get_throttle_rate_stabilized(int16_t target_rate)
     // do not let target altitude get too far from current altitude
     controller_desired_alt = constrain_float(controller_desired_alt,current_loc.alt-750,current_loc.alt+750);
 
+#if AC_FENCE == ENABLED
+    // do not let target altitude be too close to the fence
+    // To-Do: add this to other altitude controllers
+    if((fence.get_enabled_fences() & AC_FENCE_TYPE_ALT_MAX) != 0) {
+        float alt_limit = fence.get_safe_alt() * 100.0f;
+        if (controller_desired_alt > alt_limit) {
+            controller_desired_alt = alt_limit;
+        }
+    }
+#endif
+
     // update target altitude for reporting purposes
     set_target_alt_for_reporting(controller_desired_alt);
 
@@ -1348,10 +1358,9 @@ static bool update_land_detector()
 static void
 get_throttle_surface_tracking(int16_t target_rate)
 {
-    static float target_sonar_alt = 0;   // The desired altitude in cm above the ground
     static uint32_t last_call_ms = 0;
     float distance_error;
-    float sonar_induced_slew_rate;
+    float velocity_correction;
 
     uint32_t now = millis();
 
@@ -1361,23 +1370,22 @@ get_throttle_surface_tracking(int16_t target_rate)
     }
     last_call_ms = now;
 
-    // adjust target alt if motors have not hit their limits
+    // adjust sonar target alt if motors have not hit their limits
     if ((target_rate<0 && !motors.limit.throttle_lower) || (target_rate>0 && !motors.limit.throttle_upper)) {
         target_sonar_alt += target_rate * 0.02f;
     }
 
-    distance_error = (target_sonar_alt-sonar_alt);
-    sonar_induced_slew_rate = constrain_float(fabsf(g.sonar_gain * distance_error),0,THR_SURFACE_TRACKING_VELZ_MAX);
-
     // do not let target altitude get too far from current altitude above ground
     // Note: the 750cm limit is perhaps too wide but is consistent with the regular althold limits and helps ensure a smooth transition
     target_sonar_alt = constrain_float(target_sonar_alt,sonar_alt-750,sonar_alt+750);
-    controller_desired_alt = current_loc.alt+(target_sonar_alt-sonar_alt);
 
-    // update target altitude for reporting purposes
-    set_target_alt_for_reporting(controller_desired_alt);
+    // calc desired velocity correction from target sonar alt vs actual sonar alt
+    distance_error = target_sonar_alt-sonar_alt;
+    velocity_correction = distance_error * g.sonar_gain;
+    velocity_correction = constrain_float(velocity_correction, -THR_SURFACE_TRACKING_VELZ_MAX, THR_SURFACE_TRACKING_VELZ_MAX);
 
-    get_throttle_althold_with_slew(controller_desired_alt, target_rate-sonar_induced_slew_rate, target_rate+sonar_induced_slew_rate);   // VELZ_MAX limits how quickly we react
+    // call regular rate stabilize alt hold controller
+    get_throttle_rate_stabilized(target_rate + velocity_correction);
 }
 
 /*

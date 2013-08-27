@@ -702,7 +702,7 @@ struct PACKED log_DMP {
 
 #if SECONDARY_DMP_ENABLED == ENABLED
 // Write a DMP attitude packet
-static void Log_Write_DMP()
+void Log_Write_DMP()
 {
     struct log_DMP pkt = {
         LOG_PACKET_HEADER_INIT(LOG_DMP_MSG),
@@ -862,8 +862,8 @@ static void start_logging()
 static void Log_Write_Startup() {}
 static void Log_Write_Cmd(uint8_t num, const struct Location *wp) {}
 static void Log_Write_Mode(uint8_t mode) {}
-static void Log_Write_IMU() {}
-static void Log_Write_GPS() {}
+void Log_Write_IMU() {}
+void Log_Write_GPS() {}
 static void Log_Write_Current() {}
 static void Log_Write_Compass() {}
 static void Log_Write_Attitude() {}
@@ -884,7 +884,7 @@ static void Log_Write_Motors() {}
 static void Log_Write_Performance() {}
 static void Log_Write_PID(uint8_t pid_id, int32_t error, int32_t p, int32_t i, int32_t d, int32_t output, float gain) {}
 #if SECONDARY_DMP_ENABLED == ENABLED
-static void Log_Write_DMP() {}
+void Log_Write_DMP() {}
 #endif
 static void Log_Write_Camera() {}
 static void Log_Write_Error(uint8_t sub_system, uint8_t error_code) {}

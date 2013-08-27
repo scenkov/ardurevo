@@ -640,6 +640,7 @@ static int16_t climb_rate;
 // The altitude as reported by Sonar in cm – Values are 20 to 700 generally.
 static int16_t sonar_alt;
 static uint8_t sonar_alt_health;   // true if we can trust the altitude from the sonar
+static float target_sonar_alt;      // desired altitude in cm above the ground
 // The altitude as reported by Baro in cm – Values can be quite high
 static int32_t baro_alt;
 
@@ -1339,7 +1340,7 @@ static void super_slow_loop()
 
 // called at 100hz but data from sensor only arrives at 20 Hz
 #if OPTFLOW == ENABLED
-static void update_optical_flow(void)
+void update_optical_flow(void)
 {
     static uint32_t last_of_update = 0;
     static uint8_t of_log_counter = 0;

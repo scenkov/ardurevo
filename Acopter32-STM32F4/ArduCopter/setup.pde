@@ -1160,7 +1160,7 @@ void report_optflow()
 }
 
  #if FRAME_CONFIG == HELI_FRAME
-static void report_heli()
+void report_heli()
 {
     cliSerial->printf_P(PSTR("Heli\n"));
     print_divider();
@@ -1182,7 +1182,7 @@ static void report_heli()
     print_blanks(2);
 }
 
-static void report_gyro()
+void report_gyro()
 {
 
     cliSerial->printf_P(PSTR("Gyro:\n"));
@@ -1280,7 +1280,7 @@ print_gyro_offsets(void)
 
  #if FRAME_CONFIG == HELI_FRAME
 
-static RC_Channel *
+RC_Channel *
 heli_get_servo(int16_t servo_num){
     if( servo_num == CH_1 )
         return motors._servo_1;
@@ -1294,7 +1294,7 @@ heli_get_servo(int16_t servo_num){
 }
 
 // Used to read integer values from the serial port
-static int16_t read_num_from_serial() {
+int16_t read_num_from_serial() {
     uint8_t index = 0;
     uint8_t timeout = 0;
     char data[5] = "";
