@@ -267,8 +267,8 @@
             <field type="float" name="xgyro">Angular speed around X axis rad/s</field>
             <field type="float" name="ygyro">Angular speed around Y axis rad/s</field>
             <field type="float" name="zgyro">Angular speed around Z axis rad/s</field>
-            <field type="float" name="lat">Latitude in degrees</field>
-            <field type="float" name="lng">Longitude in degrees</field>
+            <field type="int32_t" name="lat">Latitude in degrees * 1E7</field>
+            <field type="int32_t" name="lng">Longitude in degrees * 1E7</field>
 	  </message>
 
 	  <message name="HWSTATUS" id="165">
@@ -311,19 +311,19 @@
             <field type="float" name="speed_z">vertical wind speed (m/s)</field>
 	  </message>
 
-      <message name="DATA16" id="169">
-        <description>Data packet, size 16</description>
-        <field type="uint8_t" name="type">data type</field>
-        <field type="uint8_t" name="len">data length</field>
-        <field type="uint8_t[16]" name="data">raw data</field>
-      </message>
+	  <message name="DATA16" id="169">
+	    <description>Data packet, size 16</description>
+	    <field type="uint8_t" name="type">data type</field>
+	    <field type="uint8_t" name="len">data length</field>
+	    <field type="uint8_t[16]" name="data">raw data</field>
+	  </message>
 
-      <message name="DATA32" id="170">
-        <description>Data packet, size 32</description>
-        <field type="uint8_t" name="type">data type</field>
-        <field type="uint8_t" name="len">data length</field>
-        <field type="uint8_t[32]" name="data">raw data</field>
-      </message>
+	  <message name="DATA32" id="170">
+	    <description>Data packet, size 32</description>
+	    <field type="uint8_t" name="type">data type</field>
+	    <field type="uint8_t" name="len">data length</field>
+	    <field type="uint8_t[32]" name="data">raw data</field>
+	  </message>
 
 	  <message name="DATA64" id="171">
 	    <description>Data packet, size 64</description>
