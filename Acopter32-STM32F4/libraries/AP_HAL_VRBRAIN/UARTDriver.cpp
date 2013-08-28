@@ -90,7 +90,7 @@ void VRBRAINUARTDriver::end() {
 void VRBRAINUARTDriver::flush() {
     if(_usb_present ==1){
 	usb_reset_rx();
-	usb_reset_tx();
+	//usb_reset_tx();
     }else {
 	usart_reset_rx(_usart_device);
 	usart_reset_tx(_usart_device);
@@ -106,7 +106,13 @@ void VRBRAINUARTDriver::set_blocking_writes(bool blocking) {
 }
 
 bool VRBRAINUARTDriver::tx_pending() {
-	return false;
+    if(_usb_present == 0){
+	if (usart_txfifo_nbytes(_usart_device) > 0)
+	    {
+	    return true;
+	    }
+    }
+    return false;
 }
 
 /* VRBRAIN implementations of BetterStream virtual methods */
