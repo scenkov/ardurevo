@@ -27,8 +27,8 @@ typedef uint16_t U16;
 #define USBD_PID                        0x5740
 #define USBD_LANGID_STRING              0x409
 
-#define USB_RXFIFO_SIZE 256
-#define USB_TXFIFO_SIZE 256
+#define USB_RXFIFO_SIZE 128
+#define USB_TXFIFO_SIZE 128
 
 extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
 extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
@@ -318,14 +318,14 @@ void USBD_USR_DeviceDisconnected (void)
 
 void usb_default_attr(usb_attr_t *attr)
 {
-    attr->preempt_prio = 0;
+    attr->preempt_prio = 3;
     attr->sub_prio = 0;
-	attr->use_present_pin = 0;
-	attr->description = NULL;
-	attr->manufacturer = NULL;
-	attr->serial_number = NULL;
-	attr->configuration = NULL;
-	attr->interface = NULL;
+    attr->use_present_pin = 1;
+    attr->description = NULL;
+    attr->manufacturer = NULL;
+    attr->serial_number = NULL;
+    attr->configuration = NULL;
+    attr->interface = NULL;
 }
 
 /*--------------------------- usb_periphcfg -------------------------------*/
@@ -334,6 +334,7 @@ int usb_periphcfg(FunctionalState state)
 {
 	if (state == ENABLE)
 	{
+
 		RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_GPIOA , ENABLE);
 
 		/* Configure USB D-/D+ (DM/DP) pins */
@@ -347,7 +348,7 @@ int usb_periphcfg(FunctionalState state)
 
 		GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_OTG1_FS);
 		GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_OTG1_FS);
-	    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 		RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE) ;
 
 		/*

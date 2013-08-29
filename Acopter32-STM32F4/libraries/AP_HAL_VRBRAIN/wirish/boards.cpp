@@ -65,6 +65,7 @@ void init(void) {
     usb_init();
 }
 void usb_init(void){
+    /*
     usb_attr_t usb_attr;
 
 
@@ -80,6 +81,7 @@ void usb_init(void){
 	//usb_attr.description = "VRBRAIN 4.0";
 
     usb_ioctl(I_USB_SETATTR, &usb_attr);
+    */
 }
 
 void enableFPU(void){

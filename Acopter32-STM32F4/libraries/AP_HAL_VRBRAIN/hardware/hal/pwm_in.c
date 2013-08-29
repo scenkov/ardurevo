@@ -219,6 +219,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
     uint16_t time_on = 0;
     uint16_t time_off = 0;
     static uint16_t last_val = 0;
+   // static uint32_t throttle_timer = 0;
 
     if (_is_ppmsum > 0)
 	{
