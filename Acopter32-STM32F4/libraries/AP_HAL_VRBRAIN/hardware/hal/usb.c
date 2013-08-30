@@ -27,8 +27,8 @@ typedef uint16_t U16;
 #define USBD_PID                        0x5740
 #define USBD_LANGID_STRING              0x409
 
-#define USB_RXFIFO_SIZE 128
-#define USB_TXFIFO_SIZE 128
+#define USB_RXFIFO_SIZE 256
+#define USB_TXFIFO_SIZE 256
 
 extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
 extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
@@ -386,7 +386,7 @@ int usb_configure(usb_attr_t * attr)
 			{
 				return 0;
 			}
-			gpio_set_mode(attr->present_port, attr->present_pin, GPIO_INPUT_FLOATING);
+			gpio_set_mode(attr->present_port, attr->present_pin, GPIO_INPUT_PU);
 	}
 
 	preempt_prio = attr->preempt_prio;

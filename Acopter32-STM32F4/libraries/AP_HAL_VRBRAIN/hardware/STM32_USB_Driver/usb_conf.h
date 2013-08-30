@@ -32,7 +32,7 @@
 //#define USE_USB_OTG_FS
 //#define USE_EMBEDDED_PHY
 
-#define VBUS_SENSING_ENABLED
+//#define VBUS_SENSING_ENABLED
 		 
 /** @addtogroup USB_OTG_DRIVER
   * @{

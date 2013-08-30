@@ -313,7 +313,7 @@ void usart_putudec(usart_dev *dev, uint32_t val)
  * Interrupt handlers.
  */
 
-#define USART_SAFE_INSERT
+//#define USART_SAFE_INSERT
 
 static inline void usart_rx_irq(usart_dev *dev)
     {
