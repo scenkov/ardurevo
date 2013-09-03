@@ -48,16 +48,6 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
 
     if(_usb_present == 1)
     {
-	usb_attr_t usb_attr;
-	usb_open();
-
-	usb_default_attr(&usb_attr);
-	usb_attr.preempt_prio = 5;
-	usb_attr.sub_prio = 0;
-	usb_attr.use_present_pin = 1;
-	usb_attr.present_port = _GPIOD;
-	usb_attr.present_pin = 4;
-	usb_ioctl(I_USB_SETATTR, &usb_attr);
 	/*
 	usb_open();
 	usb_default_attr(&usb_attr);

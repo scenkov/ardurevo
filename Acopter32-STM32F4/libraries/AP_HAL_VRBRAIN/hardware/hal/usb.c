@@ -318,14 +318,14 @@ void USBD_USR_DeviceDisconnected (void)
 
 void usb_default_attr(usb_attr_t *attr)
 {
-    attr->preempt_prio = 3;
+    attr->preempt_prio = 0;
     attr->sub_prio = 0;
-    attr->use_present_pin = 1;
-    attr->description = NULL;
-    attr->manufacturer = NULL;
-    attr->serial_number = NULL;
-    attr->configuration = NULL;
-    attr->interface = NULL;
+	attr->use_present_pin = 0;
+	attr->description = NULL;
+	attr->manufacturer = NULL;
+	attr->serial_number = NULL;
+	attr->configuration = NULL;
+	attr->interface = NULL;
 }
 
 /*--------------------------- usb_periphcfg -------------------------------*/
@@ -386,7 +386,7 @@ int usb_configure(usb_attr_t * attr)
 			{
 				return 0;
 			}
-			gpio_set_mode(attr->present_port, attr->present_pin, GPIO_INPUT_PU);
+			gpio_set_mode(attr->present_port, attr->present_pin, GPIO_INPUT_FLOATING);
 	}
 
 	preempt_prio = attr->preempt_prio;
