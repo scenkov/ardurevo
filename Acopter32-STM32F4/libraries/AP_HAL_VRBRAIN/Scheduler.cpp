@@ -27,12 +27,15 @@ VRBRAINScheduler::VRBRAINScheduler()
 void VRBRAINScheduler::init(void* machtnichts)
 {
 
-    timer_pause(TIMER5);
-    timer_set_prescaler(TIMER5,41);
-    timer_set_count(TIMER5,0);
-    timer_set_reload(TIMER5,999);
-    timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer_isr_event);
-    timer_resume(TIMER5);
+    uint32_t period = (2000000UL / 1000) - 1; // 1000 Hz = 1KHz
+    uint32_t prescaler =  (uint16_t) ((SystemCoreClock /2) / 2000000) - 1; //2MHz 0.5us ticks
+
+    timer_pause(TIMER6);
+    timer_set_prescaler(TIMER6,prescaler);
+    timer_set_count(TIMER6,0);
+    timer_set_reload(TIMER6,period);
+    timer_attach_interrupt(TIMER6, TIMER_UPDATE_INTERRUPT, _timer_isr_event);
+    timer_resume(TIMER6);
 
     //systick_attach_callback(_timer_isr_event);
 }
