@@ -463,24 +463,24 @@ static inline void enable_irq(timer_dev *dev, timer_interrupt_id iid) {
 }
 
 static void enable_advanced_irq(timer_dev *dev, timer_interrupt_id id) {
-    //uint8_t is_timer1 = dev->regs == TIM1;
+    uint8 is_timer1 = dev->clk == RCC_APB2Periph_TIM1;
 
     switch (id) {
     case TIMER_UPDATE_INTERRUPT:
-        NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
+        NVIC_EnableIRQ(is_timer1 ? TIM1_UP_TIM10_IRQn : TIM8_UP_TIM13_IRQn);
         break;
     case TIMER_CC1_INTERRUPT:
     case TIMER_CC2_INTERRUPT:
     case TIMER_CC3_INTERRUPT:
     case TIMER_CC4_INTERRUPT:
-        NVIC_EnableIRQ(TIM1_CC_IRQn);
+        NVIC_EnableIRQ(is_timer1 ? TIM1_CC_IRQn : TIM8_CC_IRQn);
         break;
     case TIMER_COM_INTERRUPT:
     case TIMER_TRG_INTERRUPT:
-        NVIC_EnableIRQ(TIM1_TRG_COM_TIM11_IRQn);
+        NVIC_EnableIRQ(is_timer1 ? TIM1_TRG_COM_TIM11_IRQn : TIM8_TRG_COM_TIM14_IRQn);
         break;
     case TIMER_BREAK_INTERRUPT:
-        NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
+        NVIC_EnableIRQ(is_timer1 ? TIM1_BRK_TIM9_IRQn : TIM8_BRK_TIM12_IRQn);
         break;
     }
 }
