@@ -1,4 +1,5 @@
 
+#include <AP_HAL.h>
 #include "AnalogIn.h"
 #include <adc.h>
 #include <boards.h>
@@ -67,16 +68,20 @@ void VRBRAINAnalogIn::init(void* machtnichts)
 {}
 
 AP_HAL::AnalogSource* VRBRAINAnalogIn::channel(int16_t pin) {
-    //if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
-    //        return NULL;
-    //    }
+    /*
+    if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
+            return new EmptyAnalogSource(0.0);
+        }
+    */
     return new VRBRAINAnalogSource(pin, 0.0);
 }
 
 AP_HAL::AnalogSource* VRBRAINAnalogIn::channel(int16_t pin, float scale) {
-    //if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
-    //        return NULL;
-    //    }
+    /*
+     if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
+	 return new EmptyAnalogSource(0.0);
+        }
+    */
     return new VRBRAINAnalogSource(pin, scale/2);
 }
 

@@ -6,8 +6,14 @@
 
 #include "AP_HAL_Namespace.h"
 
+#if CONFIG_HAL_BOARD  == HAL_BOARD_VRBRAIN
+#define GPIO_INPUT  2
+#define GPIO_OUTPUT 0
+#else
 #define GPIO_INPUT  0
 #define GPIO_OUTPUT 1
+#endif
+
 #define GPIO_INTERRUPT_LOW 0
 #define GPIO_INTERRUPT_HIGH 1
 #define GPIO_INTERRUPT_FALLING 2
@@ -17,7 +23,8 @@ class AP_HAL::DigitalSource {
 public:
     virtual void    mode(uint8_t output) = 0;
     virtual uint8_t read() = 0;
-    virtual void    write(uint8_t value) = 0; 
+    virtual void    write(uint8_t value) = 0;
+    virtual void    toggle() = 0;
 };
 
 class AP_HAL::GPIO {
@@ -27,6 +34,7 @@ public:
     virtual void    pinMode(uint8_t pin, uint8_t output) = 0;
     virtual uint8_t read(uint8_t pin) = 0;
     virtual void    write(uint8_t pin, uint8_t value) = 0;
+    virtual void    toggle(uint8_t pin) = 0;
     virtual int8_t  analogPinToDigitalPin(uint8_t pin) = 0;
 
     /* Alternative interface: */

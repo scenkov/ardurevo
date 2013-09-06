@@ -22,6 +22,11 @@ float EmptyAnalogSource::read_latest() {
 void EmptyAnalogSource::set_pin(uint8_t p)
 {}
 
+void EmptyAnalogSource::set_stop_pin(uint8_t p)
+{}
+
+void EmptyAnalogSource::set_settle_time(uint16_t settle_time_ms)
+{}
 
 EmptyAnalogIn::EmptyAnalogIn()
 {}

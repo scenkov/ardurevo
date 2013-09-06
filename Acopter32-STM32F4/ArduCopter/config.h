@@ -133,6 +133,17 @@
   # define MPU6K_FILTER                 10
 #endif
 
+/////////////////////////////////////////////////////////////////////////////////
+// Y6 defaults
+#if FRAME_CONFIG == Y6_FRAME
+  # define RATE_ROLL_P    				0.1f
+  # define RATE_ROLL_D    				0.006f
+  # define RATE_PITCH_P    				0.1f
+  # define RATE_PITCH_D    				0.006f
+  # define RATE_YAW_P    				0.150f
+  # define RATE_YAW_I    				0.015f
+#endif
+
 
 // optical flow doesn't work in SITL yet
 #ifdef DESKTOP_BUILD
@@ -172,9 +183,6 @@
 // LED and IO Pins
 //
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
- # define A_LED_PIN        37
- # define B_LED_PIN        36
- # define C_LED_PIN        35
  # define LED_ON           HIGH
  # define LED_OFF          LOW
  # define PUSHBUTTON_PIN   41
@@ -182,9 +190,6 @@
  # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
  # define BATTERY_CURR_PIN      1      // Battery current on A1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
- # define A_LED_PIN        27
- # define B_LED_PIN        26
- # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
  # define PUSHBUTTON_PIN   (-1)
@@ -192,9 +197,6 @@
  # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
  # define BATTERY_CURR_PIN      2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
- # define A_LED_PIN        27
- # define B_LED_PIN        26
- # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
  # define PUSHBUTTON_PIN   (-1)
@@ -202,9 +204,6 @@
  # define BATTERY_VOLT_PIN 1      // Battery voltage on A1
  # define BATTERY_CURR_PIN 2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
- # define A_LED_PIN        27
- # define B_LED_PIN        26
- # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
  # define PUSHBUTTON_PIN   (-1)
@@ -213,9 +212,6 @@
  # define BATTERY_CURR_PIN -1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
 // XXX these are just copied, may not make sense
- # define A_LED_PIN        27
- # define B_LED_PIN        26
- # define C_LED_PIN        25
  # define LED_ON           LOW
  # define LED_OFF          HIGH
  # define PUSHBUTTON_PIN   (-1)
@@ -223,9 +219,6 @@
  # define BATTERY_VOLT_PIN -1
  # define BATTERY_CURR_PIN -1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define A_LED_PIN        19
- # define B_LED_PIN        20
- # define C_LED_PIN        21
  # define LED_ON           HIGH
  # define LED_OFF          LOW
  # define PUSHBUTTON_PIN   200
@@ -770,7 +763,7 @@
 
 // RTL Mode
 #ifndef RTL_ALT_FINAL
- # define RTL_ALT_FINAL             200     // the altitude the vehicle will move to as the final stage of Returning to Launch.  Set to zero to land.
+ # define RTL_ALT_FINAL             0       // the altitude the vehicle will move to as the final stage of Returning to Launch.  Set to zero to land.
 #endif
 
 #ifndef RTL_ALT

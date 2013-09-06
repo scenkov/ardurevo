@@ -213,6 +213,6 @@ void VRBRAINScheduler::panic(const prog_char_t* errormsg) {
     for(;;);
 }
 
-void VRBRAINScheduler::reboot() {
+void VRBRAINScheduler::reboot(bool hold_in_bootloader) {
     return;
 }

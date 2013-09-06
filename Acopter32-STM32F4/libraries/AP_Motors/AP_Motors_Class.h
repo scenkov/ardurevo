@@ -1,4 +1,4 @@
-// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
+// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #ifndef __AP_MOTORS_CLASS_H__
 #define __AP_MOTORS_CLASS_H__
@@ -6,6 +6,7 @@
 #include <AP_Common.h>
 #include <AP_Progmem.h>
 #include <AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
+#include <AP_Notify.h>      // Notify library
 #include <AP_Curve.h>       // Curve used to linearlise throttle pwm to thrust
 #include <RC_Channel.h>     // RC Channel Library
 
@@ -87,7 +88,7 @@ public:
 
     // arm, disarm or check status status of motors
     bool                armed() { return _armed; };
-    void                armed(bool arm) { _armed = arm; };
+    void                armed(bool arm);
 
     // set_min_throttle - sets the minimum throttle that will be sent to the engines when they're not off (i.e. to prevents issues with some motors spinning and some not at very low throttle)
     void                set_min_throttle(uint16_t min_throttle);

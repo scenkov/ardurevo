@@ -54,5 +54,6 @@ uint16_t AP_InertialSensor_Stub::num_samples_available()
 {
     uint16_t ret = (hal.scheduler->millis() - _last_update_ms) 
         / _sample_period_ms;
+    
     return ret;
 }

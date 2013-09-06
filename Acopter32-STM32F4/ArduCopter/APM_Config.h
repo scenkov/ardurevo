@@ -13,7 +13,8 @@
 //Autopilot rotate rate limits
 #define AUTO_YAW_SLEW_RATE 40
 
-#define FRAME_CONFIG QUAD_FRAME
+#define FRAME_CONFIG HEXA_FRAME
+ # define FRAME_ORIENTATION      PLUS_FRAME
 /*
  *  options:
  *  QUAD_FRAME
