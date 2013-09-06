@@ -11,10 +11,10 @@
 //#define SECONDARY_DMP_ENABLED ENABLED             // allows running DMP in parallel with DCM for testing purposes
 
 //Autopilot rotate rate limits
-#define AUTO_YAW_SLEW_RATE 40
+#define AUTO_YAW_SLEW_RATE 45
 
-#define FRAME_CONFIG HEXA_FRAME
- # define FRAME_ORIENTATION      PLUS_FRAME
+//#define FRAME_CONFIG HEXA_FRAME
+//#define FRAME_ORIENTATION      PLUS_FRAME
 /*
  *  options:
  *  QUAD_FRAME
