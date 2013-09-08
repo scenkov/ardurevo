@@ -8,7 +8,7 @@
 #include <boards.h>
 #include <timer.h>
 
-#define VRBRAIN_SCHEDULER_MAX_TIMER_PROCS 8
+#define VRBRAIN_SCHEDULER_MAX_TIMER_PROCS 10
 
 
 class VRBRAIN::VRBRAINScheduler : public AP_HAL::Scheduler {

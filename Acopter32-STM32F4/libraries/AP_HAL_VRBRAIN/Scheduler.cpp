@@ -43,10 +43,21 @@ void VRBRAINScheduler::init(void* machtnichts)
 
 void VRBRAINScheduler::delay(uint16_t ms)
 {
-    uint32 i;
-    for (i = 0; i < ms; i++) {
-	delay_microseconds(1000);
+	uint32_t start = micros();
+    
+    while (ms > 0) {
+        while ((micros() - start) >= 1000) {
+            ms--;
+            if (ms == 0) break;
+            start += 1000;
+        }
+        if (_min_delay_cb_ms <= ms) {
+            if (_delay_cb) {
+                _delay_cb();
+            }
+        }
     }
+
 
 }
 
@@ -113,9 +124,11 @@ void VRBRAINScheduler::register_io_process(AP_HAL::TimedProc proc)
     // IO processes not supported on AVR
 }
 
-void VRBRAINScheduler::register_timer_failsafe(AP_HAL::TimedProc,
-            uint32_t period_us)
-{}
+void VRBRAINScheduler::register_timer_failsafe(
+        AP_HAL::TimedProc failsafe, uint32_t period_us) {
+    /* XXX Assert period_us == 1000 */
+    _failsafe = failsafe;
+}
 void VRBRAINScheduler::suspend_timer_procs()
 {
     _timer_suspended = true;
@@ -146,7 +159,7 @@ void VRBRAINScheduler::_timer_isr_event() {
     // This approach also gives us a nice uniform spacing between
     // timer calls
 
-    //TCNT2 = RESET_TCNT2_VALUE;
+    timer_set_count(TIMER7,0);
     interrupts();
     _run_timer_procs(true);
 }
