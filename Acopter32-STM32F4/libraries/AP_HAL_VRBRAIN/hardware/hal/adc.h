@@ -27,6 +27,8 @@ void adc_init(const adc_dev *dev);
 void adc_foreach(void (*fn)(const adc_dev*));
 //void adc_set_sample_rate(const adc_dev *dev, adc_smp_rate smp_rate);
 uint16_t adc_read(const adc_dev *dev, uint8_t channel);
+uint16_t vref_read(void);
+uint16_t temp_read(void);
 
 /**
  * @brief Set the regular channel sequence length.

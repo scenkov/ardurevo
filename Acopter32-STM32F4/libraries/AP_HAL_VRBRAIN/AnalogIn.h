@@ -28,6 +28,5 @@ public:
     VRBRAINAnalogIn();
     void init(void* implspecific);
     AP_HAL::AnalogSource* channel(int16_t pin);
-    AP_HAL::AnalogSource* channel(int16_t pin, float scale);
 };
 #endif // __AP_HAL_VRBRAIN_ANALOGIN_H__

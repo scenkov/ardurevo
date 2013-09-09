@@ -138,3 +138,36 @@ uint16_t temp_read(void)
   
   return (res>>2);
 }
+uint16_t vref_read(void)
+{
+  uint8_t i;
+  uint16_t res, T_StartupTimeDelay;
+
+  ADC_TempSensorVrefintCmd(ENABLE);
+  /* Wait until ADC + Temp sensor start */
+  T_StartupTimeDelay = 1024;
+  while (T_StartupTimeDelay--);
+
+  /* Enable TempSensor and Vrefint channels: channel16 and Channel17 */
+  //ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_56Cycles);
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_17, 2, ADC_SampleTime_56Cycles);
+
+  /* initialize result */
+  res = 0;
+  for(i=4; i>0; i--)
+  {
+  /* start ADC convertion by software */
+    ADC_SoftwareStartConv(ADC1);
+
+    /* wait until end-of-covertion */
+    while( ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == 0 );
+  /* read ADC convertion result */
+    res += ADC_GetConversionValue(ADC1);
+  }
+
+  /* de-initialize ADC */
+  ADC_TempSensorVrefintCmd(DISABLE);
+  //RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, DISABLE);
+
+  return (res>>2);
+}

@@ -18,8 +18,6 @@ VRBRAINAnalogSource::VRBRAINAnalogSource(int16_t pin, float initial_value) :
             _pin = 200;
         }
 
-    //gpio_set_mode(PIN_MAP[_pin].gpio_device, PIN_MAP[_pin].gpio_bit, GPIO_INPUT_ANALOG);
-
     hal.gpio->pinMode(_pin, INPUT_ANALOG);
 }
 
@@ -57,7 +55,11 @@ void VRBRAINAnalogSource::set_pin(uint8_t pin)
 {
     if(pin == _pin)
 	return;
+    if ((_pin < 0) || (_pin >= BOARD_NR_GPIO_PINS)) {
+            return;
+        }
     _pin = pin;
+    hal.gpio->pinMode(_pin, INPUT_ANALOG);
 }
 
 
@@ -76,12 +78,4 @@ AP_HAL::AnalogSource* VRBRAINAnalogIn::channel(int16_t pin) {
     return new VRBRAINAnalogSource(pin, 0.0);
 }
 
-AP_HAL::AnalogSource* VRBRAINAnalogIn::channel(int16_t pin, float scale) {
-    /*
-     if ((pin < 0) || (pin >= BOARD_NR_GPIO_PINS)) {
-	 return new EmptyAnalogSource(0.0);
-        }
-    */
-    return new VRBRAINAnalogSource(pin, scale/2);
-}
 
