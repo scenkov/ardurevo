@@ -161,6 +161,7 @@ struct PACKED log_IMU {
     LOG_PACKET_HEADER;
     float gyro_x, gyro_y, gyro_z;
     float accel_x, accel_y, accel_z;
+    float temp;
 };
 
 #define LOG_COMMON_STRUCTURES \
@@ -171,7 +172,7 @@ struct PACKED log_IMU {
     { LOG_GPS_MSG, sizeof(log_GPS), \
       "GPS",  "BIBcLLeeEe", "Status,Time,NSats,HDop,Lat,Lng,RelAlt,Alt,Spd,GCrs" }, \
     { LOG_IMU_MSG, sizeof(log_IMU), \
-      "IMU",  "ffffff",     "GyrX,GyrY,GyrZ,AccX,AccY,AccZ" }, \
+      "IMU",  "fffffff",     "GyrX,GyrY,GyrZ,AccX,AccY,AccZ,Temp" }, \
     { LOG_MESSAGE_MSG, sizeof(log_Message), \
       "MSG",  "Z",     "Message" }
 

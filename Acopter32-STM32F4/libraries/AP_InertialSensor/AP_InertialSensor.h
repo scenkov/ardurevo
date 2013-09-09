@@ -108,6 +108,9 @@ public:
     // get accel scale
     Vector3f get_accel_scale() { return _accel_scale; }
 
+    //get temperature
+    virtual float get_temperature(void) const = 0;
+
     /* Update the sensor data, so that getters are nonblocking.
      * Returns a bool of whether data was updated or not.
      */
@@ -175,6 +178,8 @@ protected:
 
     // filtering frequency (0 means default)
     AP_Int8                 _mpu6000_filter;
+
+    float _temp;
 
     // board orientation from AHRS
     enum Rotation			_board_orientation;

@@ -623,6 +623,8 @@ void DataFlash_Class::Log_Write_IMU(const AP_InertialSensor *ins)
 {
     Vector3f gyro = ins->get_gyro();
     Vector3f accel = ins->get_accel();
+    float Temp = ins->get_temperature();
+
     struct log_IMU pkt = {
         LOG_PACKET_HEADER_INIT(LOG_IMU_MSG),
         gyro_x  : gyro.x,
@@ -630,7 +632,8 @@ void DataFlash_Class::Log_Write_IMU(const AP_InertialSensor *ins)
         gyro_z  : gyro.z,
         accel_x : accel.x,
         accel_y : accel.y,
-        accel_z : accel.z
+        accel_z : accel.z,
+        temp	: Temp
     };
     WriteBlock(&pkt, sizeof(pkt));
 }

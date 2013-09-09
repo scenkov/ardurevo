@@ -48,6 +48,8 @@ public:
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
     float            	get_delta_time();
 
+    //gets the die temperature
+    float 		get_temperature() const { return _temp; }
 protected:
     uint16_t                    _init_sensor( Sample_rate sample_rate );
 
@@ -71,7 +73,7 @@ private:
 
     float                       _temp;
 
-    float                       _temp_to_celsius( uint16_t );
+    float                       _temp_to_celsius( int32_t );
 
     static const float          _gyro_scale;
 

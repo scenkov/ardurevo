@@ -667,11 +667,10 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
     return true;
 }
 
-float AP_InertialSensor_MPU6000::_temp_to_celsius ( uint16_t regval )
+float AP_InertialSensor_MPU6000::_temp_to_celsius ( int32_t regval )
 {
-    float temp;
-    temp = ((float)regval / 361.0) + 35.0;
-    return (temp);
+    float temp = ((float)regval/340.0) + 35.0f;
+    return temp;
 }
 
 // return the MPU6k gyro drift rate in radian/s/s
