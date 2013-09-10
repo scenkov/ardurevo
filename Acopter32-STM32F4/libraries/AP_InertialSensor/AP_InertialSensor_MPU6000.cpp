@@ -669,7 +669,7 @@ bool AP_InertialSensor_MPU6000::hardware_init(Sample_rate sample_rate)
 
 float AP_InertialSensor_MPU6000::_temp_to_celsius ( int32_t regval )
 {
-    float temp = ((float)regval/340.0) + 35.0f;
+    float temp = ((float)regval/340.0) + 36.53f;
     return temp;
 }
 
