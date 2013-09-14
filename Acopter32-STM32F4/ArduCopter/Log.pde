@@ -316,7 +316,7 @@ static void Log_Write_Nav_Tuning()
 struct PACKED log_Control_Tuning {
     LOG_PACKET_HEADER;
     int16_t throttle_in;
-    int16_t sonar_alt;
+    int32_t sonar_alt;
     int32_t baro_alt;
     float   next_wp_alt;
     int16_t desired_sonar_alt;
@@ -787,7 +787,7 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_NAV_TUNING_MSG, sizeof(log_Nav_Tuning),       
       "NTUN", "Ecffffffffee",    "WPDst,WPBrg,PErX,PErY,DVelX,DVelY,VelX,VelY,DAcX,DAcY,DRol,DPit" },
     { LOG_CONTROL_TUNING_MSG, sizeof(log_Control_Tuning),     
-      "CTUN", "hcefchhhh",   "ThrIn,SonAlt,BarAlt,WPAlt,DesSonAlt,AngBst,CRate,ThrOut,DCRate" },
+      "CTUN", "heefhhhhh",   "ThrIn,SonAlt,BarAlt,WPAlt,DesSonAlt,AngBst,CRate,ThrOut,DCRate" },
     { LOG_COMPASS_MSG, sizeof(log_Compass),             
       "MAG", "hhhhhhhhh",    "MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" },
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
