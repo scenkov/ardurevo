@@ -25,7 +25,7 @@ uint8_t VRBRAINStorage::read_byte(uint16_t loc){
 	//buf = (uint8_t)read(addr16);
 	ret = sEE_ReadBuffer(buf, loc, &numbytes);
 	if(ret == 1){
-	    hal.console->println_P("i2c timeout read byte");
+	    //hal.console->println_P("i2c timeout read byte");
 	    return 0;
 	}
 	while(numbytes > 0);
@@ -55,7 +55,7 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
 
 	uint32_t ret = sEE_ReadBuffer(buff, src, &numbytes);
 	if(ret == 1){
-	    hal.console->println_P("i2c timeout read block");
+	    //hal.console->println_P("i2c timeout read block");
 		return;
 	}
 	while(numbytes > 0);
@@ -69,7 +69,7 @@ void VRBRAINStorage::write_block(uint16_t dst,const void* src, size_t n)
 
 	uint32_t ret = sEE_WriteBuffer(buff,dst,(uint16_t)n);
 	if(ret == 1){
-	    hal.console->println_P("i2c timeout write block");
+	    //hal.console->println_P("i2c timeout write block");
 	    return;
 	}
 }
@@ -99,7 +99,7 @@ void VRBRAINStorage::write_byte(uint16_t loc, uint8_t value)
 	    buff[0] = value;
 	    uint32_t ret = sEE_WriteBuffer(buff, loc, numbytes);
 	    if(ret == 1){
-		hal.console->println_P("i2c timeout write byte");
+		//hal.console->println_P("i2c timeout write byte");
 	    }
 	}
 }
