@@ -10,40 +10,44 @@
 #include "I2CDriver.h"
 #include <i2c.h>
 
+using namespace VRBRAIN;
+
 extern const AP_HAL::HAL& hal;
 
 #define I2CDELAY 50
 
-using namespace VRBRAIN;
+#define SLA_W(address)  (address << 1)
+#define SLA_R(address)  ((address << 1) + 0x01)
 
 __IO uint32_t  i2ctimeout = I2C_TIMEOUT;
 
 void VRBRAINI2CDriver::begin() {
     i2c_init(this->_dev, 0, I2C_400KHz_SPEED);
-    hal.scheduler->delay(I2CDELAY);
 
 }
 void VRBRAINI2CDriver::end() {}
 
-void VRBRAINI2CDriver::setHighSpeed(bool active) {}
+void VRBRAINI2CDriver::setHighSpeed(bool active) {
 
-uint8_t VRBRAINI2CDriver::write(uint8_t address, uint8_t len, uint8_t* tx_buffer)
+}
+
+uint8_t VRBRAINI2CDriver::write(uint8_t addr, uint8_t len, uint8_t* tx_buffer)
 {
 
 	uint8_t numbytes = len;
 
-	uint32_t ret = i2c_write(this->_dev, address, tx_buffer, &numbytes);
+	uint32_t ret = i2c_write(this->_dev,  addr, tx_buffer, &numbytes);
 
 	if(ret == 1){
 	    _lockup_count ++;  //hal.console->printf_P(PSTR("Failed I2C write1: Event=0x%08X\n"),ret);
-	    return 1;
+	    hal.gpio->write(20, 1);
 	}
 
 	return ret;
 }
 
 
-uint8_t VRBRAINI2CDriver::writeRegister(uint8_t address, uint8_t registerAddress, uint8_t databyte)
+uint8_t VRBRAINI2CDriver::writeRegister(uint8_t addr, uint8_t registerAddress, uint8_t databyte)
 {
 	uint8_t ibuff[2];
 
@@ -51,10 +55,11 @@ uint8_t VRBRAINI2CDriver::writeRegister(uint8_t address, uint8_t registerAddress
 	ibuff[1] = databyte;
 	uint8_t numbytes = 2;
 
-	uint8_t ret = i2c_write(this->_dev, address, ibuff, &numbytes);
+	uint8_t ret = i2c_write(this->_dev, addr, ibuff, &numbytes);
 
 	if(ret == 1){
 	     _lockup_count ++;
+	     hal.gpio->write(20, 1);
 	}
 
 	return ret;
@@ -71,7 +76,7 @@ uint8_t VRBRAINI2CDriver::read(uint8_t addr, uint8_t numberBytes, uint8_t* data)
 
 	if(ret == 1){
 	    _lockup_count ++; //hal.console->printf_P(PSTR("Failed I2C read1: Event=0x%08X\n"),ret);
-	    return ret;
+	    hal.gpio->write(20, 1);
 	}
 	return ret;
 }
@@ -87,7 +92,7 @@ uint8_t VRBRAINI2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data)
 
 	if(ret == 1){
 	    _lockup_count ++; //hal.console->println_P("i2c timeout read register");
-	    return 1;
+	    hal.gpio->write(20, 1);
 	}
 
 	return ret;
@@ -96,14 +101,17 @@ uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numbe
 {
 	uint8_t ibuff[1];
 
+	uint8_t ret;
+
 	ibuff[0] = reg;
 	uint8_t numbytes = numberBytes;
 
-	uint8_t ret = i2c_read(this->_dev, addr, ibuff, 1, data, &numbytes);
+	ret = i2c_read(this->_dev, addr, ibuff, 1, data, &numbytes);
 
 	if(ret == 1){
 	    _lockup_count ++;
-	    return 1;
+	    hal.gpio->write(20, 1);
+	    return ret;
 	}
 
 	uint32_t time = i2ctimeout;
@@ -111,6 +119,7 @@ uint8_t VRBRAINI2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numbe
 	    if ((time--) == 0)
 		{
 		_lockup_count ++;
+		hal.gpio->write(20, 1);
 		return 1;
 		}
 	}

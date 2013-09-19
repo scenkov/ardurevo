@@ -1158,7 +1158,7 @@ if(	tmpSR1 & I2C_SR1_ADDR)
 	if (sEETrials++ == sEE_MAX_TRIALS_NUMBER)
 	    {
 	    /* If the maximum number of trials has been reached, exit the function */
-	    return sEE_TIMEOUT_UserCallback();
+	    return I2C_ERROR;
 	    }
 	}
     }
