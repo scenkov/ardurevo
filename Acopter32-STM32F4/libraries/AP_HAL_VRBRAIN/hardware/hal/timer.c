@@ -216,8 +216,8 @@ void timer_foreach(void (*fn)(timer_dev*)) {
     fn(TIMER2);
     fn(TIMER3);
     fn(TIMER4);
-    fn(TIMER5);
-    fn(TIMER6);
+    //fn(TIMER5);
+    //fn(TIMER6);
     fn(TIMER7);
     //fn(TIMER8);
 }
@@ -338,10 +338,12 @@ static inline void dispatch_single_irq(timer_dev *dev,
                                        timer_interrupt_id iid,
                                        uint32_t irq_mask) {
 
+    if (dev->regs->DIER & dev->regs->SR & irq_mask) {
     void (*handler)(void) = dev->handlers[iid];
     if (handler) {
         handler();
         dev->regs->SR &= ~irq_mask;
+    }
     }
 }
 
