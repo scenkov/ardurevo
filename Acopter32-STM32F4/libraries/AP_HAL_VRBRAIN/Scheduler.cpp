@@ -223,7 +223,7 @@ void VRBRAINScheduler::system_initialized()
 
 void VRBRAINScheduler::panic(const prog_char_t* errormsg) {
    hal.console->println_P(errormsg);
-    for(;;);
+    //for(;;);
 }
 
 void VRBRAINScheduler::reboot(bool hold_in_bootloader) {
