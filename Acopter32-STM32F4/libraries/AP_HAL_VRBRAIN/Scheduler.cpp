@@ -159,7 +159,7 @@ void VRBRAINScheduler::_timer_isr_event() {
     // This approach also gives us a nice uniform spacing between
     // timer calls
 
-    timer_set_count(TIMER7,0);
+    timer_set_count(TIMER7,2000);
     interrupts();
     _run_timer_procs(true);
 }
