@@ -17,7 +17,7 @@
 
 // enable debug to see a register dump on startup
 #define MPU6000_DEBUG 0
-#define ENHANCED
+//#define ENHANCED
 // DMP memory
 extern const uint8_t        dmpMem[8][16][16] PROGMEM;
 

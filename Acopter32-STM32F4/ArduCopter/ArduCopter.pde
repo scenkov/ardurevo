@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "AC32 V3.1.4-ENH"
+#define THISFIRMWARE "AC32 V3.1.4"
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -188,7 +188,11 @@ static DataFlash_Empty DataFlash;
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
 ////////////////////////////////////////////////////////////////////////////////
+#ifdef ENHANCED
 static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_1000HZ;
+#else
+static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_100HZ;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Sensors
@@ -975,8 +979,11 @@ void loop()
 
     // We want this to execute fast
     // ----------------------------
+#ifdef ENHANCED
     if (ins.num_samples_available() >= 10) {
-
+#else
+    if (ins.num_samples_available() >= 1) {
+#endif
         // check loop time
         perf_info_check_loop_time(timer - fast_loopTimer);
 
