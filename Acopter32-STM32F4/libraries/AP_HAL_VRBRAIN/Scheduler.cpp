@@ -152,15 +152,7 @@ bool VRBRAINScheduler::in_timerprocess()
 
 
 void VRBRAINScheduler::_timer_isr_event() {
-    // we enable the interrupt again immediately and also enable
-    // interrupts. This allows other time critical interrupts to
-    // run (such as the serial receive interrupt). We catch the
-    // timer calls taking too long using _in_timer_call.
-    // This approach also gives us a nice uniform spacing between
-    // timer calls
 
-    //timer_set_count(TIMER7,2000);
-    //interrupts();
     _run_timer_procs(true);
 }
 

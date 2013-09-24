@@ -13,7 +13,16 @@
 //Autopilot rotate rate limits
 #define AUTO_YAW_SLEW_RATE 45
 
+/*-------------ENHANCED-----------------*/
+/*To enable the enhanced mode (MPU6000 at 1KHz and gyro full scale at 1000dps) uncomment #define ENHANCED in:
+ * APM_Config.h
+ * and in
+ * libraries/AP_InertialSensor/AP_InertialSensor_MPU6000.h
+ */
+
 //#define ENHANCED
+
+/*--------------------------------------*/
 
 //#define FRAME_CONFIG HEXA_FRAME
 //#define FRAME_ORIENTATION      PLUS_FRAME
