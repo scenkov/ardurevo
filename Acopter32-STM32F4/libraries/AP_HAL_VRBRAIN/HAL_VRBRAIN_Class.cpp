@@ -66,7 +66,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   /* initialize all drivers and private members here.
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
-  delay_us(2000000);
+  //delay_us(2000000);
 
   hal.scheduler->init(NULL);
   //uartA->begin(115200);
