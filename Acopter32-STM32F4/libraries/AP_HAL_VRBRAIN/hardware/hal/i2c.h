@@ -140,6 +140,8 @@ uint32_t sEE_WritePage(uint8_t* pBuffer, uint16_t WriteAddr, uint8_t* NumByteToW
 uint32_t sEE_WriteBuffer(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
 uint32_t sEE_WaitEepromStandbyState(void);
 
+void i2c_master_release_bus(const i2c_dev *dev);
+void i2c_bus_reset(const i2c_dev *dev);
 /* USER Callbacks: These are functions for which prototypes only are declared in
    EEPROM driver and that should be implemented into user applicaiton. */
 /* sEE_TIMEOUT_UserCallback() function is called whenever a timeout condition
