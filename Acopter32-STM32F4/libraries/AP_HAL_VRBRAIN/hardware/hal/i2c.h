@@ -124,7 +124,6 @@ typedef struct i2c_dev {
 
 void i2c_init(i2c_dev *dev, uint16_t address, uint32_t speed);
 void i2c_deinit(i2c_dev *dev);
-void i2c_bus_reset(const i2c_dev *dev);
 
 uint8_t i2c_is_busy();
 uint32_t sEE_WaitEepromStandby(i2c_dev *dev, uint8_t addr);
