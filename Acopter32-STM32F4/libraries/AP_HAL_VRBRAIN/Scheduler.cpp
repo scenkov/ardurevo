@@ -15,7 +15,8 @@ volatile bool VRBRAINScheduler::_timer_event_missed = false;
 volatile bool VRBRAINScheduler::_in_timer_proc = false;
 AP_HAL::TimedProc VRBRAINScheduler::_timer_proc[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
 uint8_t VRBRAINScheduler::_num_timer_procs = 0;
-
+uint32 VRBRAINScheduler::_scheduler_last_call = 0;
+uint16_t VRBRAINScheduler::_scheduler_led = 0;
 
 VRBRAINScheduler::VRBRAINScheduler()
 :
@@ -35,7 +36,7 @@ void VRBRAINScheduler::init(void* machtnichts)
     timer_set_count(TIMER7,0);
     timer_set_reload(TIMER7,period);
     timer_attach_interrupt(TIMER7, TIMER_UPDATE_INTERRUPT, _timer_isr_event);
-    NVIC_SetPriority(TIM7_IRQn,0);
+    NVIC_SetPriority(TIM7_IRQn,5);
     timer_resume(TIMER7);
 
     //systick_attach_callback(_timer_isr_event);
@@ -149,9 +150,29 @@ bool VRBRAINScheduler::in_timerprocess()
     return _in_timer_proc;
 }
 
+#define LED_GRN (*((unsigned long int *) 0x424102B4))
+#define LED_YLW (*((unsigned long int *) 0x424102B8))
+#define LED_RED (*((unsigned long int *) 0x424102BC))
 
 
 void VRBRAINScheduler::_timer_isr_event() {
+
+    uint32 fms=systick_uptime();
+
+    if(fms - _scheduler_last_call >= 100)
+	{
+	 if (_scheduler_led == 1)
+	     {
+	     LED_YLW=0;
+	     _scheduler_led=0;
+	     }
+	     else
+	     {
+             LED_YLW=1;
+             _scheduler_led=1;
+	     }
+	 _scheduler_last_call=systick_uptime();
+	}
 
     _run_timer_procs(true);
 }
@@ -159,6 +180,8 @@ void VRBRAINScheduler::_timer_isr_event() {
 void VRBRAINScheduler::_run_timer_procs(bool called_from_isr) {
 
     uint32_t tnow = hal.scheduler->micros();
+
+
     if (_in_timer_proc) {
         // the timer calls took longer than the period of the
         // timer. This is bad, and may indicate a serious

@@ -55,6 +55,8 @@ private:
     static volatile bool _timer_event_missed;
     static AP_HAL::TimedProc _timer_proc[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS];
     static uint8_t _num_timer_procs;
+    static uint32 _scheduler_last_call;
+    static uint16_t _scheduler_led;
 
 };
 
