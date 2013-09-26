@@ -11,11 +11,11 @@
  */
 
 #ifndef USART_RX_BUF_SIZE
-#define USART_RX_BUF_SIZE               256
+#define USART_RX_BUF_SIZE               512
 #endif
 
 #ifndef USART_TX_BUF_SIZE
-#define USART_TX_BUF_SIZE               256
+#define USART_TX_BUF_SIZE               512
 #endif
 
 /** USART device type */
