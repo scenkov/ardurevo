@@ -17,15 +17,6 @@ public:
     void set_blocking_writes(bool blocking);
     bool tx_pending();
 
-    /* PX4 implementations of BetterStream virtual methods */
-    void print_P(const prog_char_t *pstr);
-    void println_P(const prog_char_t *pstr);
-    void printf(const char *pstr, ...);
-    void _printf_P(const prog_char *pstr, ...);
-
-    void vprintf(const char* fmt, va_list ap);
-    void vprintf_P(const prog_char* fmt, va_list ap);
-
     /* PX4 implementations of Stream virtual methods */
     int16_t available();
     int16_t txspace();
@@ -51,8 +42,6 @@ public:
 private:
     const char *_devpath;
     int _fd;
-    void _vprintf(const char *fmt, va_list ap);
-    void _internal_vprintf(const char *fmt, va_list ap);
 
     bool _nonblocking_writes;
 

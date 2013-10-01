@@ -85,6 +85,7 @@
 // Application dependencies
 #include <GCS_MAVLink.h>        // MAVLink GCS definitions
 #include <AP_GPS.h>             // ArduPilot GPS library
+#include <AP_GPS_Glitch.h>      // GPS glitch protection library
 #include <DataFlash.h>          // ArduPilot Mega Flash Memory Library
 #include <AP_ADC.h>             // ArduPilot Mega Analog to Digital Converter Library
 #include <AP_ADC_AnalogSource.h>
@@ -212,6 +213,7 @@ static const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor:
 
 // All GPS access should be through this pointer.
 static GPS         *g_gps;
+static GPS_Glitch   gps_glitch(g_gps);
 
 // flight modes convenience array
 static AP_Int8 *flight_modes = &g.flight_mode1;
@@ -229,7 +231,7 @@ static AP_InertialSensor_MPU6000_Ext ins;
 #elif CONFIG_IMU_TYPE == CONFIG_IMU_OILPAN
 static AP_InertialSensor_Oilpan ins(&adc);
 #elif CONFIG_IMU_TYPE == CONFIG_IMU_SITL
-static AP_InertialSensor_Stub ins;
+static AP_InertialSensor_HIL ins;
 #elif CONFIG_IMU_TYPE == CONFIG_IMU_PX4
 static AP_InertialSensor_PX4 ins;
  #endif
@@ -309,7 +311,7 @@ static AP_ADC_HIL              adc;
 static AP_Baro_HIL      barometer;
 static AP_Compass_HIL          compass;
 static AP_GPS_HIL              g_gps_driver;
-static AP_InertialSensor_Stub  ins;
+static AP_InertialSensor_HIL   ins;
 static AP_AHRS_DCM             ahrs(&ins, g_gps);
 
 static int32_t gps_base_alt;
@@ -321,7 +323,7 @@ static SITL sitl;
 
 #elif HIL_MODE == HIL_MODE_ATTITUDE
 static AP_ADC_HIL              adc;
-static AP_InertialSensor_Stub  ins;
+static AP_InertialSensor_HIL   ins;
 static AP_AHRS_HIL             ahrs(&ins, g_gps);
 static AP_GPS_HIL              g_gps_driver;
 static AP_Compass_HIL          compass;                  // never used
@@ -400,11 +402,6 @@ static union {
         uint8_t logging_started     : 1; // 8    // true if dataflash logging has started
 
         uint8_t low_battery         : 1; // 9    // Used to track if the battery is low - LED output flashes when the batt is low
-        uint8_t failsafe_radio      : 1; // 10   // A status flag for the radio failsafe
-        uint8_t failsafe_batt       : 1; // 11   // A status flag for the battery failsafe
-        uint8_t failsafe_gps        : 1; // 12   // A status flag for the gps failsafe
-        uint8_t failsafe_gcs        : 1; // 13   // A status flag for the ground station failsafe
-        uint8_t rc_override_active  : 1; // 14   // true if rc control are overwritten by ground station
         uint8_t do_flip             : 1; // 15   // Used to enable flip code
         uint8_t takeoff_complete    : 1; // 16
         uint8_t land_complete       : 1; // 17   // true if we have detected a landing
@@ -441,30 +438,40 @@ static RCMapper rcmap;
 // receiver RSSI
 static uint8_t receiver_rssi;
 
+////////////////////////////////////////////////////////////////////////////////
+// Failsafe
+////////////////////////////////////////////////////////////////////////////////
+static struct {
+    uint8_t rc_override_active  : 1; // 0   // true if rc control are overwritten by ground station
+    uint8_t radio               : 1; // 1   // A status flag for the radio failsafe
+    uint8_t batt                : 1; // 2   // A status flag for the battery failsafe
+    uint8_t gps                 : 1; // 3   // A status flag for the gps failsafe
+    uint8_t gcs                 : 1; // 4   // A status flag for the ground station failsafe
+
+    int8_t radio_counter;                  // number of iterations with throttle below throttle_fs_value
+
+    uint32_t last_heartbeat_ms;             // the time when the last HEARTBEAT message arrived from a GCS - used for triggering gcs failsafe
+} failsafe;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Motor Output
 ////////////////////////////////////////////////////////////////////////////////
 #if FRAME_CONFIG == QUAD_FRAME
  #define MOTOR_CLASS AP_MotorsQuad
-#endif
-#if FRAME_CONFIG == TRI_FRAME
+#elif FRAME_CONFIG == TRI_FRAME
  #define MOTOR_CLASS AP_MotorsTri
-#endif
-#if FRAME_CONFIG == HEXA_FRAME
+#elif FRAME_CONFIG == HEXA_FRAME
  #define MOTOR_CLASS AP_MotorsHexa
-#endif
-#if FRAME_CONFIG == Y6_FRAME
+#elif FRAME_CONFIG == Y6_FRAME
  #define MOTOR_CLASS AP_MotorsY6
-#endif
-#if FRAME_CONFIG == OCTA_FRAME
+#elif FRAME_CONFIG == OCTA_FRAME
  #define MOTOR_CLASS AP_MotorsOcta
-#endif
-#if FRAME_CONFIG == OCTA_QUAD_FRAME
+#elif FRAME_CONFIG == OCTA_QUAD_FRAME
  #define MOTOR_CLASS AP_MotorsOctaQuad
-#endif
-#if FRAME_CONFIG == HELI_FRAME
+#elif FRAME_CONFIG == HELI_FRAME
  #define MOTOR_CLASS AP_MotorsHeli
+#else
+ #error Unrecognised frame type
 #endif
 
 #if FRAME_CONFIG == HELI_FRAME  // helicopter constructor requires more arguments
@@ -775,7 +782,7 @@ static float G_Dt = 0.02;
 ////////////////////////////////////////////////////////////////////////////////
 // Inertial Navigation
 ////////////////////////////////////////////////////////////////////////////////
-static AP_InertialNav inertial_nav(&ahrs, &ins, &barometer, &g_gps);
+static AP_InertialNav inertial_nav(&ahrs, &ins, &barometer, g_gps, gps_glitch);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Waypoint navigation object
@@ -806,8 +813,6 @@ static int16_t superslow_loopCounter;
 static uint32_t rtl_loiter_start_time;
 // prevents duplicate GPS messages from entering system
 static uint32_t last_gps_time;
-// the time when the last HEARTBEAT message arrived from a GCS - used for triggering gcs failsafe
-static uint32_t last_heartbeat_ms;
 
 // Used to exit the roll and pitch auto trim function
 static uint8_t auto_trim_counter;
@@ -1008,6 +1013,10 @@ void loop()
         // call until scheduler.tick() is called again
         uint32_t time_available = (timer + 10000) - micros();
         scheduler.run(time_available - 500);
+    }
+    if ((timer - fast_loopTimer) < 8500) {
+        // we have plenty of time - be friendly to multi-tasking OSes
+        hal.scheduler->delay(1);
     }
 }
 
@@ -1311,9 +1320,7 @@ static void slow_loop()
         if(g.radio_tuning > 0)
             tuning();
 
-#if USB_MUX_PIN > 0
         check_usb_mux();
-#endif
         break;
 
     default:
@@ -1403,6 +1410,17 @@ static void update_GPS(void)
 
         // for performance monitoring
         gps_fix_count++;
+
+        // run glitch protection and update AP_Notify
+        gps_glitch.check_position();
+        if (AP_Notify::flags.gps_glitching != gps_glitch.glitching()) {
+            if (gps_glitch.glitching()) {
+                Log_Write_Error(ERROR_SUBSYSTEM_GPS, ERROR_CODE_GPS_GLITCH);
+            }else{
+                Log_Write_Error(ERROR_SUBSYSTEM_GPS, ERROR_CODE_ERROR_RESOLVED);
+            }
+            AP_Notify::flags.gps_glitching = gps_glitch.glitching();
+        }
 
         // check if we can initialise home yet
         if (!ap.home_is_set) {
@@ -1826,7 +1844,6 @@ void update_roll_pitch_mode(void)
 	#if FRAME_CONFIG != HELI_FRAME
     if(g.rc_3.control_in == 0 && control_mode <= ACRO) {
         reset_rate_I();
-        reset_stability_I();
     }
 	#endif //HELI_FRAME
 
@@ -1915,11 +1932,6 @@ bool set_throttle_mode( uint8_t new_throttle_mode )
             reset_land_detector();  // initialise land detector
             controller_desired_alt = get_initial_alt_hold(current_loc.alt, climb_rate);   // reset controller desired altitude to current altitude
             throttle_initialised = true;
-            break;
-
-        default:
-            // To-Do: log an error message to the dataflash or tlogs instead of printing to the serial port
-            cliSerial->printf_P(PSTR("Unsupported throttle mode: %d!!"),new_throttle_mode);
             break;
     }
 
@@ -2181,6 +2193,12 @@ static void update_altitude()
 }
 
 static void tuning(){
+
+    // exit immediately when radio failsafe is invoked so tuning values are not set to zero
+    if (failsafe.radio || failsafe.radio_counter != 0) {
+        return;
+    }
+
     tuning_value = (float)g.rc_6.control_in / 1000.0f;
     g.rc_6.set_range(g.radio_tuning_low,g.radio_tuning_high);                   // 0 to 1
 

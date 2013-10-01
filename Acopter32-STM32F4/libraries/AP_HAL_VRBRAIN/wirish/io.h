@@ -38,10 +38,8 @@
 #include "boards.h"
 #include <wirish_time.h>
 
-/**
- * Specifies a GPIO pin behavior.
- * @see pinMode()
- */
+
+
 typedef enum WiringPinMode {
     OUTPUT, /* Basic digital output: when the pin is HIGH, the
                voltage is held at +3.3v (Vcc) and when it is LOW, it
@@ -102,6 +100,11 @@ typedef enum WiringPinMode {
                        consists of alternating cycles of LOW and
                        floating (disconnected). */
 } WiringPinMode;
+/**
+ * Specifies a GPIO pin behavior.
+ * @see pinMode()
+ */
+
 /**
  * Specifies a GPIO pin behavior.
  * @see pinMode()

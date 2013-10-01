@@ -27,11 +27,13 @@
 #include <AP_OpticalFlow.h>     // Optical Flow library
 #include <Filter.h>             // Filter library
 #include <AP_Buffer.h>          // APM FIFO Buffer
-#include <AP_LeadFilter.h>      // GPS Lead filter
 #include <AP_Relay.h>           // APM relay
 #include <AP_Camera.h>          // Photo or video camera
 #include <AP_Mount.h>           // Camera/Antenna mount
 #include <AP_Airspeed.h>        // needed for AHRS build
+#include <AP_Vehicle.h>         // needed for AHRS build
+#include <AP_Notify.h>
+#include <DataFlash.h>
 #include <AP_InertialNav.h>     // ArduPilot Mega inertial navigation library
 #include <GCS_MAVLink.h>
 #include <memcheck.h>

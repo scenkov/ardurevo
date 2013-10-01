@@ -44,7 +44,7 @@ static int16_t read_sonar(void)
 
     int32_t temp_alt = sonar->read();
 
-    if (temp_alt >= sonar->min_distance && temp_alt <= sonar->max_distance * 0.70f) {
+    if (temp_alt >= sonar->min_distance && temp_alt <= sonar->max_distance * SONAR_RELIABLE_DISTANCE_PCT) {
         if ( sonar_alt_health < SONAR_ALT_HEALTH_MAX ) {
             sonar_alt_health++;
         }
@@ -135,7 +135,8 @@ static void read_battery(void)
     }
 
     // check for low voltage or current if the low voltage check hasn't already been triggered
-    if (!ap.low_battery && ( battery_voltage1 < g.low_voltage || (g.battery_monitoring == BATT_MONITOR_VOLTAGE_AND_CURRENT && current_total1 > g.pack_capacity))) {
+    // we only check when we're not powered by USB to avoid false alarms during bench tests
+    if (!ap_system.usb_connected && !ap.low_battery && ( battery_voltage1 < g.low_voltage || (g.battery_monitoring == BATT_MONITOR_VOLTAGE_AND_CURRENT && current_total1 > g.pack_capacity))) {
         low_battery_counter++;
         if( low_battery_counter >= BATTERY_FS_COUNTER ) {
             low_battery_counter = BATTERY_FS_COUNTER;   // ensure counter does not overflow

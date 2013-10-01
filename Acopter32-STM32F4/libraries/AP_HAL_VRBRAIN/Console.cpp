@@ -8,18 +8,19 @@
  * "LICENSE" for more information.
  */
 
+#include <AP_HAL.h>
 #include <stdarg.h>
 #include "Console.h"
-#include "UARTDriver.h"
-#include <stdio.h>
+
 
 using namespace VRBRAIN;
 
-VRBRAINConsoleDriver::VRBRAINConsoleDriver(){}
+VRBRAINConsoleDriver::VRBRAINConsoleDriver(void* baseuartdriver)
+{}
 
 void VRBRAINConsoleDriver::init(void *uart)
 {
-	_uart = (VRBRAINUARTDriver *)uart;
+	_uart = (AP_HAL::UARTDriver *)uart;
 }
 
 void VRBRAINConsoleDriver::backend_open()
@@ -34,37 +35,6 @@ size_t VRBRAINConsoleDriver::backend_read(uint8_t *data, size_t len) {
 
 size_t VRBRAINConsoleDriver::backend_write(const uint8_t *data, size_t len) {
     return 0;
-}
-
-void VRBRAINConsoleDriver::print_P(const prog_char_t *pstr) {
-    _uart->print_P(pstr);
-}
-
-void VRBRAINConsoleDriver::println_P(const prog_char_t *pstr)
-{
-  _uart->println_P(pstr);
-}
-
-void VRBRAINConsoleDriver::printf(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    _uart->vprintf(fmt, ap);
-    va_end(ap);
-}
-
-void VRBRAINConsoleDriver::_printf_P(const prog_char *fmt, ...) {
-    va_list ap;
-    va_start(ap,fmt);
-    _uart->vprintf(fmt, ap);
-    va_end(ap);
-}
-
-void VRBRAINConsoleDriver::vprintf(const char *fmt, va_list ap) {
-    _uart->vprintf(fmt, ap);
-}
-
-void VRBRAINConsoleDriver::vprintf_P(const prog_char *fmt, va_list ap) {
-    _uart->vprintf(fmt, ap);
 }
 
 int16_t VRBRAINConsoleDriver::available() {

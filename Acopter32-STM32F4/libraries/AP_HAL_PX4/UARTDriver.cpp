@@ -120,87 +120,42 @@ void PX4UARTDriver::begin(uint32_t b)
 }
 
 
-void PX4UARTDriver::end() {}
+void PX4UARTDriver::end() 
+{
+    _initialised = false;
+    while (_in_timer) hal.scheduler->delay(1);
+    if (_fd != -1) {
+        close(_fd);
+        _fd = -1;
+    }
+    if (_readbuf) {
+        free(_readbuf);
+        _readbuf = NULL;
+    }
+    if (_writebuf) {
+        free(_writebuf);
+        _writebuf = NULL;
+    }
+    _readbuf_size = _writebuf_size = 0;
+    _writebuf_head = 0;
+    _writebuf_tail = 0;
+    _readbuf_head = 0;
+    _readbuf_tail = 0;
+}
+
 void PX4UARTDriver::flush() {}
-bool PX4UARTDriver::is_initialized() { return true; }
+
+bool PX4UARTDriver::is_initialized() 
+{ 
+    return _initialised; 
+}
+
 void PX4UARTDriver::set_blocking_writes(bool blocking) 
 {
     _nonblocking_writes = !blocking;
 }
+
 bool PX4UARTDriver::tx_pending() { return false; }
-
-/* PX4 implementations of BetterStream virtual methods */
-void PX4UARTDriver::print_P(const prog_char_t *pstr) {
-	print(pstr);
-}
-
-void PX4UARTDriver::println_P(const prog_char_t *pstr) {
-	println(pstr);
-}
-
-void PX4UARTDriver::printf(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    _vprintf(fmt, ap);
-    va_end(ap);	
-}
-
-void PX4UARTDriver::_printf_P(const prog_char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    _vprintf(fmt, ap);
-    va_end(ap);	
-}
-
-void PX4UARTDriver::vprintf(const char *fmt, va_list ap) {
-    _vprintf(fmt, ap);
-}
-
-void PX4UARTDriver::vprintf_P(const prog_char *fmt, va_list ap) {
-    _vprintf(fmt, ap);
-}
-
-
-void PX4UARTDriver::_internal_vprintf(const char *fmt, va_list ap)
-{
-    if (hal.scheduler->in_timerprocess()) {
-        // not allowed from timers
-        return;
-    }
-    char *buf = NULL;
-    int n = avsprintf(&buf, fmt, ap);
-    if (n > 0) {
-        write((const uint8_t *)buf, n);
-    }
-    if (buf != NULL) {
-        free(buf);    
-    }
-}
-
-// handle %S -> %s
-void PX4UARTDriver::_vprintf(const char *fmt, va_list ap)
-{
-    if (hal.scheduler->in_timerprocess()) {
-        // not allowed from timers
-        return;
-    }
-    // we don't use vdprintf() as it goes directly to the file descriptor
-	if (strstr(fmt, "%S")) {
-		char *fmt2 = strdup(fmt);
-		if (fmt2 != NULL) {
-			for (uint16_t i=0; fmt2[i]; i++) {
-				if (fmt2[i] == '%' && fmt2[i+1] == 'S') {
-					fmt2[i+1] = 's';
-				}
-			}
-            _internal_vprintf(fmt2, ap);
-			free(fmt2);
-		}
-	} else {
-        _internal_vprintf(fmt, ap);
-	}	
-}
-
 
 /*
   buffer handling macros

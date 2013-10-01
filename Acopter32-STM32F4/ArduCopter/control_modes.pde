@@ -9,7 +9,7 @@ static void read_control_switch()
 
     // has switch moved?
     // ignore flight mode changes if in failsafe
-    if (oldSwitchPosition != switchPosition && !ap.failsafe_radio) {
+    if (oldSwitchPosition != switchPosition && !failsafe.radio && failsafe.radio_counter == 0) {
         switch_counter++;
         if(switch_counter >= CONTROL_SWITCH_COUNTER) {
             oldSwitchPosition       = switchPosition;
@@ -61,6 +61,11 @@ static uint8_t read_3pos_switch(int16_t radio_in){
 static void read_aux_switches()
 {
     uint8_t switch_position;
+
+    // exit immediately during radio failsafe
+    if (failsafe.radio || failsafe.radio_counter != 0) {
+        return;
+    }
 
     // check if ch7 switch has changed position
     switch_position = read_3pos_switch(g.rc_7.radio_in);

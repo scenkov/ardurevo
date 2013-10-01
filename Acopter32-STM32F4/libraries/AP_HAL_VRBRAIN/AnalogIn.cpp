@@ -4,6 +4,7 @@
 #include <adc.h>
 #include <boards.h>
 #include <gpio_hal.h>
+#include <GPIO.h>
 
 extern const AP_HAL::HAL& hal;
 

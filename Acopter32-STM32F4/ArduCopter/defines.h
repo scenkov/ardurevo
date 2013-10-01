@@ -75,13 +75,14 @@
 #define AUX_SWITCH_HIGH             2       // indicates auxiliar switch is in the high position (pwm >1800)
 
 // Frame types
-#define QUAD_FRAME 0
-#define TRI_FRAME 1
-#define HEXA_FRAME 2
-#define Y6_FRAME 3
-#define OCTA_FRAME 4
-#define HELI_FRAME 5
-#define OCTA_QUAD_FRAME 6
+#define UNDEFINED_FRAME 0
+#define QUAD_FRAME 1
+#define TRI_FRAME 2
+#define HEXA_FRAME 3
+#define Y6_FRAME 4
+#define OCTA_FRAME 5
+#define HELI_FRAME 6
+#define OCTA_QUAD_FRAME 7
 
 #define PLUS_FRAME 0
 #define X_FRAME 1
@@ -423,6 +424,8 @@ enum ap_message {
 #define CONFIG_IMU_MPU6000 2
 #define CONFIG_IMU_SITL    3
 #define CONFIG_IMU_PX4     4
+#define CONFIG_IMU_FLYMAPLE 5
+#define CONFIG_IMU_MPU6000EXT 6
 
 #define AP_BARO_BMP085    1
 #define AP_BARO_MS5611    2
@@ -441,7 +444,8 @@ enum ap_message {
 #define ERROR_SUBSYSTEM_FAILSAFE_GPS        7
 #define ERROR_SUBSYSTEM_FAILSAFE_GCS        8
 #define ERROR_SUBSYSTEM_FAILSAFE_FENCE      9
-#define ERROR_SUBSYSTEM_FLGHT_MODE          10
+#define ERROR_SUBSYSTEM_FLIGHT_MODE         10
+#define ERROR_SUBSYSTEM_GPS                 11
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
@@ -452,6 +456,8 @@ enum ap_message {
 #define ERROR_CODE_FAILSAFE_OCCURRED        1
 // subsystem specific error codes -- compass
 #define ERROR_CODE_COMPASS_FAILED_TO_READ   2
+// subsystem specific error codes -- gps
+#define ERROR_CODE_GPS_GLITCH               2
 
 
 

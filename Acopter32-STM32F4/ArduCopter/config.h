@@ -57,7 +57,6 @@
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
- # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
  # ifdef APM2_BETA_HARDWARE
@@ -68,13 +67,11 @@
  # endif
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  # define CONFIG_IMU_TYPE   CONFIG_IMU_SITL
- # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
  # define CONFIG_IMU_TYPE   CONFIG_IMU_PX4
  # define CONFIG_BARO       AP_BARO_PX4
- # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
@@ -88,7 +85,6 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  //# define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000_EXT
- # define CONFIG_PUSHBUTTON DISABLED
  # define CONFIG_RELAY      DISABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
@@ -184,44 +180,36 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define PUSHBUTTON_PIN   41
- # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
  # define BATTERY_CURR_PIN      1      // Battery current on A1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define PUSHBUTTON_PIN   (-1)
- # define USB_MUX_PIN      23
  # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
  # define BATTERY_CURR_PIN      2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define PUSHBUTTON_PIN   (-1)
- # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN 1      // Battery voltage on A1
  # define BATTERY_CURR_PIN 2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define PUSHBUTTON_PIN   (-1)
- # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN -1
  # define BATTERY_CURR_PIN -1
-#elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
-// XXX these are just copied, may not make sense
+#elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
+ # define BATTERY_VOLT_PIN      20
+ # define BATTERY_CURR_PIN      19
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define PUSHBUTTON_PIN   (-1)
- # define USB_MUX_PIN      -1
- # define BATTERY_VOLT_PIN -1
- # define BATTERY_CURR_PIN -1
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+ # define BATTERY_VOLT_PIN      -1
+ # define BATTERY_CURR_PIN      -1
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define PUSHBUTTON_PIN   200
- # define USB_MUX_PIN      -1
  # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
  # define BATTERY_CURR_PIN      200      // Battery current on A1
  # define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
@@ -256,7 +244,7 @@
  #define COPTER_LED_6 200  	// Motor or GPS LED
  #define COPTER_LED_7 200  	// Motor or GPS LED
  #define COPTER_LED_8 200  	// Motor or GPS LED
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
+#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4
  #define COPTER_LED_1 AN8       // Motor or Aux LED
  #define COPTER_LED_2 AN9       // Motor LED
  #define COPTER_LED_3 AN10      // Motor or GPS LED
@@ -265,16 +253,11 @@
  #define COPTER_LED_6 AN13      // Motor LED
  #define COPTER_LED_7 AN14      // Motor LED
  #define COPTER_LED_8 AN15      // Motor LED
+#else
+ // not supported yet on this board
+ #undef COPTER_LEDS
 #endif
 
-
-//////////////////////////////////////////////////////////////////////////////
-// Pushbutton & Relay
-//
-
-#ifndef CONFIG_PUSHBUTTON
- # define CONFIG_PUSHBUTTON ENABLED
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Barometer
@@ -460,9 +443,6 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
-#if defined( __AVR_ATmega2560__ )       // determines if optical flow code is included
- #define OPTFLOW                        ENABLED
-#endif
 #ifndef OPTFLOW                         // sets global enabled/disabled flag for optflow (as seen in CLI)
  # define OPTFLOW                       DISABLED
 #endif

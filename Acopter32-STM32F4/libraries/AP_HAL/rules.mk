@@ -13,6 +13,8 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += utility/Print.cpp
+cppSRCS_$(d) += Console.cpp
+cppSRCS_$(d) += Util.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

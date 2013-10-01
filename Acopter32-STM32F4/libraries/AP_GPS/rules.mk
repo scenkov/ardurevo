@@ -13,6 +13,7 @@ cSRCS_$(d) :=
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_GPS_406.cpp
 cppSRCS_$(d) += AP_GPS_Auto.cpp
+cppSRCS_$(d) += AP_GPS_Glitch.cpp
 cppSRCS_$(d) += AP_GPS_HIL.cpp
 cppSRCS_$(d) += AP_GPS_MTK.cpp
 cppSRCS_$(d) += AP_GPS_MTK19.cpp

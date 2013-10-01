@@ -13,6 +13,9 @@ cSRCS_$(d) :=
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_Airspeed.cpp
 cppSRCS_$(d) += Airspeed_Calibration.cpp
+cppSRCS_$(d) += AP_Airspeed_analog.cpp
+cppSRCS_$(d) += AP_Airspeed_PX4.cpp
+cppSRCS_$(d) += AP_Airspeed_I2C.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)
