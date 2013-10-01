@@ -40,7 +40,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-
 #ifdef CONFIG_APM_HARDWARE
 #error CONFIG_APM_HARDWARE option is deprecated! use CONFIG_HAL_BOARD instead
 #endif
@@ -119,7 +118,7 @@
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////
-// Bulk defines for TradHeli
+// TradHeli defaults
 #if FRAME_CONFIG == HELI_FRAME
   # define RC_FAST_SPEED 				125
   # define WP_YAW_BEHAVIOR_DEFAULT      YAW_LOOK_AT_HOME
@@ -402,8 +401,8 @@
 #ifndef CURR_AMPS_OFFSET
  # define CURR_AMPS_OFFSET               0.0f
 #endif
-#ifndef HIGH_DISCHARGE
- # define HIGH_DISCHARGE                 1760
+#ifndef BATTERY_CAPACITY_DEFAULT
+ # define BATTERY_CAPACITY_DEFAULT      3500
 #endif
 
 #ifndef BOARD_VOLTAGE_MIN
@@ -952,7 +951,7 @@
 // Autopilot rotate rate limits
 //
 #ifndef AUTO_YAW_SLEW_RATE
- # define AUTO_YAW_SLEW_RATE        60                     // degrees/sec
+ # define AUTO_YAW_SLEW_RATE    60              // degrees/sec
 #endif
 
 
@@ -960,11 +959,15 @@
 // Throttle control gains
 //
 #ifndef THROTTLE_CRUISE
- # define THROTTLE_CRUISE       450            //
+ # define THROTTLE_CRUISE       450             // default estimate of throttle required for vehicle to maintain a hover
 #endif
 
 #ifndef THR_MID
- # define THR_MID        500                            // Throttle output (0 ~ 1000) when throttle stick is in mid position
+ # define THR_MID               500             // Throttle output (0 ~ 1000) when throttle stick is in mid position
+#endif
+
+#ifndef ALT_HOLD_TAKEOFF_JUMP
+ # define ALT_HOLD_TAKEOFF_JUMP 20              // jump in altitude target when taking off in Loiter or AltHold flight modes
 #endif
 
 #ifndef ALT_HOLD_P
@@ -996,7 +999,6 @@
 #ifndef PILOT_VELZ_MAX
  # define PILOT_VELZ_MAX    250     // maximum vertical velocity in cm/s
 #endif
-#define ACCELERATION_MAX_Z  750     // maximum veritcal acceleration in cm/s/s
 
 // max distance in cm above or below current location that will be used for the alt target when transitioning to alt-hold mode
 #ifndef ALT_HOLD_INIT_MAX_OVERSHOOT

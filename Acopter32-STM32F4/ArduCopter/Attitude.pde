@@ -96,24 +96,6 @@ get_stabilize_yaw(int32_t target_angle)
 }
 
 static void
-get_acro_roll(int32_t target_rate)
-{
-    target_rate = target_rate * g.acro_rp_p;
-
-    // set targets for rate controller
-    set_roll_rate_target(target_rate, BODY_FRAME);
-}
-
-static void
-get_acro_pitch(int32_t target_rate)
-{
-    target_rate = target_rate * g.acro_rp_p;
-
-    // set targets for rate controller
-    set_pitch_rate_target(target_rate, BODY_FRAME);
-}
-
-static void
 get_acro_yaw(int32_t target_rate)
 {
     target_rate = target_rate * g.acro_yaw_p;
@@ -1002,12 +984,14 @@ set_throttle_takeoff()
 {
     // set alt target
     if (controller_desired_alt < current_loc.alt) {
-        controller_desired_alt = current_loc.alt + 20;
+        controller_desired_alt = current_loc.alt + ALT_HOLD_TAKEOFF_JUMP;
     }
     // clear i term from acceleration controller
     if (g.pid_throttle_accel.get_integrator() < 0) {
         g.pid_throttle_accel.reset_I();
     }
+    // tell motors to do a slow start
+    motors.slow_start(true);
 }
 
 // get_throttle_accel - accelerometer based throttle controller

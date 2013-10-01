@@ -300,10 +300,6 @@ static void startup_ground(void)
     ahrs2.set_fast_gains(true);
 #endif
 
-    // when we re-calibrate the gyros,
-    // all previous I values are invalid
-    reset_I_all();
-
     // set landed flag
     set_land_complete(true);
 }
@@ -363,22 +359,14 @@ static bool set_mode(uint8_t mode)
     switch(mode) {
         case ACRO:
             success = true;
-            ap.manual_throttle = true;
-            ap.manual_attitude = true;
             set_yaw_mode(ACRO_YAW);
             set_roll_pitch_mode(ACRO_RP);
             set_throttle_mode(ACRO_THR);
             set_nav_mode(NAV_NONE);
-            // reset acro level rates
-            acro_roll_rate = 0;
-            acro_pitch_rate = 0;
-            acro_yaw_rate = 0;
             break;
 
         case STABILIZE:
             success = true;
-            ap.manual_throttle = true;
-            ap.manual_attitude = true;
             set_yaw_mode(YAW_HOLD);
             set_roll_pitch_mode(ROLL_PITCH_STABLE);
             set_throttle_mode(THROTTLE_MANUAL_TILT_COMPENSATED);
@@ -387,8 +375,6 @@ static bool set_mode(uint8_t mode)
 
         case ALT_HOLD:
             success = true;
-            ap.manual_throttle = false;
-            ap.manual_attitude = true;
             set_yaw_mode(ALT_HOLD_YAW);
             set_roll_pitch_mode(ALT_HOLD_RP);
             set_throttle_mode(ALT_HOLD_THR);
@@ -399,8 +385,6 @@ static bool set_mode(uint8_t mode)
             // check we have a GPS and at least one mission command (note the home position is always command 0)
             if ((GPS_ok() && g.command_total > 1) || ignore_checks) {
                 success = true;
-                ap.manual_throttle = false;
-                ap.manual_attitude = false;
                 // roll-pitch, throttle and yaw modes will all be set by the first nav command
                 init_commands();            // clear the command queues. will be reloaded when "run_autopilot" calls "update_commands" function
             }
@@ -409,8 +393,6 @@ static bool set_mode(uint8_t mode)
         case CIRCLE:
             if (GPS_ok() || ignore_checks) {
                 success = true;
-                ap.manual_throttle = false;
-                ap.manual_attitude = false;
                 set_roll_pitch_mode(CIRCLE_RP);
                 set_throttle_mode(CIRCLE_THR);
                 set_nav_mode(CIRCLE_NAV);
@@ -421,8 +403,6 @@ static bool set_mode(uint8_t mode)
         case LOITER:
             if (GPS_ok() || ignore_checks) {
                 success = true;
-                ap.manual_throttle = false;
-                ap.manual_attitude = false;
                 set_yaw_mode(LOITER_YAW);
                 set_roll_pitch_mode(LOITER_RP);
                 set_throttle_mode(LOITER_THR);
@@ -433,8 +413,6 @@ static bool set_mode(uint8_t mode)
         case POSITION:
             if (GPS_ok() || ignore_checks) {
                 success = true;
-                ap.manual_throttle = true;
-                ap.manual_attitude = false;
                 set_yaw_mode(POSITION_YAW);
                 set_roll_pitch_mode(POSITION_RP);
                 set_throttle_mode(POSITION_THR);
@@ -445,8 +423,6 @@ static bool set_mode(uint8_t mode)
         case GUIDED:
             if (GPS_ok() || ignore_checks) {
                 success = true;
-                ap.manual_throttle = false;
-                ap.manual_attitude = false;
                 set_yaw_mode(get_wp_yaw_mode(false));
                 set_roll_pitch_mode(GUIDED_RP);
                 set_throttle_mode(GUIDED_THR);
@@ -456,17 +432,12 @@ static bool set_mode(uint8_t mode)
 
         case LAND:
             success = true;
-            // To-Do: it is messy to set manual_attitude here because the do_land function is reponsible for setting the roll_pitch_mode
-            ap.manual_attitude = !GPS_ok();
-            ap.manual_throttle = false;
             do_land(NULL);  // land at current location
             break;
 
         case RTL:
             if (GPS_ok() || ignore_checks) {
                 success = true;
-                ap.manual_throttle = false;
-                ap.manual_attitude = false;
                 do_RTL();
             }
             break;
@@ -474,8 +445,6 @@ static bool set_mode(uint8_t mode)
         case OF_LOITER:
             if (g.optflow_enabled || ignore_checks) {
                 success = true;
-                ap.manual_throttle = false;
-                ap.manual_attitude = false;
                 set_yaw_mode(OF_LOITER_YAW);
                 set_roll_pitch_mode(OF_LOITER_RP);
                 set_throttle_mode(OF_LOITER_THR);
@@ -488,8 +457,6 @@ static bool set_mode(uint8_t mode)
         // See the defines for the enumerated values
         case TOY_A:
             success = true;
-            ap.manual_throttle = false;
-            ap.manual_attitude = true;
             set_yaw_mode(YAW_TOY);
             set_roll_pitch_mode(ROLL_PITCH_TOY);
             set_throttle_mode(THROTTLE_AUTO);
@@ -501,8 +468,6 @@ static bool set_mode(uint8_t mode)
 
         case TOY_M:
             success = true;
-            ap.manual_throttle = false;
-            ap.manual_attitude = true;
             set_yaw_mode(YAW_TOY);
             set_roll_pitch_mode(ROLL_PITCH_TOY);
             set_nav_mode(NAV_NONE);
@@ -511,8 +476,6 @@ static bool set_mode(uint8_t mode)
 
         case SPORT:
             success = true;
-            ap.manual_throttle = true;
-            ap.manual_attitude = true;
             set_yaw_mode(SPORT_YAW);
             set_roll_pitch_mode(SPORT_RP);
             set_throttle_mode(SPORT_THR);
@@ -530,10 +493,6 @@ static bool set_mode(uint8_t mode)
 
     // update flight mode
     if (success) {
-        if(ap.manual_attitude) {
-            // We are under manual attitude control so initialise nav parameter for when we next enter an autopilot mode
-            reset_nav_params();
-        }
         control_mode = mode;
         Log_Write_Mode(control_mode);
     }else{
@@ -630,7 +589,7 @@ void flash_leds(bool on)
  */
 uint16_t board_voltage(void)
 {
-    return board_vcc_analog_source->read_latest();
+    return board_vcc_analog_source->voltage_latest() * 1000;
 }
 
 //

@@ -44,7 +44,7 @@ static void gcs_send_deferred(void)
 static NOINLINE void send_heartbeat(mavlink_channel_t chan)
 {
     uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-    uint8_t system_status = MAV_STATE_ACTIVE;
+    uint8_t system_status = ap.land_complete ? MAV_STATE_STANDBY : MAV_STATE_ACTIVE;
     uint32_t custom_mode = control_mode;
     
     if (ap.failsafe_radio == true)  {
@@ -1218,9 +1218,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_COMPONENT_ARM_DISARM:
             if (packet.target_component == MAV_COMP_ID_SYSTEM_CONTROL) {
                 if (packet.param1 == 1.0f) {
-                    // run pre-arm-checks and display failures
+                    // run pre_arm_checks and arm_checks and display failures
                     pre_arm_checks(true);
-                    if(ap.pre_arm_check) {
+                    if(ap.pre_arm_check && arm_checks(true)) {
                         init_arm_motors();
                     }
                     result = MAV_RESULT_ACCEPTED;

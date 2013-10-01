@@ -11,12 +11,6 @@ CFLAGS_$(d) :=
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
-cppSRCS_$(d) += AP_BoardLED.cpp
-cppSRCS_$(d) += AP_Notify.cpp
-cppSRCS_$(d) += ToshibaLED_I2C.cpp
-cppSRCS_$(d) += ToshibaLED_PX4.cpp
-cppSRCS_$(d) += ToshibaLED.cpp
-cppSRCS_$(d) += ToneAlarm_PX4.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

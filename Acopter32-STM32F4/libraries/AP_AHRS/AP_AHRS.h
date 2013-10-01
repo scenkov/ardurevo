@@ -3,12 +3,23 @@
 #ifndef __AP_AHRS_H__
 #define __AP_AHRS_H__
 /*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  *  AHRS (Attitude Heading Reference System) interface for ArduPilot
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
  */
 
 #include <AP_Math.h>
@@ -179,6 +190,14 @@ public:
 
     // return a ground vector estimate in meters/second, in North/East order
     Vector2f groundspeed_vector(void);
+
+    // return ground speed estimate in meters/second. Used by ground vehicles.
+    float groundspeed(void) const {
+        if (!_gps || _gps->status() <= GPS::NO_FIX) {
+            return 0.0f;
+        }
+        return _gps->ground_speed_cm * 0.01f;
+    }
 
     // return true if we will use compass for yaw
     virtual bool use_compass(void) const { return _compass && _compass->use_for_yaw(); }

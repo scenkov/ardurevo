@@ -14,6 +14,7 @@ cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_YawController.cpp
 cppSRCS_$(d) += AP_RollController.cpp
 cppSRCS_$(d) += AP_PitchController.cpp
+cppSRCS_$(d) += AP_SteerController.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

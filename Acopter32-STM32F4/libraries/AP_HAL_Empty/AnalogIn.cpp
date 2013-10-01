@@ -1,4 +1,3 @@
-
 #include "AnalogIn.h"
 
 using namespace Empty;
@@ -12,6 +11,10 @@ float EmptyAnalogSource::read_average() {
 }
 
 float EmptyAnalogSource::voltage_average() {
+    return 5.0 * _v / 1024.0;
+}
+
+float EmptyAnalogSource::voltage_latest() {
     return 5.0 * _v / 1024.0;
 }
 

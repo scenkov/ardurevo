@@ -1,12 +1,23 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  *       AP_MotorsMatrix.cpp - ArduCopter motors library
  *       Code by RandyMackay. DIYDrones.com
  *
- *       This library is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
  */
 #include <AP_HAL.h>
 #include "AP_MotorsMatrix.h"
@@ -48,7 +59,7 @@ void AP_MotorsMatrix::set_update_rate( uint16_t speed_hz )
 void AP_MotorsMatrix::set_frame_orientation( uint8_t new_orientation )
 {
     // return if nothing has changed
-    if( new_orientation == _frame_orientation ) {
+    if( new_orientation == _flags.frame_orientation ) {
         return;
     }
 
@@ -121,7 +132,14 @@ void AP_MotorsMatrix::output_armed()
 
     // Throttle is 0 to 1000 only
     // To-Do: we should not really be limiting this here because we don't "own" this _rc_throttle object
-    _rc_throttle->servo_out = constrain_int16(_rc_throttle->servo_out, 0, _max_throttle);
+    if (_rc_throttle->servo_out < 0) {
+        _rc_throttle->servo_out = 0;
+        limit.throttle_lower = true;
+    }
+    if (_rc_throttle->servo_out > _max_throttle) {
+        _rc_throttle->servo_out = _max_throttle;
+        limit.throttle_upper = true;
+    }
 
     // capture desired roll, pitch, yaw and throttle from receiver
     _rc_roll->calc_pwm();

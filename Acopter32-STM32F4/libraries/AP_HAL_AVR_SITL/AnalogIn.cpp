@@ -24,10 +24,14 @@ float ADCSource::voltage_average() {
 	return (5.0f/1023.0f) * read_average();
 }
 
+float ADCSource::voltage_latest() {
+	return (5.0f/1023.0f) * read_latest();
+}
+
 float ADCSource::read_latest() {
     switch (_pin) {
     case ANALOG_INPUT_BOARD_VCC:
-        return 4900;
+        return 1023;
         
     case 0:
         return _sitlState->airspeed_pin_value;

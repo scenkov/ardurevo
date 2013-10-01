@@ -106,7 +106,7 @@
 #include <AP_Camera.h>          // Photo or video camera
 #include <AP_Mount.h>           // Camera/Antenna mount
 #include <AP_Airspeed.h>        // needed for AHRS build
-#include <AP_SpdHgtControl.h>   // needed for AHRS build
+#include <AP_Vehicle.h>         // needed for AHRS build
 #include <AP_InertialNav.h>     // ArduPilot Mega inertial navigation library
 #include <AC_WPNav.h>     		// ArduCopter waypoint navigation library
 #include <AP_Declination.h>     // ArduPilot Mega Declination Helper Library
@@ -116,6 +116,9 @@
 #include <AP_Scheduler.h>       // main loop scheduler
 #include <AP_RCMapper.h>        // RC input mapping library
 #include <AP_Notify.h>          // Notify library
+#if SPRAYER == ENABLED
+#include <AC_Sprayer.h>         // crop sprayer library
+#endif
 
 // AP_HAL to Arduino compatibility layer
 #include "compat.h"
@@ -390,8 +393,6 @@ static union {
     struct {
         uint8_t home_is_set         : 1; // 0
         uint8_t simple_mode         : 2; // 1,2  // This is the state of simple mode : 0 = disabled ; 1 = SIMPLE ; 2 = SUPERSIMPLE
-        uint8_t manual_attitude     : 1; // 3
-        uint8_t manual_throttle     : 1; // 4
 
         uint8_t pre_arm_rc_check    : 1; // 5    // true if rc input pre-arm checks have been completed successfully
         uint8_t pre_arm_check       : 1; // 6    // true if all pre-arm checks (rc, accel calibration, gps lock) have been performed
@@ -1449,8 +1450,11 @@ bool set_yaw_mode(uint8_t new_yaw_mode)
 
     switch( new_yaw_mode ) {
         case YAW_HOLD:
+            yaw_initialised = true;
+            break;
         case YAW_ACRO:
             yaw_initialised = true;
+            acro_yaw_rate = 0;
             break;
         case YAW_LOOK_AT_NEXT_WP:
             if( ap.home_is_set ) {
@@ -1678,7 +1682,14 @@ bool set_roll_pitch_mode(uint8_t new_roll_pitch_mode)
 
     switch( new_roll_pitch_mode ) {
         case ROLL_PITCH_STABLE:
+            roll_pitch_initialised = true;
+            break;
         case ROLL_PITCH_ACRO:
+            // reset acro level rates
+            acro_roll_rate = 0;
+            acro_pitch_rate = 0;
+            roll_pitch_initialised = true;
+            break;
         case ROLL_PITCH_AUTO:
         case ROLL_PITCH_STABLE_OF:
         case ROLL_PITCH_TOY:
@@ -2059,6 +2070,11 @@ void update_throttle_mode(void)
     case THROTTLE_AUTO:
         // auto pilot altitude controller with target altitude held in wp_nav.get_desired_alt()
         if(ap.auto_armed) {
+            // special handling if we are just taking off
+            if (ap.land_complete) {
+                // tell motors to do a slow start.
+                motors.slow_start(true);
+            }
             get_throttle_althold_with_slew(wp_nav.get_desired_alt(), -wp_nav.get_descent_velocity(), wp_nav.get_climb_velocity());
             set_target_alt_for_reporting(wp_nav.get_desired_alt()); // To-Do: return get_destination_alt if we are flying to a waypoint
         }else{
