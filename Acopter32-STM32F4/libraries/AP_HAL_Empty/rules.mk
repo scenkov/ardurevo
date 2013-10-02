@@ -24,7 +24,6 @@ cppSRCS_$(d) += Semaphores.cpp
 cppSRCS_$(d) += SPIDriver.cpp
 cppSRCS_$(d) += Storage.cpp
 cppSRCS_$(d) += UARTDriver.cpp
-cppSRCS_$(d) += Util.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

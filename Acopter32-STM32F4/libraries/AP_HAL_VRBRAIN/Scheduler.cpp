@@ -9,11 +9,11 @@ using namespace VRBRAIN;
 
 extern const AP_HAL::HAL& hal;
 
-AP_HAL::TimedProc VRBRAINScheduler::_failsafe = NULL;
+AP_HAL::Proc VRBRAINScheduler::_failsafe = NULL;
 volatile bool VRBRAINScheduler::_timer_suspended = false;
 volatile bool VRBRAINScheduler::_timer_event_missed = false;
 volatile bool VRBRAINScheduler::_in_timer_proc = false;
-AP_HAL::TimedProc VRBRAINScheduler::_timer_proc[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
+AP_HAL::MemberProc VRBRAINScheduler::_timer_proc[VRBRAIN_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
 uint8_t VRBRAINScheduler::_num_timer_procs = 0;
 uint32 VRBRAINScheduler::_scheduler_last_call = 0;
 uint16_t VRBRAINScheduler::_scheduler_led = 0;

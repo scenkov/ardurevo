@@ -13,8 +13,12 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += utility/Print.cpp
+cppSRCS_$(d) += utility/ftoa_engine.cpp
+cppSRCS_$(d) += utility/print_vprintf.cpp
+cppSRCS_$(d) += utility/utoa_invert.cpp
 cppSRCS_$(d) += Console.cpp
 cppSRCS_$(d) += Util.cpp
+cppSRCS_$(d) += UARTDriver.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

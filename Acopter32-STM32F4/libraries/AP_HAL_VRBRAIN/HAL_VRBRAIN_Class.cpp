@@ -31,7 +31,7 @@ static VRBRAINI2CDriver  i2cDriver(_I2C2,&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;
 static VRBRAINAnalogIn analogIn;
 static VRBRAINStorage storageDriver;
-static VRBRAINConsoleDriver consoleDriver;
+static VRBRAINConsoleDriver consoleDriver(&uartADriver);
 static VRBRAINGPIO gpioDriver;
 static VRBRAINRCInput rcinDriver;
 static VRBRAINRCOutput rcoutDriver;
@@ -59,8 +59,6 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
     //_member(new VRBRAINPrivateMember(123))
 {}
 
-extern const AP_HAL::HAL& hal;
-
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
 {
   /* initialize all drivers and private members here.
@@ -68,22 +66,22 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   //delay_us(2000000);
 
-  hal.scheduler->init(NULL);
+  scheduler->init(NULL);
   //uartA->begin(115200);
 
-  hal.uartA->begin(57600);
-  hal.uartB->begin(38400);
-  hal.uartC->begin(57600);
+  uartA->begin(57600);
+  uartB->begin(38400);
+  uartC->begin(57600);
 
-  hal.console->init((void *)hal.uartA);
+  console->init(uartA);
   //_member->init();
-  hal.i2c->begin();
+  i2c->begin();
   //hal.i2c2->begin();
-  hal.spi->init(NULL);
-  hal.storage->init(NULL);
-  hal.rcin->init(NULL);
+  spi->init(NULL);
+  storage->init(NULL);
+  rcin->init(NULL);
 
-  hal.rcout->init((void *)&_is_ppmsum);
+  rcout->init((void *)&_is_ppmsum);
 
 }
 

@@ -25,15 +25,18 @@ void AP_Notify::init(void)
     boardled.init();
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     tonealarm.init();
-#endif
+#elif CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
     toshibaled.init();
+#endif
 }
 
 // main update function, called at 50Hz
 void AP_Notify::update(void)
 {
     boardled.update();
+#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
     toshibaled.update();
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     tonealarm.update();

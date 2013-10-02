@@ -650,9 +650,8 @@ setup_accel(uint8_t argc, const Menu::arg *argv)
 {
     ahrs.init();
     ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate,
-             flash_leds);
-    ins.init_accel(flash_leds);
+             ins_sample_rate);
+    ins.init_accel();
     ahrs.set_trim(Vector3f(0,0,0));     // clear out saved trim
     report_ins();
     return(0);

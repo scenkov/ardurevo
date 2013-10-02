@@ -50,7 +50,6 @@ extern const AP_HAL::HAL& hal;
  #define ARSPD_DEFAULT_PIN 16
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
  #define ARSPD_DEFAULT_PIN 65
-#else
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  #define ARSPD_DEFAULT_PIN 200
 #else

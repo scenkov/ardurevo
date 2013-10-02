@@ -13,7 +13,6 @@ cSRCS_$(d) :=
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_AHRS_DCM.cpp
 cppSRCS_$(d) += AP_AHRS_HIL.cpp
-cppSRCS_$(d) += AP_AHRS_MPU6000.cpp
 cppSRCS_$(d) += AP_AHRS.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)

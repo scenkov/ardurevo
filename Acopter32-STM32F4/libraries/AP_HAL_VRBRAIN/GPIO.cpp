@@ -4,6 +4,7 @@
 #include <ext_interrupts.h>
 #include <exti.h>
 #include <boards.h>
+#include "io.h"
 
 static inline exti_trigger_mode exti_out_mode(ExtIntTriggerMode mode);
 

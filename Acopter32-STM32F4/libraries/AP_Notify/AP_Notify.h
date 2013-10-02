@@ -58,7 +58,7 @@ private:
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     ToshibaLED_PX4 toshibaled;
     ToneAlarm_PX4 tonealarm;
-#else
+#elif CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
     ToshibaLED_I2C toshibaled;
 #endif
 };

@@ -15,7 +15,6 @@ cppSRCS_$(d) += AP_InertialSensor_MPU6000.cpp
 cppSRCS_$(d) += AP_InertialSensor_MPU6000_Ext.cpp
 cppSRCS_$(d) += AP_InertialSensor_Oilpan.cpp
 cppSRCS_$(d) += AP_InertialSensor_PX4.cpp
-cppSRCS_$(d) += AP_InertialSensor_Stub.cpp
 cppSRCS_$(d) += AP_InertialSensor_UserInteract_Stream.cpp
 cppSRCS_$(d) += AP_InertialSensor.cpp
 cppSRCS_$(d) += AP_InertialSensor_UserInteract_MAVLink.cpp

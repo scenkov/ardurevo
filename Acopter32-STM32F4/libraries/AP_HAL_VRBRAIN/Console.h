@@ -29,7 +29,7 @@ public:
 
     size_t write(uint8_t c);
 private:
-    VRBRAINUARTDriver *_uart;
+    AP_HAL::UARTDriver* _uart;
 };
 
 #endif // __AP_HAL_VRBRAIN_CONSOLE_H__
