@@ -162,5 +162,14 @@ size_t VRBRAINUARTDriver::write(uint8_t c) {
     }
 }
 
+size_t VRBRAINUARTDriver::write(const uint8_t *buffer, size_t size)
+{
+    size_t n = 0;
+    while (size--) {
+        n += write(*buffer++);
+    }
+    return n;
+}
+
 #endif // CONFIG_HAL_BOARD
 
