@@ -28,6 +28,8 @@ public:
     int16_t read();
 
     size_t write(uint8_t c);
+    size_t write(const uint8_t *buffer, size_t size);
+
 private:
     AP_HAL::UARTDriver* _uart;
 };

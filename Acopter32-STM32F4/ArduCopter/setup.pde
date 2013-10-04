@@ -4,17 +4,14 @@
 
 // Functions called from the setup menu
 static int8_t   setup_accel_scale       (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_batt_monitor      (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_compass           (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_compassmot        (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_declination       (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_erase             (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_frame             (uint8_t argc, const Menu::arg *argv);
  #if FRAME_CONFIG == HELI_FRAME
 static int8_t   setup_gyro              (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_heli              (uint8_t argc, const Menu::arg *argv);
  #endif
-static int8_t   setup_accel             (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_flightmodes       (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_optflow           (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_radio             (uint8_t argc, const Menu::arg *argv);
@@ -23,7 +20,6 @@ static int8_t   setup_factory           (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_set               (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_show              (uint8_t argc, const Menu::arg *argv);
 static int8_t   setup_sonar             (uint8_t argc, const Menu::arg *argv);
-static int8_t   setup_tune              (uint8_t argc, const Menu::arg *argv);
 
 
 // Command/function table for the setup menu
@@ -31,17 +27,14 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
     // command			function called
     // =======          ===============
     {"accel",                       setup_accel_scale},
-    {"battery",                     setup_batt_monitor},
     {"compass",                     setup_compass},
     {"compassmot",                  setup_compassmot},
-    {"declination",                 setup_declination},
     {"erase",                       setup_erase},
     {"frame",                       setup_frame},
  #if FRAME_CONFIG == HELI_FRAME
     {"gyro",                        setup_gyro},
     {"heli",                        setup_heli},
  #endif
-    {"level",                       setup_accel},
     {"modes",                       setup_flightmodes},
     {"optflow",                     setup_optflow},
     {"radio",                       setup_radio},
@@ -50,7 +43,6 @@ const struct Menu::command setup_menu_commands[] PROGMEM = {
     {"set",                         setup_set},
     {"show",                        setup_show},
     {"sonar",                       setup_sonar},
-    {"tune",                        setup_tune}
 };
 
 // Create the setup menu object.
@@ -91,23 +83,6 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
     }
     report_ins();
     return(0);
-}
-
-static int8_t
-setup_batt_monitor(uint8_t argc, const Menu::arg *argv)
-{
-    if (!strcmp_P(argv[1].str, PSTR("off"))) {
-        g.battery_monitoring.set_and_save(0);
-
-    } else if(argv[1].i > 0 && argv[1].i <= 4) {
-        g.battery_monitoring.set_and_save(argv[1].i);
-
-    } else {
-        cliSerial->printf_P(PSTR("\nOp: off, 3-4"));
-    }
-
-    report_batt_monitor();
-    return 0;
 }
 
 static int8_t
@@ -152,7 +127,7 @@ setup_compassmot(uint8_t argc, const Menu::arg *argv)
     bool     updated = false;           // have we updated the compensation vector at least once
 
     // default compensation type to use current if possible
-    if( g.battery_monitoring == BATT_MONITOR_VOLTAGE_AND_CURRENT ) {
+    if (battery.monitoring() == AP_BATT_MONITOR_VOLTAGE_AND_CURRENT) {
         comp_type = AP_COMPASS_MOT_COMP_CURRENT;
     }else{
         comp_type = AP_COMPASS_MOT_COMP_THROTTLE;
@@ -290,10 +265,10 @@ setup_compassmot(uint8_t argc, const Menu::arg *argv)
                     updated = true;
                 }else{
                     // current based compensation if more than 3amps being drawn
-                    motor_impact_scaled = motor_impact / current_amps1;
+                    motor_impact_scaled = motor_impact / battery.current_amps();
 
                     // adjust the motor compensation to negate the impact if drawing over 3amps
-                    if( current_amps1 >= 3.0f ) {
+                    if( battery.current_amps() >= 3.0f ) {
                         motor_compensation = motor_compensation * 0.99f - motor_impact_scaled * 0.01f;
                         updated = true;
                     }
@@ -301,7 +276,7 @@ setup_compassmot(uint8_t argc, const Menu::arg *argv)
 
                 // record maximum throttle and current
                 throttle_pct_max = max(throttle_pct_max, throttle_pct);
-                current_amps_max = max(current_amps_max, current_amps1);
+                current_amps_max = max(current_amps_max, battery.current_amps());
 
                 // display output at 1hz if throttle is above zero
                 print_counter++;
@@ -359,15 +334,7 @@ setup_compassmot(uint8_t argc, const Menu::arg *argv)
 static void display_compassmot_info(Vector3f& motor_impact, Vector3f& motor_compensation)
 {
     // print one more time so the last thing printed matches what appears in the report_compass
-    cliSerial->printf_P(PSTR("thr:%d cur:%4.2f mot x:%4.1f y:%4.1f z:%4.1f  comp x:%4.2f y:%4.2f z:%4.2f\n"),(int)g.rc_3.control_in, (float)current_amps1, (float)motor_impact.x, (float)motor_impact.y, (float)motor_impact.z, (float)motor_compensation.x, (float)motor_compensation.y, (float)motor_compensation.z);
-}
-
-static int8_t
-setup_declination(uint8_t argc, const Menu::arg *argv)
-{
-    compass.set_declination(radians(argv[1].f));
-    report_compass();
-    return 0;
+    cliSerial->printf_P(PSTR("thr:%d cur:%4.2f mot x:%4.1f y:%4.1f z:%4.1f  comp x:%4.2f y:%4.2f z:%4.2f\n"),(int)g.rc_3.control_in, (float)battery.current_amps(), (float)motor_impact.x, (float)motor_impact.y, (float)motor_impact.z, (float)motor_compensation.x, (float)motor_compensation.y, (float)motor_compensation.z);
 }
 
 static int8_t
@@ -644,18 +611,6 @@ setup_heli(uint8_t argc, const Menu::arg *argv)
     return(0);
 }
 #endif // FRAME_CONFIG == HELI
-
-static int8_t
-setup_accel(uint8_t argc, const Menu::arg *argv)
-{
-    ahrs.init();
-    ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate);
-    ins.init_accel();
-    ahrs.set_trim(Vector3f(0,0,0));     // clear out saved trim
-    report_ins();
-    return(0);
-}
 
 static int8_t
 setup_flightmodes(uint8_t argc, const Menu::arg *argv)
@@ -1004,14 +959,6 @@ setup_sonar(uint8_t argc, const Menu::arg *argv)
     return 0;
 }
 
-static int8_t
-setup_tune(uint8_t argc, const Menu::arg *argv)
-{
-    g.radio_tuning.set_and_save(argv[1].i);
-    report_tuning();
-    return 0;
-}
-
 /***************************************************************************/
 // CLI reports
 /***************************************************************************/
@@ -1020,9 +967,9 @@ static void report_batt_monitor()
 {
     cliSerial->printf_P(PSTR("\nBatt Mon:\n"));
     print_divider();
-    if(g.battery_monitoring == BATT_MONITOR_DISABLED) print_enabled(false);
-    if(g.battery_monitoring == BATT_MONITOR_VOLTAGE_ONLY) cliSerial->printf_P(PSTR("volts"));
-    if(g.battery_monitoring == BATT_MONITOR_VOLTAGE_AND_CURRENT) cliSerial->printf_P(PSTR("volts and cur"));
+    if (battery.monitoring() == AP_BATT_MONITOR_DISABLED) print_enabled(false);
+    if (battery.monitoring() == AP_BATT_MONITOR_VOLTAGE_ONLY) cliSerial->printf_P(PSTR("volts"));
+    if (battery.monitoring() == AP_BATT_MONITOR_VOLTAGE_AND_CURRENT) cliSerial->printf_P(PSTR("volts and cur"));
     print_blanks(2);
 }
 

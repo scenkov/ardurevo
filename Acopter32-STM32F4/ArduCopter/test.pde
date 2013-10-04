@@ -7,9 +7,7 @@
 #if HIL_MODE != HIL_MODE_ATTITUDE && HIL_MODE != HIL_MODE_SENSORS
 static int8_t   test_baro(uint8_t argc,                 const Menu::arg *argv);
 #endif
-static int8_t   test_battery(uint8_t argc,              const Menu::arg *argv);
 static int8_t   test_compass(uint8_t argc,              const Menu::arg *argv);
-static int8_t   test_eedump(uint8_t argc,               const Menu::arg *argv);
 static int8_t   test_gps(uint8_t argc,                  const Menu::arg *argv);
 static int8_t   test_ins(uint8_t argc,                  const Menu::arg *argv);
 static int8_t   test_logging(uint8_t argc,              const Menu::arg *argv);
@@ -24,7 +22,6 @@ static int8_t   test_shell(uint8_t argc,                const Menu::arg *argv);
 #if HIL_MODE != HIL_MODE_ATTITUDE && HIL_MODE != HIL_MODE_SENSORS
 static int8_t   test_sonar(uint8_t argc,                const Menu::arg *argv);
 #endif
-static int8_t   test_tuning(uint8_t argc,               const Menu::arg *argv);
 
 // Creates a constant array of structs representing menu options
 // and stores them in Flash memory, not RAM.
@@ -34,9 +31,7 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 #if HIL_MODE != HIL_MODE_ATTITUDE && HIL_MODE != HIL_MODE_SENSORS
     {"baro",                test_baro},
 #endif
-    {"battery",             test_battery},
     {"compass",             test_compass},
-    {"eedump",              test_eedump},
     {"gps",                 test_gps},
     {"ins",                 test_ins},
     {"logging",             test_logging},
@@ -51,7 +46,6 @@ const struct Menu::command test_menu_commands[] PROGMEM = {
 #if HIL_MODE != HIL_MODE_ATTITUDE && HIL_MODE != HIL_MODE_SENSORS
     {"sonar",               test_sonar},
 #endif
-    {"tune",                test_tuning}
 };
 
 // A Macro to create the Menu
@@ -91,54 +85,6 @@ test_baro(uint8_t argc, const Menu::arg *argv)
     return 0;
 }
 #endif
-
-static int8_t
-test_battery(uint8_t argc, const Menu::arg *argv)
-{
-    // check if radio is calibration
-    pre_arm_rc_checks();
-    if(!ap.pre_arm_rc_check) {
-        cliSerial->print_P(PSTR("radio not calibrated, exiting"));
-        return(0);
-    }
-
-    cliSerial->printf_P(PSTR("\nCareful! Motors will spin! Press Enter to start.\n"));
-    while (cliSerial->read() != -1); /* flush */
-    while(!cliSerial->available()) { /* wait for input */
-        delay(100);
-    }
-    while (cliSerial->read() != -1); /* flush */
-    print_hit_enter();
-
-    // allow motors to spin
-    output_min();
-    motors.armed(true);
-
-    while(1) {
-        delay(100);
-        read_radio();
-        read_battery();
-        if (g.battery_monitoring == BATT_MONITOR_VOLTAGE_ONLY) {
-            cliSerial->printf_P(PSTR("V: %4.4f\n"),
-                            battery_voltage1,
-                            current_amps1,
-                            current_total1);
-        } else {
-            cliSerial->printf_P(PSTR("V: %4.4f, A: %4.4f, Ah: %4.4f\n"),
-                            battery_voltage1,
-                            current_amps1,
-                            current_total1);
-        }
-        motors.throttle_pass_through();
-
-        if(cliSerial->available() > 0) {
-            motors.armed(false);
-            return (0);
-        }
-    }
-    motors.armed(false);
-    return (0);
-}
 
 static int8_t
 test_compass(uint8_t argc, const Menu::arg *argv)
@@ -220,22 +166,6 @@ test_compass(uint8_t argc, const Menu::arg *argv)
     cliSerial->println_P(PSTR("saving offsets"));
     compass.save_offsets();
     return (0);
-}
-
-static int8_t
-test_eedump(uint8_t argc, const Menu::arg *argv)
-{
-
-    // hexdump the EEPROM
-    for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i += 16) {
-        cliSerial->printf_P(PSTR("%04x:"), i);
-        for (uint16_t j = 0; j < 16; j++)  {
-            int b = hal.storage->read_byte(i+j);
-            cliSerial->printf_P(PSTR(" %02x"), b);
-        }
-        cliSerial->println();
-    }
-    return(0);
 }
 
 static int8_t
@@ -498,24 +428,6 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
     return (0);
 }
 #endif
-
-
-static int8_t
-test_tuning(uint8_t argc, const Menu::arg *argv)
-{
-    print_hit_enter();
-
-    while(1) {
-        delay(200);
-        read_radio();
-        tuning();
-        cliSerial->printf_P(PSTR("tune: %1.3f\n"), tuning_value);
-
-        if(cliSerial->available() > 0) {
-            return (0);
-        }
-    }
-}
 
 static void print_hit_enter()
 {

@@ -52,4 +52,7 @@ int16_t VRBRAINConsoleDriver::read() {
 size_t VRBRAINConsoleDriver::write(uint8_t c) {
     return _uart->write(c);
 }
+size_t VRBRAINConsoleDriver::write(const uint8_t *buffer, size_t size) {
+    return _uart->write(buffer, size);
+}
 

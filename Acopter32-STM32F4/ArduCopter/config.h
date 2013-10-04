@@ -74,14 +74,20 @@
  # define CONFIG_BARO       AP_BARO_PX4
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
-#elif CONFIG_HAL_BOARD == HAL_BOARD_SMACCM
- # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
- # define CONFIG_BARO       AP_BARO_MS5611
- # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
+#elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
+ # define CONFIG_IMU_TYPE CONFIG_IMU_FLYMAPLE
+ # define CONFIG_BARO AP_BARO_BMP085
+ # define CONFIG_COMPASS  AP_COMPASS_HMC5843
  # define CONFIG_ADC        DISABLED
- # define CONFIG_PUSHBUTTON DISABLED
- # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
  # define MAGNETOMETER ENABLED
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
+ # define CONFIG_IMU_TYPE CONFIG_IMU_SITL
+ # define CONFIG_BARO AP_BARO_BMP085
+ # define CONFIG_COMPASS  AP_COMPASS_HMC5843
+ # define CONFIG_ADC        DISABLED
+ # define MAGNETOMETER ENABLED
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
  //# define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000_EXT
@@ -371,21 +377,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // Battery monitoring
 //
-#ifndef LOW_VOLTAGE
- # define LOW_VOLTAGE                    10.5f
-#endif
-#ifndef VOLT_DIV_RATIO
- # define VOLT_DIV_RATIO                 3.56f
+#ifndef FS_BATT_VOLTAGE_DEFAULT
+ # define FS_BATT_VOLTAGE_DEFAULT       10.5f       // default battery voltage below which failsafe will be triggered
 #endif
 
-#ifndef CURR_AMP_PER_VOLT
- # define CURR_AMP_PER_VOLT              27.32f
-#endif
-#ifndef CURR_AMPS_OFFSET
- # define CURR_AMPS_OFFSET               0.0f
-#endif
-#ifndef BATTERY_CAPACITY_DEFAULT
- # define BATTERY_CAPACITY_DEFAULT      3500
+#ifndef FS_BATT_MAH_DEFAULT
+ # define FS_BATT_MAH_DEFAULT             0         // default battery capacity (in mah) below which failsafe will be triggered
 #endif
 
 #ifndef BOARD_VOLTAGE_MIN
@@ -476,6 +473,12 @@
 #endif
 #ifndef OPTFLOW_IMAX
  #define OPTFLOW_IMAX 100
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+//  Auto Tuning
+#ifndef AUTOTUNE
+ # define AUTOTUNE  DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1099,10 +1102,6 @@
   #  define CLI_ENABLED           ENABLED
 #endif
 
-// experimental mpu6000 DMP code
-#ifndef DMP_ENABLED
- # define DMP_ENABLED DISABLED
-#endif
 
 // experimental mpu6000 DMP code
 #ifndef SECONDARY_DMP_ENABLED
