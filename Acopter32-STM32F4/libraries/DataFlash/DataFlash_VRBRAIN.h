@@ -19,9 +19,7 @@ private:
     uint8_t           ReadStatusReg();
     uint8_t           ReadStatus();
     uint16_t          PageSize();
-    void              PageErase (uint16_t PageAdr);
-    void              BlockErase (uint16_t BlockAdr);
-    void              ChipErase();
+
 
     // write size bytes of data to a page. The caller must ensure that
     // the data fits within the page, otherwise it will wrap to the
@@ -34,14 +32,18 @@ private:
     // read size bytes of data to a page. The caller must ensure that
     // the data fits within the page, otherwise it will wrap to the
     // start of the page
-    bool 		    BlockRead(uint8_t BufferNum, uint16_t IntPageAdr, 
-                              void *pBuffer, uint16_t size);
+    bool 		    BlockRead(uint8_t BufferNum, uint16_t IntPageAdr, void *pBuffer, uint16_t size);
+    uint8_t	            BufferRead (uint8_t BufferNum, uint16_t IntPageAdr);
+    void              PageErase (uint16_t PageAdr);
+    void              BlockErase (uint16_t BlockAdr);
+    void              ChipErase();
     
+    // take a semaphore safely
+    bool		            _sem_take(uint8_t timeout);
     AP_HAL::SPIDeviceDriver *_spi;
     AP_HAL::Semaphore *_spi_sem;
 
-    // take a semaphore safely
-    bool		            _sem_take(uint8_t timeout);
+
 
 public:
     void        Init();
