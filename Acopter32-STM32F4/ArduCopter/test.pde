@@ -202,6 +202,7 @@ static int8_t
 test_ins(uint8_t argc, const Menu::arg *argv)
 {
     Vector3f gyro, accel;
+    float temp;
     print_hit_enter();
     cliSerial->printf_P(PSTR("INS\n"));
     delay(1000);
@@ -217,13 +218,15 @@ test_ins(uint8_t argc, const Menu::arg *argv)
         ins.update();
         gyro = ins.get_gyro();
         accel = ins.get_accel();
+        temp = ins.get_temperature();
 
         float test = accel.length() / GRAVITY_MSS;
 
-        cliSerial->printf_P(PSTR("a %7.4f %7.4f %7.4f g %7.4f %7.4f %7.4f t %7.4f \n"),
+        cliSerial->printf_P(PSTR("a %7.4f %7.4f %7.4f g %7.4f %7.4f %7.4f t %7.4f T %7.4 \n"),
             accel.x, accel.y, accel.z,
             gyro.x, gyro.y, gyro.z,
-            test);
+            test,
+            temp);
 
         delay(40);
         if(cliSerial->available() > 0) {
