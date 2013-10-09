@@ -103,35 +103,18 @@ void DataFlash_VRBRAIN::Init(void)
         return; /* never reached */
     }
 
-    if (!_sem_take(5))
-        return;
     // get page size: 512 or 528  (by default: 528)
-    df_PageSize=PageSize();
+    df_PageSize = PageSize();
 
-    ReadManufacturerID();
-    
-    _spi_sem->give();
-
-    // see page 22 of the spec for the density code
-    uint8_t density_code = (df_device >> 8) & 0x1F;
-
-    // note that we set df_NumPages to one lower than the highest, as
-    // the last page is reserved for a config page
-    if (density_code == 0x7) {
-        // 32 Mbit
-        df_NumPages = 8191;
-    } else if (density_code == 0x6) {
-        // 16 Mbit
-        df_NumPages = 4095;
-    }
-
-    hal.console->printf_P(PSTR("density_code %d pages %d, size %d\n"), density_code, df_NumPages, df_PageSize);
-
+    // the last page is reserved for config information
+    df_NumPages = DF_LAST_PAGE - 1;
 }
 
 // This function is mainly to test the device
 void DataFlash_VRBRAIN::ReadManufacturerID()
 {
+    if (!_sem_take(5))
+        return;
     // activate dataflash command decoder
     _spi->cs_assert();
 
@@ -140,11 +123,13 @@ void DataFlash_VRBRAIN::ReadManufacturerID()
 
     df_manufacturer = _spi->transfer(0xff);
     df_device = _spi->transfer(0xff);
-    df_device = (df_device<<8) | _spi->transfer(0xff);
+    df_device = (df_device << 8) | _spi->transfer(0xff);
     _spi->transfer(0xff);
 
     // release SPI bus for use by other sensors
     _spi->cs_release();
+
+    _spi_sem->give();
 }
 
 // This function return 1 if Card is inserted on SD slot
@@ -183,7 +168,13 @@ uint8_t DataFlash_VRBRAIN::ReadStatus()
 inline
 uint16_t DataFlash_VRBRAIN::PageSize()
 {
-    return(528-((ReadStatusReg()&0x01)<<4));      // if first bit 1 trhen 512 else 528 bytes
+    if (!_sem_take(5))
+        return 0;
+    
+    uint16_t ret = 528-((ReadStatusReg()&0x01) << 4); // if first bit 1 trhen 512 else 528 bytes
+
+    _spi_sem->give();
+    return ret;
 }
 
 // Wait until DataFlash is in ready state...
@@ -214,12 +205,8 @@ void DataFlash_VRBRAIN::PageToBuffer(uint8_t BufferNum, uint16_t PageAdr)
 
     //initiate the transfer
     _spi->cs_release();
-    _spi->cs_assert();
 
-    while(!ReadStatus()) ;     //monitor the status register, wait until busy-flag is high
-
-    // release SPI bus for use by other sensors
-    _spi->cs_release();
+    while(!ReadStatus()) ;  //monitor the status register, wait until busy-flag is high
     _spi_sem->give();
 }
 
@@ -263,12 +250,11 @@ void DataFlash_VRBRAIN::BlockWrite (uint8_t BufferNum, uint16_t IntPageAdr,
     // activate dataflash command decoder
     _spi->cs_assert();
 
-    uint8_t cmd[] = { 
-        (uint8_t)(BufferNum?DF_BUFFER_2_WRITE:DF_BUFFER_1_WRITE), 
-        0, 
-        (uint8_t)(IntPageAdr>>8), 
-        (uint8_t)(IntPageAdr)
-    };
+    uint8_t cmd[4];
+    cmd[0] = BufferNum?DF_BUFFER_2_WRITE:DF_BUFFER_1_WRITE;
+    cmd[1] = 0;
+    cmd[2] = (uint8_t)(IntPageAdr>>8);
+    cmd[3] = (uint8_t)(IntPageAdr);
     _spi->transfer(cmd, sizeof(cmd));
 
     // transfer header, if any
@@ -292,15 +278,13 @@ bool DataFlash_VRBRAIN::BlockRead (uint8_t BufferNum, uint16_t IntPageAdr, void 
     // activate dataflash command decoder
     _spi->cs_assert();
 
-    if (BufferNum==0)
-        _spi->transfer(DF_BUFFER_1_READ);
-    else
-        _spi->transfer(DF_BUFFER_2_READ);
-
-    _spi->transfer(0x00);
-    _spi->transfer((uint8_t)(IntPageAdr>>8));       //upper part of internal buffer address
-    _spi->transfer((uint8_t)(IntPageAdr));                  //lower part of internal buffer address
-    _spi->transfer(0x00);                                                                 //don't cares
+    uint8_t cmd[5];
+    cmd[0] = BufferNum?DF_BUFFER_2_READ:DF_BUFFER_1_READ;
+    cmd[1] = 0;
+    cmd[2] = (uint8_t)(IntPageAdr>>8);
+    cmd[3] = (uint8_t)(IntPageAdr);
+    cmd[4] = 0;
+    _spi->transfer(cmd, sizeof(cmd));
 
     uint8_t *pData = (uint8_t *)pBuffer;
     while (size--) {
@@ -394,7 +378,7 @@ void DataFlash_VRBRAIN::BlockErase (uint16_t BlockAdr)
 
 void DataFlash_VRBRAIN::ChipErase()
 {
-    if (!_sem_take(1))
+    if (!_sem_take(5))
         return;
     //serialDebug("Chip Erase\n");
 
@@ -411,7 +395,7 @@ void DataFlash_VRBRAIN::ChipErase()
     _spi->cs_release();
 
     while(!ReadStatus()) {
-        hal.scheduler->delay(1);
+        hal.scheduler->delay(6);
     }
 
     // release SPI bus for use by other sensors

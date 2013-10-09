@@ -1,11 +1,12 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #include <AP_HAL.h>
 
-#include <wirish.h>
-#include <AP_HAL.h>
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+
 #include <AP_HAL_VRBRAIN.h>
 #include "Semaphores.h"
 #include "Scheduler.h"
+
 using namespace VRBRAIN;
 
 extern const AP_HAL::HAL& hal;
@@ -70,3 +71,5 @@ bool VRBRAINSemaphore::_take_nonblocking() {
     interrupts();
     return result;
 }
+
+#endif

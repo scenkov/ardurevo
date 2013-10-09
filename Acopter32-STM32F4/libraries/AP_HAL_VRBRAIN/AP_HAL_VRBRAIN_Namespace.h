@@ -17,7 +17,6 @@ namespace VRBRAIN {
     class VRBRAINAnalogSource;
     class VRBRAINAnalogIn;
     class VRBRAINStorage;
-    class VRBRAINConsoleDriver;
     class VRBRAINGPIO;
     class VRBRAINDigitalSource;
     class VRBRAINRCInput;
@@ -25,7 +24,6 @@ namespace VRBRAIN {
     class VRBRAINSemaphore;
     class VRBRAINScheduler;
     class VRBRAINUtil;
-    class VRBRAINPrivateMember;
 }
 
 #endif // __AP_HAL_VRBRAIN_NAMESPACE_H__

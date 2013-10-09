@@ -16,7 +16,6 @@ cppSRCS_$(d) += utility/Print.cpp
 cppSRCS_$(d) += utility/ftoa_engine.cpp
 cppSRCS_$(d) += utility/print_vprintf.cpp
 cppSRCS_$(d) += utility/utoa_invert.cpp
-cppSRCS_$(d) += Console.cpp
 cppSRCS_$(d) += Util.cpp
 cppSRCS_$(d) += UARTDriver.cpp
 

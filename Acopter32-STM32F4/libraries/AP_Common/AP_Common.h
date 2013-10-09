@@ -138,6 +138,7 @@ struct PACKED RallyLocation {
 #define AP_PRODUCT_ID_APM2_REV_D8       0x58    // APM2 with MPU6000_REV_D8
 #define AP_PRODUCT_ID_APM2_REV_D9       0x59    // APM2 with MPU6000_REV_D9
 #define AP_PRODUCT_ID_FLYMAPLE          0x100   // Flymaple with ITG3205, ADXL345, HMC5883, BMP085
-#define AP_PRODUCT_ID_VRBRAIN           0x101   // VRBRAIN with MPU6000
+#define AP_PRODUCT_ID_L3G4200D          0x101   // Linux with L3G4200D and ADXL345
+#define AP_PRODUCT_ID_VRBRAIN           0x102   // VRBRAIN with MPU6000
 
 #endif // _AP_COMMON_H

@@ -405,24 +405,15 @@ static union {
         uint8_t do_flip             : 1; // 7   // Used to enable flip code
         uint8_t takeoff_complete    : 1; // 8
         uint8_t land_complete       : 1; // 9   // true if we have detected a landing
-        uint8_t compass_status      : 1; // 10  // unused remove
-        uint8_t gps_status          : 1; // 11  // unused remove
+
+        uint8_t new_radio_frame     : 1; // 10      // Set true if we have new PWM data to act on from the Radio
+        uint8_t CH7_flag            : 2; // 11,12   // ch7 aux switch : 0 is low or false, 1 is center or true, 2 is high
+        uint8_t CH8_flag            : 2; // 13,14   // ch8 aux switch : 0 is low or false, 1 is center or true, 2 is high
+        uint8_t usb_connected       : 1; // 15      // true if APM is powered from USB connection
+        uint8_t yaw_stopped         : 1; // 16      // Used to manage the Yaw hold capabilities
     };
     uint32_t value;
 } ap;
-
-
-static struct AP_System{
-    uint8_t GPS_light               : 1; // 0   // Solid indicates we have full 3D lock and can navigate, flash = read
-    uint8_t arming_light            : 1; // 1   // Solid indicates armed state, flashing is disarmed, double flashing is disarmed and failing pre-arm checks
-    uint8_t new_radio_frame         : 1; // 2   // Set true if we have new PWM data to act on from the Radio
-    uint8_t CH7_flag                : 2; // 3,4 // ch7 aux switch : 0 is low or false, 1 is center or true, 2 is high
-    uint8_t CH8_flag                : 2; // 5,6 // ch8 aux switch : 0 is low or false, 1 is center or true, 2 is high
-    uint8_t usb_connected           : 1; // 7   // true if APM is powered from USB connection
-    uint8_t yaw_stopped             : 1; // 8   // Used to manage the Yaw hold capabilities
-    uint8_t                         : 7; // 9-15 // Fill bit field to 16 bits
-
-} ap_system;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Radio
@@ -569,7 +560,12 @@ static float sin_pitch;
 ////////////////////////////////////////////////////////////////////////////////
 // Used to track the orientation of the copter for Simple mode. This value is reset at each arming
 // or in SuperSimple mode when the copter leaves a 20m radius from home.
-static int32_t initial_simple_bearing;
+static float simple_cos_yaw = 1.0;
+static float simple_sin_yaw;
+static int32_t super_simple_last_bearing;
+static float super_simple_cos_yaw = 1.0;
+static float super_simple_sin_yaw;
+
 
 // Stores initial bearing when armed - initial simple bearing is modified in super simple mode so not suitable
 static int32_t initial_armed_bearing;
@@ -977,43 +973,37 @@ static void perf_update(void)
 
 void loop()
 {
+    // wait for an INS sample
+    if (!ins.wait_for_sample(1000)) {
+        Log_Write_Error(ERROR_SUBSYSTEM_MAIN, ERROR_CODE_INS_DELAY);
+        return;
+    }
     uint32_t timer = micros();
 
-    // We want this to execute fast
-    // ----------------------------
-#ifdef ENHANCED
-    if (ins.sample_available()) {
-#else
-    if (ins.sample_available()) {
-#endif
-        // check loop time
-        perf_info_check_loop_time(timer - fast_loopTimer);
+    // check loop time
+    perf_info_check_loop_time(timer - fast_loopTimer);
 
-        G_Dt                            = (float)(timer - fast_loopTimer) / 1000000.f;                  // used by PI Loops
-        fast_loopTimer          = timer;
+    // used by PI Loops
+    G_Dt                    = (float)(timer - fast_loopTimer) / 1000000.f;
+    fast_loopTimer          = timer;
 
-        // for mainloop failure monitoring
-        mainLoop_count++;
+    // for mainloop failure monitoring
+    mainLoop_count++;
 
-        // Execute the fast loop
-        // ---------------------
-        fast_loop();
+    // Execute the fast loop
+    // ---------------------
+    fast_loop();
 
-        // tell the scheduler one tick has passed
-        scheduler.tick();
+    // tell the scheduler one tick has passed
+    scheduler.tick();
 
-        // run all the tasks that are due to run. Note that we only
-        // have to call this once per loop, as the tasks are scheduled
-        // in multiples of the main loop tick. So if they don't run on
-        // the first call to the scheduler they won't run on a later
-        // call until scheduler.tick() is called again
-        uint32_t time_available = (timer + 10000) - micros();
-        scheduler.run(time_available - 500);
-    }
-    if ((timer - fast_loopTimer) < 8500) {
-        // we have plenty of time - be friendly to multi-tasking OSes
-        hal.scheduler->delay(1);
-    }
+    // run all the tasks that are due to run. Note that we only
+    // have to call this once per loop, as the tasks are scheduled
+    // in multiples of the main loop tick. So if they don't run on
+    // the first call to the scheduler they won't run on a later
+    // call until scheduler.tick() is called again
+    uint32_t time_available = (timer + 10000) - micros();
+    scheduler.run(time_available - 500);
 }
 
 
@@ -1253,9 +1243,6 @@ static void slow_loop()
 
         // check if we've lost contact with the ground station
         failsafe_gcs_check();
-
-        // record if the compass is healthy
-        set_compass_healthy(compass.healthy);
 
         if(superslow_loopCounter > 1200) {
 #if HIL_MODE != HIL_MODE_ATTITUDE
@@ -1764,9 +1751,7 @@ void update_roll_pitch_mode(void)
 
     case ROLL_PITCH_STABLE:
         // apply SIMPLE mode transform
-        if(ap.simple_mode && ap_system.new_radio_frame) {
-            update_simple_mode();
-        }
+        update_simple_mode();
 
         // convert pilot input to lean angles
         get_pilot_desired_lean_angles(g.rc_1.control_in, g.rc_2.control_in, control_roll, control_pitch);
@@ -1791,9 +1776,7 @@ void update_roll_pitch_mode(void)
 
     case ROLL_PITCH_STABLE_OF:
         // apply SIMPLE mode transform
-        if(ap.simple_mode && ap_system.new_radio_frame) {
-            update_simple_mode();
-        }
+        update_simple_mode();
 
         // convert pilot input to lean angles
         get_pilot_desired_lean_angles(g.rc_1.control_in, g.rc_2.control_in, control_roll, control_pitch);
@@ -1811,9 +1794,8 @@ void update_roll_pitch_mode(void)
 
     case ROLL_PITCH_LOITER:
         // apply SIMPLE mode transform
-        if(ap.simple_mode && ap_system.new_radio_frame) {
-            update_simple_mode();
-        }
+        update_simple_mode();
+
         // copy user input for reporting purposes
         control_roll            = g.rc_1.control_in;
         control_pitch           = g.rc_2.control_in;
@@ -1831,9 +1813,8 @@ void update_roll_pitch_mode(void)
 
     case ROLL_PITCH_SPORT:
         // apply SIMPLE mode transform
-        if(ap.simple_mode && ap_system.new_radio_frame) {
-            update_simple_mode();
-        }
+        update_simple_mode();
+
         // copy user input for reporting purposes
         control_roll = g.rc_1.control_in;
         control_pitch = g.rc_2.control_in;
@@ -1844,7 +1825,7 @@ void update_roll_pitch_mode(void)
 #if AUTOTUNE == ENABLED
     case ROLL_PITCH_AUTOTUNE:
         // apply SIMPLE mode transform
-        if(ap.simple_mode && ap_system.new_radio_frame) {
+        if(ap.simple_mode && ap.new_radio_frame) {
             update_simple_mode();
         }
 
@@ -1867,52 +1848,67 @@ void update_roll_pitch_mode(void)
     }
 	#endif //HELI_FRAME
 
-    if(ap_system.new_radio_frame) {
+    if(ap.new_radio_frame) {
         // clear new radio frame info
-        ap_system.new_radio_frame = false;
+        ap.new_radio_frame = false;
     }
 }
 
-// new radio frame is used to make sure we only call this at 50hz
+static void
+init_simple_bearing()
+{
+    // capture current cos_yaw and sin_yaw values
+    simple_cos_yaw = cos_yaw;
+    simple_sin_yaw = sin_yaw;
+
+    // initialise super simple heading (i.e. heading towards home) to be 180 deg from simple mode heading
+    super_simple_last_bearing = wrap_360_cd(ahrs.yaw_sensor+18000);
+    super_simple_cos_yaw = simple_cos_yaw;
+    super_simple_sin_yaw = simple_sin_yaw;
+
+    // log the simple bearing to dataflash
+    if (g.log_bitmask != 0) {
+        Log_Write_Data(DATA_INIT_SIMPLE_BEARING, ahrs.yaw_sensor);
+    }
+}
+
+// update_simple_mode - rotates pilot input if we are in simple mode
 void update_simple_mode(void)
 {
-    static uint8_t simple_counter = 0;             // State machine counter for Simple Mode
-    static float simple_sin_y=0, simple_cos_x=0;
+    float rollx, pitchx;
 
-    // used to manage state machine
-    // which improves speed of function
-    simple_counter++;
-
-    int16_t delta = wrap_360_cd(ahrs.yaw_sensor - initial_simple_bearing)/100;
-
-    if (simple_counter == 1) {
-        // roll
-        simple_cos_x = sinf(radians(90 - delta));
-
-    }else if (simple_counter > 2) {
-        // pitch
-        simple_sin_y = cosf(radians(90 - delta));
-        simple_counter = 0;
+    // exit immediately if no new radio frame or not in simple mode
+    if (ap.simple_mode == 0 || !ap.new_radio_frame) {
+        return;
     }
 
-    // Rotate input by the initial bearing
-    int16_t _roll   = g.rc_1.control_in * simple_cos_x + g.rc_2.control_in * simple_sin_y;
-    int16_t _pitch  = -(g.rc_1.control_in * simple_sin_y - g.rc_2.control_in * simple_cos_x);
+    if (ap.simple_mode == 1) {
+        // rotate roll, pitch input by -initial simple heading (i.e. north facing)
+        rollx = g.rc_1.control_in*simple_cos_yaw - g.rc_2.control_in*simple_sin_yaw;
+        pitchx = g.rc_1.control_in*simple_sin_yaw + g.rc_2.control_in*simple_cos_yaw;
+    }else{
+        // rotate roll, pitch input by -super simple heading (reverse of heading to home)
+        rollx = g.rc_1.control_in*super_simple_cos_yaw - g.rc_2.control_in*super_simple_sin_yaw;
+        pitchx = g.rc_1.control_in*super_simple_sin_yaw + g.rc_2.control_in*super_simple_cos_yaw;
+    }
 
-    g.rc_1.control_in = _roll;
-    g.rc_2.control_in = _pitch;
+    // rotate roll, pitch input from north facing to vehicle's perspective
+    g.rc_1.control_in = rollx*cos_yaw + pitchx*sin_yaw;
+    g.rc_2.control_in = -rollx*sin_yaw + pitchx*cos_yaw;
 }
 
 // update_super_simple_bearing - adjusts simple bearing based on location
 // should be called after home_bearing has been updated
-void update_super_simple_bearing()
+void update_super_simple_bearing(bool force_update)
 {
-    // are we in SUPERSIMPLE mode?
-    if(ap.simple_mode == 2 || (ap.simple_mode && g.super_simple)) {
-        // get distance to home
-        if(home_distance > SUPER_SIMPLE_RADIUS) {        // 10m from home
-            // we reset the angular offset to be a vector from home to the quad
-            initial_simple_bearing = wrap_360_cd(home_bearing+18000);
+    // check if we are in super simple mode and at least 10m from home
+    if(force_update || (ap.simple_mode == 2 && home_distance > SUPER_SIMPLE_RADIUS)) {
+        // check the bearing to home has changed by at least 5 degrees
+        if (labs(super_simple_last_bearing - home_bearing) > 500) {
+            super_simple_last_bearing = home_bearing;
+            float angle_rad = radians((super_simple_last_bearing+18000)/100);
+            super_simple_cos_yaw = cosf(angle_rad);
+            super_simple_sin_yaw = sinf(angle_rad);
         }
     }
 }

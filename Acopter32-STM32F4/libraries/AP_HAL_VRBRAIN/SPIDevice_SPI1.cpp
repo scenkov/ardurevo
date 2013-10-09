@@ -22,7 +22,7 @@ void VRBRAINSPI1DeviceDriver::init() {
     hal.gpio->write(_cs_pin, HIGH);
 
     //set frequency
-    SPIFrequency freq = SPI_1_125MHZ;
+    SPIFrequency freq = SPI_2_25MHZ;
     spi_baud_rate baud = determine_baud_rate(freq);
 
     //set mode

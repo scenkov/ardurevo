@@ -179,22 +179,8 @@ void VRBRAINScheduler::_timer_isr_event() {
 void VRBRAINScheduler::_run_timer_procs(bool called_from_isr) {
 
     if (_in_timer_proc) {
-        // the timer calls took longer than the period of the
-        // timer. This is bad, and may indicate a serious
-        // driver failure. We can't just call the drivers
-        // again, as we could run out of stack. So we only
-        // call the _failsafe call. It's job is to detect if
-        // the drivers or the main loop are indeed dead and to
-        // activate whatever failsafe it thinks may help if
-        // need be.  We assume the failsafe code can't
-        // block. If it does then we will recurse and die when
-        // we run out of stack
-        if (_failsafe != NULL) {
-            _failsafe();
-        }
         return;
     }
-
     _in_timer_proc = true;
 
     if (!_timer_suspended) {

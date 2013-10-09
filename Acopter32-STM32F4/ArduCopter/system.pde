@@ -140,7 +140,7 @@ static void init_ardupilot()
 
     // we start by assuming USB connected, as we initialed the serial
     // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
-    ap_system.usb_connected = true;
+    ap.usb_connected = true;
     check_usb_mux();
 
 #if CONFIG_HAL_BOARD != HAL_BOARD_APM2
@@ -491,15 +491,6 @@ static bool set_mode(uint8_t mode)
     return success;
 }
 
-static void
-init_simple_bearing()
-{
-    initial_simple_bearing = ahrs.yaw_sensor;
-    if (g.log_bitmask != 0) {
-        Log_Write_Data(DATA_INIT_SIMPLE_BEARING, initial_simple_bearing);
-    }
-}
-
 // update_auto_armed - update status of auto_armed flag
 static void update_auto_armed()
 {
@@ -546,19 +537,19 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
 static void check_usb_mux(void)
 {
     bool usb_check = hal.gpio->usb_connected();
-    if (usb_check == ap_system.usb_connected) {
+    if (usb_check == ap.usb_connected) {
         return;
     }
 
     // the user has switched to/from the telemetry port
-    ap_system.usb_connected = usb_check;
+    ap.usb_connected = usb_check;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
     // the APM2 has a MUX setup where the first serial port switches
     // between USB and a TTL serial connection. When on USB we use
     // SERIAL0_BAUD, but when connected as a TTL serial port we run it
     // at SERIAL3_BAUD.
-    if (ap_system.usb_connected) {
+    if (ap.usb_connected) {
         hal.uartA->begin(SERIAL0_BAUD);
     } else {
         hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));

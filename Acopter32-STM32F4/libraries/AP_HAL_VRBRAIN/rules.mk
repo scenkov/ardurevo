@@ -12,11 +12,9 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AnalogIn.cpp
-cppSRCS_$(d) += Console.cpp
 cppSRCS_$(d) += GPIO.cpp
 cppSRCS_$(d) += HAL_VRBRAIN_Class.cpp
 cppSRCS_$(d) += I2CDriver.cpp
-cppSRCS_$(d) += PrivateMember.cpp
 cppSRCS_$(d) += RCInput.cpp
 cppSRCS_$(d) += RCOutput.cpp
 cppSRCS_$(d) += Scheduler.cpp

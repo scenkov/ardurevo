@@ -18,6 +18,7 @@ cppSRCS_$(d) += AP_InertialSensor_PX4.cpp
 cppSRCS_$(d) += AP_InertialSensor_UserInteract_Stream.cpp
 cppSRCS_$(d) += AP_InertialSensor.cpp
 cppSRCS_$(d) += AP_InertialSensor_UserInteract_MAVLink.cpp
+cppSRCS_$(d) += AP_InertialSensor_L3G4200D.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

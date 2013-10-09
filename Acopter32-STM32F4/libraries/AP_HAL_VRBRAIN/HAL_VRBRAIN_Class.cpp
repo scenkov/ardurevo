@@ -31,7 +31,6 @@ static VRBRAINI2CDriver  i2cDriver(_I2C2,&i2cSemaphore);
 static VRBRAINSPIDeviceManager spiDeviceManager;
 static VRBRAINAnalogIn analogIn;
 static VRBRAINStorage storageDriver;
-static VRBRAINConsoleDriver consoleDriver(&uartADriver);
 static VRBRAINGPIO gpioDriver;
 static VRBRAINRCInput rcinDriver;
 static VRBRAINRCOutput rcoutDriver;
@@ -50,13 +49,13 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &spiDeviceManager,
       &analogIn,
       &storageDriver,
-      &consoleDriver,
+      &uartADriver,
       &gpioDriver,
       &rcinDriver,
       &rcoutDriver,
       &schedulerInstance,
-      &utilInstance)//,
-    //_member(new VRBRAINPrivateMember(123))
+      &utilInstance
+	  )
 {}
 
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
@@ -70,10 +69,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   //uartA->begin(115200);
 
   uartA->begin(57600);
-  uartB->begin(38400);
-  uartC->begin(57600);
 
-  console->init(uartA);
   //_member->init();
   i2c->begin();
   //hal.i2c2->begin();
