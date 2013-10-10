@@ -104,14 +104,14 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: FS_BATT_VOLTAGE
     // @DisplayName: Failsafe battery voltage
-    // @Description: Battery voltage to trigger failsafe. Set to 0 to disable battery voltage failsafe. If the battery voltage drops below this voltage then the plane will RTL
+    // @Description: Battery voltage to trigger failsafe. Set to 0 to disable battery voltage failsafe. If the battery voltage drops below this voltage then the copter will RTL
     // @Units: Volts
     // @User: Standard
     GSCALAR(fs_batt_voltage,        "FS_BATT_VOLTAGE", FS_BATT_VOLTAGE_DEFAULT),
 
     // @Param: FS_BATT_MAH
     // @DisplayName: Failsafe battery milliAmpHours
-    // @Description: Battery capacity remaining to trigger failsafe. Set to 0 to disable battery remaining failsafe. If the battery remaining drops below this level then the plane will RTL
+    // @Description: Battery capacity remaining to trigger failsafe. Set to 0 to disable battery remaining failsafe. If the battery remaining drops below this level then the copter will RTL
     // @Units: mAh
     // @User: Standard
     GSCALAR(fs_batt_mah,            "FS_BATT_MAH", FS_BATT_MAH_DEFAULT),
@@ -889,7 +889,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: HLD_LAT_P
     // @DisplayName: Loiter latitude position controller P gain
     // @Description: Loiter latitude position controller P gain.  Converts the distance (in the latitude direction) to the target location into a desired speed which is then passed to the loiter latitude rate controller
-    // @Range: 0.100 0.300
+    // @Range: 0.500 2.000
     // @User: Standard
 
     // @Param: HLD_LAT_I
@@ -909,7 +909,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: HLD_LON_P
     // @DisplayName: Loiter longitude position controller P gain
     // @Description: Loiter longitude position controller P gain.  Converts the distance (in the longitude direction) to the target location into a desired speed which is then passed to the loiter longitude rate controller
-    // @Range: 0.100 0.300
+    // @Range: 0.500 2.000
     // @User: Standard
 
     // @Param: HLD_LON_I
