@@ -14,7 +14,7 @@
 class VRBRAIN::VRBRAINSPIDeviceManager : public AP_HAL::SPIDeviceManager {
 public:
     void init(void *machtnichts);
-    AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice);
+    AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice d);
 private:    
     VRBRAINSPI2DeviceDriver* _mpu6k;
 

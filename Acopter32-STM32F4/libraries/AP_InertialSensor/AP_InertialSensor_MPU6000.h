@@ -46,7 +46,7 @@ private:
     void                 _read_data_transaction();
     bool                 _data_ready();
     void                 _poll_data(void);
-
+    AP_HAL::DigitalSource *_drdy_pin;
     uint8_t              _register_read( uint8_t reg );
     bool _register_read_from_timerprocess( uint8_t reg, uint8_t *val );
     void                 register_write( uint8_t reg, uint8_t val );
@@ -74,12 +74,10 @@ private:
 
     uint32_t _last_sample_time_micros;
 
-
-    int16_t              _mpu6000_product_id;
-    AP_HAL::DigitalSource *_drdy_pin;
     float                       _temp;
     // ensure we can't initialise twice
     bool                        _initialised;
+    int16_t              _mpu6000_product_id;
 
     // how many hardware samples before we report a sample to the caller
     uint8_t _sample_shift;

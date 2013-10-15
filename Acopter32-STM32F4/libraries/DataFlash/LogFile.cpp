@@ -394,7 +394,6 @@ void DataFlash_Class::_print_log_entry(uint8_t msg_type,
         }
     }
     port->println();
-    hal.scheduler->delay(1);
 }
 
 /*
