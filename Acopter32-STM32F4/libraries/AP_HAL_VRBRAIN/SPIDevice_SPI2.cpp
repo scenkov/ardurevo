@@ -98,6 +98,18 @@ void VRBRAINSPI2DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
     }
 }
 
+
+void VRBRAINSPI2DeviceDriver::set_bus_speed(VRBRAINSPI2DeviceDriver::bus_speed speed)
+{
+    if (speed == VRBRAINSPI2DeviceDriver::SPI_SPEED_HIGH) {
+
+    } else {
+
+    }
+}
+
+
+
 void VRBRAINSPI2DeviceDriver::cs_assert() {
     _cs_assert();
 }
