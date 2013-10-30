@@ -79,7 +79,8 @@
 //#include <AP_HAL_AVR_SITL.h>
 //#include <AP_HAL_SMACCM.h>
 //#include <AP_HAL_PX4.h>
-#include <AP_HAL_VRBRAIN.h>
+//#include <AP_HAL_VRBRAIN.h>
+#include <AP_HAL_REVOMINI.h>
 #include <AP_HAL_Empty.h>
 
 // Application dependencies
@@ -180,6 +181,8 @@ static DataFlash_APM2 DataFlash;
 static DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 static DataFlash_VRBRAIN DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+static DataFlash_REVOMINI DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 //static DataFlash_File DataFlash("/tmp/APMlogs");
 static DataFlash_SITL DataFlash;

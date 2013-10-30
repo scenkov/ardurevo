@@ -9,7 +9,7 @@
 #include <AP_Progmem.h>
 #include "AP_InertialSensor.h"
 
-#if  CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
+#if  CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
  # define MPU6000_CS_PIN       53        // APM pin connected to mpu6000's chip select pin
 #endif
 

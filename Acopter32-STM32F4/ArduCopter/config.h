@@ -101,13 +101,25 @@
  # define CONFIG_PUSHBUTTON DISABLED
  # define LOGGING_ENABLED ENABLED
  # define SERIAL0_BAUD 57600
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define CONFIG_RELAY      DISABLED
+ # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define MAGNETOMETER ENABLED
+ # define CONFIG_BARO     AP_BARO_MS5611
+ # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
+ # define CONFIG_ADC        DISABLED
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define LOGGING_ENABLED DISABLED //ENABLED
+ # define SERIAL0_BAUD 57600
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // FRAME_CONFIG
 //
 #ifndef FRAME_CONFIG
- # define FRAME_CONFIG   QUAD_FRAME
+ # define FRAME_CONFIG      QUAD_FRAME //HEXA_FRAME
 #endif
 #ifndef FRAME_ORIENTATION
  # define FRAME_ORIENTATION      X_FRAME
@@ -217,8 +229,16 @@
  # define LED_ON           HIGH
  # define LED_OFF          LOW
  # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
- # define BATTERY_CURR_PIN      200      // Battery current on A1
+ # define BATTERY_CURR_PIN     200    // Battery current on A1
  # define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
+ # define PUSHBUTTON_PIN   200
+ # define USB_MUX_PIN      -1
+ # define BATTERY_VOLT_PIN     7     // Battery voltage on A0 (PC1) D7
+ # define BATTERY_CURR_PIN     200   // Battery current on A1 (PC2) D8
+ # define CONFIG_SONAR_SOURCE_ANALOG_PIN 200
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -245,6 +265,15 @@
  #define COPTER_LED_1 102  	// Motor or Aux LED
  #define COPTER_LED_2 200  	// Motor LED or Beeper
  #define COPTER_LED_3 65  	// Motor or GPS LED
+ #define COPTER_LED_4 200  	// Motor or GPS LED
+ #define COPTER_LED_5 200  	// Motor or GPS LED
+ #define COPTER_LED_6 200  	// Motor or GPS LED
+ #define COPTER_LED_7 200  	// Motor or GPS LED
+ #define COPTER_LED_8 200  	// Motor or GPS LED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ #define COPTER_LED_1 200  	// Motor or Aux LED
+ #define COPTER_LED_2 200  	// Motor LED or Beeper
+ #define COPTER_LED_3 200  	// Motor or GPS LED
  #define COPTER_LED_4 200  	// Motor or GPS LED
  #define COPTER_LED_5 200  	// Motor or GPS LED
  #define COPTER_LED_6 200  	// Motor or GPS LED

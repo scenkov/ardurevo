@@ -1,5 +1,5 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
+#include <AP_HAL.h>
 #if LOGGING_ENABLED == ENABLED
 
 // Code to Write and Read packets from DataFlash log memory
@@ -598,6 +598,26 @@ struct PACKED log_Data_Int8t {
     int8_t data_value;
 };
 
+// Write an int8_t data packet
+static void Log_Write_Data(uint8_t id, int8_t value)
+{
+    if (g.log_bitmask != 0) {
+        struct log_Data_Int8t pkt = {
+            LOG_PACKET_HEADER_INIT(LOG_DATA_INT8_MSG),
+            id          : id,
+            data_value  : value
+        };
+        DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    }
+}
+#endif
+
+#if  CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+struct PACKED log_Data_Int8t {
+    LOG_PACKET_HEADER;
+    uint8_t id;
+    int8_t data_value;
+};
 
 // Write an int8_t data packet
 static void Log_Write_Data(uint8_t id, int8_t value)
@@ -860,6 +880,9 @@ static const struct LogStructure log_structure[] PROGMEM = {
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     { LOG_DATA_INT8_MSG, sizeof(log_Data_Int8t),         
       "D8",   "Bh",         "Id,Value" },
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+    { LOG_DATA_INT8_MSG, sizeof(log_Data_Int8t),
+        "D8",   "Bh",         "Id,Value" },
 #endif
     { LOG_DATA_INT16_MSG, sizeof(log_Data_Int16t),         
       "D16",   "Bh",         "Id,Value" },
@@ -926,6 +949,8 @@ static void Log_Write_Compass() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_INAV() {}
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+static void Log_Write_Data(uint8_t id, int8_t value){}
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 static void Log_Write_Data(uint8_t id, int8_t value){}
 #endif
 static void Log_Write_Data(uint8_t id, int16_t value){}

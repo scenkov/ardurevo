@@ -151,8 +151,12 @@ void AP_Baro_MS5611_SPI::sem_give()
 
 // I2C Device //////////////////////////////////////////////////////////////////
 
-/** I2C address of the MS5611 on the PX4 board. */
+/** I2C address of the MS5611 on the PX4 or REVOMINI board. */
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#define MS5611_ADDR 0xEE
+#else
 #define MS5611_ADDR 0x76
+#endif
 
 void AP_Baro_MS5611_I2C::init()
 {

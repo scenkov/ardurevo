@@ -1172,9 +1172,7 @@ static void zero_eeprom(void)
 {
     cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 
-    for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
-        hal.storage->write_byte(i, 0);
-    }
+    hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
 
     cliSerial->printf_P(PSTR("done\n"));
 }

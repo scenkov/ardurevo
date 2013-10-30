@@ -11,6 +11,7 @@
 #include <AP_GPS.h>
 #include <AP_InertialSensor.h>
 #include <stdint.h>
+#include "AP_HAL_Namespace.h"
 
 class DataFlash_Class
 {
@@ -22,7 +23,6 @@ public:
     // erase handling
     virtual bool NeedErase(void) = 0;
     virtual void EraseAll() = 0;
-
     /* Write a block of data at current offset */
     virtual void WriteBlock(const void *pBuffer, uint16_t size) = 0;
 

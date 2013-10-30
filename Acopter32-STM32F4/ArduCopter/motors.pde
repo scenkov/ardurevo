@@ -135,10 +135,11 @@ static void init_arm_motors()
     // mid-flight, so set the serial ports non-blocking once we arm
     // the motors
     hal.uartA->set_blocking_writes(false);
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     if (gcs3.initialised) {
         hal.uartC->set_blocking_writes(false);
     }
-
+#endif
 #if COPTER_LEDS == ENABLED
     piezo_beep_twice();
 #endif
@@ -303,7 +304,7 @@ static void pre_arm_checks(bool display_failure)
     }
 #endif
 
-#if CONFIG_HAL_BOARD != HAL_BOARD_PX4  && CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD != HAL_BOARD_PX4  && CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     // check board voltage
     if(board_voltage() < BOARD_VOLTAGE_MIN || board_voltage() > BOARD_VOLTAGE_MAX) {
         if (display_failure) {

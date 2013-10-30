@@ -25,6 +25,10 @@ vrbrain: HAL_BOARD = HAL_BOARD_VRBRAIN
 vrbrain: TOOLCHAIN = ARM
 vrbrain: all
 
+vrbrain: HAL_BOARD = HAL_BOARD_REVOMINI
+vrbrain: TOOLCHAIN = ARM
+vrbrain: all
+
 linux: HAL_BOARD = HAL_BOARD_LINUX
 linux: TOOLCHAIN = NATIVE
 linux: all

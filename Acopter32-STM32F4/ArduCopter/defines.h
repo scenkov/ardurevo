@@ -297,7 +297,9 @@ enum ap_message {
 #define LOG_AUTOTUNE_MSG                0x19
 #define LOG_AUTOTUNEDETAILS_MSG         0x1A
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define LOG_DATA_INT8_MSG              	0x1B
+ #define LOG_DATA_INT8_MSG              0x1B
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ #define LOG_DATA_INT8_MSG              0x1B
 #endif
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
@@ -390,6 +392,8 @@ enum ap_message {
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#define PIEZO_PIN 200
 #else
 #define PIEZO_PIN AN5           //Last pin on the back ADC connector
 #endif
@@ -400,7 +404,7 @@ enum ap_message {
 
 
 // EEPROM addresses
-#define EEPROM_MAX_ADDR         4096
+#define EEPROM_MAX_ADDR     4096
 // parameters get the first 1536 bytes of EEPROM, remainder is for waypoints
 #define WP_START_BYTE 0x600 // where in memory home WP is stored + all other
                             // WP
@@ -409,7 +413,7 @@ enum ap_message {
 // fence points are stored at the end of the EEPROM
 #define MAX_FENCEPOINTS 6
 #define FENCE_WP_SIZE sizeof(Vector2l)
-#define FENCE_START_BYTE (EEPROM_MAX_ADDR-(MAX_FENCEPOINTS*FENCE_WP_SIZE))
+#define FENCE_START_BYTE (EEPROM_MAX_ADDR - (MAX_FENCEPOINTS * FENCE_WP_SIZE))
 
 #define MAX_WAYPOINTS  ((FENCE_START_BYTE - WP_START_BYTE) / WP_SIZE) - 1 // -
                                                                           // 1

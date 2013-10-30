@@ -12,7 +12,7 @@ environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/CYGWIN/operat
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/CYGWIN/value=nodosfilewarning
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/delimiter=;
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/value=..\\..\\..\\..\\eclipse;..\\..\\..\\..\\toolchain\\sourcery\\bin;..\\..\\..\\..\\cygwin\\bin;..\\..\\..\\..\\openocd\\bin;..\\..\\..\\..\\ST-LINK_gdbserver
+environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/value=C\:\\vr-universal-ide\\toolchain\\sourcery_4.5.2\\arm-none-eabi\\bin;C\:\\vr-universal-ide\\toolchain\\sourcery_4.5.2\\bin;C\:\\vr-universal-ide\\cygwin\\bin
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/append=true
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/appendContributed=false
 org.eclipse.cdt.core.formatter.alignment_for_arguments_in_method_invocation=16

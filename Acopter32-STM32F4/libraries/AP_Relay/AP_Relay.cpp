@@ -18,6 +18,8 @@
 #define RELAY_PIN 111
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define RELAY_PIN 200
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#define RELAY_PIN 200
 #else
 // no relay for this board
 #define RELAY_PIN -1

@@ -9,7 +9,7 @@
 
 # Try "make help" for more information on BOARD and MEMORY_TARGET;
 # these default to a Maple Flash build.
-BOARD            ?= laserlab_MP32V1F4
+BOARD            ?= revomini_MP32V1F4
 MEMORY_TARGET    ?= flash
 
 ##
@@ -19,12 +19,12 @@ MEMORY_TARGET    ?= flash
 SRCROOT := .
 BUILD_PATH       := $(SRCROOT)/build
 
-HARDWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/hardware
-HAL_PATH         := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/hardware/hal
+HARDWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/hardware
+HAL_PATH         := $(SRCROOT)/libraries/AP_HAL_REVOMINI/hardware/hal
 STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
 STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
-WIRISH_PATH      := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/wirish
+WIRISH_PATH      := $(SRCROOT)/libraries/AP_HAL_REVOMINI/wirish
 LIBRARIES_PATH   := $(SRCROOT)/libraries
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/test_RCInputOutput
 #SKETCH           := RC_Channel.pde
@@ -39,10 +39,17 @@ LIBRARIES_PATH   := $(SRCROOT)/libraries
 #SKETCH           := Scheduler
 #FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_Blink
 #SKETCH           := Blink
-#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_VRBRAIN/examples/DataFlash_test_MP32
+#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/examples/DataFlash_test_MP32
 #SKETCH           := DataFlash_test_MP32
+#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/examples/DataFlash_test
+#SKETCH           := DataFlash_test_MP32
+
+#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/examples/DF_Parameters_test
+#SKETCH           := DF_Parameters_test
+
 FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
 SKETCH          := ArduCopter
+
 #FIRMWARE_PATH    := $(SRCROOT)/APMRover2
 #SKETCH          := APMRover2
 #FIRMWARE_PATH    := $(SRCROOT)/ArduPlane
@@ -60,7 +67,7 @@ SKETCHCPP_SRC   := $(SKETCHPDE) $(sort $(filter-out $(SKETCHPDE),$(SKETCHPDESRCS
 
 LIBRARY_INCLUDES := 
 
-SUPPORT_PATH     := $(SRCROOT)/Libraries/AP_HAL_VRBRAIN/support
+SUPPORT_PATH     := $(SRCROOT)/libraries/AP_HAL_REVOMINI/support
 # Support files for linker
 LDDIR            := $(SUPPORT_PATH)/ld
 # Support files for this Makefile
@@ -141,7 +148,7 @@ LIBRARY_MODULES += $(STM32USB_PATH)
 LIBRARY_MODULES += $(HAL_PATH)
 LIBRARY_MODULES += $(WIRISH_PATH)
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL_VRBRAIN
+LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL_REVOMINI
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL_Empty
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_Fence
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_Sprayer

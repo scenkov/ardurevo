@@ -128,8 +128,13 @@ static void init_ardupilot()
 #if COPTER_LEDS == ENABLED
     copter_leds_init();
 #endif
-
+    /*
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
+    board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
+#endif
+*/
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
     rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
     board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 #endif
@@ -151,7 +156,7 @@ static void init_ardupilot()
     ap.usb_connected = true;
     check_usb_mux();
 
-#if CONFIG_HAL_BOARD != HAL_BOARD_APM2
+#if CONFIG_HAL_BOARD != HAL_BOARD_APM2 && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     // we have a 2nd serial port for telemetry on all boards except
     // APM2. We actually do have one on APM2 but it isn't necessary as
     // a MUX is used 
@@ -219,9 +224,11 @@ static void init_ardupilot()
 #if CLI_ENABLED == ENABLED
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     if (gcs3.initialised) {
         hal.uartC->println_P(msg);
     }
+#endif
 #endif // CLI_ENABLED
 
 #if HIL_MODE != HIL_MODE_DISABLED

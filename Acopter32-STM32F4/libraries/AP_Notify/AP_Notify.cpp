@@ -25,7 +25,7 @@ void AP_Notify::init(void)
     boardled.init();
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     tonealarm.init();
-#elif CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
+#elif CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     toshibaled.init();
 #endif
 }
@@ -34,7 +34,7 @@ void AP_Notify::init(void)
 void AP_Notify::update(void)
 {
     boardled.update();
-#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     toshibaled.update();
 #endif
 

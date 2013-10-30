@@ -2,6 +2,7 @@
 
 // updates the status of notify
 // should be called at 50hz
+#include <AP_HAL_Boards.h>
 static void update_notify()
 {
     notify.update();
@@ -47,6 +48,10 @@ static void copter_leds_init(void)
     pinMode(COPTER_LED_8, OUTPUT);              //Motor or GPS LED
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    hal.gpio->pinMode(PIEZO_PIN, OUTPUT);       // PIEZO PIN
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
     hal.gpio->pinMode(PIEZO_PIN, OUTPUT);       // PIEZO PIN
 #endif
 

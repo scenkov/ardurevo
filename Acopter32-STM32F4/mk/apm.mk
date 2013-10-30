@@ -50,6 +50,10 @@ ifeq ($(HAL_BOARD),HAL_BOARD_VRBRAIN)
 include $(MK_DIR)/board_VRBRAIN.mk
 endif
 
+ifeq ($(HAL_BOARD),HAL_BOARD_REVOMINI)
+include $(MK_DIR)/board_REVOMINI.mk
+endif
+
 endif
 
 endif

@@ -66,6 +66,12 @@
  # define HAL_GPIO_C_LED_PIN        21
  # define HAL_GPIO_LED_ON           HIGH
  # define HAL_GPIO_LED_OFF          LOW
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ # define HAL_GPIO_A_LED_PIN        36  // BLUE
+ # define HAL_GPIO_B_LED_PIN        37  // YELLOW OPTIONAL (not included)
+ # define HAL_GPIO_C_LED_PIN        105 // RED
+ # define HAL_GPIO_LED_ON           LOW
+ # define HAL_GPIO_LED_OFF          HIGH
 #else
 #error "Unknown board type in AP_Notify"
 #endif
