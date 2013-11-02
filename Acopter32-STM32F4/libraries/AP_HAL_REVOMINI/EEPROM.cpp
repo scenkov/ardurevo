@@ -345,14 +345,16 @@ uint16 EEPROMClass::init(void)
 	status1 = (*(__IO uint16 *)PageBase1);
 
 	// Check if EEprom is formatted
-        if (status0 == EEPROM_VALID_PAGE || status0 == EEPROM_RECEIVE_DATA || status0 == EEPROM_ERASED){
+        if (status0 != EEPROM_VALID_PAGE && status0 != EEPROM_RECEIVE_DATA && status0 != EEPROM_ERASED){
+		Status = format();
+            	status0 = (*(__IO uint16 *)PageBase0);
+            	status1 = (*(__IO uint16 *)PageBase1);
         }else{
-            if (status1 == EEPROM_VALID_PAGE || status0 == EEPROM_RECEIVE_DATA || status0 == EEPROM_ERASED){
-            }else{
+            if (status1 != EEPROM_VALID_PAGE && status1 != EEPROM_RECEIVE_DATA && status1 != EEPROM_ERASED){
             Status = format();
 	    status0 = (*(__IO uint16 *)PageBase0);
 	    status1 = (*(__IO uint16 *)PageBase1);
-        }
+            }
         }
 
 	switch (status0)
