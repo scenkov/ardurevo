@@ -25,6 +25,7 @@ REVOMINIAnalogSource::REVOMINIAnalogSource(int16_t pin, float initial_value) :
 float REVOMINIAnalogSource::read_average() {
     float temp;
     temp = (read_latest() * 0.8) + (_last_value * 0.2f);
+    _last_value = _value;
     return temp;
 }
 
