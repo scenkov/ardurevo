@@ -22,10 +22,10 @@ public:
     // erase handling
     bool NeedErase(void);
     void EraseAll();
+    void Erase_Sectors(uint8_t start, uint8_t end);
 
     uint16_t dfEE_Write(const void *pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
     uint32_t dfEE_WriteBuffer(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
-
 
     /* Write a block of data at current offset */
     void WriteBlock(const void *pBuffer, uint16_t size);
@@ -44,7 +44,6 @@ public:
     void DumpPageInfo(AP_HAL::BetterStream *port);
     void ShowDeviceInfo(AP_HAL::BetterStream *port);
     void ListAvailableLogs(AP_HAL::BetterStream *port);
-
 private:
     struct PageHeader {
         uint16_t FileNumber;
@@ -61,12 +60,13 @@ private:
     uint16_t df_FileNumber;
     uint16_t df_FilePage;
     bool log_write_started;
-
     /*functions implemented by the board specific backends*/
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
     virtual void WaitReady() = 0;
+    virtual uint8_t ReadStatus() = 0;
     virtual void Flash_Jedec_EraseSector(uint32_t chip_offset) = 0;
-    virtual void BlockWrite(uint32_t IntPageAdr, const void *pHeader, uint8_t hdr_size, const void *pBuffer, uint16_t size) = 0;
+    virtual void BufferToPage (uint32_t IntPageAdr) = 0;
+    virtual void BlockWrite(uint32_t BufferIdx, const void *pHeader, uint8_t hdr_size, const void *pBuffer, uint16_t size) = 0;
     virtual bool BlockRead(uint32_t IntPageAdr, void *pBuffer, uint16_t size) = 0;
 #else
     virtual void WaitReady() = 0;

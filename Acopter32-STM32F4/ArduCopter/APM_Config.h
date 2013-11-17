@@ -6,7 +6,7 @@
 // valid! You should switch to using a HAL_BOARD flag in your local config.mk.
 
 //#define HIL_MODE              HIL_MODE_SENSORS    // build for hardware-in-the-loop simulation
-#define LOGGING_ENABLED       DISABLED            // disable logging to save code space
+//#define LOGGING_ENABLED       DISABLED            // disable logging to save code space
 //#define DMP_ENABLED           ENABLED             // use MPU6000's DMP instead of DCM for attitude estimation
 //#define SECONDARY_DMP_ENABLED ENABLED             // allows running DMP in parallel with DCM for testing purposes
 

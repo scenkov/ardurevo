@@ -30,6 +30,8 @@ uint16_t DataFlash_Block::get_num_logs(void)
     StartRead(lastpage);
     last = GetFileNumber();
     StartRead(lastpage + 2);
+    if (GetFileNumber() == 0xFFFF)
+	StartRead(((lastpage >> 8) + 1) << 8); // next sector
     first = GetFileNumber();
     if(first > last) {
         StartRead(1);

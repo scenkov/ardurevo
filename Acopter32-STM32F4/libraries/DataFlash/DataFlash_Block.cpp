@@ -4,6 +4,7 @@
  */
 
 #include <AP_HAL.h>
+#include "wirish.h"
 #include <stm32f4xx.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
@@ -12,16 +13,9 @@
 
 extern AP_HAL::HAL& hal;
 
-/*
- * TODO DRIVER NEED TO BE FIXED !!!
- */
-
 // the last page holds the log format in first 4 bytes. Please change
 // this if (and only if!) the low level format changes
 #define DF_LOGGING_FORMAT    0x28122013
-
-#define dfEE_PAGESIZE   256
-__IO uint8_t   dfEEDataNum;
 
 // *** DATAFLASH PUBLIC FUNCTIONS ***
 void DataFlash_Block::StartWrite(uint16_t PageAdr)
@@ -29,17 +23,37 @@ void DataFlash_Block::StartWrite(uint16_t PageAdr)
     df_BufferIdx  = 0;
     df_BufferNum  = 0;
     df_PageAdr    = PageAdr;
-    WaitReady();
+
+    if (df_PageAdr >= DF_LAST_PAGE){
+	df_PageAdr = 1;
+	Flash_Jedec_EraseSector(0); // Erase Sector
+    }
+
+    uint16_t data = 0;
+    BlockRead((df_PageAdr << 8), &data, sizeof(data));
+    if (data != 0xFFFF)
+       Flash_Jedec_EraseSector(df_PageAdr << 8); // Erase Sector
 }
 
 void DataFlash_Block::FinishWrite(void)
 {
+    WaitReady();
+
+    BufferToPage (df_PageAdr << 8); // Save 256 bytes from buffer to Page
+
     df_PageAdr++;
-    // If we reach the end of the memory, start from the begining
+
     if (df_PageAdr > df_NumPages){
-	df_PageAdr--;
-      //  df_PageAdr = 1;
-	log_write_started = false; // DF is full Stop loging
+	Flash_Jedec_EraseSector(0); // Erase Sector 0
+    	df_PageAdr = 1;
+    }
+    // check if new sector is erased
+    if (df_PageAdr % 256 == 0){
+	uint16_t data = 0;
+	BlockRead((df_PageAdr << 8), &data, sizeof(data));
+    	if (data != 0xFFFF){
+    	   Flash_Jedec_EraseSector(df_PageAdr << 8); // Erase Sector
+        }
     }
 
     df_BufferIdx = 0;
@@ -47,10 +61,12 @@ void DataFlash_Block::FinishWrite(void)
 
 void DataFlash_Block::WriteBlock(const void *pBuffer, uint16_t size)
 {
+    if (ReadStatus() != 0)
+	return;
+
     if (!CardInserted() || !log_write_started) {
         return;
     }
-    uint32_t AddressToWrite = df_PageAdr << 8;
 
     while (size > 0) {
 	uint16_t n = df_PageSize - df_BufferIdx;
@@ -65,11 +81,10 @@ void DataFlash_Block::WriteBlock(const void *pBuffer, uint16_t size)
 		n = df_PageSize - sizeof(struct PageHeader);
 	    }
 	    struct PageHeader ph = { df_FileNumber, df_FilePage };
-    //	BlockWrite(df_BufferIdx + AddressToWrite, &ph, sizeof(ph), pBuffer, n);
-	    BlockWrite(AddressToWrite, &ph, sizeof(ph), pBuffer, n); // write PageHeader+data
+	    BlockWrite(df_BufferIdx, &ph, sizeof(ph), pBuffer, n); // write PageHeader+data
 	    df_BufferIdx += n + sizeof(ph);
 	 } else {
-	    BlockWrite(df_BufferIdx + AddressToWrite, NULL, 0, pBuffer, n);
+	    BlockWrite(df_BufferIdx, NULL, 0, pBuffer, n);
 	    df_BufferIdx += n;
 	 }
 
@@ -100,8 +115,6 @@ void DataFlash_Block::StartRead(uint16_t PageAdr)
 {
     df_Read_PageAdr   = PageAdr;
 
-    WaitReady();
-
     // We are starting a new page - read FileNumber and FilePage
     struct PageHeader ph;
     BlockRead(df_Read_PageAdr << 8, &ph, sizeof(ph));
@@ -118,8 +131,6 @@ void DataFlash_Block::ReadBlock(void *pBuffer, uint16_t size)
             n = size;
         }
 
-        WaitReady();
-
         BlockRead(df_Read_BufferIdx + (df_Read_PageAdr << 8), pBuffer, n);
         size -= n;
         pBuffer = (void *)(n + (uintptr_t)pBuffer);
@@ -133,7 +144,7 @@ void DataFlash_Block::ReadBlock(void *pBuffer, uint16_t size)
             }
             // We are starting a new page - read FileNumber and FilePage
             struct PageHeader ph;
-            BlockRead(df_Read_PageAdr * 256, &ph, sizeof(ph));
+            BlockRead(df_Read_PageAdr << 8, &ph, sizeof(ph));
             df_FileNumber = ph.FileNumber;
             df_FilePage   = ph.FilePage;
 
@@ -163,15 +174,15 @@ uint16_t DataFlash_Block::GetFilePage()
 #define LED_RED (*((unsigned long int *) 0x42408290)) // PB4
 #include <delay.h>
 
-void DataFlash_Block::EraseAll()
+void DataFlash_Block::Erase_Sectors(uint8_t start, uint8_t end)
 {
     static uint16_t _erase_led = 0;
     LED_GRN = 0;
     LED_RED = 1;
-    for (uint16_t sector = 0; sector < 30; sector++) { // Erase 30 pages * 256 bytes (2 sectors reserved for parameters)
-	hal.console->printf("Erase Page: %u", sector);
+    // Erase XX sectors * 256 bytes
+    for (uint16_t sector = start; sector < end; sector++) {
 	Flash_Jedec_EraseSector(sector << 16);
-
+	WaitReady();
 	 if (_erase_led == 1){
 	     LED_RED=0;
 	     LED_GRN = 1;
@@ -180,16 +191,21 @@ void DataFlash_Block::EraseAll()
 	     LED_RED=1;
 	     LED_GRN = 0;
              _erase_led=1;
-	     }
-
+	 }
     }
-
-    LED_RED=1;
+    LED_RED = 1;
     LED_GRN = 1;
+}
 
-    // write the logging format in the last page
+void DataFlash_Block::EraseAll()
+{
+    Erase_Sectors(0,32); // Erase 32 sectors * 256 bytes
+
+    // write the logging format in the first page
     hal.scheduler->delay(100);
-    StartWrite(0); // Set Write Page to 0
+    df_BufferIdx  = 0;
+    df_BufferNum  = 0;
+    df_PageAdr    = DF_LAST_PAGE;
     uint32_t version = DF_LOGGING_FORMAT;
     log_write_started = true;
     df_FileNumber = 1;
@@ -206,9 +222,10 @@ void DataFlash_Block::EraseAll()
 bool DataFlash_Block::NeedErase(void)
 {
     uint32_t version = 0;
-    StartRead(0);  // Firs Page
+
+    StartRead(DF_LAST_PAGE);  // Last Page
     ReadBlock(&version, sizeof(version));
-    StartRead(1);
+    StartRead(1); //1
     return version != DF_LOGGING_FORMAT;
 }
 

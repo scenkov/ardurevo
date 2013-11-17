@@ -1,18 +1,3 @@
-/**
- ******************************************************************************
- *
- * @addtogroup PIOS PIOS Core hardware abstraction layer
- * @{
- * @addtogroup PIOS_FLASH Flash device handler
- * @{
- *
- * @file       pios_flash_w25x.c
- * @author     The OpenPilot Team, http://www.openpilot.org Copyright (C) 2010.
- * @author     Tau Labs, http://taulabs.org, Copyright (C) 2012-2013
- * @brief      Driver for talking to W25X flash chip (and most JEDEC chips)
- * @see        The GNU Public License (GPL) Version 3
- *
- *****************************************************************************/
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,13 +27,7 @@ extern const AP_HAL::HAL& hal;
  # define serialDebug(fmt, args...)
 #endif
 
-
-/*
-// flash size
-#define DF_FLASH_SIZE 8192
-#define DF_LAST_PAGE 4096  // 1/2 of Flash size
-*/
-#define DF_RESET BOARD_SPI3_CS_DF_PIN             // RESET  (PB3)
+#define DF_RESET BOARD_SPI3_CS_DF_PIN // RESET (PB3)
 
 //Micron M25P16 Serial Flash Embedded Memory 16 Mb, 3V
 #define JEDEC_WRITE_ENABLE           0x06
@@ -72,6 +51,9 @@ extern const AP_HAL::HAL& hal;
 #define expect_memorytype            0x20
 #define expect_capacity              0x15
 #define sector_erase                 0xD8
+
+uint8_t BlockBuffer[256];
+
 /*
   try to take a semaphore safely from both in a timer and outside
  */
@@ -83,8 +65,6 @@ bool DataFlash_REVOMINI::_sem_take(uint8_t timeout)
     return _spi_sem->take(timeout);
 }
 
-
-// Public Methods //////////////////////////////////////////////////////////////
 void DataFlash_REVOMINI::Init(void)
 {
     // init to zero
@@ -185,7 +165,7 @@ uint16_t DataFlash_REVOMINI::PageSize()
 // Assumes _spi_sem handled by caller.
 void DataFlash_REVOMINI::WaitReady()
 {
-    while(ReadStatus());
+    while(ReadStatus() != 0);
 }
 
 /**
@@ -202,10 +182,11 @@ void DataFlash_REVOMINI::Flash_Jedec_WriteEnable(void)
     _spi->cs_release();
 }
 
-void DataFlash_REVOMINI::BlockWrite (uint32_t IntPageAdr, const void *pHeader, uint8_t hdr_size, const void *pBuffer, uint16_t size)
+void DataFlash_REVOMINI::BufferToPage (uint32_t IntPageAdr)
 {
     if (!_sem_take(1))
         return;
+    uint8_t *pData = BlockBuffer;
 
     uint8_t cmd[4];
     cmd[0] = JEDEC_PAGE_WRITE;
@@ -219,21 +200,26 @@ void DataFlash_REVOMINI::BlockWrite (uint32_t IntPageAdr, const void *pHeader, u
 
     _spi->transfer(cmd, sizeof(cmd));
 
-    // transfer header, if any
-    if (hdr_size != 0) {
-        _spi->transfer((const uint8_t *)pHeader, hdr_size);
-    }
-
-    _spi->transfer((const uint8_t *)pBuffer, size);
+    _spi->transfer((uint8_t *)pData, sizeof(BlockBuffer));
 
     // release SPI bus for use by other sensors
     _spi->cs_release();
-
     WaitReady();
-
     _spi_sem->give();
 }
 
+// Write block of data to temporary buffer
+void DataFlash_REVOMINI::BlockWrite (uint32_t BufferIdx, const void *pHeader, uint8_t hdr_size, const void *pBuffer, uint16_t size)
+{
+    uint8_t *pData = BlockBuffer;
+
+    pData += BufferIdx;
+    if (hdr_size != 0) {
+	memcpy( pData, (const uint8_t *)pHeader, hdr_size);
+	pData += hdr_size;
+    }
+    memcpy( pData, (const uint8_t *)pBuffer, size);
+}
 
 bool DataFlash_REVOMINI::BlockRead (uint32_t IntPageAdr, void *pBuffer, uint16_t size)
 {
@@ -255,7 +241,6 @@ bool DataFlash_REVOMINI::BlockRead (uint32_t IntPageAdr, void *pBuffer, uint16_t
     while (size--) {
         *pData++ = _spi->transfer(0x00);
     }
-
     // release SPI bus for use by other sensors
     _spi->cs_release();
 
@@ -265,31 +250,25 @@ bool DataFlash_REVOMINI::BlockRead (uint32_t IntPageAdr, void *pBuffer, uint16_t
 
 /**
  * @brief Erase a sector on the flash chip
- * @param[in] chip_id the opaque handle for the chip that this operation should be applied to
- * @param[in] chip_sector Sector number of flash to erase
- * @param[in] chip_offset Address within flash to erase
- * @returns 0 if successful
- * @retval -1 if unable to claim bus
- * @retval
+ * @param[in] chip_offset Sector number of flash to erase
  */
+
 void DataFlash_REVOMINI::Flash_Jedec_EraseSector(uint32_t chip_offset)
 {
-	uint8_t cmd[4];
-	cmd[0] = sector_erase;
-	cmd[1] = (chip_offset >> 16) & 0xff;
-	cmd[2] = (chip_offset >>  8) & 0xff;
-	cmd[3] = (chip_offset >>  0) & 0xff;
+    uint8_t cmd[4];
+    cmd[0] = sector_erase;
+    cmd[1] = (chip_offset >> 16) & 0xff;
+    cmd[2] = (chip_offset >>  8) & 0xff;
+    cmd[3] = (chip_offset >>  0) & 0xff;
 
-	Flash_Jedec_WriteEnable();
+    Flash_Jedec_WriteEnable();
 
-	_spi->cs_assert();
+    _spi->cs_assert();
 
-	_spi->transfer(cmd, sizeof(cmd));
+    _spi->transfer(cmd, sizeof(cmd));
 
-	_spi->cs_release();
+    _spi->cs_release();
 
-	// Keep polling when bus is busy too
-	WaitReady();
 }
 
 // *** END OF INTERNAL FUNCTIONS ***
