@@ -393,7 +393,7 @@ enum ap_message {
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-#define PIEZO_PIN 200
+#define PIEZO_PIN 107 // PA14
 #else
 #define PIEZO_PIN AN5           //Last pin on the back ADC connector
 #endif

@@ -63,20 +63,20 @@ void boardInit(void);
 
 #define MPU6000_CS_PIN		51
 
-#define BOARD_NR_GPIO_PINS      106
-#define BOARD_NR_PWM_PINS       18
-#define BOARD_NR_ADC_PINS       21
-#define BOARD_NR_USED_PINS      43
-#define BOARD_JTMS_SWDIO_PIN    101
-#define BOARD_JTCK_SWCLK_PIN    102
-#define BOARD_JTDI_PIN          103
-#define BOARD_JTDO_PIN          104
-#define BOARD_NJTRST_PIN        105
+#define BOARD_NR_GPIO_PINS      108
+//#define BOARD_NR_PWM_PINS       18
+//#define BOARD_NR_ADC_PINS       21
+//#define BOARD_NR_USED_PINS      43
+//#define BOARD_JTMS_SWDIO_PIN    101
+//#define BOARD_JTCK_SWCLK_PIN    102
+//#define BOARD_JTDI_PIN          103
+//#define BOARD_JTDO_PIN          104
+//#define BOARD_NJTRST_PIN        105
 
-#define BOARD_USB_DISC_DEV      GPIOC
-#define BOARD_USB_DISC_BIT      7
+//#define BOARD_USB_DISC_DEV      GPIOC
+//#define BOARD_USB_DISC_BIT      7
 
-#define ADC_CHIP_SELECT D77
+//#define ADC_CHIP_SELECT D77
 
 /* ADC *****************************************************/
 /*

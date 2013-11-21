@@ -271,7 +271,7 @@
  #define COPTER_LED_7 200  	// Motor or GPS LED
  #define COPTER_LED_8 200  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- #define COPTER_LED_1 200  	// Motor or Aux LED
+ #define COPTER_LED_1 106  	// Motor or Aux LED
  #define COPTER_LED_2 200  	// Motor LED or Beeper
  #define COPTER_LED_3 200  	// Motor or GPS LED
  #define COPTER_LED_4 200  	// Motor or GPS LED
