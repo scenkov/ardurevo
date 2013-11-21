@@ -59,6 +59,7 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
 	usb_attr.present_pin = 4;
 	usb_ioctl(I_USB_SETATTR, &usb_attr);
 
+	delay_us(1000);
     }
     else
     {

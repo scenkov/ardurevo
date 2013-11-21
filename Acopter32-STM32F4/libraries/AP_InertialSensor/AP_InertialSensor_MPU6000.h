@@ -16,6 +16,8 @@
 // enable debug to see a register dump on startup
 #define MPU6000_DEBUG 0
 
+#define ENHANCED
+
 class AP_InertialSensor_MPU6000 : public AP_InertialSensor
 {
 public:

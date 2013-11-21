@@ -103,8 +103,20 @@ void REVOMINISPI2DeviceDriver::set_bus_speed(REVOMINISPI2DeviceDriver::bus_speed
 {
     if (speed == REVOMINISPI2DeviceDriver::SPI_SPEED_HIGH) {
 
-    } else {
+	    //init the device
+	    spi_init(_dev);
 
+	    SPIFrequency freq = SPI_9MHZ;
+	    spi_baud_rate baud = determine_baud_rate(freq);
+	    spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
+
+    } else {
+	    //init the device
+	    spi_init(_dev);
+
+	    SPIFrequency freq = SPI_1_125MHZ;
+	    spi_baud_rate baud = determine_baud_rate(freq);
+	    spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
     }
 }
 

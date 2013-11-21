@@ -45,7 +45,7 @@ void REVOMINIUARTDriver::begin(uint32_t baud) {
 	_usb_present = gpio_read_bit(_GPIOC,5);
     else
 	_usb_present = 0;
-
+/*
     if(_usb_present == 1)
     {
 	usb_attr_t usb_attr;
@@ -55,12 +55,15 @@ void REVOMINIUARTDriver::begin(uint32_t baud) {
 	usb_attr.preempt_prio = 0;
 	usb_attr.sub_prio = 0;
 	usb_attr.use_present_pin = 1;
-	usb_attr.present_port = _GPIOC;
+	usb_attr.present_port = _GPIOD;
 	usb_attr.present_pin = 5;
 	usb_ioctl(I_USB_SETATTR, &usb_attr);
 
+	delay_us(1000);
     }
     else
+	*/
+    if(_usb_present != 1)
     {
 	const stm32_pin_info *txi = &PIN_MAP[_usart_device->tx_pin];
 	const stm32_pin_info *rxi = &PIN_MAP[_usart_device->rx_pin];

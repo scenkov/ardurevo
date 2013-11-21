@@ -11,7 +11,6 @@
 #include <AP_GPS.h>
 #include <AP_InertialSensor.h>
 #include <stdint.h>
-#include "AP_HAL_Namespace.h"
 
 class DataFlash_Class
 {
@@ -23,6 +22,7 @@ public:
     // erase handling
     virtual bool NeedErase(void) = 0;
     virtual void EraseAll() = 0;
+
     /* Write a block of data at current offset */
     virtual void WriteBlock(const void *pBuffer, uint16_t size) = 0;
 
@@ -141,7 +141,8 @@ struct PACKED log_Parameter {
 struct PACKED log_GPS {
     LOG_PACKET_HEADER;
     uint8_t  status;
-    uint32_t gps_time;
+    uint32_t gps_week_ms;
+    uint16_t gps_week;
     uint8_t  num_sats;
     int16_t  hdop;
     int32_t  latitude;
@@ -170,11 +171,12 @@ struct PACKED log_IMU {
     { LOG_PARAMETER_MSG, sizeof(log_Parameter), \
       "PARM", "Nf",        "Name,Value" },    \
     { LOG_GPS_MSG, sizeof(log_GPS), \
-      "GPS",  "BIBcLLeeEe", "Status,Time,NSats,HDop,Lat,Lng,RelAlt,Alt,Spd,GCrs" }, \
+      "GPS",  "BIHBcLLeeEe", "Status,TimeMS,Week,NSats,HDop,Lat,Lng,RelAlt,Alt,Spd,GCrs" }, \
     { LOG_IMU_MSG, sizeof(log_IMU), \
       "IMU",  "fffffff",     "GyrX,GyrY,GyrZ,AccX,AccY,AccZ,Temp" }, \
     { LOG_MESSAGE_MSG, sizeof(log_Message), \
       "MSG",  "Z",     "Message" }
+
 
 // message types for common messages
 #define LOG_FORMAT_MSG	  128

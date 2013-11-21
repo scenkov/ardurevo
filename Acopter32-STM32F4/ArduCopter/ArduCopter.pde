@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V3.1.9"
+#define THISFIRMWARE "ArduCopter V3.1.11"
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -315,7 +315,6 @@ static AP_GPS_HIL              g_gps_driver;
 static AP_InertialSensor_HIL   ins;
 static AP_AHRS_DCM             ahrs(&ins, g_gps);
 
-static int32_t gps_base_alt;
 
  #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  // When building for SITL we use the HIL barometer and compass drivers
@@ -329,8 +328,6 @@ static AP_AHRS_HIL             ahrs(&ins, g_gps);
 static AP_GPS_HIL              g_gps_driver;
 static AP_Compass_HIL          compass;                  // never used
 static AP_Baro_HIL      barometer;
-
-static int32_t gps_base_alt;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  // When building for SITL we use the HIL barometer and compass drivers
@@ -413,6 +410,8 @@ static union {
         uint8_t yaw_stopped         : 1; // 16      // Used to manage the Yaw hold capabilities
 
         uint8_t disable_stab_rate_limit : 1; // 17  // disables limits rate request from the stability controller
+
+        uint8_t rc_receiver_present : 1; // 18  // true if we have an rc receiver present (i.e. if we've ever received an update
     };
     uint32_t value;
 } ap;
@@ -768,14 +767,14 @@ static uint32_t condition_start;
 ////////////////////////////////////////////////////////////////////////////////
 // IMU variables
 ////////////////////////////////////////////////////////////////////////////////
-// Integration time for the gyros (DCM algorithm)
+// Integration time (in seconds) for the gyros (DCM algorithm)
 // Updated with the fast loop
 static float G_Dt = 0.02;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Inertial Navigation
 ////////////////////////////////////////////////////////////////////////////////
-static AP_InertialNav inertial_nav(&ahrs, &ins, &barometer, g_gps, gps_glitch);
+static AP_InertialNav inertial_nav(&ahrs, &barometer, g_gps, gps_glitch);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Waypoint navigation object
@@ -888,6 +887,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { barometer_accumulate,  2,     250 },
     { update_notify,         2,     100 },
     { one_hz_loop,         100,     420 },
+    { crash_check,          10,      20 },
     { gcs_check_input,	     2,     550 },
     { gcs_send_heartbeat,  100,     150 },
     { gcs_send_deferred,     2,     720 },
@@ -947,10 +947,9 @@ void setup() {
             &sonar_mode_filter);
 #endif
 
-#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
-    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
+    //rssi_analog_source      = hal.analogin->channel(255);
     board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
-#endif
+
 
     init_ardupilot();
 
@@ -995,7 +994,7 @@ void loop()
 {
     // wait for an INS sample
     if (!ins.wait_for_sample(1000)) {
-        Log_Write_Error(ERROR_SUBSYSTEM_MAIN, ERROR_CODE_INS_DELAY);
+        Log_Write_Error(ERROR_SUBSYSTEM_MAIN, ERROR_CODE_MAIN_INS_DELAY);
         return;
     }
     uint32_t timer = micros();
@@ -1205,9 +1204,8 @@ static void three_hz_loop()
 // one_hz_loop - runs at 1Hz
 static void one_hz_loop()
 {
-    if (g.log_bitmask != 0) {
+    if (g.log_bitmask != 0)
         Log_Write_Data(DATA_AP_STATE, ap.value);
-    }
 
     // pass latest alt hold kP value to navigation controller
     wp_nav.set_althold_kP(g.pi_alt_hold.kP());
@@ -1233,12 +1231,8 @@ static void one_hz_loop()
         motors.set_frame_orientation(g.frame_orientation);
     }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
-#elif MOUNT == ENABLED
-    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_10, &g.rc_11);
-#endif
-
+    // update assigned functions and enable auxiliar servos
+    aux_servos_update_fn();
     enable_aux_servos();
 
 #if MOUNT == ENABLED
@@ -1284,12 +1278,12 @@ static void update_GPS(void)
 
     g_gps->update();
 
-    if (g_gps->new_data && last_gps_time != g_gps->time && g_gps->status() >= GPS::GPS_OK_FIX_2D) {
+    if (g_gps->new_data && last_gps_time != g_gps->last_fix_time && g_gps->status() >= GPS::GPS_OK_FIX_2D) {
         // clear new data flag
         g_gps->new_data = false;
 
         // save GPS time so we don't get duplicate reads
-        last_gps_time = g_gps->time;
+        last_gps_time = g_gps->last_fix_time;
 
         // log location if we have at least a 2D fix
         if (g.log_bitmask & MASK_LOG_GPS && motors.armed()) {
@@ -1321,6 +1315,10 @@ static void update_GPS(void)
                     // ap.home_is_set will be true so this will only happen once
                     ground_start_count = 0;
                     init_home();
+
+                    // set system clock for log timestamps
+                    hal.util->set_system_clock(g_gps->time_epoch_usec());
+
                     if (g.compass_enabled) {
                         // Set compass declination automatically
                         compass.set_initial_location(g_gps->latitude, g_gps->longitude);
@@ -1612,20 +1610,35 @@ bool set_roll_pitch_mode(uint8_t new_roll_pitch_mode)
 
 #if AUTOTUNE == ENABLED
         case ROLL_PITCH_AUTOTUNE:
-            // indicate we can enter this mode successfully
-            roll_pitch_initialised = true;
+            // only enter autotune mode from stabilized roll-pitch mode when armed and flying
+            if (roll_pitch_mode == ROLL_PITCH_STABLE && motors.armed() && !ap.land_complete) {
+                // auto_tune_start returns true if it wants the roll-pitch mode changed to autotune
+                roll_pitch_initialised = auto_tune_start();
+            }
             break;
 #endif
     }
 
     // if initialisation has been successful update the yaw mode
     if( roll_pitch_initialised ) {
+        exit_roll_pitch_mode(roll_pitch_mode);
         roll_pitch_mode = new_roll_pitch_mode;
     }
 
     // return success or failure
     return roll_pitch_initialised;
 }
+
+// exit_roll_pitch_mode - peforms any code required when exiting the current roll-pitch mode
+void exit_roll_pitch_mode(uint8_t old_roll_pitch_mode)
+{
+#if AUTOTUNE == ENABLED
+    if (old_roll_pitch_mode == ROLL_PITCH_AUTOTUNE) {
+        auto_tune_stop();
+    }
+#endif
+}
+
 
 // update_roll_pitch_mode - run high level roll and pitch controllers
 // 100hz update rate
@@ -2096,7 +2109,7 @@ static void update_altitude()
 {
 #if HIL_MODE == HIL_MODE_ATTITUDE
     // we are in the SIM, fake out the baro and Sonar
-    baro_alt                = g_gps->altitude_cm - gps_base_alt;
+    baro_alt                = g_gps->altitude_cm;
 
     if(g.sonar_enabled) {
         sonar_alt           = baro_alt;

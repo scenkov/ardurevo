@@ -29,6 +29,9 @@ public:
     // sample_available - true when a new sample is available
     bool                sample_available();
 
+    // wait for a sample to be available, with timeout in milliseconds
+    bool                wait_for_sample(uint16_t timeout_ms);
+
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
     float            	get_delta_time();
 
@@ -55,7 +58,7 @@ private:
 
     uint16_t			_num_samples;
 
-    float                       _temp;
+
 
     float                       _temp_to_celsius( int32_t );
 
@@ -71,6 +74,7 @@ private:
 
     uint32_t _last_sample_time_micros;
 
+    float                       _temp;
     // ensure we can't initialise twice
     bool                        _initialised;
     int16_t              _mpu6000_product_id;

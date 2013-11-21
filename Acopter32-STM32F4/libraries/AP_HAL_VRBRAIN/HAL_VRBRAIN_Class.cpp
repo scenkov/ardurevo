@@ -65,10 +65,12 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   //delay_us(2000000);
 
+  uartA->begin(57600);
+
   scheduler->init(NULL);
   //uartA->begin(115200);
 
-  uartA->begin(57600);
+
 
   //_member->init();
   i2c->begin();
@@ -78,7 +80,7 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   rcin->init(NULL);
 
   rcout->init((void *)&_is_ppmsum);
-
+  analogin->init(NULL);
 }
 
 const HAL_VRBRAIN AP_HAL_VRBRAIN;

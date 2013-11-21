@@ -20,11 +20,11 @@
 #define YAW_LOOK_AT_NEXT_WP             2       // point towards next waypoint (no pilot input accepted)
 #define YAW_LOOK_AT_LOCATION            3       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
 #define YAW_CIRCLE                      4       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
-#define YAW_LOOK_AT_HOME    		    5       // point towards home (no pilot input accepted)
-#define YAW_LOOK_AT_HEADING    		    6       // point towards a particular angle (not pilot input accepted)
-#define YAW_LOOK_AHEAD					7		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
+#define YAW_LOOK_AT_HOME    		5       // point towards home (no pilot input accepted)
+#define YAW_LOOK_AT_HEADING    		6       // point towards a particular angle (not pilot input accepted)
+#define YAW_LOOK_AHEAD			7		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
 #define YAW_TOY                         8       // THOR This is the Yaw mode
-#define YAW_RESETTOARMEDYAW				9       // point towards heading at time motors were armed
+#define YAW_RESETTOARMEDYAW		9       // point towards heading at time motors were armed
 
 #define ROLL_PITCH_STABLE           0       // pilot input roll, pitch angles
 #define ROLL_PITCH_ACRO             1       // pilot inputs roll, pitch rotation rates in body frame
@@ -70,6 +70,7 @@
 #define AUX_SWITCH_SPRAYER          15      // enable/disable the crop sprayer
 #define AUX_SWITCH_AUTO             16      // change to auto flight mode
 #define AUX_SWITCH_AUTOTUNE         17      // auto tune
+#define AUX_SWITCH_LAND             18      // change to LAND flight mode
 
 // values used by the ap.ch7_opt and ap.ch8_opt flags
 #define AUX_SWITCH_LOW              0       // indicates auxiliar switch is in the low position (pwm <1200)
@@ -219,8 +220,8 @@
 #define WP_OPTION_YAW                           4
 #define WP_OPTION_ALT_REQUIRED                  8
 #define WP_OPTION_RELATIVE                      16
-//#define WP_OPTION_					32
-//#define WP_OPTION_					64
+//#define WP_OPTION_				32
+//#define WP_OPTION_				64
 #define WP_OPTION_NEXT_CMD                      128
 
 // RTL state
@@ -258,6 +259,7 @@ enum ap_message {
     MSG_RAW_IMU2,
     MSG_RAW_IMU3,
     MSG_GPS_RAW,
+    MSG_SYSTEM_TIME,
     MSG_SERVO_OUT,
     MSG_NEXT_WAYPOINT,
     MSG_NEXT_PARAM,
@@ -341,12 +343,25 @@ enum ap_message {
 #define DATA_SET_HOME                   25
 #define DATA_SET_SIMPLE_ON              26
 #define DATA_SET_SIMPLE_OFF             27
-#define DATA_SET_SUPERSIMPLE_ON         28
-#define DATA_AUTOTUNE_ON                29
-#define DATA_AUTOTUNE_SUSPENDED         30
+#define DATA_SET_SUPERSIMPLE_ON         29
+#define DATA_AUTOTUNE_INITIALISED       30
 #define DATA_AUTOTUNE_OFF               31
-#define DATA_AUTOTUNE_SAVEDGAINS        32
-#define DATA_AUTOTUNE_ABANDONED         33
+#define DATA_AUTOTUNE_RESTART           32
+#define DATA_AUTOTUNE_COMPLETE          33
+#define DATA_AUTOTUNE_ABANDONED         34
+#define DATA_AUTOTUNE_REACHED_LIMIT     35
+#define DATA_AUTOTUNE_TESTING           36
+#define DATA_AUTOTUNE_SAVEDGAINS        37
+#define DATA_SAVE_TRIM                  38
+#define DATA_SAVEWP_ADD_WP              39
+#define DATA_SAVEWP_CLEAR_MISSION_RTL   40
+#define DATA_FENCE_ENABLE               41
+#define DATA_FENCE_DISABLE              42
+#define DATA_ACRO_TRAINER_DISABLED      43
+#define DATA_ACRO_TRAINER_LEVELING      44
+#define DATA_ACRO_TRAINER_LIMITED       45
+
+
 
 /* ************************************************************** */
 /* Expansion PIN's that people can use for various things. */
@@ -402,9 +417,8 @@ enum ap_message {
 #define RADX100 0.000174532925f
 #define DEGX100 5729.57795f
 
-
 // EEPROM addresses
-#define EEPROM_MAX_ADDR     4096
+#define EEPROM_MAX_ADDR         4096
 // parameters get the first 1536 bytes of EEPROM, remainder is for waypoints
 #define WP_START_BYTE 0x600 // where in memory home WP is stored + all other
                             // WP
@@ -413,7 +427,7 @@ enum ap_message {
 // fence points are stored at the end of the EEPROM
 #define MAX_FENCEPOINTS 6
 #define FENCE_WP_SIZE sizeof(Vector2l)
-#define FENCE_START_BYTE (EEPROM_MAX_ADDR - (MAX_FENCEPOINTS * FENCE_WP_SIZE))
+#define FENCE_START_BYTE (EEPROM_MAX_ADDR-(MAX_FENCEPOINTS*FENCE_WP_SIZE))
 
 #define MAX_WAYPOINTS  ((FENCE_START_BYTE - WP_START_BYTE) / WP_SIZE) - 1 // -
                                                                           // 1
@@ -451,6 +465,7 @@ enum ap_message {
 #define ERROR_SUBSYSTEM_FAILSAFE_FENCE      9
 #define ERROR_SUBSYSTEM_FLIGHT_MODE         10
 #define ERROR_SUBSYSTEM_GPS                 11
+#define ERROR_SUBSYSTEM_CRASH_CHECK         12
 // general error codes
 #define ERROR_CODE_ERROR_RESOLVED           0
 #define ERROR_CODE_FAILED_TO_INITIALISE     1
@@ -464,8 +479,9 @@ enum ap_message {
 // subsystem specific error codes -- gps
 #define ERROR_CODE_GPS_GLITCH               2
 // subsystem specific error codes -- main
-#define ERROR_CODE_INS_DELAY                1
-
+#define ERROR_CODE_MAIN_INS_DELAY           1
+// subsystem specific error codes -- crash checker
+#define ERROR_CODE_CRASH_CHECK_CRASH        1
 
 
 #endif // _DEFINES_H

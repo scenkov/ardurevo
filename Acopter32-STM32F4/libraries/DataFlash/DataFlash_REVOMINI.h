@@ -17,6 +17,7 @@ class DataFlash_REVOMINI : public DataFlash_Block
 private:
     void              WaitReady();
     uint8_t           ReadStatusReg();
+//    uint8_t           ReadStatus();
     uint16_t          PageSize();
     void              Flash_Jedec_WriteEnable();
     void 	      Flash_Jedec_EraseSector(uint32_t chip_offset);

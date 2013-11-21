@@ -1,5 +1,25 @@
 # Board-specific configuration values.  Flash and SRAM sizes in bytes.
 
+ifeq ($(BOARD), laserlab_MP32V1F1)
+   MCU            := STM32F103VE
+   PRODUCT_ID     := 0003
+   ERROR_LED_PORT := GPIOC
+   ERROR_LED_PIN  := 15
+   DENSITY        := STM32_HIGH_DENSITY
+   FLASH_SIZE     := 524288
+   SRAM_SIZE      := 65536
+endif
+
+ifeq ($(BOARD), laserlab_MP32V3F1)
+   MCU            := STM32F103VE
+   PRODUCT_ID     := 0003
+   ERROR_LED_PORT := GPIOC
+   ERROR_LED_PIN  := 15
+   DENSITY        := STM32_HIGH_DENSITY
+   FLASH_SIZE     := 524288
+   SRAM_SIZE      := 65536
+endif
+
 ifeq ($(BOARD), revomini_MP32V1F4)
    MCU            := STM32F407VG
    PRODUCT_ID     := 0003

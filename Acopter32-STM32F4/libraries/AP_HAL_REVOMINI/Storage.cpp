@@ -62,7 +62,6 @@ uint8_t REVOMINIStorage::read_byte(uint16_t loc){
 
     // 'bytes' are packed 2 per word
     // Read existing dataword and change upper or lower byte
-    //uint16_t data = eeprom.read(eeprom_offset);
     uint16_t data = eeprom.read(loc >> 1);
     if (loc & 1)
 	return data >> 8; // Odd, upper byte

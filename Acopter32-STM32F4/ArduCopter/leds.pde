@@ -2,7 +2,9 @@
 
 // updates the status of notify
 // should be called at 50hz
+
 #include <AP_HAL_Boards.h>
+
 static void update_notify()
 {
     notify.update();
@@ -54,7 +56,6 @@ static void copter_leds_init(void)
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
     hal.gpio->pinMode(PIEZO_PIN, OUTPUT);       // PIEZO PIN
 #endif
-
     if (!(g.copter_leds_mode & COPTER_LEDS_BITMASK_BEEPER)) {
         piezo_beep();
     }

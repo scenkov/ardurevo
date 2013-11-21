@@ -30,7 +30,4 @@
 #include "HAL_REVOMINI_Class.h"
 #include "AP_HAL_REVOMINI_Main.h"
 
-#include <DataFlash.h>
-//extern  DataFlash_REVOMINI DataFlash;
-
 #endif //__AP_HAL_REVOMINI_H__

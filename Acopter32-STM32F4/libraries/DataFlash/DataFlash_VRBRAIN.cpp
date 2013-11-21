@@ -1,13 +1,23 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 /*
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  *       DataFlash_APM1.cpp - DataFlash log library for AT45DB161
  *       Code by Jordi Muñoz and Jose Julio. DIYDrones.com
  *       This code works only on ATMega2560. It uses Serial port 3 in SPI MSPI mdoe.
- *
- *       This library is free software; you can redistribute it and/or
- *   modify it under the terms of the GNU Lesser General Public
- *   License as published by the Free Software Foundation; either
- *   version 2.1 of the License, or (at your option) any later version.
  *
  *       Dataflash library for AT45DB161D flash memory
  *       Memory organization : 4096 pages of 512 bytes or 528 bytes
@@ -27,7 +37,6 @@
  */
 #include <AP_HAL.h>
 #include "DataFlash_VRBRAIN.h"
-//#include <wirish.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -142,6 +151,7 @@ bool DataFlash_VRBRAIN::CardInserted()
 // Assumes _spi_sem handled by caller
 uint8_t DataFlash_VRBRAIN::ReadStatusReg()
 {
+
     uint8_t tmp;
 
     // activate dataflash command decoder
@@ -162,7 +172,9 @@ uint8_t DataFlash_VRBRAIN::ReadStatusReg()
 inline
 uint8_t DataFlash_VRBRAIN::ReadStatus()
 {
+
     return(ReadStatusReg()&0x80); // We only want to extract the READY/BUSY bit
+
 }
 
 inline
@@ -180,7 +192,12 @@ uint16_t DataFlash_VRBRAIN::PageSize()
 // Wait until DataFlash is in ready state...
 void DataFlash_VRBRAIN::WaitReady()
 {
+    if (!_sem_take(1))
+        return;
+
     while(!ReadStatus()) ;
+
+    _spi_sem->give();
 }
 
 void DataFlash_VRBRAIN::PageToBuffer(uint8_t BufferNum, uint16_t PageAdr)

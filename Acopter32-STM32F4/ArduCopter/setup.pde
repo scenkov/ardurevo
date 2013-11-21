@@ -1172,7 +1172,9 @@ static void zero_eeprom(void)
 {
     cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 
-    hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
+    for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
+        hal.storage->write_byte(i, 0);
+    }
 
     cliSerial->printf_P(PSTR("done\n"));
 }
@@ -1180,8 +1182,8 @@ static void zero_eeprom(void)
 static void
 print_accel_offsets_and_scaling(void)
 {
-    Vector3f accel_offsets = ins.get_accel_offsets();
-    Vector3f accel_scale = ins.get_accel_scale();
+    const Vector3f &accel_offsets = ins.get_accel_offsets();
+    const Vector3f &accel_scale = ins.get_accel_scale();
     cliSerial->printf_P(PSTR("A_off: %4.2f, %4.2f, %4.2f\nA_scale: %4.2f, %4.2f, %4.2f\n"),
                     (float)accel_offsets.x,                           // Pitch
                     (float)accel_offsets.y,                           // Roll
@@ -1194,7 +1196,7 @@ print_accel_offsets_and_scaling(void)
 static void
 print_gyro_offsets(void)
 {
-    Vector3f gyro_offsets = ins.get_gyro_offsets();
+    const Vector3f &gyro_offsets = ins.get_gyro_offsets();
     cliSerial->printf_P(PSTR("G_off: %4.2f, %4.2f, %4.2f\n"),
                     (float)gyro_offsets.x,
                     (float)gyro_offsets.y,

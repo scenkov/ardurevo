@@ -64,6 +64,7 @@ void boardInit(void);
 #define MPU6000_CS_PIN		51
 
 #define BOARD_NR_GPIO_PINS      108
+
 //#define BOARD_NR_PWM_PINS       18
 //#define BOARD_NR_ADC_PINS       21
 //#define BOARD_NR_USED_PINS      43
@@ -88,10 +89,10 @@ void boardInit(void);
 #define BOARD_ADC_CH5 D9
 #define BOARD_ADC_CH6 D10
 #define BOARD_ADC_CH7 D11
-*/
+
 #ifndef MOTOR_PWM_FREQ
   #define MOTOR_PWM_FREQ 60
 #endif
-
+*/
 
 #endif

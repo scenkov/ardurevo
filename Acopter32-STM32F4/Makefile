@@ -26,30 +26,9 @@ STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
 WIRISH_PATH      := $(SRCROOT)/libraries/AP_HAL_REVOMINI/wirish
 LIBRARIES_PATH   := $(SRCROOT)/libraries
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/test_RCInputOutput
-#SKETCH           := RC_Channel.pde
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/SPIDriver_MS5611
-#SKETCH           := SPIDriver_MS5611
-#SKETCH           := AP_Baro_MS5611_test
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/SPIDriver_MPU6000
-#SKETCH          := SPIDriver_MPU6000
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_Compass
-#SKETCH          := I2CDriver_HMC5883L
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_Scheduler
-#SKETCH           := Scheduler
-#FIRMWARE_PATH    := $(SRCROOT)/Firmware/Test_Blink
-#SKETCH           := Blink
-#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/examples/DataFlash_test_MP32
-#SKETCH           := DataFlash_test_MP32
-#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/examples/DataFlash_test
-#SKETCH           := DataFlash_test_MP32
-
-#FIRMWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/examples/DF_Parameters_test
-#SKETCH           := DF_Parameters_test
 
 FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
 SKETCH          := ArduCopter
-
 #FIRMWARE_PATH    := $(SRCROOT)/APMRover2
 #SKETCH          := APMRover2
 #FIRMWARE_PATH    := $(SRCROOT)/ArduPlane

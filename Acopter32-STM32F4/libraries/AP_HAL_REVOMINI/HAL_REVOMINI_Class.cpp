@@ -25,9 +25,7 @@ static REVOMINIUARTDriver uartADriver(_USART1,1);
 static REVOMINIUARTDriver uartBDriver(_USART3,0);
 static REVOMINIUARTDriver uartCDriver(_USART2,0);
 static REVOMINISemaphore  i2cSemaphore;
-//static REVOMINISemaphore  i2c2Semaphore;
 static REVOMINII2CDriver  i2cDriver(_I2C1,&i2cSemaphore);
-//static REVOMINII2CDriver  i2c2Driver(_I2C1,&i2c2Semaphore);
 static REVOMINISPIDeviceManager spiDeviceManager;
 static REVOMINIAnalogIn analogIn;
 static REVOMINIStorage storageDriver;
@@ -65,10 +63,10 @@ void HAL_REVOMINI::init(int argc,char* const argv[]) const
    * Scheduler should likely come first. */
   //delay_us(2000000);
 
+  uartA->begin(57600);
+
   scheduler->init(NULL);
   //uartA->begin(115200);
-
-  uartA->begin(57600);
 
   //_member->init();
   i2c->begin();
@@ -76,9 +74,8 @@ void HAL_REVOMINI::init(int argc,char* const argv[]) const
   spi->init(NULL);
   storage->init(NULL);
   rcin->init(NULL);
-
   rcout->init((void *)&_is_ppmsum);
-
+  analogin->init(NULL);
 }
 
 const HAL_REVOMINI AP_HAL_REVOMINI;

@@ -128,15 +128,9 @@ static void init_ardupilot()
 #if COPTER_LEDS == ENABLED
     copter_leds_init();
 #endif
-    /*
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
-    board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
-#endif
-*/
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
-    board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
+    //rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
 #endif
 
 #if HIL_MODE != HIL_MODE_ATTITUDE

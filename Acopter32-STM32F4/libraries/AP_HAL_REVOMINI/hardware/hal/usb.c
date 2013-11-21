@@ -394,7 +394,7 @@ int usb_configure(usb_attr_t * attr)
 
 	// USB Device Initialize
 	USBD_Init(&USB_OTG_dev,
-            USB_OTG_FS_CORE_ID,
+            USB_OTG_FS_CORE_ID, 
             &USR_desc, 
             &USBD_CDC_cb, 
             &USR_cb);
@@ -417,13 +417,10 @@ void USB_OTG_BSP_Init(USB_OTG_CORE_HANDLE *pdev)
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_OTG1_FS);
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_OTG1_FS);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 	RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, ENABLE) ;
-//	SYSCFG->PMC |= 1;
-
 /*
 	usart_putstr(_USART1, "usb_periphcfg\n");
  	 // Configure USB D-/D+ (DM/DP) pins 

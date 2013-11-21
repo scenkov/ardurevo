@@ -33,6 +33,7 @@ void DataFlash_Block::StartWrite(uint16_t PageAdr)
     BlockRead((df_PageAdr << 8), &data, sizeof(data));
     if (data != 0xFFFF)
        Flash_Jedec_EraseSector(df_PageAdr << 8); // Erase Sector
+
 }
 
 void DataFlash_Block::FinishWrite(void)
@@ -61,12 +62,12 @@ void DataFlash_Block::FinishWrite(void)
 
 void DataFlash_Block::WriteBlock(const void *pBuffer, uint16_t size)
 {
-    if (ReadStatus() != 0)
-	return;
-
     if (!CardInserted() || !log_write_started) {
         return;
     }
+
+    if (ReadStatus() != 0)
+	return;
 
     while (size > 0) {
 	uint16_t n = df_PageSize - df_BufferIdx;

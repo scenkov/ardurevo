@@ -183,7 +183,7 @@ struct PACKED log_Performance {
     LOG_PACKET_HEADER;
     uint32_t loop_time;
     uint16_t main_loop_count;
-    int16_t  g_dt_max;
+    uint32_t g_dt_max;
     uint8_t  renorm_count;
     uint8_t  renorm_blowup;
     uint8_t  gps_fix_count;
@@ -198,7 +198,7 @@ static void Log_Write_Performance()
 {
     struct log_Performance pkt = {
         LOG_PACKET_HEADER_INIT(LOG_PERFORMANCE_MSG),
-        loop_time       : millis()- perf_mon_timer,
+        loop_time       : millis() - perf_mon_timer,
         main_loop_count : mainLoop_count,
         g_dt_max        : G_Dt_max,
         renorm_count    : ahrs.renorm_range_count,
@@ -244,6 +244,7 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
 struct PACKED log_Camera {
     LOG_PACKET_HEADER;
     uint32_t gps_time;
+    uint16_t gps_week;
     int32_t  latitude;
     int32_t  longitude;
     int32_t  altitude;
@@ -258,7 +259,8 @@ static void Log_Write_Camera()
 #if CAMERA == ENABLED
     struct log_Camera pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
-        gps_time    : g_gps->time,
+        gps_time    : g_gps->time_week_ms,
+        gps_week    : g_gps->time_week,
         latitude    : current_loc.lat,
         longitude   : current_loc.lng,
         altitude    : current_loc.alt,
@@ -383,10 +385,10 @@ static void Log_Write_Current()
     struct log_Current pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CURRENT_MSG),
         throttle_in             : channel_throttle->control_in,
-        battery_voltage         : (int16_t)(battery.voltage * 100.0),
-        current_amps            : (int16_t)(battery.current_amps * 100.0),
+        battery_voltage         : (int16_t)(battery.voltage() * 100.0),
+        current_amps            : (int16_t)(battery.current_amps() * 100.0),
         board_voltage           : board_voltage(),
-        current_total           : battery.current_total_mah
+        current_total           : battery.current_total_mah()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -440,11 +442,11 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
       "ATT", "ccC",        "Roll,Pitch,Yaw" },
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
-      "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,I2CErr" },
+      "PM",  "IHIBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,I2CErr" },
     { LOG_CMD_MSG, sizeof(log_Cmd),                 
       "CMD", "BBBBBeLL",   "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
     { LOG_CAMERA_MSG, sizeof(log_Camera),                 
-      "CAM", "ILLeccC",   "GPSTime,Lat,Lng,Alt,Roll,Pitch,Yaw" },
+      "CAM", "IHLLeccC",   "GPSTime,GPSWeek,Lat,Lng,Alt,Roll,Pitch,Yaw" },
     { LOG_STARTUP_MSG, sizeof(log_Startup),         
       "STRT", "BB",         "SType,CTot" },
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     

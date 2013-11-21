@@ -1,5 +1,5 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#include <AP_HAL.h>
+#include <AP_HAL_Boards.h>
 #if LOGGING_ENABLED == ENABLED
 
 // Code to Write and Read packets from DataFlash log memory
@@ -339,7 +339,7 @@ struct PACKED log_Nav_Tuning {
 // Write an Nav Tuning packet
 static void Log_Write_Nav_Tuning()
 {
-    Vector3f velocity = inertial_nav.get_velocity();
+    const Vector3f &velocity = inertial_nav.get_velocity();
 
     struct log_Nav_Tuning pkt = {
         LOG_PACKET_HEADER_INIT(LOG_NAV_TUNING_MSG),
@@ -525,7 +525,7 @@ struct PACKED log_INAV {
 // Write an INAV packet
 static void Log_Write_INAV()
 {
-    Vector3f accel_corr = inertial_nav.accel_correction_ef;
+    const Vector3f &accel_corr = inertial_nav.accel_correction_ef;
 
     struct log_INAV pkt = {
         LOG_PACKET_HEADER_INIT(LOG_INAV_MSG),
@@ -591,7 +591,7 @@ static void Log_Write_Event(uint8_t id)
 }
 
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 struct PACKED log_Data_Int8t {
     LOG_PACKET_HEADER;
     uint8_t id;
@@ -611,28 +611,6 @@ static void Log_Write_Data(uint8_t id, int8_t value)
     }
 }
 #endif
-
-#if  CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-struct PACKED log_Data_Int8t {
-    LOG_PACKET_HEADER;
-    uint8_t id;
-    int8_t data_value;
-};
-
-// Write an int8_t data packet
-static void Log_Write_Data(uint8_t id, int8_t value)
-{
-    if (g.log_bitmask != 0) {
-        struct log_Data_Int8t pkt = {
-            LOG_PACKET_HEADER_INIT(LOG_DATA_INT8_MSG),
-            id          : id,
-            data_value  : value
-        };
-        DataFlash.WriteBlock(&pkt, sizeof(pkt));
-    }
-}
-#endif
-
 
 struct PACKED log_Data_Int16t {
     LOG_PACKET_HEADER;
@@ -787,6 +765,7 @@ void Log_Write_DMP()
 struct PACKED log_Camera {
     LOG_PACKET_HEADER;
     uint32_t gps_time;
+    uint16_t gps_week;
     int32_t  latitude;
     int32_t  longitude;
     int32_t  altitude;
@@ -801,7 +780,8 @@ static void Log_Write_Camera()
 #if CAMERA == ENABLED
     struct log_Camera pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
-        gps_time    : g_gps->time,
+        gps_time    : g_gps->time_week_ms,
+        gps_week    : g_gps->time_week,
         latitude    : current_loc.lat,
         longitude   : current_loc.lng,
         altitude    : current_loc.alt,
@@ -899,7 +879,7 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_DMP_MSG, sizeof(log_DMP),         
       "DMP",   "ccccCC",     "DCMRoll,DMPRoll,DCMPtch,DMPPtch,DCMYaw,DMPYaw" },
     { LOG_CAMERA_MSG, sizeof(log_Camera),                 
-      "CAM",   "ILLeccC",    "GPSTime,Lat,Lng,Alt,Roll,Pitch,Yaw" },
+      "CAM",   "IHLLeccC",   "GPSTime,GPSWeek,Lat,Lng,Alt,Roll,Pitch,Yaw" },
     { LOG_ERROR_MSG, sizeof(log_Error),         
       "ERR",   "BB",         "Subsys,ECode" },
 };
@@ -949,8 +929,6 @@ static void Log_Write_Compass() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_INAV() {}
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-static void Log_Write_Data(uint8_t id, int8_t value){}
-#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 static void Log_Write_Data(uint8_t id, int8_t value){}
 #endif
 static void Log_Write_Data(uint8_t id, int16_t value){}

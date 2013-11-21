@@ -10,7 +10,7 @@ CFLAGS_$(d) := -Wall -Werror
 # Local rules and targets
 cSRCS_$(d) :=
 
-cppSRCS_$(d) := AP_Buffer.cpp
+cppSRCS_$(d) := 
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

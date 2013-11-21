@@ -43,7 +43,7 @@ const AP_Param::GroupInfo AP_Motors::var_info[] PROGMEM = {
     // @Param: TCRV_MAXPCT
     // @DisplayName: Thrust Curve max thrust percentage
     // @Description: Set to the lowest pwm position that produces the maximum thrust of the motors.  Most motors produce maximum thrust below the maximum pwm value that they accept.
-    // @Range: 20 80
+    // @Range: 50 100
     AP_GROUPINFO("TCRV_MAXPCT", 3, AP_Motors, _throttle_curve_max, THROTTLE_CURVE_MAX_THRUST),
     
     // @Param: SPIN_ARMED
@@ -64,7 +64,8 @@ AP_Motors::AP_Motors( RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_
     _speed_hz(speed_hz),
     _min_throttle(AP_MOTORS_DEFAULT_MIN_THROTTLE),
     _max_throttle(AP_MOTORS_DEFAULT_MAX_THROTTLE),
-    _hover_out(AP_MOTORS_DEFAULT_MID_THROTTLE)
+    _hover_out(AP_MOTORS_DEFAULT_MID_THROTTLE),
+    _spin_when_armed_ramped(0)
 {
     uint8_t i;
 
@@ -76,6 +77,9 @@ AP_Motors::AP_Motors( RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_
 #else
         set_motor_to_channel_map(APM2_MOTOR_TO_CHANNEL_MAP);
 #endif
+
+    // slow start motors from zero to min throttle
+    _flags.slow_start_low_end = true;
 
     // clear output arrays
     for(i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
@@ -93,6 +97,9 @@ void AP_Motors::Init()
 void AP_Motors::armed(bool arm)
 {
     _flags.armed = arm;
+    if (!_flags.armed) {
+        _flags.slow_start_low_end = true;
+    }
     AP_Notify::flags.armed = arm;
 };
 
@@ -187,6 +194,15 @@ void AP_Motors::slow_start(bool true_false)
 // update_max_throttle - updates the limits on _max_throttle if necessary taking into account slow_start_throttle flag
 void AP_Motors::update_max_throttle()
 {
+    // ramp up minimum spin speed if necessary
+    if (_flags.slow_start_low_end) {
+        _spin_when_armed_ramped += AP_MOTOR_SLOW_START_LOW_END_INCREMENT;
+        if (_spin_when_armed_ramped >= _spin_when_armed) {
+            _spin_when_armed_ramped = _spin_when_armed;
+            _flags.slow_start_low_end = false;
+        }
+    }
+
     // return max throttle if we're not slow_starting
     if (!_flags.slow_start) {
         return;

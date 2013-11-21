@@ -44,7 +44,7 @@ MENU(main_menu, THISFIRMWARE, main_menu_commands);
 
 static int8_t reboot_board(uint8_t argc, const Menu::arg *argv)
 {
-    reboot_apm();
+    hal.scheduler->reboot(false);
     return 0;
 }
 
@@ -70,24 +70,6 @@ static void run_cli(AP_HAL::UARTDriver *port)
 
 static void init_ardupilot()
 {
-#if USB_MUX_PIN > 0
-    // on the APM2 board we have a mux thet switches UART0 between
-    // USB and the board header. If the right ArduPPM firmware is
-    // installed we can detect if USB is connected using the
-    // USB_MUX_PIN
-    pinMode(USB_MUX_PIN, INPUT);
-
-    usb_connected = !digitalRead(USB_MUX_PIN);
-    if (!usb_connected) {
-        // USB is not connected, this means UART0 may be a Xbee, with
-        // its darned bricking problem. We can't write to it for at
-        // least one second after powering up. Simplest solution for
-        // now is to delay for 1 second. Something more elegant may be
-        // added later
-        delay(1000);
-    }
-#endif
-
     // Console serial port
     //
     // The console port buffers are defined to be sufficiently large to support
@@ -123,30 +105,24 @@ static void init_ardupilot()
     barometer.init();
 
     // init the GCS
-    cliSerial->println("GCS0 init");
     gcs0.init(hal.uartA);
     // Register mavlink_delay_cb, which will run anytime you have
     // more than 5ms remaining in your call to hal.scheduler->delay
     hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
 
-#if USB_MUX_PIN > 0
-    if (!usb_connected) {
-        // we are not connected via USB, re-init UART0 with right
-        // baud rate
-        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
-    }
-#else
-    cliSerial->println("GCS3 init");
+    // we start by assuming USB connected, as we initialed the serial
+    // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
+    usb_connected = true;
+    check_usb_mux();
+
     // we have a 2nd serial port for telemetry
     hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD),
-            128, SERIAL_BUFSIZE);
+                     128, SERIAL2_BUFSIZE);
     gcs3.init(hal.uartC);
-#endif
 
     mavlink_system.sysid = g.sysid_this_mav;
 
 #if LOGGING_ENABLED == ENABLED
-    cliSerial->println("DataFlash init");
     DataFlash.Init();
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash card inserted"));
@@ -161,9 +137,9 @@ static void init_ardupilot()
     }
 #endif
 
- #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+#if CONFIG_INS_TYPE == CONFIG_INS_OILPAN || CONFIG_HAL_BOARD == HAL_BOARD_APM1
     apm1_adc.Init();      // APM ADC library initialization
- #endif
+#endif
 
     // initialise airspeed sensor
     airspeed.init();
@@ -192,19 +168,10 @@ static void init_ardupilot()
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up the timer libs
 
-    hal.gpio->pinMode(C_LED_PIN, OUTPUT);                                 // GPS status LED
-    hal.gpio->write(C_LED_PIN, LED_OFF);
-
-    hal.gpio->pinMode(A_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(A_LED_PIN, LED_OFF);
-
-    hal.gpio->pinMode(B_LED_PIN, OUTPUT);                         // GPS status LED
-    hal.gpio->write(B_LED_PIN, LED_OFF);
-
     relay.init();
 
 #if FENCE_TRIGGERED_PIN > 0
-    pinMode(FENCE_TRIGGERED_PIN, OUTPUT);
+    hal.gpio->pinMode(FENCE_TRIGGERED_PIN, OUTPUT);
     digitalWrite(FENCE_TRIGGERED_PIN, LOW);
 #endif
 
@@ -216,9 +183,9 @@ static void init_ardupilot()
 
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
-#if USB_MUX_PIN == 0
-    hal.uartC->println_P(msg);
-#endif
+    if (gcs3.initialised) {
+        hal.uartC->println_P(msg);
+    }
 
     startup_ground();
     if (g.log_bitmask & MASK_LOG_CMD)
@@ -286,9 +253,13 @@ static void startup_ground(void)
     // mid-flight, so set the serial ports non-blocking once we are
     // ready to fly
     hal.uartA->set_blocking_writes(false);
-    if (gcs3.initialised) {
-        hal.uartC->set_blocking_writes(false);
-    }
+    hal.uartC->set_blocking_writes(false);
+
+#if 0
+    // leave GPS blocking until we have support for correct handling
+    // of GPS config in uBlox when non-blocking
+    hal.uartB->set_blocking_writes(false);
+#endif
 
     gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to FLY."));
 }
@@ -348,6 +319,7 @@ static void set_mode(enum FlightMode mode)
         break;
 
     case GUIDED:
+        guided_throttle_passthru = false;
         set_guided_WP();
         break;
 
@@ -462,11 +434,9 @@ static void startup_INS_ground(bool do_accel_init)
     ahrs.set_fly_forward(true);
     ahrs.set_wind_estimation(true);
 
-    ins.init(style, 
-             ins_sample_rate,
-             flash_leds);
+    ins.init(style, ins_sample_rate);
     if (do_accel_init) {
-        ins.init_accel(flash_leds);
+        ins.init_accel();
         ahrs.set_trim(Vector3f(0, 0, 0));
     }
     ahrs.reset();
@@ -482,48 +452,20 @@ static void startup_INS_ground(bool do_accel_init)
     } else {
         gcs_send_text_P(SEVERITY_LOW,PSTR("NO airspeed"));
     }
-
-    digitalWrite(B_LED_PIN, LED_ON);                    // Set LED B high to indicate INS ready
-    digitalWrite(A_LED_PIN, LED_OFF);
-    digitalWrite(C_LED_PIN, LED_OFF);
 }
 
-
-static void update_GPS_light(void)
+// updates the status of the notify objects
+// should be called at 50hz
+static void update_notify()
 {
-    // GPS LED on if we have a fix or Blink GPS LED if we are receiving data
-    // ---------------------------------------------------------------------
-    switch (g_gps->status()) {
-        case GPS::NO_FIX:
-        case GPS::GPS_OK_FIX_2D:
-            // check if we've blinked since the last gps update
-            if (g_gps->valid_read) {
-                g_gps->valid_read = false;
-                GPS_light = !GPS_light;                     // Toggle light on and off to indicate gps messages being received, but no GPS fix lock
-                if (GPS_light) {
-                    digitalWrite(C_LED_PIN, LED_OFF);
-                }else{
-                    digitalWrite(C_LED_PIN, LED_ON);
-                }
-            }
-            break;
-
-        case GPS::GPS_OK_FIX_3D:
-            digitalWrite(C_LED_PIN, LED_ON);                  //Turn LED C on when gps has valid fix AND home is set.
-            break;
-
-        default:
-            digitalWrite(C_LED_PIN, LED_OFF);
-            break;
-    }
+    notify.update();
 }
-
 
 static void resetPerfData(void) {
     mainLoop_count                  = 0;
-    G_Dt_max                                = 0;
+    G_Dt_max                        = 0;
     ahrs.renorm_range_count         = 0;
-    ahrs.renorm_blowup_count = 0;
+    ahrs.renorm_blowup_count        = 0;
     gps_fix_count                   = 0;
     perf_mon_timer                  = millis();
 }
@@ -552,14 +494,19 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
 
 static void check_usb_mux(void)
 {
-#if USB_MUX_PIN > 0
-    bool usb_check = !digitalRead(USB_MUX_PIN);
+    bool usb_check = hal.gpio->usb_connected();
     if (usb_check == usb_connected) {
         return;
     }
 
     // the user has switched to/from the telemetry port
     usb_connected = usb_check;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    // the APM2 has a MUX setup where the first serial port switches
+    // between USB and a TTL serial connection. When on USB we use
+    // SERIAL0_BAUD, but when connected as a TTL serial port we run it
+    // at SERIAL3_BAUD.
     if (usb_connected) {
         hal.uartA->begin(SERIAL0_BAUD);
     } else {
@@ -570,31 +517,11 @@ static void check_usb_mux(void)
 
 
 /*
- *  called by gyro/accel init to flash LEDs so user
- *  has some mesmerising lights to watch while waiting
- */
-void flash_leds(bool on)
-{
-    digitalWrite(A_LED_PIN, on ? LED_OFF : LED_ON);
-    digitalWrite(C_LED_PIN, on ? LED_ON : LED_OFF);
-}
-
-/*
  * Read Vcc vs 1.1v internal reference
  */
 uint16_t board_voltage(void)
 {
-    return vcc_pin->read_latest();
-}
-
-
-/*
-  force a software reset of the APM
- */
-static void reboot_apm(void)
-{
-    hal.scheduler->reboot();
-    while (1);
+    return vcc_pin->voltage_latest() * 1000;
 }
 
 

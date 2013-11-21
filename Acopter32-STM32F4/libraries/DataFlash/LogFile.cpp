@@ -32,6 +32,7 @@ uint16_t DataFlash_Block::get_num_logs(void)
     StartRead(lastpage + 2);
     if (GetFileNumber() == 0xFFFF)
 	StartRead(((lastpage >> 8) + 1) << 8); // next sector
+
     first = GetFileNumber();
     if(first > last) {
         StartRead(1);
@@ -45,21 +46,16 @@ uint16_t DataFlash_Block::get_num_logs(void)
     return (last - first + 1);
 }
 
-
 // This function starts a new log file in the DataFlash
 uint16_t DataFlash_Block::start_new_log(void)
 {
     uint16_t last_page = find_last_page();
 
     StartRead(last_page);
-    //Serial.print("last page: ");	Serial.println(last_page);
-    //Serial.print("file #: ");	Serial.println(GetFileNumber());
-    //Serial.print("file page: ");	Serial.println(GetFilePage());
 
     if(find_last_log() == 0 || GetFileNumber() == 0xFFFF) {
         SetFileNumber(1);
         StartWrite(1);
-        //Serial.println("start log from 0");
         log_write_started = true;
         return 1;
     }
@@ -75,9 +71,9 @@ uint16_t DataFlash_Block::start_new_log(void)
         StartWrite(last_page);
     } else {
         new_log_num = GetFileNumber()+1;
-        if (last_page == 0xFFFF) {
+        if (last_page == 0xFFFF)
             last_page=0;
-        }
+
         SetFileNumber(new_log_num);
         StartWrite(last_page + 1);
     }
@@ -114,9 +110,8 @@ void DataFlash_Block::get_log_boundaries(uint16_t log_num, uint16_t & start_page
             StartRead(df_NumPages);
             if(GetFileNumber() == 0xFFFF) {
                 start_page = 1;
-            } else {
-                start_page = find_last_page() + 1;
-            }
+            } else
+               start_page = find_last_page() + 1;
         } else {
             if(log_num == find_last_log() - num + 1) {
                 start_page = find_last_page() + 1;
@@ -146,7 +141,6 @@ bool DataFlash_Block::check_wrapped(void)
     else
         return 1;
 }
-
 
 // This funciton finds the last log number
 uint16_t DataFlash_Block::find_last_log(void)
@@ -608,7 +602,8 @@ void DataFlash_Class::Log_Write_GPS(const GPS *gps, int32_t relative_alt)
     struct log_GPS pkt = {
         LOG_PACKET_HEADER_INIT(LOG_GPS_MSG),
     	status        : (uint8_t)gps->status(),
-    	gps_time      : gps->time,
+    	gps_week_ms   : gps->time_week_ms,
+    	gps_week      : gps->time_week,
         num_sats      : gps->num_sats,
         hdop          : gps->hdop,
         latitude      : gps->latitude,

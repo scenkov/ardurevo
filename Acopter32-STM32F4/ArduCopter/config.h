@@ -89,7 +89,9 @@
  # define MAGNETOMETER ENABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # ifndef  CONFIG_IMU_TYPE
+  # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # endif
  //# define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000_EXT
  # define CONFIG_RELAY      DISABLED
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
@@ -111,7 +113,7 @@
  # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
  # define CONFIG_ADC        DISABLED
  # define CONFIG_PUSHBUTTON DISABLED
- # define LOGGING_ENABLED ENABLED
+ # define LOGGING_ENABLED   ENABLED
  # define SERIAL0_BAUD 57600
 #endif
 
@@ -119,7 +121,7 @@
 // FRAME_CONFIG
 //
 #ifndef FRAME_CONFIG
- # define FRAME_CONFIG      QUAD_FRAME //HEXA_FRAME
+ # define FRAME_CONFIG   QUAD_FRAME // HEXA_FRAME
 #endif
 #ifndef FRAME_ORIENTATION
  # define FRAME_ORIENTATION      X_FRAME
@@ -198,46 +200,28 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
- # define BATTERY_CURR_PIN      2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define BATTERY_VOLT_PIN 1      // Battery voltage on A1
- # define BATTERY_CURR_PIN 2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define BATTERY_VOLT_PIN -1
- # define BATTERY_CURR_PIN -1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
- # define BATTERY_VOLT_PIN      20
- # define BATTERY_CURR_PIN      19
  # define LED_ON           LOW
  # define LED_OFF          HIGH
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
- # define BATTERY_VOLT_PIN      -1
- # define BATTERY_CURR_PIN      -1
  # define LED_ON           LOW
  # define LED_OFF          HIGH
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define BATTERY_VOLT_PIN     6      // Battery voltage on A0
- # define BATTERY_CURR_PIN     200    // Battery current on A1
  # define CONFIG_SONAR_SOURCE_ANALOG_PIN 47
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define PUSHBUTTON_PIN   200
- # define USB_MUX_PIN      -1
- # define BATTERY_VOLT_PIN     7     // Battery voltage on A0 (PC1) D7
- # define BATTERY_CURR_PIN     200   // Battery current on A1 (PC2) D8
  # define CONFIG_SONAR_SOURCE_ANALOG_PIN 200
 #endif
 
@@ -263,15 +247,15 @@
  #define COPTER_LED_8 AN11      // Motor LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  #define COPTER_LED_1 102  	// Motor or Aux LED
- #define COPTER_LED_2 200  	// Motor LED or Beeper
+ #define COPTER_LED_2 255  	// Motor LED or Beeper
  #define COPTER_LED_3 65  	// Motor or GPS LED
- #define COPTER_LED_4 200  	// Motor or GPS LED
- #define COPTER_LED_5 200  	// Motor or GPS LED
- #define COPTER_LED_6 200  	// Motor or GPS LED
- #define COPTER_LED_7 200  	// Motor or GPS LED
- #define COPTER_LED_8 200  	// Motor or GPS LED
+ #define COPTER_LED_4 255  	// Motor or GPS LED
+ #define COPTER_LED_5 255  	// Motor or GPS LED
+ #define COPTER_LED_6 255  	// Motor or GPS LED
+ #define COPTER_LED_7 255  	// Motor or GPS LED
+ #define COPTER_LED_8 255  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- #define COPTER_LED_1 106  	// Motor or Aux LED
+ #define COPTER_LED_1 106  	// Motor or Aux LED PA13
  #define COPTER_LED_2 200  	// Motor LED or Beeper
  #define COPTER_LED_3 200  	// Motor or GPS LED
  #define COPTER_LED_4 200  	// Motor or GPS LED
@@ -355,7 +339,7 @@
 //
 
 #ifndef CH7_OPTION
- # define CH7_OPTION            AUX_SWITCH_SAVE_WP
+ # define CH7_OPTION            AUX_SWITCH_DO_NOTHING
 #endif
 
 #ifndef CH8_OPTION
@@ -450,6 +434,11 @@
 #define FS_GCS_ENABLED_ALWAYS_RTL           1
 #define FS_GCS_ENABLED_CONTINUE_MISSION     2
 
+// pre-arm check max velocity
+#ifndef PREARM_MAX_VELOCITY_CMS
+ # define PREARM_MAX_VELOCITY_CMS           50.0f   // vehicle must be travelling under 50cm/s before arming
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
@@ -507,7 +496,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //  Auto Tuning
 #ifndef AUTOTUNE
- # define AUTOTUNE  DISABLED
+ # define AUTOTUNE  ENABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -568,20 +557,6 @@
 #ifndef LAND_DETECTOR_TRIGGER
  # define LAND_DETECTOR_TRIGGER 50    // number of 50hz iterations with near zero climb rate and low throttle that triggers landing complete.
 #endif
-
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-// STARTUP BEHAVIOUR
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// GROUND_START_DELAY
-//
-#ifndef GROUND_START_DELAY
- # define GROUND_START_DELAY             3
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // CAMERA TRIGGER AND CONTROL
@@ -834,10 +809,6 @@
  # define STABILIZE_PITCH_IMAX   	0
 #endif
 
-#ifndef STABILIZE_RATE_LIMIT
- # define STABILIZE_RATE_LIMIT      18000
-#endif
-
 #ifndef  STABILIZE_YAW_P
  # define STABILIZE_YAW_P           4.5f            // increase for more aggressive Yaw Hold, decrease if it's bouncy
 #endif
@@ -861,6 +832,9 @@
 #endif
 #ifndef DEFAULT_ANGLE_MAX
  # define DEFAULT_ANGLE_MAX         4500            // ANGLE_MAX parameters default value
+#endif
+#ifndef ANGLE_RATE_MAX
+ # define ANGLE_RATE_MAX            18000           // default maximum rotation rate in roll/pitch axis requested by angle controller used in stabilize, loiter, rtl, auto flight modes
 #endif
 #ifndef RATE_ROLL_P
  # define RATE_ROLL_P        		0.150f

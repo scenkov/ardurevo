@@ -158,7 +158,7 @@ void VRBRAINScheduler::_timer_isr_event() {
 
     uint32 fms=systick_uptime();
 
-    if(fms - _scheduler_last_call >= 500)
+    if(fms - _scheduler_last_call >= 100)
 	{
 	 if (_scheduler_led == 1)
 	     {

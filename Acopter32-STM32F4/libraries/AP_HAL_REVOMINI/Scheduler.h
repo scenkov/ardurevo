@@ -7,7 +7,6 @@
 #include <systick.h>
 #include <boards.h>
 #include <timer.h>
-#include <AP_HAL.h>
 
 #define REVOMINI_SCHEDULER_MAX_TIMER_PROCS 10
 
