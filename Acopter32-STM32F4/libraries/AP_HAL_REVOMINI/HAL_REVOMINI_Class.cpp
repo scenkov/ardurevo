@@ -23,7 +23,6 @@ using namespace REVOMINI;
 // XXX make sure these are assigned correctly
 static REVOMINIUARTDriver uartADriver(_USART1,1);
 static REVOMINIUARTDriver uartBDriver(_USART3,0);
-static REVOMINIUARTDriver uartCDriver(_USART2,0);
 static REVOMINISemaphore  i2cSemaphore;
 static REVOMINII2CDriver  i2cDriver(_I2C1,&i2cSemaphore);
 static REVOMINISPIDeviceManager spiDeviceManager;
@@ -41,7 +40,7 @@ HAL_REVOMINI::HAL_REVOMINI() :
     AP_HAL::HAL(
       &uartADriver,
       &uartBDriver,
-      &uartCDriver,
+      NULL,
       &i2cDriver,
 //      &i2c2Driver,
       &spiDeviceManager,
