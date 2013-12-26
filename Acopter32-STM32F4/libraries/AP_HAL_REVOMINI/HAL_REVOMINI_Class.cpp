@@ -42,7 +42,6 @@ HAL_REVOMINI::HAL_REVOMINI() :
       &uartBDriver,
       NULL,
       &i2cDriver,
-//      &i2c2Driver,
       &spiDeviceManager,
       &analogIn,
       &storageDriver,
@@ -52,7 +51,7 @@ HAL_REVOMINI::HAL_REVOMINI() :
       &rcoutDriver,
       &schedulerInstance,
       &utilInstance
-	  )
+      )
 {}
 
 void HAL_REVOMINI::init(int argc,char* const argv[]) const
@@ -60,21 +59,15 @@ void HAL_REVOMINI::init(int argc,char* const argv[]) const
   /* initialize all drivers and private members here.
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
-  //delay_us(2000000);
 
   uartA->begin(57600);
-
   scheduler->init(NULL);
-  //uartA->begin(115200);
-
-  //_member->init();
   i2c->begin();
-  //hal.i2c2->begin();
   spi->init(NULL);
+  analogin->init(NULL);
   storage->init(NULL);
   rcin->init(NULL);
   rcout->init((void *)&_is_ppmsum);
-  analogin->init(NULL);
 }
 
 const HAL_REVOMINI AP_HAL_REVOMINI;

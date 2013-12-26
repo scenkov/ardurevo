@@ -44,7 +44,7 @@ public:
 };
 
 #define ANALOG_INPUT_BOARD_VCC 254
-#define ANALOG_INPUT_NONE 255
+#define ANALOG_INPUT_NONE 254
 
 #endif // __AP_HAL_ANALOG_IN_H__
 

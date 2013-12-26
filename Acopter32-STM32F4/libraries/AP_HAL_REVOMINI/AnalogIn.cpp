@@ -16,13 +16,6 @@
 /*
   Copied from: Flymaple port by Mike McCauley
  */
-#define ANALOGSOURCRE_DEBUGGING 1
-
-#if ANALOGSOURCRE_DEBUGGING
- # define Debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); } while(0)
-#else
- # define Debug(fmt, args ...)
-#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 
@@ -39,20 +32,21 @@ using namespace REVOMINI;
 
 /* CHANNEL_READ_REPEAT: how many reads on a channel before using the value.
  * This seems to be determined empirically */
-#define CHANNEL_READ_REPEAT 2
+#define CHANNEL_READ_REPEAT 1
 
-REVOMINIAnalogIn::REVOMINIAnalogIn() :
-    _vcc(REVOMINIAnalogSource(ANALOG_INPUT_BOARD_VCC))
+REVOMINIAnalogIn::REVOMINIAnalogIn():
+	_vcc(REVOMINIAnalogSource(ANALOG_INPUT_BOARD_VCC))
 {}
 
 void REVOMINIAnalogIn::init(void* machtnichts) {
+
     /* Register REVOMINIAnalogIn::_timer_event with the scheduler. */
     hal.scheduler->register_timer_process(AP_HAL_MEMBERPROC(&REVOMINIAnalogIn::_timer_event));
     /* Register each private channel with REVOMINIAnalogIn. */
     _register_channel(&_vcc);
 }
 
-REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(int16_t chnum) {
+REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(uint8_t chnum) {
 
     REVOMINIAnalogSource *ch = new REVOMINIAnalogSource(chnum);
     _register_channel(ch);
@@ -69,24 +63,19 @@ void REVOMINIAnalogIn::_register_channel(REVOMINIAnalogSource* ch) {
     }
     _channels[_num_channels] = ch;
 
-    const adc_dev *dev = PIN_MAP[_channels[_num_channels]->_pin].adc_device;
+    hal.console->printf_P(PSTR("Register Channel:%u on pin:%u \n"), _num_channels, ch->_pin );
 
-
-	/* Need to lock to increment _num_channels as it is used
-	 * by the interrupt to access _channels */
-	noInterrupts();
-	_num_channels++;
-	interrupts();
-
-	// Start conversions:
-	if(dev != NULL){
-	    //adc_reg_map *regs = ADC1->regs;
-	    dev->adcx->CR2 |= (uint32_t)ADC_CR2_SWSTART;
-	}
+    /* Need to lock to increment _num_channels as it is used
+     * by the interrupt to access _channels */
+    noInterrupts();
+    _num_channels++;
+    interrupts();
 }
+
 
 void REVOMINIAnalogIn::_timer_event(void)
 {
+
 
     if (_num_channels == 0)
     {
@@ -94,12 +83,11 @@ void REVOMINIAnalogIn::_timer_event(void)
         return;
     }
 
+
     //adc_reg_map *regs = ADC1->regs;
-    const adc_dev *dev = PIN_MAP[_channels[_active_channel]->_pin].adc_device;
+    const adc_dev *dev = _channels[_active_channel]->_find_device();
 
-    uint8_t pin = _channels[_active_channel]->_pin;
-
-    if (dev == NULL || (pin == ANALOG_INPUT_NONE)) {
+    if (_channels[_active_channel]->_pin == ANALOG_INPUT_NONE) {
         _channels[_active_channel]->new_sample(0);
         goto next_channel;
     }
@@ -110,7 +98,6 @@ void REVOMINIAnalogIn::_timer_event(void)
 	     * are called at 1khz. */
 	    return;
 	}
-
 
     _channel_repeat_count++;
     if (_channel_repeat_count < CHANNEL_READ_REPEAT ||
@@ -136,7 +123,7 @@ next_channel:
     /* Setup the next channel's conversion */
     _channels[_active_channel]->setup_read();
 
-    dev = PIN_MAP[_channels[_active_channel]->_pin].adc_device;
+    dev = _channels[_active_channel]->_find_device();
 
     if(dev != NULL)
     /* Start conversion */
@@ -146,10 +133,10 @@ next_channel:
 
 AP_HAL::AnalogSource* REVOMINIAnalogIn::channel(int16_t ch)
 {
-    if (ch == ANALOG_INPUT_BOARD_VCC) {
+    if ((uint8_t)ch == ANALOG_INPUT_BOARD_VCC) {
             return &_vcc;
     } else {
-        return _create_channel(ch);
+        return _create_channel((uint8_t)ch);
     }
 }
 

@@ -62,6 +62,8 @@ public:
     float _read_average();
 
     int16_t get_pin() { return _pin; };
+protected:
+    const adc_dev* _find_device();
 private:
     /* following three are used from both an interrupt and normal thread */
     volatile uint8_t _sum_count;
@@ -86,7 +88,7 @@ public:
     AP_HAL::AnalogSource* channel(int16_t n);
 
 protected: 
-    REVOMINIAnalogSource* _create_channel(int16_t num);
+    REVOMINIAnalogSource* _create_channel(uint8_t num);
     void _register_channel(REVOMINIAnalogSource*);
     void _timer_event(void);
     REVOMINIAnalogSource* _channels[REVOMINI_INPUT_MAX_CHANNELS];

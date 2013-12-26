@@ -121,7 +121,7 @@
 // FRAME_CONFIG
 //
 #ifndef FRAME_CONFIG
- # define FRAME_CONFIG   QUAD_FRAME // HEXA_FRAME
+ # define FRAME_CONFIG   HEXA_FRAME
 #endif
 #ifndef FRAME_ORIENTATION
  # define FRAME_ORIENTATION      X_FRAME
@@ -222,7 +222,7 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define CONFIG_SONAR_SOURCE_ANALOG_PIN 200
+ # define CONFIG_SONAR_SOURCE_ANALOG_PIN 254
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -256,13 +256,13 @@
  #define COPTER_LED_8 255  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
  #define COPTER_LED_1 106  	// Motor or Aux LED PA13
- #define COPTER_LED_2 200  	// Motor LED or Beeper
- #define COPTER_LED_3 200  	// Motor or GPS LED
- #define COPTER_LED_4 200  	// Motor or GPS LED
- #define COPTER_LED_5 200  	// Motor or GPS LED
- #define COPTER_LED_6 200  	// Motor or GPS LED
- #define COPTER_LED_7 200  	// Motor or GPS LED
- #define COPTER_LED_8 200  	// Motor or GPS LED
+ #define COPTER_LED_2 255  	// Motor LED or Beeper
+ #define COPTER_LED_3 255  	// Motor or GPS LED
+ #define COPTER_LED_4 255  	// Motor or GPS LED
+ #define COPTER_LED_5 255  	// Motor or GPS LED
+ #define COPTER_LED_6 255  	// Motor or GPS LED
+ #define COPTER_LED_7 255  	// Motor or GPS LED
+ #define COPTER_LED_8 255  	// Motor or GPS LED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL || CONFIG_HAL_BOARD == HAL_BOARD_PX4
  #define COPTER_LED_1 AN8       // Motor or Aux LED
  #define COPTER_LED_2 AN9       // Motor LED
