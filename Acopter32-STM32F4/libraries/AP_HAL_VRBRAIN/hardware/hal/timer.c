@@ -293,7 +293,7 @@ void TIM3_IRQHandler(void) {
 void TIM4_IRQHandler(void) {
     dispatch_general(TIMER4);
 }
-
+/*
 void TIM5_IRQHandler(void) {
     dispatch_general(TIMER5);
 }
@@ -301,7 +301,7 @@ void TIM5_IRQHandler(void) {
 void TIM6_DAC_IRQHandler(void) {
     dispatch_basic(TIMER6);
 }
-
+*/
 void TIM7_IRQHandler(void) {
     dispatch_basic(TIMER7);
 }

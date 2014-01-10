@@ -26,8 +26,8 @@
   board. This prevents us having a mess of ifdefs in every example
   sketch
  */
-#define CONFIG_HAL_BOARD HAL_BOARD_REVOMINI
 //#define CONFIG_HAL_BOARD HAL_BOARD_VRBRAIN
+#define CONFIG_HAL_BOARD HAL_BOARD_REVOMINI
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 #define AP_HAL_BOARD_DRIVER AP_HAL_AVR_APM1
 #define HAL_BOARD_NAME "APM 1"

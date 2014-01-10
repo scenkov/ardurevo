@@ -109,6 +109,34 @@
  # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
  # define CONFIG_MAG MP32NAVYSENSOR
  # define LOGGING_ENABLED DISABLED
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ # define CONFIG_COMPASS  AP_COMPASS_HMC5843
+ # define A_LED_PIN        36
+ # define B_LED_PIN        37
+ # define C_LED_PIN        105
+ # define LED_ON           LOW
+ # define LED_OFF          HIGH
+ # define SLIDE_SWITCH_PIN (-1)
+ # define PUSHBUTTON_PIN   (-1)
+ #if USB == ENABLED
+   # define USB_MUX_PIN      (-1)
+  #else
+   # define USB_MUX_PIN      (-1)
+ #endif
+ # define CLI_SLIDER_ENABLED DISABLED
+ # define OPTFLOW_CS_PIN   (-1)
+ # define BATTERY_VOLT_PIN      7      // Battery voltage on A0
+ # define BATTERY_CURR_PIN      8      // Battery current on A1
+ //# define BATTERY_PIN_1      6 // INPUT PC0 on VBRAIN
+ //# define CURRENT_PIN_1      200
+ # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
+ # define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000
+ # define CONFIG_PUSHBUTTON DISABLED
+ # define MAGNETOMETER ENABLED
+ # define CONFIG_BARO     AP_BARO_MS5611
+ # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
+ # define CONFIG_MAG MP32NAVYSENSOR
+ # define LOGGING_ENABLED DISABLED
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843

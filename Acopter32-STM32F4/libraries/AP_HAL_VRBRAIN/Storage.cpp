@@ -12,7 +12,8 @@ __IO uint32_t  timeout = I2C_TIMEOUT;
 #define countof(a) (sizeof(a) / sizeof(*(a)))
 
 void VRBRAINStorage::init(void*)
-{}
+{
+}
 
 uint8_t VRBRAINStorage::read_byte(uint16_t loc){
 
@@ -23,7 +24,7 @@ uint8_t VRBRAINStorage::read_byte(uint16_t loc){
 	//sEE_WaitEepromStandbyState();
 
 	//buf = (uint8_t)read(addr16);
-	ret = sEE_ReadBuffer(buf, loc, &numbytes);
+	ret = sEE_ReadBuffer(_dev, buf, loc, &numbytes);
 	if(ret == 1){
 	    //hal.console->println_P("i2c timeout read byte");
 	    return 0;
@@ -53,7 +54,7 @@ void VRBRAINStorage::read_block(void* dst, uint16_t src, size_t n) {
 
 	//sEE_WaitEepromStandbyState();
 
-	uint32_t ret = sEE_ReadBuffer(buff, src, &numbytes);
+	uint32_t ret = sEE_ReadBuffer(_dev, buff, src, &numbytes);
 
 	if(ret == 1){
 	    hal.gpio->write(20, 1);
@@ -77,7 +78,7 @@ void VRBRAINStorage::write_block(uint16_t dst,const void* src, size_t n)
 
 	//sEE_WaitEepromStandbyState();
 
-	uint32_t ret = sEE_WriteBuffer(buff,dst,(uint16_t)n);
+	uint32_t ret = sEE_WriteBuffer(_dev, buff,dst,(uint16_t)n);
 	if(ret == 1){
 	    //hal.console->println_P("i2c timeout write block");
 	    return;
@@ -107,7 +108,7 @@ void VRBRAINStorage::write_byte(uint16_t loc, uint8_t value)
 
 	if(buff[0] != value){
 	    buff[0] = value;
-	    uint32_t ret = sEE_WriteBuffer(buff, loc, numbytes);
+	    uint32_t ret = sEE_WriteBuffer(_dev, buff, loc, numbytes);
 	    if(ret == 1){
 		//hal.console->println_P("i2c timeout write byte");
 	    }

@@ -20,6 +20,7 @@ void boardInit(void) {
     hal.gpio->pinMode(BOARD_HMC5883_DRDY_PIN,GPIO_INPUT);
 
     /* Configure PA.13 (JTMS/SWDIO), PA.14 (JTCK/SWCLK) as output push-pull */
+    // Use PA13 LED and PA14 BUZZER
     afio_cfg_debug_ports(AFIO_DEBUG_SW_ONLY);
 }
 
@@ -52,7 +53,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOA, TIMER1, NULL,  8, 1, ADCx}, /* D22/PA8  2*/
     {_GPIOA, TIMER1, NULL,  9, 2, ADCx}, /* D23/PA9  3 USART1_TX */
     {_GPIOA, TIMER1, NULL, 10, 3, ADCx}, /* D24/PA10 4 USART1_RX */
-    {_GPIOB, TIMER4, NULL,  9, 4, ADCx}, /* D25/PB9  5 I2C1_SDA */
+    {_GPIOB,   NULL, NULL,  9, 0, ADCx}, /* D25/PB9  5 I2C1_SDA */
     {_GPIOD,   NULL, NULL,  2, 0, ADCx}, /* D26/PD2  6 EXTI_RFM22B */
     {_GPIOD,   NULL, NULL,  3, 0, ADCx}, /* D27/PD3  7*/
     {_GPIOD,   NULL, NULL,  6, 0, ADCx}, /* D28/PD6  8*/

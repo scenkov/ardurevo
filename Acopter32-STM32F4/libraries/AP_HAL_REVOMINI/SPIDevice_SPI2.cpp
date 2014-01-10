@@ -101,6 +101,7 @@ void REVOMINISPI2DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
 
 void REVOMINISPI2DeviceDriver::set_bus_speed(REVOMINISPI2DeviceDriver::bus_speed speed)
 {
+/*
     if (speed == REVOMINISPI2DeviceDriver::SPI_SPEED_HIGH) {
 
 	    //init the device
@@ -118,6 +119,7 @@ void REVOMINISPI2DeviceDriver::set_bus_speed(REVOMINISPI2DeviceDriver::bus_speed
 	    spi_baud_rate baud = determine_baud_rate(freq);
 	    spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
     }
+	*/
 }
 
 

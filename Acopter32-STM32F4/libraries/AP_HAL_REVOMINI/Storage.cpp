@@ -1,25 +1,4 @@
-/*
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-/*
-  Flymaple port by Mike McCauley
-  driver modified for VRbrain board
-  Partly based on EEPROM.*, flash_stm* copied from AeroQuad_v3.2
-  This uses 2*16k pages of FLASH ROM to emulate an EEPROM
-  This storage is retained after power down, and survives reloading of firmware
-  All multi-byte accesses are reduced to single byte access so that can span EEPROM block boundaries
- */
 #include <AP_HAL.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
@@ -62,6 +41,7 @@ uint8_t REVOMINIStorage::read_byte(uint16_t loc){
 
     // 'bytes' are packed 2 per word
     // Read existing dataword and change upper or lower byte
+    //uint16_t data = eeprom.read(eeprom_offset);
     uint16_t data = eeprom.read(loc >> 1);
     if (loc & 1)
 	return data >> 8; // Odd, upper byte

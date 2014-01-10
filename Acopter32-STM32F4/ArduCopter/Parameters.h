@@ -73,11 +73,7 @@ public:
         k_param_log_last_filenumber,            // *** Deprecated - remove
                                                 // with next eeprom number
                                                 // change
-        k_param_toy_yaw_rate,                           // THOR The memory
-                                                        // location for the
-                                                        // Yaw Rate 1 = fast,
-                                                        // 2 = med, 3 = slow
-
+        k_param_toy_yaw_rate,                   // deprecated - remove
         k_param_crosstrack_min_distance,	// deprecated - remove with next eeprom number change
         k_param_rssi_pin,
         k_param_throttle_accel_enabled,     // deprecated - remove
@@ -87,7 +83,7 @@ public:
         k_param_circle_rate,
         k_param_sonar_gain,
         k_param_ch8_option,
-        k_param_arming_check_enabled,
+        k_param_arming_check,
         k_param_sprayer,
         k_param_angle_max,
         k_param_gps_hdop_good,
@@ -104,15 +100,25 @@ public:
         k_param_gps_glitch,             // 70
 
         //
+        // 75: Singlecopter
+        //
+        k_param_single_servo_1 = 75,
+        k_param_single_servo_2,
+        k_param_single_servo_3,
+        k_param_single_servo_4, // 78
+
+        //
         // 80: Heli
         //
         k_param_heli_servo_1 = 80,
         k_param_heli_servo_2,
         k_param_heli_servo_3,
         k_param_heli_servo_4,
-		k_param_heli_pitch_ff,
-		k_param_heli_roll_ff,
-		k_param_heli_yaw_ff,
+        k_param_heli_pitch_ff,
+        k_param_heli_roll_ff,
+        k_param_heli_yaw_ff,
+        k_param_heli_stab_col_min,
+        k_param_heli_stab_col_max,  // 88
 
         //
         // 90: Motors
@@ -128,11 +134,13 @@ public:
         // 110: Telemetry control
         //
         k_param_gcs0 = 110,
-        k_param_gcs3,
+        k_param_gcs1,
         k_param_sysid_this_mav,
         k_param_sysid_my_gcs,
-        k_param_serial3_baud,
+        k_param_serial1_baud,
         k_param_telem_delay,
+        k_param_gcs2,
+        k_param_serial2_baud,
 
         //
         // 140: Sensor parameters
@@ -154,7 +162,7 @@ public:
         k_param_sonar_type,
         k_param_super_simple = 155,
         k_param_axis_enabled = 157, // deprecated - remove with next eeprom number change
-        k_param_copter_leds_mode,
+        k_param_copter_leds_mode,   // deprecated - remove with next eeprom number change
         k_param_ahrs, // AHRS group // 159
 
         //
@@ -275,7 +283,10 @@ public:
     //
     AP_Int16        sysid_this_mav;
     AP_Int16        sysid_my_gcs;
-    AP_Int8         serial3_baud;
+    AP_Int8         serial1_baud;
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    AP_Int8         serial2_baud;
+#endif
     AP_Int8         telem_delay;
 
     AP_Int16        rtl_altitude;
@@ -288,7 +299,7 @@ public:
     AP_Int8         failsafe_battery_enabled;   // battery failsafe enabled
     AP_Float        fs_batt_voltage;            // battery voltage below which failsafe will be triggered
     AP_Float        fs_batt_mah;                // battery capacity (in mah) below which failsafe will be triggered
-    
+
     AP_Int8         failsafe_gps_enabled;       // gps failsafe enabled
     AP_Int8         failsafe_gcs;               // ground station failsafe behavior
     AP_Int16        gps_hdop_good;              // GPS Hdop value at or below this value represent a good position
@@ -299,7 +310,6 @@ public:
     AP_Int16        rtl_alt_final;
     AP_Int8         copter_leds_mode;           // Operating mode of LED
                                                 // lighting system
-
     AP_Int8         rssi_pin;
     AP_Int8         wp_yaw_behavior;            // controls how the autopilot controls yaw during missions
     AP_Int16        angle_max;                  // maximum lean angle of the copter in centi-degrees
@@ -338,12 +348,6 @@ public:
     // Misc
     //
     AP_Int16        log_bitmask;
-
-    AP_Int8         toy_yaw_rate;                               // THOR The
-                                                                // Yaw Rate 1
-                                                                // = fast, 2 =
-                                                                // med, 3 =
-                                                                // slow
     AP_Int8         esc_calibrate;
     AP_Int8         radio_tuning;
     AP_Int16        radio_tuning_high;
@@ -351,14 +355,20 @@ public:
     AP_Int8         frame_orientation;
     AP_Int8         ch7_option;
     AP_Int8         ch8_option;
-    AP_Int8         arming_check_enabled;
+    AP_Int8         arming_check;
 
 #if FRAME_CONFIG ==     HELI_FRAME
     // Heli
     RC_Channel      heli_servo_1, heli_servo_2, heli_servo_3, heli_servo_4;     // servos for swash plate and tail
     AP_Float        heli_pitch_ff;												// pitch rate feed-forward
     AP_Float        heli_roll_ff;												// roll rate feed-forward
-    AP_Float        heli_yaw_ff;												// yaw rate feed-forward																			
+    AP_Float        heli_yaw_ff;												// yaw rate feed-forward
+    AP_Int16        heli_stab_col_min;                                          // min collective while pilot directly controls collective in stabilize mode
+    AP_Int16        heli_stab_col_max;                                          // min collective while pilot directly controls collective in stabilize mode
+#endif
+#if FRAME_CONFIG ==     SINGLE_FRAME
+    // Single
+    RC_Channel      single_servo_1, single_servo_2, single_servo_3, single_servo_4;     // servos for four flaps
 #endif
 
     // RC channels
@@ -415,6 +425,12 @@ public:
         heli_servo_2        (CH_2),
         heli_servo_3        (CH_3),
         heli_servo_4        (CH_4),
+#endif
+#if FRAME_CONFIG ==     SINGLE_FRAME
+        single_servo_1        (CH_1),
+        single_servo_2        (CH_2),
+        single_servo_3        (CH_3),
+        single_servo_4        (CH_4),
 #endif
 
         rc_1                (CH_1),

@@ -15,16 +15,14 @@
 
 using namespace REVOMINI;
 
-//_USART1 PIN 3 AND 4 OF THE INPUT RAIL
-//_USART2 INTERNAL SERIAL PORT
-//_USART3 PIN 1 AND 2 OF THE INPUT RAIL
-
-
 // XXX make sure these are assigned correctly
 static REVOMINIUARTDriver uartADriver(_USART1,1);
 static REVOMINIUARTDriver uartBDriver(_USART3,0);
+//static REVOMINIUARTDriver uartCDriver(_USART2,0);
 static REVOMINISemaphore  i2cSemaphore;
+//static REVOMINISemaphore  i2c2Semaphore;
 static REVOMINII2CDriver  i2cDriver(_I2C1,&i2cSemaphore);
+//static REVOMINII2CDriver  i2c2Driver(_I2C1,&i2c2Semaphore);
 static REVOMINISPIDeviceManager spiDeviceManager;
 static REVOMINIAnalogIn analogIn;
 static REVOMINIStorage storageDriver;
@@ -34,14 +32,14 @@ static REVOMINIRCOutput rcoutDriver;
 static REVOMINIScheduler schedulerInstance;
 static REVOMINIUtil utilInstance;
 
-
-
 HAL_REVOMINI::HAL_REVOMINI() :
     AP_HAL::HAL(
       &uartADriver,
       &uartBDriver,
       NULL,
+      NULL,
       &i2cDriver,
+//      &i2c2Driver, //NULL,
       &spiDeviceManager,
       &analogIn,
       &storageDriver,
@@ -51,7 +49,7 @@ HAL_REVOMINI::HAL_REVOMINI() :
       &rcoutDriver,
       &schedulerInstance,
       &utilInstance
-      )
+    )
 {}
 
 void HAL_REVOMINI::init(int argc,char* const argv[]) const
@@ -60,8 +58,11 @@ void HAL_REVOMINI::init(int argc,char* const argv[]) const
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
 
-  uartA->begin(57600);
   scheduler->init(NULL);
+
+  uartA->begin(57600);
+  uartB->begin(57600);
+
   i2c->begin();
   spi->init(NULL);
   analogin->init(NULL);

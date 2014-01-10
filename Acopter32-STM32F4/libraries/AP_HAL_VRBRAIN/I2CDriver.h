@@ -19,7 +19,7 @@
 
 class VRBRAIN::VRBRAINI2CDriver : public AP_HAL::I2CDriver {
 public:
-    VRBRAINI2CDriver(i2c_dev *dev, AP_HAL::Semaphore* semaphore) : _dev(dev),_semaphore(semaphore) {}
+    VRBRAINI2CDriver(i2c_dev *dev, AP_HAL::Semaphore* semaphore);
     void begin();
     void end();
     void setTimeout(uint16_t ms){ _timeoutDelay = ms; }

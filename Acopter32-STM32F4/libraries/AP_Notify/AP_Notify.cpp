@@ -20,13 +20,21 @@
 struct AP_Notify::notify_type AP_Notify::flags;
 
 // initialisation
-void AP_Notify::init(void)
+void AP_Notify::init(bool enable_external_leds)
 {
+    AP_Notify::flags.external_leds = enable_external_leds;
+
     boardled.init();
+#if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+    toshibaled.init();
+#endif
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     tonealarm.init();
-#elif CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN && CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-    toshibaled.init();
+#endif
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+    externalled.init();
+    buzzer.init();
 #endif
 }
 
@@ -40,5 +48,9 @@ void AP_Notify::update(void)
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     tonealarm.update();
+#endif
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+    externalled.update();
+    buzzer.update();
 #endif
 }

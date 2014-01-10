@@ -848,23 +848,40 @@ static void update_current_mode(void)
     case AUTO:
     case RTL:
     case GUIDED:
+        set_reverse(false);
+        calc_lateral_acceleration();
         calc_nav_steer();
         calc_throttle(g.speed_cruise);
         break;
 
-    case STEERING:
+    case STEERING: {
         /*
-          in steering mode we control the bearing error, which gives
-          the same type of steering control as auto mode. The throttle
-          controls the target speed, in proportion to the throttle
+          in steering mode we control lateral acceleration
+          directly. We first calculate the maximum lateral
+          acceleration at full steering lock for this speed. That is
+          V^2/R where R is the radius of turn. We get the radius of
+          turn from half the STEER2SRV_P.
          */
-        bearing_error_cd = channel_steer->pwm_to_angle();
+        float max_g_force = ground_speed * ground_speed / steerController.get_turn_radius();
+
+        // constrain to user set TURN_MAX_G
+        max_g_force = constrain_float(max_g_force, 0.1f, g.turn_max_g * GRAVITY_MSS);
+
+        lateral_acceleration = max_g_force * (channel_steer->pwm_to_angle()/4500.0f);
         calc_nav_steer();
 
-        /* we need to reset the I term or it will build up */
-        g.pidNavSteer.reset_I();
-        calc_throttle(channel_throttle->pwm_to_angle() * 0.01 * g.speed_cruise);
+        // and throttle gives speed in proportion to cruise speed, up
+        // to 50% throttle, then uses nudging above that.
+        float target_speed = channel_throttle->pwm_to_angle() * 0.01 * 2 * g.speed_cruise;
+        set_reverse(target_speed < 0);
+        if (in_reverse) {
+            target_speed = constrain_float(target_speed, -g.speed_cruise, 0);
+        } else {
+            target_speed = constrain_float(target_speed, 0, g.speed_cruise);
+        }
+        calc_throttle(target_speed);
         break;
+    }
 
     case LEARNING:
     case MANUAL:
@@ -876,12 +893,17 @@ static void update_current_mode(void)
          */
         channel_throttle->servo_out = channel_throttle->control_in;
         channel_steer->servo_out = channel_steer->pwm_to_angle();
+
+        // mark us as in_reverse when using a negative throttle to
+        // stop AHRS getting off
+        set_reverse(channel_throttle->servo_out < 0);
         break;
 
     case HOLD:
         // hold position - stop motors and center steering
         channel_throttle->servo_out = 0;
         channel_steer->servo_out = 0;
+        set_reverse(false);
         break;
 
     case INITIALISING:

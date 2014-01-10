@@ -12,9 +12,6 @@
 class DataFlash_Block : public DataFlash_Class
 {
 public:
-    uint16_t df_eeStartPage;
-    uint16_t df_eeNumPages;
-
     // initialisation
     virtual void Init(void) = 0;
     virtual bool CardInserted(void) = 0;
@@ -24,11 +21,11 @@ public:
     void EraseAll();
     void Erase_Sectors(uint8_t start, uint8_t end);
 
-    uint16_t dfEE_Write(const void *pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
-    uint32_t dfEE_WriteBuffer(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
-
     /* Write a block of data at current offset */
     void WriteBlock(const void *pBuffer, uint16_t size);
+
+    uint16_t dfEE_Write(const void *pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
+    uint32_t dfEE_WriteBuffer(uint8_t* pBuffer, uint16_t WriteAddr, uint16_t NumByteToWrite);
 
     // high level interface
     uint16_t find_last_log(void);
@@ -44,6 +41,7 @@ public:
     void DumpPageInfo(AP_HAL::BetterStream *port);
     void ShowDeviceInfo(AP_HAL::BetterStream *port);
     void ListAvailableLogs(AP_HAL::BetterStream *port);
+
 private:
     struct PageHeader {
         uint16_t FileNumber;
@@ -60,7 +58,10 @@ private:
     uint16_t df_FileNumber;
     uint16_t df_FilePage;
     bool log_write_started;
-    /*functions implemented by the board specific backends*/
+
+    /*
+      functions implemented by the board specific backends
+     */
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
     virtual void WaitReady() = 0;
     virtual uint8_t ReadStatus() = 0;
@@ -74,20 +75,20 @@ private:
     virtual void PageToBuffer(uint8_t BufferNum, uint16_t PageAdr) = 0;
     virtual void PageErase(uint16_t PageAdr) = 0;
     virtual void BlockErase(uint16_t BlockAdr) = 0;
+    virtual void ChipErase() = 0;
 
     // write size bytes of data to a page. The caller must ensure that
     // the data fits within the page, otherwise it will wrap to the
     // start of the page
-    virtual void BlockWrite(uint8_t BufferNum, uint16_t IntPageAdr,
+    virtual void BlockWrite(uint8_t BufferNum, uint16_t IntPageAdr, 
                             const void *pHeader, uint8_t hdr_size,
                             const void *pBuffer, uint16_t size) = 0;
-
+    
     // read size bytes of data to a page. The caller must ensure that
     // the data fits within the page, otherwise it will wrap to the
     // start of the page
     virtual bool BlockRead(uint8_t BufferNum, uint16_t IntPageAdr, void *pBuffer, uint16_t size) = 0;
 #endif
-
     // internal high level functions
     void StartRead(uint16_t PageAdr);
     uint16_t find_last_page(void);
@@ -106,6 +107,10 @@ private:
     uint16_t GetFilePage();
     uint16_t GetFileNumber();
 
+    void _print_log_formats(uint8_t num_types, 
+                            const struct LogStructure *structure,
+                            AP_HAL::BetterStream *port);
+    
 protected:
     uint8_t df_manufacturer;
     uint16_t df_device;
@@ -113,8 +118,6 @@ protected:
     // page handling
     uint16_t df_PageSize;
     uint16_t df_NumPages;
-//    uint16_t df_eeStartPage;
-//    uint16_t df_eeNumPages;
 
     virtual void ReadManufacturerID() = 0;
 };

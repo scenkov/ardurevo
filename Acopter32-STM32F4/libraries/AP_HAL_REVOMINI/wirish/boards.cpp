@@ -68,6 +68,7 @@ void init(void) {
 void usb_init(void){
     usb_attr_t usb_attr;
 
+
     usb_open();
 
     usb_default_attr(&usb_attr);
@@ -76,7 +77,6 @@ void usb_init(void){
     usb_attr.use_present_pin = 1;
     usb_attr.present_port = _GPIOC;
     usb_attr.present_pin = 5;
-
     usb_ioctl(I_USB_SETATTR, &usb_attr);
 }
 
@@ -136,9 +136,8 @@ static void setupTimers() {
 //}
 
 static void timerDefaultConfig(timer_dev *dev) {
-    //const uint16_t full_overflow = 0xFFFF;
-    const uint16_t half_duty = 2000;
-	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	
     timer_reset(dev);
     timer_pause(dev);
@@ -188,8 +187,6 @@ static void timerDefaultConfig(timer_dev *dev) {
 		TIM_TimeBaseInit(dev->regs, &TIM_TimeBaseStructure);
 	
         for (int channel = 1; channel <= 4; channel++) {
-        
-            timer_set_compare(dev, channel, half_duty);
             
 			switch (channel)
 			{
@@ -211,7 +208,6 @@ static void timerDefaultConfig(timer_dev *dev) {
 					break;
 			}
                 
-            //timer_oc_set_mode(dev, channel, TIMER_OC_MODE_PWM_1, TIMER_OC_PE);
         }
         // fall-through
     case TIMER_BASIC:

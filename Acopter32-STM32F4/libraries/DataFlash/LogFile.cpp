@@ -32,7 +32,6 @@ uint16_t DataFlash_Block::get_num_logs(void)
     StartRead(lastpage + 2);
     if (GetFileNumber() == 0xFFFF)
 	StartRead(((lastpage >> 8) + 1) << 8); // next sector
-
     first = GetFileNumber();
     if(first > last) {
         StartRead(1);
@@ -46,16 +45,21 @@ uint16_t DataFlash_Block::get_num_logs(void)
     return (last - first + 1);
 }
 
+
 // This function starts a new log file in the DataFlash
 uint16_t DataFlash_Block::start_new_log(void)
 {
     uint16_t last_page = find_last_page();
 
     StartRead(last_page);
+    //Serial.print("last page: ");	Serial.println(last_page);
+    //Serial.print("file #: ");	Serial.println(GetFileNumber());
+    //Serial.print("file page: ");	Serial.println(GetFilePage());
 
     if(find_last_log() == 0 || GetFileNumber() == 0xFFFF) {
         SetFileNumber(1);
         StartWrite(1);
+        //Serial.println("start log from 0");
         log_write_started = true;
         return 1;
     }
@@ -71,9 +75,9 @@ uint16_t DataFlash_Block::start_new_log(void)
         StartWrite(last_page);
     } else {
         new_log_num = GetFileNumber()+1;
-        if (last_page == 0xFFFF)
+        if (last_page == 0xFFFF) {
             last_page=0;
-
+        }
         SetFileNumber(new_log_num);
         StartWrite(last_page + 1);
     }
@@ -110,8 +114,9 @@ void DataFlash_Block::get_log_boundaries(uint16_t log_num, uint16_t & start_page
             StartRead(df_NumPages);
             if(GetFileNumber() == 0xFFFF) {
                 start_page = 1;
-            } else
-               start_page = find_last_page() + 1;
+            } else {
+                start_page = find_last_page() + 1;
+            }
         } else {
             if(log_num == find_last_log() - num + 1) {
                 start_page = find_last_page() + 1;
@@ -141,6 +146,7 @@ bool DataFlash_Block::check_wrapped(void)
     else
         return 1;
 }
+
 
 // This funciton finds the last log number
 uint16_t DataFlash_Block::find_last_log(void)
@@ -392,6 +398,26 @@ void DataFlash_Class::_print_log_entry(uint8_t msg_type,
     port->println();
 }
 
+
+/*
+  print FMT specifiers for log dumps where we have wrapped in the
+  dataflash and so have no formats. This assumes the log being dumped
+  using the same log formats as the current formats, but it is better
+  than falling back to old defaults in the GCS
+ */
+void DataFlash_Block::_print_log_formats(uint8_t num_types, 
+                                         const struct LogStructure *structure,
+                                         AP_HAL::BetterStream *port)
+{
+    for (uint8_t i=0; i<num_types; i++) {
+        const struct LogStructure *s = &structure[i];
+        port->printf_P(PSTR("FMT, %u, %u, %S, %S, %S\n"),
+                       (unsigned)PGM_UINT8(&s->msg_type), 
+                       (unsigned)PGM_UINT8(&s->msg_len), 
+                       s->name, s->format, s->labels);
+    }
+}
+
 /*
   Read the log and print it on port
 */
@@ -404,6 +430,7 @@ void DataFlash_Block::LogReadProcess(uint16_t log_num,
 {
     uint8_t log_step = 0;
     uint16_t page = start_page;
+    bool first_entry = true;
 
     if (df_BufferIdx != 0) {
         FinishWrite();
@@ -434,6 +461,10 @@ void DataFlash_Block::LogReadProcess(uint16_t log_num,
 
 			case 2:
 				log_step = 0;
+                if (first_entry && data != LOG_FORMAT_MSG) {
+                    _print_log_formats(num_types, structure, port);
+                }
+                first_entry = false;
                 _print_log_entry(data, num_types, structure, print_mode, port);
                 break;
 		}
@@ -611,28 +642,64 @@ void DataFlash_Class::Log_Write_GPS(const GPS *gps, int32_t relative_alt)
         rel_altitude  : relative_alt,
         altitude      : gps->altitude_cm,
         ground_speed  : gps->ground_speed_cm,
-        ground_course : gps->ground_course_cd
+        ground_course : gps->ground_course_cd,
+        vel_z         : gps->velocity_down(),
+        apm_time      : hal.scheduler->millis()
+    };
+    WriteBlock(&pkt, sizeof(pkt));
+}
+
+// Write an RCIN packet
+void DataFlash_Class::Log_Write_RCIN(void)
+{
+    struct log_RCIN pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_RCIN_MSG),
+        timestamp     : hal.scheduler->millis(),
+        chan1         : hal.rcin->read(0),
+        chan2         : hal.rcin->read(1),
+        chan3         : hal.rcin->read(2),
+        chan4         : hal.rcin->read(3),
+        chan5         : hal.rcin->read(4),
+        chan6         : hal.rcin->read(5),
+        chan7         : hal.rcin->read(6),
+        chan8         : hal.rcin->read(7)
+    };
+    WriteBlock(&pkt, sizeof(pkt));
+}
+
+// Write an SERVO packet
+void DataFlash_Class::Log_Write_RCOUT(void)
+{
+    struct log_RCOUT pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_RCOUT_MSG),
+        timestamp     : hal.scheduler->millis(),
+        chan1         : hal.rcout->read(0),
+        chan2         : hal.rcout->read(1),
+        chan3         : hal.rcout->read(2),
+        chan4         : hal.rcout->read(3),
+        chan5         : hal.rcout->read(4),
+        chan6         : hal.rcout->read(5),
+        chan7         : hal.rcout->read(6),
+        chan8         : hal.rcout->read(7)
     };
     WriteBlock(&pkt, sizeof(pkt));
 }
 
 
 // Write an raw accel/gyro data packet
-void DataFlash_Class::Log_Write_IMU(const AP_InertialSensor *ins)
+void DataFlash_Class::Log_Write_IMU(const AP_InertialSensor &ins)
 {
-    Vector3f gyro = ins->get_gyro();
-    Vector3f accel = ins->get_accel();
-    float Temp = ins->get_temperature();
-
+    const Vector3f &gyro = ins.get_gyro();
+    const Vector3f &accel = ins.get_accel();
     struct log_IMU pkt = {
         LOG_PACKET_HEADER_INIT(LOG_IMU_MSG),
+        timestamp : hal.scheduler->millis(),
         gyro_x  : gyro.x,
         gyro_y  : gyro.y,
         gyro_z  : gyro.z,
         accel_x : accel.x,
         accel_y : accel.y,
-        accel_z : accel.z,
-        temp	: Temp
+        accel_z : accel.z
     };
     WriteBlock(&pkt, sizeof(pkt));
 }

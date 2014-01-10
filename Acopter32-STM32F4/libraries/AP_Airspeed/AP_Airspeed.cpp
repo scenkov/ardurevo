@@ -50,8 +50,10 @@ extern const AP_HAL::HAL& hal;
  #define ARSPD_DEFAULT_PIN 16
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
  #define ARSPD_DEFAULT_PIN 65
-#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- #define ARSPD_DEFAULT_PIN 255
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ #define ARSPD_DEFAULT_PIN 47
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ #define ARSPD_DEFAULT_PIN 200
 #else
  #define ARSPD_DEFAULT_PIN 0
 #endif
@@ -63,7 +65,7 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] PROGMEM = {
     // @DisplayName: Airspeed enable
     // @Description: enable airspeed sensor
     // @Values: 0:Disable,1:Enable
-    AP_GROUPINFO("ENABLE",    0, AP_Airspeed, _enable, 1),
+    AP_GROUPINFO("ENABLE",    0, AP_Airspeed, _enable, 0),
 
     // @Param: USE
     // @DisplayName: Airspeed use
@@ -114,7 +116,7 @@ void AP_Airspeed::init()
     _counter = 0;
     
     analog.init();
-    digital.init();
+    //digital.init();
 }
 
 // read the airspeed sensor
@@ -125,7 +127,7 @@ float AP_Airspeed::get_pressure(void)
     }
     float pressure = 0;
     if (_pin == 65) {
-        _healthy = digital.get_differential_pressure(pressure);
+       // _healthy = digital.get_differential_pressure(pressure);
     } else {
         _healthy = analog.get_differential_pressure(pressure);
     }
@@ -172,6 +174,7 @@ void AP_Airspeed::read(void)
     }
     airspeed_pressure       = get_pressure();
     airspeed_pressure       = max(airspeed_pressure - _offset, 0);
+    _last_pressure          = airspeed_pressure;
     _raw_airspeed           = sqrtf(airspeed_pressure * _ratio);
     _airspeed               = 0.7f * _airspeed  +  0.3f * _raw_airspeed;
 }

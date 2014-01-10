@@ -25,10 +25,6 @@ vrbrain: HAL_BOARD = HAL_BOARD_VRBRAIN
 vrbrain: TOOLCHAIN = ARM
 vrbrain: all
 
-revomini: HAL_BOARD = HAL_BOARD_REVOMINI
-revomini: TOOLCHAIN = ARM
-revomini: all
-
 linux: HAL_BOARD = HAL_BOARD_LINUX
 linux: TOOLCHAIN = NATIVE
 linux: all
@@ -166,6 +162,67 @@ px4-hil: px4
 
 px4-hilsensors: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_SENSORS "
 px4-hilsensors: px4
+
+
+vrbrain-quad: EXTRAFLAGS += "-DFRAME_CONFIG=QUAD_FRAME "
+vrbrain-quad: apm2
+
+vrbrain-quad-hil: EXTRAFLAGS += "-DFRAME_CONFIG=QUAD_FRAME "
+vrbrain-quad-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
+vrbrain-quad-hil: vrbrain
+
+vrbrain-tri: EXTRAFLAGS += "-DFRAME_CONFIG=TRI_FRAME "
+vrbrain-tri: vrbrain
+
+vrbrain-hexa: EXTRAFLAGS += "-DFRAME_CONFIG=HEXA_FRAME "
+vrbrain-hexa: vrbrain
+
+vrbrain-y6: EXTRAFLAGS += "-DFRAME_CONFIG=Y6_FRAME "
+vrbrain-y6: vrbrain
+
+vrbrain-octa: EXTRAFLAGS += "-DFRAME_CONFIG=OCTA_FRAME "
+vrbrain-octa: vrbrain
+
+vrbrain-octa-quad: EXTRAFLAGS += "-DFRAME_CONFIG=OCTA_QUAD_FRAME "
+vrbrain-octa-quad: vrbrain
+
+vrbrain-heli: EXTRAFLAGS += "-DFRAME_CONFIG=HELI_FRAME "
+vrbrain-heli: vrbrain
+
+vrbrain-heli-hil: EXTRAFLAGS += "-DFRAME_CONFIG=HELI_FRAME "
+vrbrain-heli-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
+vrbrain-heli-hil: vrbrain
+
+
+
+revomini-quad: EXTRAFLAGS += "-DFRAME_CONFIG=QUAD_FRAME "
+revomini-quad: apm2
+
+revomini-quad-hil: EXTRAFLAGS += "-DFRAME_CONFIG=QUAD_FRAME "
+revomini-quad-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
+revomini-quad-hil: revomini
+
+revomini-tri: EXTRAFLAGS += "-DFRAME_CONFIG=TRI_FRAME "
+revomini-tri: revomini
+
+revomini-hexa: EXTRAFLAGS += "-DFRAME_CONFIG=HEXA_FRAME "
+revomini-hexa: revomini
+
+revomini-y6: EXTRAFLAGS += "-DFRAME_CONFIG=Y6_FRAME "
+revomini-y6: revomini
+
+revomini-octa: EXTRAFLAGS += "-DFRAME_CONFIG=OCTA_FRAME "
+revomini-octa: revomini
+
+revomini-octa-quad: EXTRAFLAGS += "-DFRAME_CONFIG=OCTA_QUAD_FRAME "
+revomini-octa-quad: revomini
+
+revomini-heli: EXTRAFLAGS += "-DFRAME_CONFIG=HELI_FRAME "
+revomini-heli: revomini
+
+revomini-heli-hil: EXTRAFLAGS += "-DFRAME_CONFIG=HELI_FRAME "
+revomini-heli-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
+revomini-heli-hil: revomini
 
 apm2beta: EXTRAFLAGS += "-DAPM2_BETA_HARDWARE "
 apm2beta: apm2

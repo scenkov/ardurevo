@@ -5,8 +5,6 @@
 #include <HardwareTimer.h>
 #include <systick.h>
 #include <AP_Notify.h>
-#include "DataFlash_REVOMINI.h"
-#include "DataFlash_Block.h"
 
 using namespace REVOMINI;
 
@@ -62,6 +60,8 @@ void REVOMINIScheduler::delay(uint16_t ms)
             }
         }
     }
+
+
 }
 
 uint32_t REVOMINIScheduler::millis() {
@@ -160,7 +160,7 @@ void REVOMINIScheduler::_timer_isr_event() {
 
     uint32 fms=systick_uptime();
 
-    if(fms - _scheduler_last_call >= 500)
+    if(fms - _scheduler_last_call >= 100)
 	{
 	 if (_scheduler_led == 1)
 	     {
@@ -181,6 +181,7 @@ void REVOMINIScheduler::_timer_isr_event() {
 	    _armed_last_call = fms;
 	}
     }
+
     _run_timer_procs(true);
 }
 
@@ -206,6 +207,7 @@ void REVOMINIScheduler::_run_timer_procs(bool called_from_isr) {
     if (_failsafe != NULL) {
         _failsafe();
     }
+
     _in_timer_proc = false;
 }
 

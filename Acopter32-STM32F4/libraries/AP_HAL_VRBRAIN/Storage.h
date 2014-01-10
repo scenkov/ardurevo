@@ -27,7 +27,7 @@
 class VRBRAIN::VRBRAINStorage : public AP_HAL::Storage
 {
 public:
-  VRBRAINStorage(){};
+  VRBRAINStorage(i2c_dev *dev):_dev(dev){};
   void init(void* machtnichts);
   uint8_t  read_byte(uint16_t src);
   uint16_t read_word(uint16_t src);
@@ -38,7 +38,8 @@ public:
   void write_word(uint16_t dst, uint16_t value);
   void write_dword(uint16_t dst, uint32_t value);
   void write_block(uint16_t dst, const void* src, size_t n);
-
+private:
+  i2c_dev *_dev;
 };
 
 #endif // __AP_HAL_VRBRAIN_STORAGE_H__

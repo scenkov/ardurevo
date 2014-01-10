@@ -206,7 +206,7 @@ static void copter_leds_slow_blink(void) {
     }
 }
 
-static void copter_leds_fast_blink(void) {    
+static void copter_leds_fast_blink(void) {
     copter_leds_motor_blink++;                                                  // this increments once every 1/10 second because it is in the 10hz loop
     if ( 0 < copter_leds_motor_blink && copter_leds_motor_blink < 3 ) {         // when the counter reaches 3 (1/5 sec), then toggle the leds
         copter_leds_on();

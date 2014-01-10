@@ -88,6 +88,10 @@ void AP_Baro_MS5611_SPI::init()
         return; /* never reached */
         
     }
+
+    // now that we have initialised, we set the SPI bus speed to high
+    // (8MHz on APM2)
+    _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_HIGH);
 }
 
 uint16_t AP_Baro_MS5611_SPI::read_16bits(uint8_t reg)
@@ -150,9 +154,11 @@ void AP_Baro_MS5611_SPI::sem_give()
 }
 
 // I2C Device //////////////////////////////////////////////////////////////////
+
 /** I2C address of the MS5611 on the PX4 or REVOMINI board. */
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 #define MS5611_ADDR 0xEE
+//#define MS5611_ADDR 0x77
 #else
 #define MS5611_ADDR 0x76
 #endif

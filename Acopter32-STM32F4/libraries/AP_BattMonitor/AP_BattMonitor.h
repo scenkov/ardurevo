@@ -59,8 +59,8 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
  # define AP_BATT_VOLT_PIN                  7 // PC1
  # define AP_BATT_CURR_PIN                  8 // PS2
- # define AP_BATT_VOLTDIVIDER_DEFAULT       11.13
- # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  59.9
+ # define AP_BATT_VOLTDIVIDER_DEFAULT       10.1
+ # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  17.0
 #else
  # define AP_BATT_VOLT_PIN                  -1
  # define AP_BATT_CURR_PIN                  -1

@@ -37,42 +37,32 @@ public:
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
     float            	get_delta_time();
 
+    uint16_t error_count(void) const { return _error_count; }
+    bool healthy(void) { return _error_count <= 4; }
+
     //gets the die temperature
     float 		get_temperature() const { return _temp; }
 protected:
     uint16_t                    _init_sensor( Sample_rate sample_rate );
 
 private:
+    AP_HAL::DigitalSource *_drdy_pin;
 
-    void                 _read_data_from_timerprocess();
     void                 _read_data_transaction();
     bool                 _data_ready();
     void                 _poll_data(void);
-    AP_HAL::DigitalSource *_drdy_pin;
     uint8_t              _register_read( uint8_t reg );
-    bool _register_read_from_timerprocess( uint8_t reg, uint8_t *val );
-    void                 register_write( uint8_t reg, uint8_t val );
-    void                        wait_for_sample();
-    bool                        hardware_init(Sample_rate sample_rate);
+    void                 _register_write( uint8_t reg, uint8_t val );
+    bool                 _hardware_init(Sample_rate sample_rate);
 
     AP_HAL::SPIDeviceDriver *_spi;
     AP_HAL::Semaphore *_spi_sem;
 
-    uint16_t			_num_samples;
+    uint16_t					_num_samples;
 
-
-
-    float                       _temp_to_celsius( int32_t );
+    float                _temp_to_celsius( int32_t );
 
     static const float          _gyro_scale;
-
-    static const uint8_t        _gyro_data_index[3];
-    static const int8_t         _gyro_data_sign[3];
-
-    static const uint8_t        _accel_data_index[3];
-    static const int8_t         _accel_data_sign[3];
-
-    static const uint8_t        _temp_data_index;
 
     uint32_t _last_sample_time_micros;
 
@@ -95,6 +85,15 @@ private:
 #endif
 
     void _set_filter_register(uint8_t filter_hz, uint8_t default_filter);
+
+    uint16_t _error_count;
+
+    // accumulation in timer - must be read with timer disabled
+    // the sum of the values since last read
+    Vector3l _accel_sum;
+    Vector3l _gyro_sum;
+    float _temp_sum;
+    volatile int16_t _sum_count;
 
 public:
 

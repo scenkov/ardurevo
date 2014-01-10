@@ -47,6 +47,10 @@ extern const AP_HAL::HAL& hal;
 #       define BITS_GYRO_YGYRO_SELFTEST                 0x40
 #       define BITS_GYRO_XGYRO_SELFTEST                 0x80
 #define MPUREG_ACCEL_CONFIG                             0x1C
+#	define BITS_FS_2G                  0x00
+#	define BITS_FS_4G                  0x08
+#	define BITS_FS_8G                  0x10
+#	define BITS_FS_16G                 0x18
 #define MPUREG_MOT_THR                                  0x1F    // detection threshold for Motion interrupt generation.  Motion is detected when the absolute value of any of the accelerometer measurements exceeds this
 #define MPUREG_MOT_DUR                                  0x20    // duration counter threshold for Motion interrupt generation. The duration counter ticks at 1 kHz, therefore MOT_DUR has a unit of 1 LSB = 1 ms
 #define MPUREG_ZRMOT_THR                                0x21    // detection threshold for Zero Motion interrupt generation.
@@ -156,31 +160,13 @@ extern const AP_HAL::HAL& hal;
  */
 #if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #ifdef ENHANCED
-const float AP_InertialSensor_MPU6000_Ext::_gyro_scale = (0.0174532 / 32.8);
+const float AP_InertialSensor_MPU6000_Ext::_gyro_scale = (0.0174532f / 32.8f);
 #else
-const float AP_InertialSensor_MPU6000_Ext::_gyro_scale = (0.0174532 / 16.4);
+const float AP_InertialSensor_MPU6000_Ext::_gyro_scale = (0.0174532f / 16.4f);
 #endif
 #else
-const float AP_InertialSensor_MPU6000_Ext::_gyro_scale = (0.0174532 / 16.4);
+const float AP_InertialSensor_MPU6000_Ext::_gyro_scale = (0.0174532f / 16.4f);
 #endif
-/* pch: I believe the accel and gyro indicies are correct
- *      but somone else should please confirm.
- *
- * jamesjb: Y and Z axes are flipped on the PX4FMU
- */
-const uint8_t AP_InertialSensor_MPU6000_Ext::_gyro_data_index[3]  = { 5, 4, 6 };
-const uint8_t AP_InertialSensor_MPU6000_Ext::_accel_data_index[3] = { 1, 0, 2 };
-
-
-#if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-const int8_t  AP_InertialSensor_MPU6000_Ext::_gyro_data_sign[3]   = { -1, -1, -1 };
-const int8_t  AP_InertialSensor_MPU6000_Ext::_accel_data_sign[3]  = { -1, -1, -1 };
-#else
-const int8_t AP_InertialSensor_MPU6000_Ext::_gyro_data_sign[3]   = { 1, 1, -1 };
-const int8_t AP_InertialSensor_MPU6000_Ext::_accel_data_sign[3]  = { 1, 1, -1 };
-#endif
-
-const uint8_t AP_InertialSensor_MPU6000_Ext::_temp_data_index = 3;
 
 /*
  *  RM-MPU-6000A-00.pdf, page 31, section 4.23 lists LSB sensitivity of
@@ -219,15 +205,20 @@ uint16_t AP_InertialSensor_MPU6000_Ext::_init_sensor( Sample_rate sample_rate )
 
     uint8_t tries = 0;
     do {
-        bool success = hardware_init(sample_rate);
+        bool success = _hardware_init(sample_rate);
         if (success) {
             hal.scheduler->delay(5+2);
+            if (!_spi_sem->take(100)) {
+                hal.scheduler->panic(PSTR("MPU6000: Unable to get semaphore"));
+            }
             if (_data_ready()) {
+                _spi_sem->give();
                 break;
             } else {
                 hal.console->println_P(
                         PSTR("MPU6000 startup failed: no data ready"));
             }
+            _spi_sem->give();
         }
         if (tries++ > 5) {
             hal.scheduler->panic(PSTR("PANIC: failed to boot MPU6000 5 times")); 
@@ -241,7 +232,11 @@ uint16_t AP_InertialSensor_MPU6000_Ext::_init_sensor( Sample_rate sample_rate )
      * _read_data_transaction requires the spi semaphore to be taken by
      * its caller. */
     _last_sample_time_micros = hal.scheduler->micros();
-    _read_data_transaction();
+    hal.scheduler->delay(10);
+    if (_spi_sem->take(100)) {
+        _read_data_transaction();
+        _spi_sem->give();
+    }
 
     // start the timer process to read samples
     hal.scheduler->register_timer_process(AP_HAL_MEMBERPROC(&AP_InertialSensor_MPU6000_Ext::_poll_data));
@@ -251,13 +246,6 @@ uint16_t AP_InertialSensor_MPU6000_Ext::_init_sensor( Sample_rate sample_rate )
 #endif
     return _mpu6000_product_id;
 }
-
-// accumulation in ISR - must be read with interrupts disabled
-// the sum of the values since last read
-static volatile int32_t _sum[7];
-
-// how many values we've accumulated since last read
-static volatile uint16_t _count;
 
 /*================ AP_INERTIALSENSOR PUBLIC INTERFACE ==================== */
 
@@ -278,55 +266,45 @@ bool AP_InertialSensor_MPU6000_Ext::wait_for_sample(uint16_t timeout_ms)
 
 bool AP_InertialSensor_MPU6000_Ext::update( void )
 {
-    int32_t sum[7];
-    float count_scale;
-    Vector3f accel_scale = _accel_scale.get();
-
     // wait for at least 1 sample
     if (!wait_for_sample(1000)) {
         return false;
     }
 
+    _previous_accel = _accel;
+
     // disable timer procs for mininum time
     hal.scheduler->suspend_timer_procs();
-    /** ATOMIC SECTION w/r/t TIMER PROCESS */
-    {
-        for (int i=0; i<7; i++) {
-            sum[i] = _sum[i];
-            _sum[i] = 0;
-        }
-
-        _num_samples = _count;
-        _count = 0;
-    }
+    _gyro  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
+    _accel = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
+    _num_samples = _sum_count;
+    _accel_sum.zero();
+    _gyro_sum.zero();
+    _temp = _temp_sum; 
+    _sum_count = 0;
     hal.scheduler->resume_timer_procs();
 
-    count_scale = 1.0f / _num_samples;
-
-    _gyro  = Vector3f(_gyro_data_sign[0] * sum[_gyro_data_index[0]],
-                      _gyro_data_sign[1] * sum[_gyro_data_index[1]],
-                      _gyro_data_sign[2] * sum[_gyro_data_index[2]]);
     _gyro.rotate(_board_orientation);
-    _gyro *= _gyro_scale * count_scale;
+    _gyro *= _gyro_scale / _num_samples;
     _gyro -= _gyro_offset;
 
-    _accel   = Vector3f(_accel_data_sign[0] * sum[_accel_data_index[0]],
-                        _accel_data_sign[1] * sum[_accel_data_index[1]],
-                        _accel_data_sign[2] * sum[_accel_data_index[2]]);
     _accel.rotate(_board_orientation);
-    _accel *= count_scale * MPU6000_ACCEL_SCALE_1G;
+    _accel *= MPU6000_ACCEL_SCALE_1G / _num_samples;
+
+    Vector3f accel_scale = _accel_scale.get();
     _accel.x *= accel_scale.x;
     _accel.y *= accel_scale.y;
     _accel.z *= accel_scale.z;
     _accel -= _accel_offset;
 
-    _temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
+    _temp    /= _num_samples;
 
     if (_last_filter_hz != _mpu6000_filter) {
         if (_spi_sem->take(10)) {
             _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
             _set_filter_register(_mpu6000_filter, 0);
             _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_HIGH);
+            _error_count = 0;
             _spi_sem->give();
         }
     }
@@ -347,29 +325,8 @@ bool AP_InertialSensor_MPU6000_Ext::_data_ready()
     if (_drdy_pin) {
         return _drdy_pin->read() != 0;
     }
-
-    if (hal.scheduler->in_timerprocess()) {
-        bool got = _spi_sem->take_nonblocking();
-        if (got) {
-            uint8_t status = _register_read(MPUREG_INT_STATUS);
-            _spi_sem->give();
-            return (status & BIT_RAW_RDY_INT) != 0;
-        } else {
-            return false;
-        }
-    } else {
-        bool got = _spi_sem->take(10);
-        if (got) {
-            uint8_t status = _register_read(MPUREG_INT_STATUS);
-            _spi_sem->give();
-            return (status & BIT_RAW_RDY_INT) != 0;
-        } else {
-            hal.scheduler->panic(
-                PSTR("PANIC: AP_InertialSensor_MPU6000_Ext::_data_ready failed to "
-                     "take SPI semaphore synchronously"));
-        }
-    }
-    return false;
+    uint8_t status = _register_read(MPUREG_INT_STATUS);
+    return (status & BIT_RAW_RDY_INT) != 0;
 }
 
 /**
@@ -377,65 +334,87 @@ bool AP_InertialSensor_MPU6000_Ext::_data_ready()
  */
 void AP_InertialSensor_MPU6000_Ext::_poll_data(void)
 {
-    if (_data_ready()) {
-        if (hal.scheduler->in_timerprocess()) {
-            _read_data_from_timerprocess();
-        } else {
-            /* Synchronous read - take semaphore */
-            bool got = _spi_sem->take(10);
-            if (got) {
+    if (hal.scheduler->in_timerprocess()) {
+        if (!_spi_sem->take_nonblocking()) {
+            /*
+              the semaphore being busy is an expected condition when the
+              mainline code is calling sample_available() which will
+              grab the semaphore. We return now and rely on the mainline
+              code grabbing the latest sample.
+            */
+            return;
+        }   
+        if (_data_ready()) {
+            _last_sample_time_micros = hal.scheduler->micros();
+            _read_data_transaction(); 
+        }
+        _spi_sem->give();
+    } else {
+        /* Synchronous read - take semaphore */
+        if (_spi_sem->take(10)) {
+            if (_data_ready()) {
                 _last_sample_time_micros = hal.scheduler->micros();
                 _read_data_transaction(); 
-                _spi_sem->give();
-            } else {
-                hal.scheduler->panic(
-                        PSTR("PANIC: AP_InertialSensor_MPU6000_Ext::_poll_data "
-                             "failed to take SPI semaphore synchronously"));
             }
+            _spi_sem->give();
+        } else {
+            hal.scheduler->panic(
+                PSTR("PANIC: AP_InertialSensor_MPU6000_EXT::_poll_data "
+                     "failed to take SPI semaphore synchronously"));
         }
     }
 }
 
-/*
- *  this is called from the _poll_data, in the timer process context.
- *  when the MPU6000 has new sensor data available and add it to _sum[] to
- *  ensure this is the case, these other devices must perform their spi reads
- *  after being called by the AP_TimerProcess.
- */
-void AP_InertialSensor_MPU6000_Ext::_read_data_from_timerprocess()
-{
-    if (!_spi_sem->take_nonblocking()) {
-        /*
-          the semaphore being busy is an expected condition when the
-          mainline code is calling sample_available() which will
-          grab the semaphore. We return now and rely on the mainline
-          code grabbing the latest sample.
-         */
-        return;
-    }   
-
-    _last_sample_time_micros = hal.scheduler->micros();
-    _read_data_transaction();
-
-    _spi_sem->give();
-}
 
 void AP_InertialSensor_MPU6000_Ext::_read_data_transaction() {
     /* one resister address followed by seven 2-byte registers */
-    uint8_t tx[15];
-    uint8_t rx[15];
-    memset(tx,0,15);
-    tx[0] = MPUREG_ACCEL_XOUT_H | 0x80;
-    _spi->transaction(tx, rx, 15);
-
-    for (uint8_t i = 0; i < 7; i++) {
-        _sum[i] += (int16_t)(((uint16_t)rx[2*i+1] << 8) | rx[2*i+2]);
-    }   
+    struct PACKED {
+        uint8_t cmd;
+        uint8_t int_status;
+        uint8_t v[14];
+    } rx, tx = { cmd : MPUREG_INT_STATUS | 0x80, };
     
-    _count++;
-    if (_count == 0) {
+    _spi->transaction((const uint8_t *)&tx, (uint8_t *)&rx, sizeof(rx));
+
+    /*
+      detect a bad SPI bus transaction by looking for all 14 bytes
+      zero, or the wrong INT_STATUS register value. This is used to
+      detect a too high SPI bus speed.
+     */
+    uint8_t i;
+    for (i=0; i<14; i++) {
+        if (rx.v[i] != 0) break;
+    }
+    if ((rx.int_status&~0x6) != (_drdy_pin==NULL?0:BIT_RAW_RDY_INT) || i == 14) {
+        // likely a bad bus transaction
+        if (++_error_count > 4) {
+            _spi->set_bus_speed(AP_HAL::SPIDeviceDriver::SPI_SPEED_LOW);
+        }
+    }
+
+#define int16_val(v, idx) ((int16_t)(((uint16_t)v[2*idx] << 8) | v[2*idx+1]))
+#if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    _accel_sum.x -= int16_val(rx.v, 1);
+    _accel_sum.y -= int16_val(rx.v, 0);
+    _accel_sum.z -= int16_val(rx.v, 2);
+    _gyro_sum.x  -= int16_val(rx.v, 5);
+    _gyro_sum.y  -= int16_val(rx.v, 4);
+    _gyro_sum.z  -= int16_val(rx.v, 6);
+#else
+    _accel_sum.x += int16_val(rx.v, 1);
+    _accel_sum.y += int16_val(rx.v, 0);
+    _accel_sum.z -= int16_val(rx.v, 2);
+    _gyro_sum.x  += int16_val(rx.v, 5);
+    _gyro_sum.y  += int16_val(rx.v, 4);
+    _gyro_sum.z  -= int16_val(rx.v, 6);
+#endif
+	_temp_sum    += int16_val(rx.v, 3);
+    _sum_count++;
+
+    if (_sum_count == 0) {
         // rollover - v unlikely
-        memset((void*)_sum, 0, sizeof(_sum));
+        _accel_sum.zero();
+        _gyro_sum.zero();
     }
 }
 
@@ -453,7 +432,7 @@ uint8_t AP_InertialSensor_MPU6000_Ext::_register_read( uint8_t reg )
     return rx[1];
 }
 
-void AP_InertialSensor_MPU6000_Ext::register_write(uint8_t reg, uint8_t val)
+void AP_InertialSensor_MPU6000_Ext::_register_write(uint8_t reg, uint8_t val)
 {
     uint8_t tx[2];
     uint8_t rx[2];
@@ -491,12 +470,12 @@ void AP_InertialSensor_MPU6000_Ext::_set_filter_register(uint8_t filter_hz, uint
     if (filter != 0) {
         _last_filter_hz = filter_hz;
 
-        register_write(MPUREG_CONFIG, filter);
+        _register_write(MPUREG_CONFIG, filter);
     }
 }
 
 
-bool AP_InertialSensor_MPU6000_Ext::hardware_init(Sample_rate sample_rate)
+bool AP_InertialSensor_MPU6000_Ext::_hardware_init(Sample_rate sample_rate)
 {
     if (!_spi_sem->take(100)) {
         hal.scheduler->panic(PSTR("MPU6000: Unable to get semaphore"));
@@ -508,13 +487,13 @@ bool AP_InertialSensor_MPU6000_Ext::hardware_init(Sample_rate sample_rate)
     // Chip reset
     uint8_t tries;
     for (tries = 0; tries<5; tries++) {
-        register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
+        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
         hal.scheduler->delay(100);
 
         // Wake up device and select GyroZ clock. Note that the
         // MPU6000 starts up in sleep mode, and it can take some time
         // for it to come out of sleep
-        register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_CLK_ZGYRO);
+        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_CLK_ZGYRO);
         hal.scheduler->delay(5);
 
         // check it has woken up
@@ -531,11 +510,11 @@ bool AP_InertialSensor_MPU6000_Ext::hardware_init(Sample_rate sample_rate)
         return false;
     }
 
-    register_write(MPUREG_PWR_MGMT_2, 0x00);            // only used for wake-up in accelerometer only low power mode
+    _register_write(MPUREG_PWR_MGMT_2, 0x00);            // only used for wake-up in accelerometer only low power mode
     hal.scheduler->delay(1);
 
     // Disable I2C bus (recommended on datasheet)
-    register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
+    _register_write(MPUREG_USER_CTRL, BIT_USER_CTRL_I2C_IF_DIS);
     hal.scheduler->delay(1);
 
     uint8_t default_filter;
@@ -597,24 +576,24 @@ bool AP_InertialSensor_MPU6000_Ext::hardware_init(Sample_rate sample_rate)
     // the requested rate to the application
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #ifdef ENHANCED
-    register_write(MPUREG_SMPLRT_DIV, _sample_rate);
+    _register_write(MPUREG_SMPLRT_DIV, _sample_rate);
 #else
-    register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
+    _register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
 #endif
 #else
-    register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
+    _register_write(MPUREG_SMPLRT_DIV, MPUREG_SMPLRT_200HZ);
 #endif
 
     hal.scheduler->delay(1);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #ifdef ENHANCED
-    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
+    _register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
 #else
-    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
+    _register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
 #endif
 #else
-    register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
+    _register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
 #endif
 
     hal.scheduler->delay(1);
@@ -627,21 +606,20 @@ bool AP_InertialSensor_MPU6000_Ext::hardware_init(Sample_rate sample_rate)
         (_mpu6000_product_id == MPU6000_REV_C4)   || (_mpu6000_product_id == MPU6000_REV_C5)) {
         // Accel scale 8g (4096 LSB/g)
         // Rev C has different scaling than rev D
-        register_write(MPUREG_ACCEL_CONFIG,1<<3);
+        _register_write(MPUREG_ACCEL_CONFIG,1<<3);
     } else {
         // Accel scale 8g (4096 LSB/g)
-        register_write(MPUREG_ACCEL_CONFIG,2<<3);
+        _register_write(MPUREG_ACCEL_CONFIG,2<<3);
     }
     hal.scheduler->delay(1);
 
     // configure interrupt to fire when new data arrives
-    register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);
+    _register_write(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);
     hal.scheduler->delay(1);
 
     // clear interrupt on any read, and hold the data ready pin high
     // until we clear the interrupt
-    register_write(MPUREG_INT_PIN_CFG, BIT_INT_RD_CLEAR | BIT_LATCH_INT_EN);
-    hal.scheduler->delay(1);
+    _register_write(MPUREG_INT_PIN_CFG, BIT_INT_RD_CLEAR | BIT_LATCH_INT_EN);
 
     // now that we have initialised, we set the SPI bus speed to high
     // (8MHz on APM2)
@@ -670,7 +648,11 @@ float AP_InertialSensor_MPU6000_Ext::get_gyro_drift_rate(void)
 bool AP_InertialSensor_MPU6000_Ext::sample_available()
 {
     _poll_data();
-    return (_count >> _sample_shift) > 9;
+#ifdef ENHANCED
+    return (_sum_count >> _sample_shift) > 9;
+#else
+    return (_sum_count >> _sample_shift) > 0;
+#endif
 }
 
 

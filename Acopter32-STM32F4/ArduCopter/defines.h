@@ -22,15 +22,15 @@
 #define YAW_CIRCLE                      4       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
 #define YAW_LOOK_AT_HOME    		5       // point towards home (no pilot input accepted)
 #define YAW_LOOK_AT_HEADING    		6       // point towards a particular angle (not pilot input accepted)
-#define YAW_LOOK_AHEAD			7		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
-#define YAW_TOY                         8       // THOR This is the Yaw mode
+#define YAW_LOOK_AHEAD		        7		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
+#define YAW_DRIFT                       8       //
 #define YAW_RESETTOARMEDYAW		9       // point towards heading at time motors were armed
 
 #define ROLL_PITCH_STABLE           0       // pilot input roll, pitch angles
 #define ROLL_PITCH_ACRO             1       // pilot inputs roll, pitch rotation rates in body frame
 #define ROLL_PITCH_AUTO             2       // no pilot input.  autopilot roll, pitch is sent to stabilize controller inputs
 #define ROLL_PITCH_STABLE_OF        3       // pilot inputs roll, pitch angles which are mixed with optical flow based position controller lean anbles
-#define ROLL_PITCH_TOY              4       // THOR This is the Roll and Pitch mode
+#define ROLL_PITCH_DRIFT            4       //
 #define ROLL_PITCH_LOITER           5       // pilot inputs the desired horizontal velocities
 #define ROLL_PITCH_SPORT            6       // pilot inputs roll, pitch rotation rates in earth frame
 #define ROLL_PITCH_AUTOTUNE         7       // description of new roll-pitch mode
@@ -40,6 +40,7 @@
 #define THROTTLE_HOLD                       2   // alt hold plus pilot input of climb rate
 #define THROTTLE_AUTO                       3   // auto pilot altitude controller with target altitude held in next_WP.alt
 #define THROTTLE_LAND                       4   // landing throttle controller
+#define THROTTLE_MANUAL_HELI                5   // pilot manually controlled throttle for traditional helicopters
 
 
 // sonar - for use with CONFIG_SONAR_SOURCE
@@ -86,6 +87,7 @@
 #define OCTA_FRAME 5
 #define HELI_FRAME 6
 #define OCTA_QUAD_FRAME 7
+#define SINGLE_FRAME 8
 
 #define PLUS_FRAME 0
 #define X_FRAME 1
@@ -144,10 +146,10 @@
 #define POSITION 8                      // AUTO control
 #define LAND 9                          // AUTO control
 #define OF_LOITER 10                    // Hold a single location using optical flow sensor
-#define TOY_A 11                        // THOR Enum for Toy mode
-#define TOY_M 12                        // THOR Enum for Toy mode
+#define DRIFT 11                        // DRIFT mode (Note: 12 is no longer used)
 #define SPORT 13                        // earth frame rate control
 #define NUM_MODES 14
+
 
 // CH_6 Tuning
 // -----------
@@ -205,13 +207,8 @@
 // Yaw behaviours during missions - possible values for WP_YAW_BEHAVIOR parameter
 #define WP_YAW_BEHAVIOR_NONE                          0   // auto pilot will never control yaw during missions or rtl (except for DO_CONDITIONAL_YAW command received)
 #define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP               1   // auto pilot will face next waypoint or home during rtl
-#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last 
+#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last
 #define WP_YAW_BEHAVIOR_LOOK_AHEAD                    3   // auto pilot will look ahead during missions and rtl (primarily meant for traditional helicotpers)
-
-// TOY mixing options
-#define TOY_LOOKUP_TABLE 0
-#define TOY_LINEAR_MIXER 1
-#define TOY_EXTERNAL_MIXER 2
 
 
 // Waypoint options
@@ -220,8 +217,8 @@
 #define WP_OPTION_YAW                           4
 #define WP_OPTION_ALT_REQUIRED                  8
 #define WP_OPTION_RELATIVE                      16
-//#define WP_OPTION_				32
-//#define WP_OPTION_				64
+//#define WP_OPTION_					32
+//#define WP_OPTION_					64
 #define WP_OPTION_NEXT_CMD                      128
 
 // RTL state
@@ -282,7 +279,6 @@ enum ap_message {
 #define LOG_CMD_MSG                     0x08
 #define LOG_CURRENT_MSG                 0x09
 #define LOG_STARTUP_MSG                 0x0A
-#define LOG_MOTORS_MSG                  0x0B
 #define LOG_OPTFLOW_MSG                 0x0C
 #define LOG_EVENT_MSG                   0x0D
 #define LOG_PID_MSG                     0x0E
@@ -298,10 +294,8 @@ enum ap_message {
 #define LOG_DATA_FLOAT_MSG              0x18
 #define LOG_AUTOTUNE_MSG                0x19
 #define LOG_AUTOTUNEDETAILS_MSG         0x1A
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- #define LOG_DATA_INT8_MSG              0x1B
-#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- #define LOG_DATA_INT8_MSG              0x1B
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+ # define LOG_DATA_INT8_MSG              0x1B
 #endif
 #define LOG_INDEX_MSG                   0xF0
 #define MAX_NUM_LOGS                    50
@@ -312,11 +306,11 @@ enum ap_message {
 #define MASK_LOG_PM                     (1<<3)
 #define MASK_LOG_CTUN                   (1<<4)
 #define MASK_LOG_NTUN                   (1<<5)
-#define MASK_LOG_MODE                   (1<<6)  // not used
+#define MASK_LOG_RCIN                   (1<<6)
 #define MASK_LOG_IMU                    (1<<7)
 #define MASK_LOG_CMD                    (1<<8)
 #define MASK_LOG_CURRENT                (1<<9)
-#define MASK_LOG_MOTORS                 (1<<10)
+#define MASK_LOG_RCOUT                  (1<<10)
 #define MASK_LOG_OPTFLOW                (1<<11)
 #define MASK_LOG_PID                    (1<<12)
 #define MASK_LOG_COMPASS                (1<<13)
@@ -361,50 +355,6 @@ enum ap_message {
 #define DATA_ACRO_TRAINER_LEVELING      44
 #define DATA_ACRO_TRAINER_LIMITED       45
 
-
-
-/* ************************************************************** */
-/* Expansion PIN's that people can use for various things. */
-
-// AN0 - 7 are located at edge of IMU PCB "above" pressure sensor and
-// Expansion port
-// AN0 - 5 are also located next to voltage dividers and sliding SW2 switch
-// AN0 - 3 has 10kOhm resistor in serial, include 3.9kOhm to make it as
-// voltage divider
-// AN4 - 5 are direct GPIO pins from atmega1280 and they are the latest pins
-// next to SW2 switch
-// Look more ArduCopter Wiki for voltage dividers and other ports
-#define AN0  54  // resistor, vdiv use, divider 1 closest to relay
-#define AN1  55  // resistor, vdiv use, divider 2
-#define AN2  56  // resistor, vdiv use, divider 3
-#define AN3  57  // resistor, vdiv use, divider 4 closest to SW2
-#define AN4  58  // direct GPIO pin, default as analog input, next to SW2
-                 // switch
-#define AN5  59  // direct GPIO pin, default as analog input, next to SW2
-                 // switch
-#define AN6  60  // direct GPIO pin, default as analog input, close to
-                 // Pressure sensor, Expansion Ports
-#define AN7  61  // direct GPIO pin, default as analog input, close to
-                 // Pressure sensor, Expansion Ports
-
-// AN8 - 15 are located at edge of IMU PCB "above" pressure sensor and
-// Expansion port
-// AN8 - 15 PINs are not connected anywhere, they are located as last 8 pins
-// on edge of the board above Expansion Ports
-// even pins (8,10,12,14) are at edge of board, Odd pins (9,11,13,15) are on
-// inner row
-#define AN8  62  // NC
-#define AN9  63  // NC
-#define AN10  64 // NC
-#define AN11  65 // NC
-#define AN12  66 // NC
-#define AN13  67 // NC
-#define AN14  68 // NC
-#define AN15  69 // NC
-
-#define RELAY_APM1_PIN 47
-#define RELAY_APM2_PIN 13
-
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #define PIEZO_PIN 68           //Last pin on the back ADC connector
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
@@ -416,6 +366,7 @@ enum ap_message {
 // RADIANS
 #define RADX100 0.000174532925f
 #define DEGX100 5729.57795f
+
 
 // EEPROM addresses
 #define EEPROM_MAX_ADDR         4096
@@ -483,5 +434,32 @@ enum ap_message {
 // subsystem specific error codes -- crash checker
 #define ERROR_CODE_CRASH_CHECK_CRASH        1
 
+// Arming Check Enable/Disable bits
+#define ARMING_CHECK_NONE                   0x00
+#define ARMING_CHECK_ALL                    0x01
+#define ARMING_CHECK_BARO                   0x02
+#define ARMING_CHECK_COMPASS                0x04
+#define ARMING_CHECK_GPS                    0x08
+#define ARMING_CHECK_INS                    0x10
+#define ARMING_CHECK_PARAMETERS             0x20
+#define ARMING_CHECK_RC                     0x40
+#define ARMING_CHECK_VOLTAGE                0x80
+
+// Radio failsafe definitions (FS_THR parameter)
+#define FS_THR_DISABLED                    0
+#define FS_THR_ENABLED_ALWAYS_RTL          1
+#define FS_THR_ENABLED_CONTINUE_MISSION    2
+#define FS_THR_ENABLED_ALWAYS_LAND         3
+
+// Battery failsafe definitions (FS_BATT_ENABLE parameter)
+#define FS_BATT_DISABLED                    0       // battery failsafe disabled
+#define FS_BATT_LAND                        1       // switch to LAND mode on battery failsafe
+#define FS_BATT_RTL                         2       // switch to RTL mode on battery failsafe
+
+// GPS Failsafe definitions (FS_GPS_ENABLE parameter)
+#define FS_GPS_DISABLED                     0       // GPS failsafe disabled
+#define FS_GPS_LAND                         1       // switch to LAND mode on GPS Failsafe
+#define FS_GPS_ALTHOLD                      2       // switch to ALTHOLD mode on GPS failsafe
+#define FS_GPS_LAND_EVEN_STABILIZE          3       // switch to LAND mode on GPS failsafe even if in a manual flight mode like Stabilize
 
 #endif // _DEFINES_H

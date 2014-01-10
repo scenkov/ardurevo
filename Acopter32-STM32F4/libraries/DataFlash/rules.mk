@@ -14,11 +14,11 @@ cppSRCS_$(d) :=
 #cppSRCS_$(d) += DataFlash_APM1.cpp
 #cppSRCS_$(d) += DataFlash_APM2.cpp
 cppSRCS_$(d) += DataFlash_Block.cpp
-cppSRCS_$(d) += DataFlash_Empty.cpp
+#cppSRCS_$(d) += DataFlash_Empty.cpp
 #cppSRCS_$(d) += DataFlash_VRBRAIN.cpp
 cppSRCS_$(d) += DataFlash_REVOMINI.cpp
-cppSRCS_$(d) += DataFlash_SITL.cpp
-cppSRCS_$(d) += DataFlash_File.cpp
+#cppSRCS_$(d) += DataFlash_SITL.cpp
+#cppSRCS_$(d) += DataFlash_File.cpp
 cppSRCS_$(d) += LogFile.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)

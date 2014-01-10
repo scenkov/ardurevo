@@ -2,6 +2,12 @@
 
 .DEFAULT_GOAL := all
 
+# Select SKETCH (rover, plane, copter)
+APM_SKETCH:= copter
+
+#AP_HAL:= AP_HAL_VRBRAIN
+AP_HAL:= AP_HAL_REVOMINI
+
 ##
 ## Target-specific configuration.  This determines some compiler and
 ## linker options/flags.
@@ -9,6 +15,7 @@
 
 # Try "make help" for more information on BOARD and MEMORY_TARGET;
 # these default to a Maple Flash build.
+#BOARD            ?= laserlab_MP32V1F4
 BOARD            ?= revomini_MP32V1F4
 MEMORY_TARGET    ?= flash
 
@@ -19,20 +26,28 @@ MEMORY_TARGET    ?= flash
 SRCROOT := .
 BUILD_PATH       := $(SRCROOT)/build
 
-HARDWARE_PATH    := $(SRCROOT)/libraries/AP_HAL_REVOMINI/hardware
-HAL_PATH         := $(SRCROOT)/libraries/AP_HAL_REVOMINI/hardware/hal
+HARDWARE_PATH    := $(SRCROOT)/libraries/$(AP_HAL)/hardware
+HAL_PATH         := $(SRCROOT)/libraries/$(AP_HAL)/hardware/hal
 STM32_PATH       := $(HARDWARE_PATH)/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
 STM32USB_PATH    := $(HARDWARE_PATH)/STM32_USB_Driver
 cpu_flags        := -mcpu=cortex-m4
-WIRISH_PATH      := $(SRCROOT)/libraries/AP_HAL_REVOMINI/wirish
+WIRISH_PATH      := $(SRCROOT)/libraries/$(AP_HAL)/wirish
 LIBRARIES_PATH   := $(SRCROOT)/libraries
 
-FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
-SKETCH          := ArduCopter
-#FIRMWARE_PATH    := $(SRCROOT)/APMRover2
-#SKETCH          := APMRover2
-#FIRMWARE_PATH    := $(SRCROOT)/ArduPlane
-#SKETCH          := ArduPlane
+ifeq ($(APM_SKETCH),plane)
+	FIRMWARE_PATH    := $(SRCROOT)/ArduPlane
+	SKETCH           := ArduPlane
+endif
+
+ifeq ($(APM_SKETCH),rover)
+	FIRMWARE_PATH    := $(SRCROOT)/APMRover2
+	SKETCH           := APMRover2
+endif
+
+ifeq ($(APM_SKETCH),copter)
+	FIRMWARE_PATH    := $(SRCROOT)/ArduCopter
+	SKETCH           := ArduCopter
+endif
 
 SKETCHPDESRCS   := $(wildcard $(FIRMWARE_PATH)/*.pde)
 SKETCHSRCS      := $(wildcard $(addprefix $(SRCROOT)/,$(SRCSUFFIXES)))
@@ -46,7 +61,7 @@ SKETCHCPP_SRC   := $(SKETCHPDE) $(sort $(filter-out $(SKETCHPDE),$(SKETCHPDESRCS
 
 LIBRARY_INCLUDES := 
 
-SUPPORT_PATH     := $(SRCROOT)/libraries/AP_HAL_REVOMINI/support
+SUPPORT_PATH     := $(SRCROOT)/libraries/$(AP_HAL)/support
 # Support files for linker
 LDDIR            := $(SUPPORT_PATH)/ld
 # Support files for this Makefile
@@ -127,7 +142,7 @@ LIBRARY_MODULES += $(STM32USB_PATH)
 LIBRARY_MODULES += $(HAL_PATH)
 LIBRARY_MODULES += $(WIRISH_PATH)
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL_REVOMINI
+LIBRARY_MODULES += $(LIBRARIES_PATH)/$(AP_HAL)
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL_Empty
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_Fence
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_Sprayer

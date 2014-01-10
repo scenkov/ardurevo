@@ -29,11 +29,11 @@ void REVOMINISPIDeviceManager::init(void* machtnichts) {
 AP_HAL::SPIDeviceDriver* REVOMINISPIDeviceManager::device(enum AP_HAL::SPIDevice d)
 {
     switch (d) {
-        case AP_HAL::SPIDevice_Dataflash:
-            return _dataflash;
-        case AP_HAL::SPIDevice_MPU6000:
-            return _mpu6k;
-        default:
-            return NULL;
+    case AP_HAL::SPIDevice_Dataflash:
+        return _dataflash;
+    case AP_HAL::SPIDevice_MPU6000:
+        return _mpu6k;
+    default:
+        return NULL;
     };
 }

@@ -43,7 +43,8 @@ public:
         _gps_last_time(0),
         _historic_xy_counter(0),
         _baro_last_update(0),
-        _glitch_detector(gps_glitch)
+        _glitch_detector(gps_glitch),
+        _error_count(0)
         {
             AP_Param::setup_object_defaults(this, var_info);
         }
@@ -156,6 +157,13 @@ public:
     const Vector3f&    get_velocity() const { return _velocity; }
 
     /**
+     * get_velocity_xy - returns the current horizontal velocity in cm/s
+     *
+     * @returns the current horizontal velocity in cm/s
+     */
+    float        get_velocity_xy();
+
+    /**
      * set_velocity_xy - overwrites the current horizontal velocity in cm/s
      *
      * @param x : latitude  velocity in cm/s
@@ -228,6 +236,16 @@ public:
      */
     void        set_velocity_z( float new_velocity );
 
+    /**
+     * error_count - returns number of missed updates from GPS
+     */
+    uint8_t     error_count() const { return _error_count; }
+
+    /**
+     * ignore_next_error - the next error (if it occurs immediately) will not be added to the error count
+     */
+    void        ignore_next_error() { _flags.ignore_error = 7; }
+
     // class level parameters
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -258,7 +276,8 @@ protected:
 
     // structure for holding flags
     struct InertialNav_flags {
-        uint8_t gps_glitching   : 1;                    // 1 if glitch detector was previously indicating a gps glitch
+        uint8_t gps_glitching       : 1;                // 1 if glitch detector was previously indicating a gps glitch
+        uint8_t ignore_error        : 3;                // the number of iterations for which we should ignore errors
     } _flags;
 
     const AP_AHRS*    const _ahrs;                      // pointer to ahrs object
@@ -279,7 +298,7 @@ protected:
     int32_t                 _base_lat;                  // base latitude  (home location) in 100 nano degrees (i.e. degree value multiplied by 10,000,000)
     int32_t                 _base_lon;                  // base longitude (home location) in 100 nano degrees (i.e. degree value multiplied by 10,000,000)
     float                   _lon_to_cm_scaling;         // conversion of longitude to centimeters
-    
+
     // Z Axis specific variables
     AP_Float                _time_constant_z;           // time constant for vertical corrections in s
     float                   _k1_z;                      // gain for vertical position correction
@@ -295,8 +314,10 @@ protected:
     Vector3f                _position_error;            // current position error in cm - is set by the check_* methods and used by update method to calculate the correction terms
     Vector3f                _position;                  // sum(_position_base, _position_correction) - corrected position estimate in cm - relative to the home location (_base_lat, _base_lon, 0)
 
-    // GPS Glitch detector
-    GPS_Glitch&             _glitch_detector;
+    // error handling
+    GPS_Glitch&             _glitch_detector;           // GPS Glitch detector
+    uint8_t                 _error_count;               // number of missed GPS updates
+
 };
 
 #endif // __AP_INERTIALNAV_H__

@@ -7,15 +7,15 @@
 #include "wirish.h"
 #include <stm32f4xx.h>
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+// the last page holds the log format in first 4 bytes. Please change
+// this if (and only if!) the low level format changes
+#define DF_LOGGING_FORMAT    0x28122013
 
 #include "DataFlash.h"
 
 extern AP_HAL::HAL& hal;
 
-// the last page holds the log format in first 4 bytes. Please change
-// this if (and only if!) the low level format changes
-#define DF_LOGGING_FORMAT    0x28122013
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 
 // *** DATAFLASH PUBLIC FUNCTIONS ***
 void DataFlash_Block::StartWrite(uint16_t PageAdr)
@@ -33,7 +33,6 @@ void DataFlash_Block::StartWrite(uint16_t PageAdr)
     BlockRead((df_PageAdr << 8), &data, sizeof(data));
     if (data != 0xFFFF)
        Flash_Jedec_EraseSector(df_PageAdr << 8); // Erase Sector
-
 }
 
 void DataFlash_Block::FinishWrite(void)
@@ -62,12 +61,12 @@ void DataFlash_Block::FinishWrite(void)
 
 void DataFlash_Block::WriteBlock(const void *pBuffer, uint16_t size)
 {
+    if (ReadStatus() != 0)
+	return;
+
     if (!CardInserted() || !log_write_started) {
         return;
     }
-
-    if (ReadStatus() != 0)
-	return;
 
     while (size > 0) {
 	uint16_t n = df_PageSize - df_BufferIdx;
@@ -233,14 +232,6 @@ bool DataFlash_Block::NeedErase(void)
 /* END REVOMINI DATA FLASH */
 
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-
-#include "DataFlash.h"
-
-extern AP_HAL::HAL& hal;
-
-// the last page holds the log format in first 4 bytes. Please change
-// this if (and only if!) the low level format changes
-#define DF_LOGGING_FORMAT    0x28122013
 
 // *** DATAFLASH PUBLIC FUNCTIONS ***
 void DataFlash_Block::StartWrite(uint16_t PageAdr)
@@ -411,5 +402,4 @@ bool DataFlash_Block::NeedErase(void)
     StartRead(1);
     return version != DF_LOGGING_FORMAT;
 }
-
 #endif

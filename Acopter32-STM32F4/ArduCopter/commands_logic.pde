@@ -178,7 +178,6 @@ static bool verify_nav_command()
         break;
 
     default:
-        //gcs_send_text_P(SEVERITY_HIGH,PSTR("<verify_must: default> No current Must commands"));
         return false;
         break;
     }
@@ -207,7 +206,6 @@ static bool verify_cond_command()
         break;
 
     default:
-        //gcs_send_text_P(SEVERITY_HIGH,PSTR("<verify_must: default> No current May commands"));
         return false;
         break;
     }
@@ -464,6 +462,7 @@ static void do_loiter_time()
 static bool verify_takeoff()
 {
     // have we reached our target altitude?
+    set_takeoff_complete(wp_nav.reached_destination());
     return wp_nav.reached_destination();
 }
 
@@ -532,7 +531,6 @@ static bool verify_nav_wp()
     // check if timer has run out
     if (((millis() - loiter_time) / 1000) >= loiter_time_max) {
         gcs_send_text_fmt(PSTR("Reached Command #%i"),command_nav_index);
-        copter_leds_nav_blink = 15;             // Cause the CopterLEDs to blink three times to indicate waypoint reached
         return true;
     }else{
         return false;
@@ -757,7 +755,7 @@ static void do_yaw()
         yaw_look_at_heading = wrap_360_cd(command_cond_queue.alt * 100);
     }else{
         // relative angle
-        yaw_look_at_heading = wrap_360_cd(nav_yaw + command_cond_queue.alt * 100);
+        yaw_look_at_heading = wrap_360_cd(control_yaw + command_cond_queue.alt * 100);
     }
 
     // get turn speed
@@ -765,7 +763,7 @@ static void do_yaw()
         // default to regular auto slew rate
         yaw_look_at_heading_slew = AUTO_YAW_SLEW_RATE;
     }else{
-        int32_t turn_rate = (wrap_180_cd(yaw_look_at_heading - nav_yaw) / 100) / command_cond_queue.lat;
+        int32_t turn_rate = (wrap_180_cd(yaw_look_at_heading - control_yaw) / 100) / command_cond_queue.lat;
         yaw_look_at_heading_slew = constrain_int32(turn_rate, 1, 360);    // deg / sec
     }
 

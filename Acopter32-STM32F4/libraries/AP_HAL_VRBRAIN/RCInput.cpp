@@ -181,13 +181,13 @@ void VRBRAINRCInput::init(void* machtnichts)
 	for (byte channel = 0; channel < 8; channel++)
 	    pinData[channel].edge = FALLING_EDGE;
 	// Init Radio In
-	hal.console->println("Init Default PPM");
+	//hal.console->println("Init Default PPM");
 	pwmInit(false);
 	}
     else //PPMSUM
 	{
 	// Init Radio In
-	hal.console->println("Init Default PPMSUM");
+	//hal.console->println("Init Default PPMSUM");
 	attachPWMCaptureCallback(rxIntPPMSUM);
 	pwmInit(true);
 	}

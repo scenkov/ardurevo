@@ -17,7 +17,7 @@ static i2c_dev i2c_dev1 = {
     .clk       	  = RCC_APB1Periph_I2C1,
     .gpio_af	  = GPIO_AF_I2C1,
     .ev_nvic_line = I2C1_EV_IRQn,
-    .er_nvic_line = I2C1_ER_IRQn    
+    .er_nvic_line = I2C1_ER_IRQn
 };
 /** I2C1 device */
 i2c_dev* const _I2C1 = &i2c_dev1;
@@ -30,7 +30,7 @@ static i2c_dev i2c_dev2 = {
     .clk       	  = RCC_APB1Periph_I2C2,
     .gpio_af	  = GPIO_AF_I2C2,
     .ev_nvic_line = I2C2_EV_IRQn,
-    .er_nvic_line = I2C2_ER_IRQn        
+    .er_nvic_line = I2C2_ER_IRQn
 };
 /** I2C2 device */
 i2c_dev* const _I2C2 = &i2c_dev2;

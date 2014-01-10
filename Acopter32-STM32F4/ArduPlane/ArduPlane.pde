@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V2.75"
+#define THISFIRMWARE "ArduPlane V2.76"
 /*
    Lead developer: Andrew Tridgell
  
@@ -42,7 +42,8 @@
 //#include <AP_HAL_AVR_SITL.h>
 //#include <AP_HAL_SMACCM.h>
 //#include <AP_HAL_PX4.h>
-#include <AP_HAL_VRBRAIN.h>
+//#include <AP_HAL_VRBRAIN.h>
+#include <AP_HAL_REVOMINI.h>
 #include <AP_HAL_Empty.h>
 
 #include <AP_GPS.h>         // ArduPilot GPS library
@@ -128,7 +129,7 @@ static Parameters g;
 
 // main loop scheduler
 static AP_Scheduler scheduler;
-
+ 
 // mapping between input channels
 static RCMapper rcmap;
 
@@ -153,13 +154,15 @@ static void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
 ////////////////////////////////////////////////////////////////////////////////
 #if LOGGING_ENABLED == ENABLED
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
-DataFlash_APM1 DataFlash;
+static DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
-DataFlash_APM2 DataFlash;
+static DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-DataFlash_VRBRAIN DataFlash;
+static DataFlash_VRBRAIN DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+static DataFlash_REVOMINI DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
-DataFlash_SITL DataFlash;
+static DataFlash_SITL DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
 static DataFlash_File DataFlash("/fs/microsd/APM/logs");
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
@@ -169,6 +172,10 @@ static DataFlash_File DataFlash("logs");
 DataFlash_Empty DataFlash;
 #endif
 #endif
+
+// scaled roll limit based on pitch
+static int32_t roll_limit_cd;
+static int32_t pitch_limit_min_cd;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Sensors
@@ -266,7 +273,7 @@ AP_InertialSensor_L3G4200D ins;
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 
-AP_AHRS_DCM ahrs(&ins, g_gps);
+AP_AHRS_DCM ahrs(ins, g_gps);
 
 static AP_L1_Control L1_controller(ahrs);
 static AP_TECS TECS_controller(ahrs, aparm);
@@ -756,7 +763,7 @@ void setup() {
     AP_Notify::flags.pre_arm_check = true;
     AP_Notify::flags.failsafe_battery = false;
 
-    notify.init();
+    notify.init(true);
 
     battery.init();
 
@@ -817,6 +824,10 @@ static void ahrs_update()
 
     if (g.log_bitmask & MASK_LOG_IMU)
         Log_Write_IMU();
+
+    // calculate a scaled roll limit based on current pitch
+    roll_limit_cd = g.roll_limit_cd * cosf(ahrs.pitch);
+    pitch_limit_min_cd = aparm.pitch_limit_min_cd * fabsf(cosf(ahrs.roll));
 }
 
 /*
@@ -892,6 +903,9 @@ static void update_logging(void)
 {
     if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
         Log_Write_Attitude();
+
+    if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_IMU))
+        Log_Write_IMU();
     
     if (g.log_bitmask & MASK_LOG_CTUN)
         Log_Write_Control_Tuning();
@@ -962,9 +976,9 @@ static void one_second_loop()
         if (scheduler.debug() != 0) {
             hal.console->printf_P(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
         }
-        G_Dt_max = 0;
         if (g.log_bitmask & MASK_LOG_PM)
             Log_Write_Performance();
+        G_Dt_max = 0;
         resetPerfData();
     }
 
@@ -988,9 +1002,9 @@ static void airspeed_ratio_update(void)
         // don't calibrate when not moving
         return;
     }
-    if (abs(ahrs.roll_sensor) > g.roll_limit_cd ||
+    if (abs(ahrs.roll_sensor) > roll_limit_cd ||
         ahrs.pitch_sensor > aparm.pitch_limit_max_cd ||
-        ahrs.pitch_sensor < aparm.pitch_limit_min_cd) {
+        ahrs.pitch_sensor < pitch_limit_min_cd) {
         // don't calibrate when going beyond normal flight envelope
         return;
     }
@@ -1172,10 +1186,10 @@ static void update_flight_mode(void)
         
         // if the roll is past the set roll limit, then
         // we set target roll to the limit
-        if (ahrs.roll_sensor >= g.roll_limit_cd) {
-            nav_roll_cd = g.roll_limit_cd;
-        } else if (ahrs.roll_sensor <= -g.roll_limit_cd) {
-            nav_roll_cd = -g.roll_limit_cd;                
+        if (ahrs.roll_sensor >= roll_limit_cd) {
+            nav_roll_cd = roll_limit_cd;
+        } else if (ahrs.roll_sensor <= -roll_limit_cd) {
+            nav_roll_cd = -roll_limit_cd;                
         } else {
             training_manual_roll = true;
             nav_roll_cd = 0;
@@ -1185,8 +1199,8 @@ static void update_flight_mode(void)
         // we set target pitch to the limit
         if (ahrs.pitch_sensor >= aparm.pitch_limit_max_cd) {
             nav_pitch_cd = aparm.pitch_limit_max_cd;
-        } else if (ahrs.pitch_sensor <= aparm.pitch_limit_min_cd) {
-            nav_pitch_cd = aparm.pitch_limit_min_cd;
+        } else if (ahrs.pitch_sensor <= pitch_limit_min_cd) {
+            nav_pitch_cd = pitch_limit_min_cd;
         } else {
             training_manual_pitch = true;
             nav_pitch_cd = 0;
@@ -1214,15 +1228,15 @@ static void update_flight_mode(void)
 
     case FLY_BY_WIRE_A: {
         // set nav_roll and nav_pitch using sticks
-        nav_roll_cd  = channel_roll->norm_input() * g.roll_limit_cd;
-        nav_roll_cd = constrain_int32(nav_roll_cd, -g.roll_limit_cd, g.roll_limit_cd);
+        nav_roll_cd  = channel_roll->norm_input() * roll_limit_cd;
+        nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
         float pitch_input = channel_pitch->norm_input();
         if (pitch_input > 0) {
             nav_pitch_cd = pitch_input * aparm.pitch_limit_max_cd;
         } else {
-            nav_pitch_cd = -(pitch_input * aparm.pitch_limit_min_cd);
+            nav_pitch_cd = -(pitch_input * pitch_limit_min_cd);
         }
-        nav_pitch_cd = constrain_int32(nav_pitch_cd, aparm.pitch_limit_min_cd.get(), aparm.pitch_limit_max_cd.get());
+        nav_pitch_cd = constrain_int32(nav_pitch_cd, pitch_limit_min_cd, aparm.pitch_limit_max_cd.get());
         if (inverted_flight) {
             nav_pitch_cd = -nav_pitch_cd;
         }
@@ -1236,7 +1250,7 @@ static void update_flight_mode(void)
 
     case FLY_BY_WIRE_B:
         // Thanks to Yury MonZon for the altitude limit code!
-        nav_roll_cd = channel_roll->norm_input() * g.roll_limit_cd;
+        nav_roll_cd = channel_roll->norm_input() * roll_limit_cd;
         update_fbwb_speed_height();
         break;
         
@@ -1253,7 +1267,7 @@ static void update_flight_mode(void)
         }                 
         
         if (!cruise_state.locked_heading) {
-            nav_roll_cd = channel_roll->norm_input() * g.roll_limit_cd;
+            nav_roll_cd = channel_roll->norm_input() * roll_limit_cd;
         } else {
             calc_nav_roll();
         }
@@ -1271,7 +1285,7 @@ static void update_flight_mode(void)
         // or we just want to fly around in a gentle circle w/o GPS,
         // holding altitude at the altitude we set when we
         // switched into the mode
-        nav_roll_cd  = g.roll_limit_cd / 3;
+        nav_roll_cd  = roll_limit_cd / 3;
         calc_nav_pitch();
         calc_throttle();
         break;
@@ -1305,6 +1319,12 @@ static void update_navigation()
     case LOITER:
     case RTL:
     case GUIDED:
+        // allow loiter direction to be changed in flight
+        if (g.loiter_radius < 0) {
+            loiter.direction = -1;
+        } else {
+            loiter.direction = 1;
+        }
         update_loiter();
         break;
 

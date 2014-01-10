@@ -10,6 +10,7 @@ static void default_dead_zones()
 #if FRAME_CONFIG == HELI_FRAME
     g.rc_3.set_default_dead_zone(10);
     g.rc_4.set_default_dead_zone(15);
+    g.rc_8.set_default_dead_zone(10);
 #else
     g.rc_3.set_default_dead_zone(30);
     g.rc_4.set_default_dead_zone(40);
@@ -22,17 +23,23 @@ static void init_rc_in()
     // set rc channel ranges
     g.rc_1.set_angle(ROLL_PITCH_INPUT_MAX);
     g.rc_2.set_angle(ROLL_PITCH_INPUT_MAX);
-#if FRAME_CONFIG == HELI_FRAME
-    // we do not want to limit the movment of the heli's swash plate
-    g.rc_3.set_range(0, 1000);
-#else
     g.rc_3.set_range(g.throttle_min, g.throttle_max);
-#endif
     g.rc_4.set_angle(4500);
 
     g.rc_1.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
     g.rc_2.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
     g.rc_4.set_type(RC_CHANNEL_TYPE_ANGLE_RAW);
+#if FRAME_CONFIG == SINGLE_FRAME
+    // we set four servos to angle
+    g.single_servo_1.set_type(RC_CHANNEL_TYPE_ANGLE);
+    g.single_servo_2.set_type(RC_CHANNEL_TYPE_ANGLE);
+    g.single_servo_3.set_type(RC_CHANNEL_TYPE_ANGLE);
+    g.single_servo_4.set_type(RC_CHANNEL_TYPE_ANGLE);
+    g.single_servo_1.set_angle(DEFAULT_ANGLE_MAX);
+    g.single_servo_2.set_angle(DEFAULT_ANGLE_MAX);
+    g.single_servo_3.set_angle(DEFAULT_ANGLE_MAX);
+    g.single_servo_4.set_angle(DEFAULT_ANGLE_MAX);
+#endif
 
     //set auxiliary servo ranges
     g.rc_5.set_range(0,1000);
@@ -92,12 +99,6 @@ static void init_rc_out()
     if (ap.pre_arm_rc_check) {
         output_min();
     }
-
-#if TOY_EDF == ENABLED
-    // add access to CH8 and CH6
-    APM_RC.enable_out(CH_8);
-    APM_RC.enable_out(CH_6);
-#endif
 }
 
 // output_min - enable and output lowest possible value to motors
@@ -196,8 +197,8 @@ void aux_servos_update_fn()
     update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_10, &g.rc_11);
  #endif
 
-// Tri's can use RC5, RC6, RC8 and higher
-#elif (FRAME_CONFIG == TRI_FRAME)
+// Tri's and Singles can use RC5, RC6, RC8 and higher
+#elif (FRAME_CONFIG == TRI_FRAME || FRAME_CONFIG == SINGLE_FRAME)
  #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
  #else // APM1, APM2, SITL

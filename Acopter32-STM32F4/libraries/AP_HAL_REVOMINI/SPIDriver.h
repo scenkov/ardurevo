@@ -17,10 +17,8 @@ public:
     AP_HAL::SPIDeviceDriver* device(enum AP_HAL::SPIDevice d);
 private:    
     REVOMINISPI1DeviceDriver* _mpu6k;
-
     //REVOMINISPI3DeviceDriver* _rfm22b;
     REVOMINISPI3DeviceDriver* _dataflash;
-
 };
 
 #endif // __AP_HAL_REVOMINI_SPIDRIVER_H__
