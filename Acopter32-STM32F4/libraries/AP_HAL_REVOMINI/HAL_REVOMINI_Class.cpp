@@ -18,11 +18,11 @@ using namespace REVOMINI;
 // XXX make sure these are assigned correctly
 static REVOMINIUARTDriver uartADriver(_USART1,1);
 static REVOMINIUARTDriver uartBDriver(_USART3,0);
-//static REVOMINIUARTDriver uartCDriver(_USART2,0);
+//static REVOMINIUARTDriver uartBDriver(_USART6,0);
 static REVOMINISemaphore  i2cSemaphore;
 //static REVOMINISemaphore  i2c2Semaphore;
 static REVOMINII2CDriver  i2cDriver(_I2C1,&i2cSemaphore);
-//static REVOMINII2CDriver  i2c2Driver(_I2C1,&i2c2Semaphore);
+//static REVOMINII2CDriver  i2c2Driver(_I2C2,&i2c2Semaphore);
 static REVOMINISPIDeviceManager spiDeviceManager;
 static REVOMINIAnalogIn analogIn;
 static REVOMINIStorage storageDriver;
@@ -39,7 +39,7 @@ HAL_REVOMINI::HAL_REVOMINI() :
       NULL,
       NULL,
       &i2cDriver,
-//      &i2c2Driver, //NULL,
+      NULL, //   &i2c2Driver,
       &spiDeviceManager,
       &analogIn,
       &storageDriver,
@@ -68,7 +68,8 @@ void HAL_REVOMINI::init(int argc,char* const argv[]) const
   analogin->init(NULL);
   storage->init(NULL);
   rcin->init(NULL);
-  rcout->init((void *)&_is_ppmsum);
+//  rcout->init((void *)&_is_ppmsum);
+  rcout->init(NULL);
 }
 
 const HAL_REVOMINI AP_HAL_REVOMINI;

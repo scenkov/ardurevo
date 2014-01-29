@@ -48,7 +48,7 @@ enum ch7_option {
 // ----------------
 enum mode {
     MANUAL=0,
-	LEARNING=2,
+    LEARNING=2,
     STEERING=3,
     HOLD=4,
     AUTO=10,
@@ -82,66 +82,41 @@ enum mode {
 
 #define MAV_CMD_CONDITION_YAW 23
 
-//  GCS Message ID's
-/// NOTE: to ensure we never block on sending MAVLink messages
-/// please keep each MSG_ to a single MAVLink message. If need be
-/// create new MSG_ IDs for additional messages on the same
-/// stream
-enum ap_message {
-    MSG_HEARTBEAT,
-    MSG_ATTITUDE,
-    MSG_LOCATION,
-    MSG_EXTENDED_STATUS1,
-    MSG_EXTENDED_STATUS2,
-    MSG_NAV_CONTROLLER_OUTPUT,
-    MSG_CURRENT_WAYPOINT,
-    MSG_VFR_HUD,
-    MSG_RADIO_OUT,
-    MSG_RADIO_IN,
-    MSG_RAW_IMU1,
-    MSG_RAW_IMU3,
-    MSG_GPS_RAW,
-    MSG_SERVO_OUT,
-    MSG_NEXT_WAYPOINT,
-    MSG_NEXT_PARAM,
-    MSG_STATUSTEXT,
-    MSG_AHRS,
-    MSG_SIMSTATE,
-    MSG_HWSTATUS,
-    MSG_RANGEFINDER,
-    MSG_RETRY_DEFERRED // this must be last
-};
-
 //  Logging parameters
 #define LOG_CTUN_MSG	        0x01
-#define LOG_NTUN_MSG    		0x02
-#define LOG_PERFORMANCE_MSG		0x03
-#define LOG_CMD_MSG			    0x04
-#define LOG_CURRENT_MSG 		0x05
-#define LOG_STARTUP_MSG 		0x06
-#define LOG_SONAR_MSG 		    0x07
+#define LOG_NTUN_MSG    	0x02
+#define LOG_PERFORMANCE_MSG	0x03
+#define LOG_CMD_MSG		0x04
+#define LOG_CURRENT_MSG 	0x05
+#define LOG_STARTUP_MSG 	0x06
+#define LOG_SONAR_MSG 		0x07
 #define LOG_ATTITUDE_MSG        0x08
 #define LOG_MODE_MSG            0x09
 #define LOG_COMPASS_MSG         0x0A
 #define LOG_CAMERA_MSG          0x0B
+#define LOG_COMPASS2_MSG        0x0C
+#define LOG_STEERING_MSG        0x0D
 
-#define TYPE_AIRSTART_MSG		0x00
+#define TYPE_AIRSTART_MSG	0x00
 #define TYPE_GROUNDSTART_MSG	0x01
-#define MAX_NUM_LOGS			100
+#define MAX_NUM_LOGS		100
 
 #define MASK_LOG_ATTITUDE_FAST 	(1<<0)
 #define MASK_LOG_ATTITUDE_MED 	(1<<1)
-#define MASK_LOG_GPS 			(1<<2)
-#define MASK_LOG_PM 			(1<<3)
-#define MASK_LOG_CTUN 			(1<<4)
-#define MASK_LOG_NTUN			(1<<5)
-#define MASK_LOG_MODE			(1<<6)
-#define MASK_LOG_IMU			(1<<7)
-#define MASK_LOG_CMD			(1<<8)
-#define MASK_LOG_CURRENT		(1<<9)
-#define MASK_LOG_SONAR   		(1<<10)
-#define MASK_LOG_COMPASS   		(1<<11)
-#define MASK_LOG_CAMERA   		(1<<12)
+#define MASK_LOG_GPS 		(1<<2)
+#define MASK_LOG_PM 		(1<<3)
+#define MASK_LOG_CTUN 		(1<<4)
+#define MASK_LOG_NTUN		(1<<5)
+#define MASK_LOG_MODE		(1<<6)
+#define MASK_LOG_IMU		(1<<7)
+#define MASK_LOG_CMD		(1<<8)
+#define MASK_LOG_CURRENT	(1<<9)
+#define MASK_LOG_SONAR   	(1<<10)
+#define MASK_LOG_COMPASS   	(1<<11)
+#define MASK_LOG_CAMERA   	(1<<12)
+#define MASK_LOG_STEERING  	(1<<13)
+#define MASK_LOG_RC     	(1<<14)
+#define MASK_LOG_WHEN_DISARMED  (1<<30)
 
 // Waypoint Modes
 // ----------------
@@ -163,10 +138,6 @@ enum ap_message {
 
 // Climb rate calculations
 #define	ALTITUDE_HISTORY_LENGTH 8	//Number of (time,altitude) points to regress a climb rate from
-
-
-#define BATTERY_VOLTAGE(x) (x->voltage_average()*g.volt_div_ratio)
-#define CURRENT_AMPS(x) (x->voltage_average()-CURR_AMPS_OFFSET)*g.curr_amp_per_volt
 
 #define RELAY_PIN 47
 
@@ -198,8 +169,10 @@ enum ap_message {
 // InertialSensor driver types
 #define CONFIG_INS_OILPAN  1
 #define CONFIG_INS_MPU6000 2
-#define CONFIG_INS_STUB    3
+#define CONFIG_INS_HIL     3
 #define CONFIG_INS_PX4     4
+#define CONFIG_INS_FLYMAPLE 5
+#define CONFIG_INS_L3G4200D 6
 
 // compass driver types
 #define AP_COMPASS_HMC5843   1

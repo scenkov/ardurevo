@@ -194,36 +194,6 @@ vrbrain-heli-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
 vrbrain-heli-hil: vrbrain
 
 
-
-revomini-quad: EXTRAFLAGS += "-DFRAME_CONFIG=QUAD_FRAME "
-revomini-quad: apm2
-
-revomini-quad-hil: EXTRAFLAGS += "-DFRAME_CONFIG=QUAD_FRAME "
-revomini-quad-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
-revomini-quad-hil: revomini
-
-revomini-tri: EXTRAFLAGS += "-DFRAME_CONFIG=TRI_FRAME "
-revomini-tri: revomini
-
-revomini-hexa: EXTRAFLAGS += "-DFRAME_CONFIG=HEXA_FRAME "
-revomini-hexa: revomini
-
-revomini-y6: EXTRAFLAGS += "-DFRAME_CONFIG=Y6_FRAME "
-revomini-y6: revomini
-
-revomini-octa: EXTRAFLAGS += "-DFRAME_CONFIG=OCTA_FRAME "
-revomini-octa: revomini
-
-revomini-octa-quad: EXTRAFLAGS += "-DFRAME_CONFIG=OCTA_QUAD_FRAME "
-revomini-octa-quad: revomini
-
-revomini-heli: EXTRAFLAGS += "-DFRAME_CONFIG=HELI_FRAME "
-revomini-heli: revomini
-
-revomini-heli-hil: EXTRAFLAGS += "-DFRAME_CONFIG=HELI_FRAME "
-revomini-heli-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
-revomini-heli-hil: revomini
-
 apm2beta: EXTRAFLAGS += "-DAPM2_BETA_HARDWARE "
 apm2beta: apm2
 

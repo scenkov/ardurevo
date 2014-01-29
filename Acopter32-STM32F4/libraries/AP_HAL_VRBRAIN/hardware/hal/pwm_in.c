@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include "hal_types.h"
 #include "timer.h"
+#include <systick.h>
 
 #include <boards.h>
 
@@ -47,9 +48,9 @@ typedef void (*rcc_clockcmd)( uint32_t, FunctionalState);
 // Forward declaration
 static inline void pwmIRQHandler(TIM_TypeDef *tim);
 static void (*pwm_capture_callback)( uint8_t, uint16_t);
-static void pwmInitializeInput(uint8_t ppmsum);
+static void pwmInitializeInput();
 
-uint8_t _is_ppmsum;
+uint8_t g_is_ppmsum;
 
 // local vars
 static struct TIM_Channel
@@ -193,6 +194,7 @@ static struct PWM_State
 	uint16_t fall;
 	uint16_t capture;
 	uint16_t error;
+	uint32_t last_pulse;
     } Inputs[8];
 
 static TIM_ICInitTypeDef TIM_ICInitStructure;
@@ -219,9 +221,10 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
     uint16_t time_on = 0;
     uint16_t time_off = 0;
     static uint16_t last_val = 0;
-   // static uint32_t throttle_timer = 0;
 
-    if (_is_ppmsum > 0)
+    // static uint32_t throttle_timer = 0;
+
+    if (g_is_ppmsum > 0)
 	{
 	struct TIM_Channel channel = Channels[0];
 	struct PWM_State *input = &Inputs[0];
@@ -231,6 +234,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 	    TIM_ClearITPendingBit(channel.tim, channel.tim_cc);
 	    val = TIM_GetCapture1(channel.tim);
 
+	    input->last_pulse = systick_uptime();
 	    input->rise = val;
 
 	    if (input->rise > last_val)
@@ -261,6 +265,8 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 	    if (channel.tim == tim
 		    && (TIM_GetITStatus(tim, channel.tim_cc) == SET))
 		{
+
+		input->last_pulse = systick_uptime();
 		TIM_ClearITPendingBit(channel.tim, channel.tim_cc);
 
 		switch (channel.tim_channel)
@@ -315,13 +321,13 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
     }
 
-static void pwmInitializeInput(uint8_t ppmsum)
+static void pwmInitializeInput()
     {
     GPIO_InitTypeDef GPIO_InitStructure;
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
 
-    if (ppmsum == 0)
+    if (g_is_ppmsum == 0)
 	{
 	uint8_t i;
 
@@ -418,9 +424,9 @@ static void pwmInitializeInput(uint8_t ppmsum)
 	// enable the CC interrupt request **********************************************/
 	TIM_ITConfig(channel.tim, channel.tim_cc, ENABLE);
 	}
-    }
+}
 
-void pwmInit(bool ppmsum)
+void pwmInit()
     {
     uint8_t i;
 
@@ -432,17 +438,18 @@ void pwmInit(bool ppmsum)
 	Inputs[i].rise = 0;
 	Inputs[i].fall = 0;
 	Inputs[i].error = 0;
+	Inputs[i].last_pulse = 0;
 	}
 
-    if (ppmsum)
-	_is_ppmsum = 1;
-    else
-	_is_ppmsum = 0;
-
-    pwmInitializeInput(_is_ppmsum);
+    pwmInitializeInput();
     }
 
 uint16_t pwmRead(uint8_t channel)
     {
-    return Inputs[channel].capture;
+    if(channel == 2) {
+	if(systick_uptime() - Inputs[channel].last_pulse > 50) {
+	    return 900;
+	}
     }
+    return Inputs[channel].capture;
+}

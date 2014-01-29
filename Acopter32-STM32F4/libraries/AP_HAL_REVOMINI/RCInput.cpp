@@ -67,7 +67,6 @@ void REVOMINIRCInput::rxIntPPMSUM(uint8_t state, uint16_t value)
         if (channel_ctr < REVOMINI_RC_INPUT_NUM_CHANNELS) {
             _pulse_capt[channel_ctr] = value;
             _last_pulse[channel_ctr] = systick_uptime();
-
             channel_ctr++;
             if (channel_ctr == REVOMINI_RC_INPUT_NUM_CHANNELS) {
                 _valid_channels = REVOMINI_RC_INPUT_NUM_CHANNELS;
@@ -78,18 +77,6 @@ void REVOMINIRCInput::rxIntPPMSUM(uint8_t state, uint16_t value)
     }
 
 
-void REVOMINIRCInput::InitDefaultPPM(char board)
-    {
-	// REVOMINI
-	input_channel_ch1 = 4;  // PB14 T12/1
-	input_channel_ch2 = 5;  // PB15 T12/2
-	input_channel_ch3 = 12; // PC6 T8/1
-	input_channel_ch4 = 13; // PC7 T8/2
-	input_channel_ch5 = 14; // PC8 T8/3
-	input_channel_ch6 = 15; // PC9 T8/4
-    }
-
-
 REVOMINIRCInput::REVOMINIRCInput()
     {
     }
@@ -97,9 +84,15 @@ REVOMINIRCInput::REVOMINIRCInput()
 void REVOMINIRCInput::init(void* machtnichts)
     {
 
+    input_channel_ch1 = 4;  // PB14 T12/1
+    input_channel_ch2 = 5;  // PB15 T12/2
+    input_channel_ch3 = 12; // PC6 T8/1
+    input_channel_ch4 = 13; // PC7 T8/2
+    input_channel_ch5 = 14; // PC8 T8/3
+    input_channel_ch6 = 15; // PC9 T8/4
+
     /*initial check for pin2-pin3 bridge. If detected switch to PPMSUM  */
     //default to standard PPM
-    _iboard = 2;
 
     uint8_t channel3_status = 0;
     uint8_t pin2, pin3;
@@ -139,31 +132,32 @@ void REVOMINIRCInput::init(void* machtnichts)
 
     //if counter is 3 then we are in PPMSUM
     if (channel3_status == 3)
-	_iboard = 11;
+	g_is_ppmsum = 1;
+    else
+	g_is_ppmsum = 0;
 
-    if (_iboard < 10) //PWM
+    if (!g_is_ppmsum) //PWM
 	{
 	for (byte channel = 0; channel < 8; channel++)
 	    pinData[channel].edge = FALLING_EDGE;
 	// Init Radio In
-	hal.console->println("Init Default PPM");
-	pwmInit(false);
+	hal.console->println("Init Default PWM");
 	}
     else //PPMSUM
 	{
 	// Init Radio In
 	hal.console->println("Init Default PPMSUM");
 	attachPWMCaptureCallback(rxIntPPMSUM);
-	pwmInit(true);
 	}
 
+    pwmInit();
     clear_overrides();
     }
 
 uint8_t REVOMINIRCInput::valid_channels()
     {
-    if(_iboard < 10)
-	return 1;
+    if(!g_is_ppmsum)
+	return 4;
     else
 	return _valid_channels;
 
@@ -175,7 +169,7 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
     uint32_t pulse;
 
     noInterrupts();
-    if (_iboard < 10)
+    if (!g_is_ppmsum)
 	{
 	//data = rcPinValue[ch];
 	data = pwmRead(ch);
@@ -190,10 +184,10 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
     /* Check for override */
     uint16_t over = _override[ch];
 
-    if((_iboard >= 10) && (ch == 2) && (systick_uptime() - pulse > 50))
-            data = 900;
+    if((g_is_ppmsum) && (ch == 2) && (systick_uptime() - pulse > 50))
+	data = 900;
 
-        return (over == 0) ? data : over;
+    return (over == 0) ? data : over;
     }
 
 uint8_t REVOMINIRCInput::read(uint16_t* periods, uint8_t len)
@@ -201,14 +195,14 @@ uint8_t REVOMINIRCInput::read(uint16_t* periods, uint8_t len)
     noInterrupts();
     for (uint8_t i = 0; i < len; i++)
 	{
-	    if (_iboard < 10)
+	    if (!g_is_ppmsum)
 		periods[i] = pwmRead(i);
 	    else{
 		if ( i == 2 && (systick_uptime() - _last_pulse[i] > 50) )
-		   periods[i] = 900;
+		    periods[i] = 900;
 		else
-		   periods[i] = _pulse_capt[i];
-	}
+		    periods[i] = _pulse_capt[i];
+	    }
 
 	    if (_override[i] != 0)
 		periods[i] = _override[i];

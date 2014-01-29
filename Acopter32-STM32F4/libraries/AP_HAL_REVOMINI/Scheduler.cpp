@@ -60,8 +60,6 @@ void REVOMINIScheduler::delay(uint16_t ms)
             }
         }
     }
-
-
 }
 
 uint32_t REVOMINIScheduler::millis() {
@@ -158,30 +156,65 @@ bool REVOMINIScheduler::in_timerprocess()
 
 void REVOMINIScheduler::_timer_isr_event() {
 
-    uint32 fms=systick_uptime();
+    uint32 fms = systick_uptime();
 
     if(fms - _scheduler_last_call >= 100)
 	{
 	 if (_scheduler_led == 1)
 	     {
-	     LED_YLW=0;
-	     _scheduler_led=0;
+	     LED_YLW = 0;
+	     _scheduler_led = 0;
 	     }
 	     else
 	     {
-             LED_YLW=1;
-             _scheduler_led=1;
+             LED_YLW = 1;
+             _scheduler_led = 1;
 	     }
 	 _scheduler_last_call = fms;
 	}
-    // replaced from AP_HAL_Notify (LED always ON to fast flashing)
-    if (AP_Notify::flags.armed) {
-	if(fms - _armed_last_call >= 100){
-	    hal.gpio->toggle(HAL_GPIO_A_LED_PIN);
-	    _armed_last_call = fms;
+    // replace LED state from AP_BoardLED
+    static uint8_t arm_counter = 0;
+    if (!AP_Notify::flags.initialising) {
+	if (AP_Notify::flags.armed) {
+	    if(fms - _armed_last_call >= 100){
+		hal.gpio->toggle(HAL_GPIO_A_LED_PIN);
+		_armed_last_call = fms;
+	    }
+	}else{
+	    if (AP_Notify::flags.pre_arm_check) {
+		// passed pre-arm checks so slower single flash
+		if(fms - _armed_last_call >= 500){
+		    hal.gpio->toggle(HAL_GPIO_A_LED_PIN);
+		    _armed_last_call = fms;
+		}
+	    }else{
+		if(fms - _armed_last_call >= 100){ // 1000/10
+		    _armed_last_call = fms;
+		    if (++arm_counter >= 9) arm_counter = 0;
+		}
+		// failed pre-arm checks so double flash
+		switch(arm_counter) {
+		    case 0:
+			hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
+			break;
+		    case 1:
+			hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_OFF);
+			break;
+		    case 2:
+			hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
+			break;
+		    case 3:
+		    case 4:
+		    case 5:
+		    case 6:
+		    case 7:
+		    case 8:
+			hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_OFF);
+			break;
+		}
+	    }
 	}
     }
-
     _run_timer_procs(true);
 }
 

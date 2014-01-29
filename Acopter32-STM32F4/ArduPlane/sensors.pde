@@ -23,6 +23,27 @@ static int32_t read_barometer(void)
     return altitude_filter.apply(barometer.get_altitude() * 100.0);
 }
 
+static void init_sonar(void)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+    sonar.Init(&apm1_adc);
+#else
+    sonar.Init(NULL);
+#endif
+}
+
+// read the sonars
+static void read_sonars(void)
+{
+    if (!sonar.enabled()) {
+        // this makes it possible to disable sonar at runtime
+        return;
+    }
+
+    if (should_log(MASK_LOG_SONAR))
+        Log_Write_Sonar();
+}
+
 /*
   ask airspeed sensor for a new value
  */
@@ -71,3 +92,4 @@ static int32_t adjusted_altitude_cm(void)
 {
     return current_loc.alt - (g.alt_offset*100);
 }
+

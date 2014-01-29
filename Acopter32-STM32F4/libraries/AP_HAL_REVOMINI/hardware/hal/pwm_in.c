@@ -48,9 +48,9 @@ typedef void (*rcc_clockcmd)( uint32_t, FunctionalState);
 // Forward declaration
 static inline void pwmIRQHandler(TIM_TypeDef *tim);
 static void (*pwm_capture_callback)( uint8_t, uint16_t);
-static void pwmInitializeInput(uint8_t ppmsum);
+static void pwmInitializeInput();
 
-uint8_t _is_ppmsum;
+uint8_t g_is_ppmsum;
 
 // local vars
 static struct TIM_Channel
@@ -198,9 +198,10 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
     uint16_t time_on = 0;
     uint16_t time_off = 0;
     static uint16_t last_val = 0;
-   // static uint32_t throttle_timer = 0;
 
-    if (_is_ppmsum > 0)
+    // static uint32_t throttle_timer = 0;
+
+    if (g_is_ppmsum > 0)
 	{
 	struct TIM_Channel channel = Channels[0];
 	struct PWM_State *input = &Inputs[0];
@@ -297,13 +298,13 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
     }
 
-static void pwmInitializeInput(uint8_t ppmsum)
+static void pwmInitializeInput()
     {
     GPIO_InitTypeDef GPIO_InitStructure;
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
 
-    if (ppmsum == 0)
+    if (g_is_ppmsum == 0)
 	{
 	uint8_t i;
 
@@ -424,12 +425,12 @@ static void pwmInitializeInput(uint8_t ppmsum)
 	}
     }
 
-void pwmInit(bool ppmsum)
+void pwmInit()
     {
     uint8_t i;
 
 // preset channels to center
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < 8; i++)
 	{
 	Inputs[i].state = 0;
 	Inputs[i].capture = 1500;
@@ -439,12 +440,7 @@ void pwmInit(bool ppmsum)
 	Inputs[i].last_pulse = 0;
 	}
 
-    if (ppmsum)
-	_is_ppmsum = 1;
-    else
-	_is_ppmsum = 0;
-
-    pwmInitializeInput(_is_ppmsum);
+    pwmInitializeInput();
     }
 
 uint16_t pwmRead(uint8_t channel)
@@ -455,4 +451,4 @@ uint16_t pwmRead(uint8_t channel)
 	}
     }
     return Inputs[channel].capture;
-    }
+}

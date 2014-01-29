@@ -12,6 +12,7 @@
 #include <pwm_in.h>
 #include <usart.h>
 #include <i2c.h>
+#include <AP_Compass.h>
 
 using namespace VRBRAIN;
 
@@ -37,7 +38,7 @@ static VRBRAINRCOutput rcoutDriver;
 static VRBRAINScheduler schedulerInstance;
 static VRBRAINUtil utilInstance;
 
-
+uint8_t g_ext_mag_detect;
 
 HAL_VRBRAIN::HAL_VRBRAIN() :
     AP_HAL::HAL(
@@ -50,7 +51,7 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &spiDeviceManager,
       &analogIn,
       &storageDriver,
-      &uartCDriver,
+      &uartADriver,
       &gpioDriver,
       &rcinDriver,
       &rcoutDriver,
@@ -58,6 +59,26 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &utilInstance
 	  )
 {}
+
+extern const AP_HAL::HAL& hal;
+
+/*Returns true if an external mag on I2C2 port has been detected*/
+static void detect_compass(void){
+
+    AP_Compass_HMC5843_EXT compass_ext;
+
+    hal.scheduler->delay(10);
+
+    g_ext_mag_detect = 0;
+
+    if(compass_ext.init()){
+	hal.console->printf_P(PSTR("External Compass found!"));
+	g_ext_mag_detect = 1;
+	return;
+    }
+
+return;
+}
 
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
 {
@@ -75,11 +96,15 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   //_member->init();
   i2c->begin();
   i2c2->begin();
+
   spi->init(NULL);
+
+  detect_compass();
+
   analogin->init(NULL);
   storage->init(NULL);
   rcin->init(NULL);
-  rcout->init((void *)&_is_ppmsum);
+  rcout->init(NULL);
 
 }
 

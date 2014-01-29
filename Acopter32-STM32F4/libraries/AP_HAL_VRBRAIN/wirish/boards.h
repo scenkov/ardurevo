@@ -107,6 +107,7 @@ void init(void);
  */
 extern void boardInit(void);
 
+extern void timerDefaultConfig(timer_dev*);
 /**
  * @brief Test if a pin is used for a special purpose on your board.
  * @param pin Pin to test

@@ -8,6 +8,15 @@
 
 extern const AP_HAL::HAL& hal;
 
+
+void DataFlash_Class::Init(const struct LogStructure *structure, uint8_t num_types)
+{
+    _num_types = num_types;
+    _structures = structure;
+    _writes_enabled = true;
+}
+
+
 // This function determines the number of whole or partial log files in the DataFlash
 // Wholly overwritten files are (of course) lost.
 uint16_t DataFlash_Block::get_num_logs(void)
@@ -138,6 +147,19 @@ void DataFlash_Block::get_log_boundaries(uint16_t log_num, uint16_t & start_page
     }
 }
 
+// find log size and time
+void DataFlash_Block::get_log_info(uint16_t log_num, uint32_t &size, uint32_t &time_utc)
+{
+    uint16_t start, end;
+    get_log_boundaries(log_num, start, end);
+    if (end >= start) {
+        size = (end + 1 - start) * (uint32_t)df_PageSize;
+    } else {
+        size = (df_NumPages + end - start) * (uint32_t)df_PageSize;
+    }
+    time_utc = 0;
+}
+
 bool DataFlash_Block::check_wrapped(void)
 {
     StartRead(df_NumPages);
@@ -256,27 +278,25 @@ uint16_t DataFlash_Block::find_last_page_of_log(uint16_t log_number)
   read and print a log entry using the format strings from the given structure
  */
 void DataFlash_Class::_print_log_entry(uint8_t msg_type, 
-                                       uint8_t num_types, 
-                                       const struct LogStructure *structure,
                                        void (*print_mode)(AP_HAL::BetterStream *port, uint8_t mode),
                                        AP_HAL::BetterStream *port)
 {
     uint8_t i;
-    for (i=0; i<num_types; i++) {
-        if (msg_type == PGM_UINT8(&structure[i].msg_type)) {
+    for (i=0; i<_num_types; i++) {
+        if (msg_type == PGM_UINT8(&_structures[i].msg_type)) {
             break;
         }
     }
-    if (i == num_types) {
+    if (i == _num_types) {
         port->printf_P(PSTR("UNKN, %u\n"), (unsigned)msg_type);
         return;
     }
-    uint8_t msg_len = PGM_UINT8(&structure[i].msg_len) - 3;
+    uint8_t msg_len = PGM_UINT8(&_structures[i].msg_len) - 3;
     uint8_t pkt[msg_len];
     ReadBlock(pkt, msg_len);
-    port->printf_P(PSTR("%S, "), structure[i].name);
+    port->printf_P(PSTR("%S, "), _structures[i].name);
     for (uint8_t ofs=0, fmt_ofs=0; ofs<msg_len; fmt_ofs++) {
-        char fmt = PGM_UINT8(&structure[i].format[fmt_ofs]);
+        char fmt = PGM_UINT8(&_structures[i].format[fmt_ofs]);
         switch (fmt) {
         case 'b': {
             port->printf_P(PSTR("%d"), (int)pkt[ofs]);
@@ -405,12 +425,10 @@ void DataFlash_Class::_print_log_entry(uint8_t msg_type,
   using the same log formats as the current formats, but it is better
   than falling back to old defaults in the GCS
  */
-void DataFlash_Block::_print_log_formats(uint8_t num_types, 
-                                         const struct LogStructure *structure,
-                                         AP_HAL::BetterStream *port)
+void DataFlash_Block::_print_log_formats(AP_HAL::BetterStream *port)
 {
-    for (uint8_t i=0; i<num_types; i++) {
-        const struct LogStructure *s = &structure[i];
+    for (uint8_t i=0; i<_num_types; i++) {
+        const struct LogStructure *s = &_structures[i];
         port->printf_P(PSTR("FMT, %u, %u, %S, %S, %S\n"),
                        (unsigned)PGM_UINT8(&s->msg_type), 
                        (unsigned)PGM_UINT8(&s->msg_len), 
@@ -423,8 +441,6 @@ void DataFlash_Block::_print_log_formats(uint8_t num_types,
 */
 void DataFlash_Block::LogReadProcess(uint16_t log_num,
                                      uint16_t start_page, uint16_t end_page, 
-                                     uint8_t num_types,
-                                     const struct LogStructure *structure,
                                      void (*print_mode)(AP_HAL::BetterStream *port, uint8_t mode),
                                      AP_HAL::BetterStream *port)
 {
@@ -462,10 +478,10 @@ void DataFlash_Block::LogReadProcess(uint16_t log_num,
 			case 2:
 				log_step = 0;
                 if (first_entry && data != LOG_FORMAT_MSG) {
-                    _print_log_formats(num_types, structure, port);
+                    _print_log_formats(port);
                 }
                 first_entry = false;
-                _print_log_entry(data, num_types, structure, print_mode, port);
+                _print_log_entry(data, print_mode, port);
                 break;
 		}
         uint16_t new_page = GetPage();
@@ -543,14 +559,14 @@ void DataFlash_Block::ListAvailableLogs(AP_HAL::BetterStream *port)
 
 // This function starts a new log file in the DataFlash, and writes
 // the format of supported messages in the log, plus all parameters
-uint16_t DataFlash_Class::StartNewLog(uint8_t num_types, const struct LogStructure *structures)
+uint16_t DataFlash_Class::StartNewLog(void)
 {
     uint16_t ret;
     ret = start_new_log();
 
     // write log formats so the log is self-describing
-    for (uint8_t i=0; i<num_types; i++) {
-        Log_Write_Format(&structures[i]);
+    for (uint8_t i=0; i<_num_types; i++) {
+        Log_Write_Format(&_structures[i]);
         // avoid corrupting the APM1/APM2 dataflash by writing too fast
         hal.scheduler->delay(10);
     }
@@ -563,21 +579,29 @@ uint16_t DataFlash_Class::StartNewLog(uint8_t num_types, const struct LogStructu
 /*
   write a structure format to the log
  */
-void DataFlash_Class::Log_Write_Format(const struct LogStructure *s)
+void DataFlash_Class::Log_Fill_Format(const struct LogStructure *s, struct log_Format &pkt)
 {
-    struct log_Format pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_FORMAT_MSG),
-        type   : PGM_UINT8(&s->msg_type),
-        length : PGM_UINT8(&s->msg_len),
-        name   : {},
-        format : {},
-        labels : {}
-    };
+    memset(&pkt, 0, sizeof(pkt));
+    pkt.head1 = HEAD_BYTE1;
+    pkt.head2 = HEAD_BYTE2;
+    pkt.msgid = LOG_FORMAT_MSG;
+    pkt.type = PGM_UINT8(&s->msg_type);
+    pkt.length = PGM_UINT8(&s->msg_len);
     strncpy_P(pkt.name, s->name, sizeof(pkt.name));
     strncpy_P(pkt.format, s->format, sizeof(pkt.format));
     strncpy_P(pkt.labels, s->labels, sizeof(pkt.labels));
+}
+
+/*
+  write a structure format to the log
+ */
+void DataFlash_Class::Log_Write_Format(const struct LogStructure *s)
+{
+    struct log_Format pkt;
+    Log_Fill_Format(s, pkt);
     WriteBlock(&pkt, sizeof(pkt));
 }
+
 
 /*
   write a parameter to the log
@@ -689,11 +713,12 @@ void DataFlash_Class::Log_Write_RCOUT(void)
 // Write an raw accel/gyro data packet
 void DataFlash_Class::Log_Write_IMU(const AP_InertialSensor &ins)
 {
-    const Vector3f &gyro = ins.get_gyro();
-    const Vector3f &accel = ins.get_accel();
+    uint32_t tstamp = hal.scheduler->millis();
+    const Vector3f &gyro = ins.get_gyro(0);
+    const Vector3f &accel = ins.get_accel(0);
     struct log_IMU pkt = {
         LOG_PACKET_HEADER_INIT(LOG_IMU_MSG),
-        timestamp : hal.scheduler->millis(),
+        timestamp : tstamp,
         gyro_x  : gyro.x,
         gyro_y  : gyro.y,
         gyro_z  : gyro.z,
@@ -702,6 +727,22 @@ void DataFlash_Class::Log_Write_IMU(const AP_InertialSensor &ins)
         accel_z : accel.z
     };
     WriteBlock(&pkt, sizeof(pkt));
+    if (ins.get_gyro_count() < 2 && ins.get_accel_count() < 2) {
+        return;
+    }
+    const Vector3f &gyro2 = ins.get_gyro(1);
+    const Vector3f &accel2 = ins.get_accel(1);
+    struct log_IMU pkt2 = {
+        LOG_PACKET_HEADER_INIT(LOG_IMU2_MSG),
+        timestamp : tstamp,
+        gyro_x  : gyro2.x,
+        gyro_y  : gyro2.y,
+        gyro_z  : gyro2.z,
+        accel_x : accel2.x,
+        accel_y : accel2.y,
+        accel_z : accel2.z
+    };
+    WriteBlock(&pkt2, sizeof(pkt2));
 }
 
 // Write a text message to the log

@@ -28,7 +28,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
 
     /* Top header */
 
-    {_GPIOB,   NULL, NULL, 10, 0, ADCx}, /* D0/PB10  0*/
+    {_GPIOB,   NULL, NULL, 10, 0, ADCx}, /* D0/PB10  0 USART3_TX/I2C2-SCL*/
     {_GPIOB,   NULL, NULL,  2, 0, ADCx}, /* D1/PB2   1*/
     {_GPIOB,   NULL, NULL, 12, 0, ADCx}, /* D2/PB12  2*/
     {_GPIOB,   NULL, NULL, 13, 0, ADCx}, /* D3/PB13  3*/
@@ -47,9 +47,9 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOC,   NULL, NULL, 10, 0, ADCx}, /* D16/PC10 6 SPI3_SCLK */
     {_GPIOC,   NULL, NULL, 11, 0, ADCx}, /* D17/PC11 7 SPI3_MISO */
     {_GPIOC,   NULL, NULL, 12, 0, ADCx}, /* D18/PC12 8 SPI3_MOSI */
-    {_GPIOC,   NULL, NULL, 13, 0, ADCx}, /* D19/PC13 9*/
-    {_GPIOC,   NULL, NULL, 14, 0, ADCx}, /* D20/PC14 20*/
-    {_GPIOC,   NULL, NULL, 15, 0, ADCx}, /* D21/PC15 1*/
+    {_GPIOC,   NULL, NULL, 13, 0, ADCx}, /* D19/PC13 9 NOT CONNECTED */
+    {_GPIOC,   NULL, NULL, 14, 0, ADCx}, /* D20/PC14 20 NOT CONNECTED*/
+    {_GPIOC,   NULL, NULL, 15, 0, ADCx}, /* D21/PC15 1 NOT CONNECTED*/
     {_GPIOA, TIMER1, NULL,  8, 1, ADCx}, /* D22/PA8  2*/
     {_GPIOA, TIMER1, NULL,  9, 2, ADCx}, /* D23/PA9  3 USART1_TX */
     {_GPIOA, TIMER1, NULL, 10, 3, ADCx}, /* D24/PA10 4 USART1_RX */
@@ -128,7 +128,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOD,   NULL, NULL,  9, 0, ADCx}, /* D97/PD9  7*/
     {_GPIOG,   NULL, NULL,  5, 0, ADCx}, /* D98/PG5  8*/
     {_GPIOD,   NULL, NULL, 10, 0, ADCx}, /* D99/PD10 9*/
-    {_GPIOB,   NULL, NULL, 11, 0, ADCx}, /* D100/PB11 100 USART3_RX */
+    {_GPIOB,   NULL, NULL, 11, 0, ADCx}, /* D100/PB11 100 USART3_RX/I2C2-SDA*/
     {_GPIOB,   NULL, NULL,  8, 0, ADCx}, /* D101/PB8 I2C1_SCL  */
     {_GPIOE,   NULL, NULL,  2, 0, ADCx}, /* D102/PE2 */
     {_GPIOA,   NULL, NULL, 15, 0, ADCx}, /* D103/PA15 CS_RFM22B */
@@ -137,22 +137,5 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOA,   NULL, NULL, 13, 0, ADCx}, /* D106/PA13 LED_MOTOR */
     {_GPIOA,   NULL, NULL, 14, 0, ADCx}  /* D107/PA14 BUZZER */
 };
-/*
-extern const uint8_t boardPWMPins[BOARD_NR_PWM_PINS] __FLASH__ = {
-    13, 14, 15, 16, 23, 24, 25, 26, 38, 39, 46, 47, 48, 49, 50, 51, 54, 55
-};
-
-extern const uint8_t boardADCPins[BOARD_NR_ADC_PINS] __FLASH__ = {
-    7, 8, 9, 10, 11, 12, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
-    54, 55
-};
-
-extern const uint8_t boardUsedPins[BOARD_NR_USED_PINS] __FLASH__ = {
-    BOARD_LED_PIN, BOARD_BUTTON_PIN, BOARD_JTMS_SWDIO_PIN,
-    BOARD_JTCK_SWCLK_PIN, BOARD_JTDI_PIN, BOARD_JTDO_PIN, BOARD_NJTRST_PIN,
-    56, 58, 59, 61, 62, 64, 65, 67, 68, 70, 71, 73, 74, 76, 77, 78, 79, 81,
-    82, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100
-};
-*/
 
 #endif

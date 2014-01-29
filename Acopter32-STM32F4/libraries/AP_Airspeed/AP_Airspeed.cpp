@@ -32,7 +32,7 @@ extern const AP_HAL::HAL& hal;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
  #define ARSPD_DEFAULT_PIN 0
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
- #define ARSPD_DEFAULT_PIN 0
+ #define ARSPD_DEFAULT_PIN 1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
  #include <sys/stat.h>
  #include <sys/types.h>
@@ -53,7 +53,7 @@ extern const AP_HAL::HAL& hal;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  #define ARSPD_DEFAULT_PIN 47
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- #define ARSPD_DEFAULT_PIN 200
+ #define ARSPD_DEFAULT_PIN 255
 #else
  #define ARSPD_DEFAULT_PIN 0
 #endif
@@ -155,7 +155,7 @@ void AP_Airspeed::calibrate()
     }
     if (count == 0) {
         // unhealthy sensor
-        hal.console->printf_P(PSTR("Airspeed sensor unhealthy\n"));
+        hal.console->println_P(PSTR("Airspeed sensor unhealthy"));
         _offset.set(0);
         return;
     }

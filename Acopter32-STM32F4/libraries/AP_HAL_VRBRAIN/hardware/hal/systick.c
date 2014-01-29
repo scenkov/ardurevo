@@ -65,11 +65,6 @@ void systick_attach_callback(void (*callback)(void)) {
 void SysTick_Handler(void)
 {
     systick_uptime_millis++;
-    uart1_lic_millis++;
-    uart2_lic_millis++;
-    uart3_lic_millis++;
-    uart4_lic_millis++;
-
     if (systick_user_callback) {
         systick_user_callback();
     }

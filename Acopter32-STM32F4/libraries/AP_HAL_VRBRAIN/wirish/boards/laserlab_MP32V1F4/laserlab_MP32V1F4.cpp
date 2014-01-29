@@ -62,7 +62,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOA, TIMER1, NULL,  8, 1, ADCx}, /* D22/PA8  2*/
     {_GPIOA, TIMER1, NULL,  9, 2, ADCx}, /* D23/PA9  3*/
     {_GPIOA, TIMER1, NULL, 10, 3, ADCx}, /* D24/PA10 4*/
-    {_GPIOB, TIMER4, NULL,  9, 4, ADCx}, /* D25/PB9  5*/
+    {_GPIOB, TIMER4, NULL,  9, 4, ADCx}, /* D25/PB9  5 CH_8_OUT I2C2_SDA */
 
     /* Bottom header */
     /* Note: D{48, 49, 50, 51} are also TIMER2_CH{1, 2, 3, 4}, respectively. */
@@ -146,7 +146,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOG,   NULL, NULL,  5, 0, ADCx}, /* D98/PG5  8*/
     {_GPIOD,   NULL, NULL, 10, 0, ADCx}, /* D99/PD10 9*/
     {_GPIOB,   NULL, NULL, 11, 0, ADCx}, /* D100/PB11 100*/
-    {_GPIOB, TIMER4, NULL,  8, 3, ADCx}, /* D101/PB8 1*/
+    {_GPIOB, TIMER4, NULL,  8, 3, ADCx}, /* D101/PB8 1 CH7_OUT I2C2_SCL*/
     {_GPIOE,   NULL, NULL,  2, 0, ADCx}  /* D102/PE2 */
 };
 

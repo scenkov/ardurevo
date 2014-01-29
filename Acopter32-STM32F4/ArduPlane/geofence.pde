@@ -15,7 +15,7 @@
  *  We store a copy of the boundary in memory as we need to access it
  *  very quickly at runtime
  */
-static struct geofence_state {
+static struct GeofenceState {
     uint8_t num_points;
     bool boundary_uptodate;
     bool fence_triggered;
@@ -78,15 +78,16 @@ static void geofence_load(void)
     uint8_t i;
 
     if (geofence_state == NULL) {
-        if (memcheck_available_memory() < 512 + sizeof(struct geofence_state)) {
+        if (hal.util->available_memory() < 512 + sizeof(struct GeofenceState)) {
             // too risky to enable as we could run out of stack
             goto failed;
         }
-        geofence_state = (struct geofence_state *)calloc(1, sizeof(struct geofence_state));
+        geofence_state = (struct GeofenceState *)calloc(1, sizeof(struct GeofenceState));
         if (geofence_state == NULL) {
             // not much we can do here except disable it
             goto failed;
         }
+        geofence_state->old_switch_position = 254;
     }
 
     if (g.fence_total <= 0) {
@@ -188,7 +189,7 @@ static void geofence_check(bool altitude_check_only)
             geofence_state->old_switch_position == oldSwitchPosition &&
             guided_WP.lat == geofence_state->boundary[0].x &&
             guided_WP.lng == geofence_state->boundary[0].y) {
-            geofence_state->old_switch_position = 0;
+            geofence_state->old_switch_position = 254;
             reset_control_switch();
         }
         return;
@@ -265,12 +266,15 @@ static void geofence_check(bool altitude_check_only)
 
     case FENCE_ACTION_GUIDED:
     case FENCE_ACTION_GUIDED_THR_PASS:
-        // fly to the return point, with an altitude half way between
-        // min and max
-        if (g.fence_minalt >= g.fence_maxalt) {
+        if (g.fence_retalt > 0) {
+            //fly to the return point using fence_retalt
+            guided_WP.alt = home.alt + 100.0*g.fence_retalt;
+        } else if (g.fence_minalt >= g.fence_maxalt) {
             // invalid min/max, use RTL_altitude
             guided_WP.alt = home.alt + g.RTL_altitude_cm;
         } else {
+            // fly to the return point, with an altitude half way between
+            // min and max
             guided_WP.alt = home.alt + 100.0*(g.fence_minalt + g.fence_maxalt)/2;
         }
         guided_WP.id = 0;
@@ -280,6 +284,8 @@ static void geofence_check(bool altitude_check_only)
         guided_WP.lng = geofence_state->boundary[0].y;
 
         geofence_state->old_switch_position = oldSwitchPosition;
+
+        set_guided_WP();
 
         if (control_mode == MANUAL && g.auto_trim) {
             // make sure we don't auto trim the surfaces on this change

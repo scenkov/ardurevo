@@ -6,10 +6,6 @@
 static void
 handle_process_nav_cmd()
 {
-	// reset navigation integrators
-	// -------------------------
-    g.pidNavSteer.reset_I();
-
     gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nav_command.id);
 
 	switch(next_nav_command.id){
@@ -70,21 +66,23 @@ static void handle_process_do_command()
 			do_set_home();
 			break;
 
-		case MAV_CMD_DO_SET_SERVO:
-			do_set_servo();
-			break;
+    	case MAV_CMD_DO_SET_SERVO:
+            ServoRelayEvents.do_set_servo(next_nonnav_command.p1, next_nonnav_command.alt);
+            break;
 
-		case MAV_CMD_DO_SET_RELAY:
-			do_set_relay();
-			break;
+    	case MAV_CMD_DO_SET_RELAY:
+            ServoRelayEvents.do_set_relay(next_nonnav_command.p1, next_nonnav_command.alt);
+            break;
 
-		case MAV_CMD_DO_REPEAT_SERVO:
-			do_repeat_servo();
-			break;
+    	case MAV_CMD_DO_REPEAT_SERVO:
+            ServoRelayEvents.do_repeat_servo(next_nonnav_command.p1, next_nonnav_command.alt,
+                                             next_nonnav_command.lat, next_nonnav_command.lng);
+            break;
 
-		case MAV_CMD_DO_REPEAT_RELAY:
-			do_repeat_relay();
-			break;
+    	case MAV_CMD_DO_REPEAT_RELAY:
+            ServoRelayEvents.do_repeat_relay(next_nonnav_command.p1, next_nonnav_command.alt,
+                                             next_nonnav_command.lat);
+            break;
 
 #if CAMERA == ENABLED
     case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
@@ -95,6 +93,10 @@ static void handle_process_do_command()
 
     case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
         do_take_picture();
+        break;
+
+    case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+        camera.set_trigger_distance(next_nonnav_command.alt);
         break;
 #endif
 
@@ -211,8 +213,6 @@ static bool verify_takeoff()
 
 static bool verify_nav_wp()
 {
-    update_crosstrack();
-
     if ((wp_distance > 0) && (wp_distance <= g.waypoint_radius)) {
         gcs_send_text_fmt(PSTR("Reached Waypoint #%i dist %um"),
                           (unsigned)nav_command_index,
@@ -368,53 +368,12 @@ static void do_set_home()
 	}
 }
 
-static void do_set_servo()
-{
-    hal.rcout->enable_ch(next_nonnav_command.p1 - 1);
-    hal.rcout->write(next_nonnav_command.p1 - 1, next_nonnav_command.alt);
-}
-
-static void do_set_relay()
-{
-	if (next_nonnav_command.p1 == 1) {
-		relay.on();
-	} else if (next_nonnav_command.p1 == 0) {
-		relay.off();
-	}else{
-		relay.toggle();
-	}
-}
-
-static void do_repeat_servo()
-{
-	event_id = next_nonnav_command.p1 - 1;
-
-	if(next_nonnav_command.p1 >= CH_5 + 1 && next_nonnav_command.p1 <= CH_8 + 1) {
-		event_timer 	= 0;
-		event_delay 	= next_nonnav_command.lng * 500.0;	// /2 (half cycle time) * 1000 (convert to milliseconds)
-		event_repeat 	= next_nonnav_command.lat * 2;
-		event_value 	= next_nonnav_command.alt;
-        event_undo_value  = RC_Channel::rc_channel(next_nonnav_command.p1-1)->radio_trim;
-		update_events();
-	}
-}
-
-static void do_repeat_relay()
-{
-	event_id 		= RELAY_TOGGLE;
-	event_timer 	= 0;
-	event_delay 	= next_nonnav_command.lat * 500.0;	// /2 (half cycle time) * 1000 (convert to milliseconds)
-	event_repeat	= next_nonnav_command.alt * 2;
-	update_events();
-}
-
-
 // do_take_picture - take a picture with the camera library
 static void do_take_picture()
 {
 #if CAMERA == ENABLED
     camera.trigger_pic();
-    if (g.log_bitmask & MASK_LOG_CAMERA) {
+    if (should_log(MASK_LOG_CAMERA)) {
         Log_Write_Camera();
     }
 #endif

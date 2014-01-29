@@ -24,6 +24,7 @@ extern const AP_HAL::HAL& hal;
 
 /* private variables to communicate with input capture isr */
 volatile uint16_t VRBRAINRCInput::_pulse_capt[VRBRAIN_RC_INPUT_NUM_CHANNELS] = {0};
+volatile uint32_t VRBRAINRCInput::_last_pulse[VRBRAIN_RC_INPUT_NUM_CHANNELS] = {0};
 volatile uint8_t  VRBRAINRCInput::_valid_channels = 0;
 
 volatile unsigned char radio_status_rc = 0;
@@ -65,61 +66,12 @@ void VRBRAINRCInput::rxIntPPMSUM(uint8_t state, uint16_t value)
 	{
         if (channel_ctr < VRBRAIN_RC_INPUT_NUM_CHANNELS) {
             _pulse_capt[channel_ctr] = value;
+            _last_pulse[channel_ctr] = systick_uptime();
             channel_ctr++;
             if (channel_ctr == VRBRAIN_RC_INPUT_NUM_CHANNELS) {
                 _valid_channels = VRBRAIN_RC_INPUT_NUM_CHANNELS;
             }
         }
-
-	}
-    }
-
-
-void VRBRAINRCInput::InitDefaultPPM(char board)
-    {
-    switch (board)
-	{
-    case 0:
-
-	// MP32V1F1
-	input_channel_ch1 = 22;
-	input_channel_ch2 = 23;
-	input_channel_ch3 = 24;
-	input_channel_ch4 = 89;
-	input_channel_ch5 = 59;
-	input_channel_ch6 = 62;
-	input_channel_ch7 = 60;
-	input_channel_ch8 = 0;
-	break;
-    case 1:
-
-	// MP32V3F1
-	input_channel_ch1 = 22;
-	input_channel_ch2 = 63;
-	input_channel_ch3 = 66;
-	input_channel_ch4 = 89;
-	input_channel_ch5 = 59;
-	input_channel_ch6 = 62;
-	input_channel_ch7 = 60;
-	input_channel_ch8 = 12;
-	/*
-	 input_channel_ch7=12;
-	 input_channel_ch8=60;
-	 */
-
-	break;
-    case 2:
-
-	// VRBRAIN
-	input_channel_ch1 = 75;
-	input_channel_ch2 = 80;
-	input_channel_ch3 = 86;
-	input_channel_ch4 = 89;
-	input_channel_ch5 = 12;
-	input_channel_ch6 = 13;
-	input_channel_ch7 = 14;
-    input_channel_ch8 = 15;
-	break;
 
 	}
     }
@@ -132,9 +84,17 @@ VRBRAINRCInput::VRBRAINRCInput()
 void VRBRAINRCInput::init(void* machtnichts)
     {
 
+    input_channel_ch1 = 75;
+    input_channel_ch2 = 80;
+    input_channel_ch3 = 86;
+    input_channel_ch4 = 89;
+    input_channel_ch5 = 12;
+    input_channel_ch6 = 13;
+    input_channel_ch7 = 14;
+    input_channel_ch8 = 15;
+
     /*initial check for pin2-pin3 bridge. If detected switch to PPMSUM  */
     //default to standard PPM
-    _iboard = 2;
 
     uint8_t channel3_status = 0;
     uint8_t pin2, pin3;
@@ -174,31 +134,32 @@ void VRBRAINRCInput::init(void* machtnichts)
 
     //if counter is 3 then we are in PPMSUM
     if (channel3_status == 3)
-	_iboard = 11;
+	g_is_ppmsum = 1;
+    else
+	g_is_ppmsum = 0;
 
-    if (_iboard < 10) //PWM
+    if (!g_is_ppmsum) //PWM
 	{
 	for (byte channel = 0; channel < 8; channel++)
 	    pinData[channel].edge = FALLING_EDGE;
 	// Init Radio In
-	//hal.console->println("Init Default PPM");
-	pwmInit(false);
+	hal.console->println("Init Default PWM");
 	}
     else //PPMSUM
 	{
 	// Init Radio In
-	//hal.console->println("Init Default PPMSUM");
+	hal.console->println("Init Default PPMSUM");
 	attachPWMCaptureCallback(rxIntPPMSUM);
-	pwmInit(true);
 	}
 
+    pwmInit();
     clear_overrides();
     }
 
 uint8_t VRBRAINRCInput::valid_channels()
     {
-    if(_iboard < 10)
-	return 1;
+    if(!g_is_ppmsum)
+	return 4;
     else
 	return _valid_channels;
 
@@ -207,8 +168,10 @@ uint8_t VRBRAINRCInput::valid_channels()
 uint16_t VRBRAINRCInput::read(uint8_t ch)
     {
     uint16_t data;
+    uint32_t pulse;
+
     noInterrupts();
-    if (_iboard < 10)
+    if (!g_is_ppmsum)
 	{
 	//data = rcPinValue[ch];
 	data = pwmRead(ch);
@@ -216,11 +179,15 @@ uint16_t VRBRAINRCInput::read(uint8_t ch)
     else
 	{
 	data = _pulse_capt[ch];
+	pulse = _last_pulse[ch];
 	}
     interrupts();
 
     /* Check for override */
     uint16_t over = _override[ch];
+
+    if((g_is_ppmsum) && (ch == 2) && (systick_uptime() - pulse > 50))
+	data = 900;
 
     return (over == 0) ? data : over;
     }
@@ -230,10 +197,14 @@ uint8_t VRBRAINRCInput::read(uint16_t* periods, uint8_t len)
     noInterrupts();
     for (uint8_t i = 0; i < len; i++)
 	{
-	    if (_iboard < 10)
+	    if (!g_is_ppmsum)
 		periods[i] = pwmRead(i);
-	    else
-		periods[i] = _pulse_capt[i];
+	    else{
+		if ( i == 2 && (systick_uptime() - _last_pulse[i] > 50) )
+		    periods[i] = 900;
+		else
+		    periods[i] = _pulse_capt[i];
+	    }
 
 	    if (_override[i] != 0)
 		periods[i] = _override[i];

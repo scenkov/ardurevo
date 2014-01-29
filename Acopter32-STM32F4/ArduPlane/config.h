@@ -82,26 +82,15 @@
 //////////////////////////////////////////////////////////////////////////////
 // main board differences
 //
-
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 # define CONFIG_INS_TYPE      CONFIG_INS_MPU6000
 # define CONFIG_BARO          AP_BARO_MS5611
 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
 # define CONFIG_COMPASS       AP_COMPASS_HMC5843
+# define BATTERY_VOLT_PIN     7
+# define BATTERY_CURR_PIN     8
 # define SERIAL0_BAUD         57600
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
-
- # define CONFIG_INS_TYPE CONFIG_INS_OILPAN
- # define CONFIG_BARO     AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
-# define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
-# define CONFIG_BARO     AP_BARO_MS5611
-# define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
-# define CONFIG_COMPASS  AP_COMPASS_HMC5843
-# define SERIAL0_BAUD 57600
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
-
  # define CONFIG_INS_TYPE CONFIG_INS_OILPAN
  # define CONFIG_BARO     AP_BARO_BMP085
  # define CONFIG_COMPASS  AP_COMPASS_HMC5843
@@ -134,6 +123,14 @@
  # define CONFIG_INS_TYPE CONFIG_INS_L3G4200D
  # define CONFIG_BARO     AP_BARO_BMP085
  # define CONFIG_COMPASS  AP_COMPASS_HMC5843
+#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+ # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
+ # define CONFIG_BARO     AP_BARO_MS5611
+ # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
+ # define CONFIG_COMPASS  AP_COMPASS_HMC5843
+ # define BATTERY_VOLT_PIN      6
+ # define BATTERY_CURR_PIN      7
+ # define SERIAL0_BAUD 57600
 #endif
 
 
@@ -183,8 +180,11 @@
 #ifndef SERIAL0_BAUD
  # define SERIAL0_BAUD                   115200
 #endif
-#ifndef SERIAL3_BAUD
- # define SERIAL3_BAUD                    57600
+#ifndef SERIAL1_BAUD
+ # define SERIAL1_BAUD                    57600
+#endif
+#ifndef SERIAL2_BAUD
+ # define SERIAL2_BAUD                    57600
 #endif
 
 
@@ -276,8 +276,6 @@
 // THROTTLE_FS_VALUE
 // SHORT_FAILSAFE_ACTION
 // LONG_FAILSAFE_ACTION
-// GCS_HEARTBEAT_FAILSAFE
-//
 #ifndef THROTTLE_FAILSAFE
  # define THROTTLE_FAILSAFE              ENABLED
 #endif
@@ -290,10 +288,6 @@
 #ifndef LONG_FAILSAFE_ACTION
  # define LONG_FAILSAFE_ACTION           0
 #endif
-#ifndef GCS_HEARTBEAT_FAILSAFE
- # define GCS_HEARTBEAT_FAILSAFE         DISABLED
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // AUTO_TRIM
@@ -459,6 +453,7 @@
  # define LOGGING_ENABLED                ENABLED
 #endif
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 #define DEFAULT_LOG_BITMASK     \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \
@@ -470,7 +465,12 @@
     MASK_LOG_COMPASS | \
     MASK_LOG_CURRENT | \
     MASK_LOG_TECS | \
-    MASK_LOG_CAMERA
+    MASK_LOG_CAMERA | \
+    MASK_LOG_RC
+#else
+// other systems have plenty of space for full logs
+#define DEFAULT_LOG_BITMASK   0xffff
+#endif
 
 
 
@@ -542,6 +542,10 @@
 
 #ifndef SERIAL_BUFSIZE
  # define SERIAL_BUFSIZE 512
+#endif
+
+#ifndef SERIAL1_BUFSIZE
+ # define SERIAL1_BUFSIZE 256
 #endif
 
 #ifndef SERIAL2_BUFSIZE

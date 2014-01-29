@@ -65,8 +65,9 @@ bool DataFlash_REVOMINI::_sem_take(uint8_t timeout)
     return _spi_sem->take(timeout);
 }
 
-void DataFlash_REVOMINI::Init(void)
+void DataFlash_REVOMINI::Init(const struct LogStructure *structure, uint8_t num_types)
 {
+    DataFlash_Class::Init(structure, num_types);
     // init to zero
     df_NumPages = 0;
 

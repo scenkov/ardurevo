@@ -179,7 +179,6 @@ const float AP_InertialSensor_MPU6000::_gyro_scale = (0.0174532f / 16.4f);
 AP_InertialSensor_MPU6000::AP_InertialSensor_MPU6000() : 
 	AP_InertialSensor(),
     _drdy_pin(NULL),
-    _temp(0),
     _initialised(false),
     _mpu6000_product_id(AP_PRODUCT_ID_NONE)
 {
@@ -253,13 +252,13 @@ uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
 
 bool AP_InertialSensor_MPU6000::wait_for_sample(uint16_t timeout_ms)
 {
-    if (sample_available()) {
+    if (_sample_available()) {
         return true;
     }
     uint32_t start = hal.scheduler->millis();
     while ((hal.scheduler->millis() - start) < timeout_ms) {
         hal.scheduler->delay_microseconds(100);
-        if (sample_available()) {
+        if (_sample_available()) {
             return true;
         }
     }
@@ -273,33 +272,34 @@ bool AP_InertialSensor_MPU6000::update( void )
         return false;
     }
 
-    _previous_accel = _accel;
+    _previous_accel[0] = _accel[0];
 
     // disable timer procs for mininum time
     hal.scheduler->suspend_timer_procs();
-    _gyro  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
-    _accel = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
+    _gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
+    _accel[0] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
     _num_samples = _sum_count;
     _accel_sum.zero();
     _gyro_sum.zero();
-    _temp = _temp_sum; 
+    _temp[0] = _temp_sum; 
+    _temp_sum = 0;
     _sum_count = 0;
     hal.scheduler->resume_timer_procs();
 
-    _gyro.rotate(_board_orientation);
-    _gyro *= _gyro_scale / _num_samples;
-    _gyro -= _gyro_offset;
+    _gyro[0].rotate(_board_orientation);
+    _gyro[0] *= _gyro_scale / _num_samples;
+    _gyro[0] -= _gyro_offset[0];
 
-    _accel.rotate(_board_orientation);
-    _accel *= MPU6000_ACCEL_SCALE_1G / _num_samples;
+    _accel[0].rotate(_board_orientation);
+    _accel[0] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
 
-    Vector3f accel_scale = _accel_scale.get();
-    _accel.x *= accel_scale.x;
-    _accel.y *= accel_scale.y;
-    _accel.z *= accel_scale.z;
-    _accel -= _accel_offset;
+    Vector3f accel_scale = _accel_scale[0].get();
+    _accel[0].x *= accel_scale.x;
+    _accel[0].y *= accel_scale.y;
+    _accel[0].z *= accel_scale.z;
+    _accel[0] -= _accel_offset[0];
 
-    _temp    /= _num_samples;
+    _temp[0]    = _temp_to_celsius(_temp[0] /_num_samples);;
 
     if (_last_filter_hz != _mpu6000_filter) {
         if (_spi_sem->take(10)) {
@@ -340,7 +340,7 @@ void AP_InertialSensor_MPU6000::_poll_data(void)
         if (!_spi_sem->take_nonblocking()) {
             /*
               the semaphore being busy is an expected condition when the
-              mainline code is calling sample_available() which will
+              mainline code is calling wait_for_sample() which will
               grab the semaphore. We return now and rely on the mainline
               code grabbing the latest sample.
             */
@@ -590,7 +590,7 @@ bool AP_InertialSensor_MPU6000::_hardware_init(Sample_rate sample_rate)
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 #ifdef ENHANCED
-    _register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 1000º/s
+    _register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_1000DPS);  // Gyro scale 2000º/s
 #else
     _register_write(MPUREG_GYRO_CONFIG, BITS_GYRO_FS_2000DPS);  // Gyro scale 2000º/s
 #endif
@@ -647,7 +647,7 @@ float AP_InertialSensor_MPU6000::get_gyro_drift_rate(void)
 }
 
 // return true if a sample is available
-bool AP_InertialSensor_MPU6000::sample_available()
+bool AP_InertialSensor_MPU6000::_sample_available()
 {
     _poll_data();
 #ifdef ENHANCED

@@ -124,8 +124,6 @@ void REVOMINIGPIO::toggle(uint8_t pin)
 
 }
 
-
-
 /* Alternative interface: */
 AP_HAL::DigitalSource* REVOMINIGPIO::channel(uint16_t pin) {
 

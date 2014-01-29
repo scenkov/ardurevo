@@ -105,7 +105,7 @@ static void init_ardupilot()
 
     cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
                          "\n\nFree RAM: %u\n"),
-                    memcheck_available_memory());
+                        hal.util->available_memory());
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
     /*
@@ -120,14 +120,50 @@ static void init_ardupilot()
     //
     report_version();
 
-    relay.init();
-
     // load parameters from EEPROM
     load_parameters();
 
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
+    BoardConfig.init();
+
+    // FIX: this needs to be the inverse motors mask
+    ServoRelayEvents.set_channel_mask(0xFFF0);
+
+    relay.init();
+
+    bool enable_external_leds = true;
+
+    // init EPM cargo gripper
+#if EPM_ENABLED == ENABLED
+    epm.init();
+    enable_external_leds = !epm.enabled();
 #endif
+
+    // initialise notify system
+    // disable external leds if epm is enabled because of pin conflict on the APM
+    notify.init(enable_external_leds);
+
+    hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
+    hal.gpio->write(HAL_GPIO_C_LED_PIN, HAL_GPIO_LED_ON);
+
+    // initialise battery monitor
+    battery.init();
+    
+#if CONFIG_SONAR == ENABLED
+ #if CONFIG_SONAR_SOURCE == SONAR_SOURCE_ADC
+    sonar_analog_source = new AP_ADC_AnalogSource(
+            &adc, CONFIG_SONAR_SOURCE_ADC_CHANNEL, 0.25);
+ #elif CONFIG_SONAR_SOURCE == SONAR_SOURCE_ANALOG_PIN
+    sonar_analog_source = hal.analogin->channel(
+            CONFIG_SONAR_SOURCE_ANALOG_PIN);
+ #else
+  #warning "Invalid CONFIG_SONAR_SOURCE"
+ #endif
+    sonar = new AP_RangeFinder_MaxsonarXL(sonar_analog_source,
+            &sonar_mode_filter);
+#endif
+
+    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
+    board_vcc_analog_source = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
 #if HIL_MODE != HIL_MODE_ATTITUDE
     barometer.init();
@@ -152,20 +188,20 @@ static void init_ardupilot()
     // a MUX is used
     hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
     gcs[1].init(hal.uartC);
-#endif
+
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     if (hal.uartD != NULL) {
         hal.uartD->begin(map_baudrate(g.serial2_baud, SERIAL2_BAUD), 128, 128);
         gcs[2].init(hal.uartD);
     }
 #endif
-
+#endif
     // identify ourselves correctly with the ground station
     mavlink_system.sysid = g.sysid_this_mav;
     mavlink_system.type = 2; //MAV_QUADROTOR;
 
 #if LOGGING_ENABLED == ENABLED
-    DataFlash.Init();
+    DataFlash.Init(log_structure, sizeof(log_structure)/sizeof(log_structure[0]));
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash inserted"));
         g.log_bitmask.set(0);
@@ -216,10 +252,14 @@ static void init_ardupilot()
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
     if (gcs[1].initialised) {
- //       hal.uartC->println_P(msg);
+#if  CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+        hal.uartC->println_P(msg);
+#endif
     }
     if (num_gcs > 2 && gcs[2].initialised) {
- //       hal.uartD->println_P(msg);
+#if  CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+        hal.uartD->println_P(msg);
+#endif
     }
 #endif // CLI_ENABLED
 
@@ -235,7 +275,7 @@ static void init_ardupilot()
 #if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
     //-----------------------------
-    init_barometer();
+    init_barometer(true);
 #endif
 
     // initialise sonar
@@ -287,12 +327,6 @@ static void startup_ground(bool force_gyro_cal)
 
     // setup fast AHRS gains to get right attitude
     ahrs.set_fast_gains(true);
-
-#if SECONDARY_DMP_ENABLED == ENABLED
-    ahrs2.init(&timer_scheduler);
-    ahrs2.set_as_secondary(true);
-    ahrs2.set_fast_gains(true);
-#endif
 
     // set landed flag
     set_land_complete(true);
@@ -457,7 +491,7 @@ static bool set_mode(uint8_t mode)
             set_yaw_mode(YAW_DRIFT);
             set_roll_pitch_mode(ROLL_PITCH_DRIFT);
             set_nav_mode(NAV_NONE);
-            set_throttle_mode(THROTTLE_MANUAL_TILT_COMPENSATED);
+            set_throttle_mode(DRIFT_THR);
             break;
 
         case SPORT:

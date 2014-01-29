@@ -15,6 +15,8 @@ public:
     void init(int argc, char * const argv[]) const;
 };
 
+extern uint8_t g_ext_mag_detect;
+
 extern const HAL_VRBRAIN AP_HAL_VRBRAIN;
 
 #endif // __AP_HAL_VRBRAIN_CLASS_H__

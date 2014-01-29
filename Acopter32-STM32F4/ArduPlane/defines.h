@@ -26,6 +26,16 @@ enum failsafe_state {
 };
 
 
+// GCS failsafe types for FS_GCS_ENABL parameter
+enum gcs_failsafe {
+    GCS_FAILSAFE_OFF        = 0, // no GCS failsafe
+    GCS_FAILSAFE_HEARTBEAT  = 1, // failsafe if we stop receiving heartbeat
+    GCS_FAILSAFE_HB_RSSI    = 2  // failsafe if we stop receiving
+                                 // heartbeat or if RADIO.remrssi
+                                 // drops to 0
+};
+
+
 // active altitude sensor
 // ----------------------
 #define SONAR 0
@@ -110,38 +120,6 @@ enum ChannelMixing {
 #define RELAY_TOGGLE 5
 #define STOP_REPEAT 10
 
-//  GCS Message ID's
-/// NOTE: to ensure we never block on sending MAVLink messages
-/// please keep each MSG_ to a single MAVLink message. If need be
-/// create new MSG_ IDs for additional messages on the same
-/// stream
-enum ap_message {
-    MSG_HEARTBEAT,
-    MSG_ATTITUDE,
-    MSG_LOCATION,
-    MSG_EXTENDED_STATUS1,
-    MSG_EXTENDED_STATUS2,
-    MSG_NAV_CONTROLLER_OUTPUT,
-    MSG_CURRENT_WAYPOINT,
-    MSG_VFR_HUD,
-    MSG_RADIO_OUT,
-    MSG_RADIO_IN,
-    MSG_RAW_IMU1,
-    MSG_RAW_IMU2,
-    MSG_RAW_IMU3,
-    MSG_GPS_RAW,
-    MSG_SYSTEM_TIME,
-    MSG_SERVO_OUT,
-    MSG_NEXT_WAYPOINT,
-    MSG_NEXT_PARAM,
-    MSG_STATUSTEXT,
-    MSG_FENCE_STATUS,
-    MSG_AHRS,
-    MSG_SIMSTATE,
-    MSG_HWSTATUS,
-    MSG_WIND,
-    MSG_RETRY_DEFERRED // this must be last
-};
 
 // Logging message types. NOTE: If you change the value of one
 // of these then existing logs will break! Only add at the end, and 
@@ -161,6 +139,10 @@ enum log_messages {
     LOG_MODE_MSG,
     LOG_COMPASS_MSG,
     LOG_TECS_MSG,
+    LOG_RC_MSG,
+    LOG_SONAR_MSG,
+    LOG_COMPASS2_MSG,
+    LOG_ARM_DISARM_MSG,
     MAX_NUM_LOGS // always at the end
 };
 
@@ -177,6 +159,10 @@ enum log_messages {
 #define MASK_LOG_COMPASS                (1<<10)
 #define MASK_LOG_TECS                   (1<<11)
 #define MASK_LOG_CAMERA                 (1<<12)
+#define MASK_LOG_RC                     (1<<13)
+#define MASK_LOG_SONAR                  (1<<14)
+#define MASK_LOG_ARM_DISARM             (1<<15)
+#define MASK_LOG_WHEN_DISARMED          (1UL<<30)
 
 // Waypoint Modes
 // ----------------

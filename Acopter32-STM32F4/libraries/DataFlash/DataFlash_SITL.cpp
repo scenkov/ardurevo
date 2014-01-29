@@ -25,8 +25,9 @@ static int flash_fd;
 static uint8_t buffer[2][DF_PAGE_SIZE];
 
 // Public Methods //////////////////////////////////////////////////////////////
-void DataFlash_SITL::Init(void)
+void DataFlash_SITL::Init(const struct LogStructure *structure, uint8_t num_types)
 {
+    DataFlash_Class::Init(structure, num_types);
 	if (flash_fd == 0) {
 		flash_fd = open("dataflash.bin", O_RDWR, 0777);
 		if (flash_fd == -1) {
@@ -105,6 +106,9 @@ void DataFlash_SITL::BlockWrite(uint8_t BufferNum, uint16_t IntPageAdr,
                                 const void *pHeader, uint8_t hdr_size,
                                 const void *pBuffer, uint16_t size)
 {
+    if (!_writes_enabled) {
+        return;
+    }
     if (hdr_size) {
         memcpy(&buffer[BufferNum][IntPageAdr],
                pHeader,

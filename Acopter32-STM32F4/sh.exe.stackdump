@@ -1,6 +1,6 @@
 Exception: STATUS_ACCESS_VIOLATION at eip=6102048B
-eax=00D84878 ebx=612434B4 ecx=7FFDD000 edx=00777188 esi=00000000 edi=0028F960
-ebp=61020C00 esp=0028C730 program=C:\Lavoro\vr-universal-ide\cygwin\bin\sh.exe, pid 5196, thread main
+eax=00A88598 ebx=612438D4 ecx=76CD198D edx=002D51F8 esi=00000000 edi=0028F9F4
+ebp=61020C00 esp=0028C7C4 program=D:\vr-universal-ide\cygwin\bin\sh.exe, pid 11144, thread main
 cs=0023 ds=002B es=002B fs=0053 gs=002B ss=002B
 Stack trace:
 Frame     Function  Args

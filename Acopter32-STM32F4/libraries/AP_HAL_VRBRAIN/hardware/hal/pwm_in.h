@@ -50,10 +50,10 @@
  * @param duty_cycle Duty cycle to set.
  */
 
-void pwmInit(bool ppmsum);
+void pwmInit();
 uint16_t pwmRead(uint8_t channel);
 void attachPWMCaptureCallback(void (*callback)(uint8_t state, uint16_t value));
-extern uint8_t _is_ppmsum;
+extern uint8_t g_is_ppmsum;
 
 
 #ifdef __cplusplus

@@ -107,6 +107,7 @@ void init(void);
  */
 extern void boardInit(void);
 
+extern void timerDefaultConfig(timer_dev*);
 /**
  * @brief Test if a pin is used for a special purpose on your board.
  * @param pin Pin to test
@@ -119,13 +120,7 @@ extern void boardInit(void);
 
 /* FIXME HACK put boards/ before these paths once IDE uses make. */
 
-#if defined(BOARD_laserlab_MP32V1F1)
-#include "laserlab_MP32V1F1.h"
-#elif defined(BOARD_laserlab_MP32V3F1)
-#include "laserlab_MP32V3F1.h"
-#elif defined(BOARD_laserlab_MP32V1F4)
-#include "laserlab_MP32V1F4.h"
-#elif defined(BOARD_revomini_MP32V1F4)
+#if defined(BOARD_revomini_MP32V1F4)
 #include "revomini_MP32V1F4.h"
 #else
 /*

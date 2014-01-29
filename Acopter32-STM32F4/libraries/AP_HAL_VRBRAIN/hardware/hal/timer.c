@@ -126,7 +126,6 @@ timer_dev *TIMER8 = &timer8;
  */
 
 static void disable_channel(timer_dev *dev, uint8_t channel);
-static void pwm_mode(timer_dev *dev, uint8_t channel);
 static void output_compare_mode(timer_dev *dev, uint8_t channel);
 
 static inline void enable_irq(timer_dev *dev, uint8_t interrupt);
@@ -213,9 +212,9 @@ void timer_set_mode(timer_dev *dev, uint8_t channel, timer_mode mode) {
  */
 void timer_foreach(void (*fn)(timer_dev*)) {
     //fn(TIMER1);
-    fn(TIMER2);
-    fn(TIMER3);
-    fn(TIMER4);
+    //fn(TIMER2);
+    //fn(TIMER3);
+    //fn(TIMER4);
     //fn(TIMER5);
     //fn(TIMER6);
     fn(TIMER7);
@@ -421,7 +420,7 @@ static void disable_channel(timer_dev *dev, uint8_t channel) {
     timer_cc_disable(dev, channel);
 }
 
-static void pwm_mode(timer_dev *dev, uint8_t channel) {
+void pwm_mode(timer_dev *dev, uint8_t channel) {
     timer_disable_irq(dev, channel);
    // timer_oc_set_mode(dev, channel, TIMER_OC_MODE_PWM_1, TIMER_OC_PE);
     switch (channel)

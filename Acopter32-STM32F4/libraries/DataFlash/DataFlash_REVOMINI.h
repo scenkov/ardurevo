@@ -31,7 +31,7 @@ private:
     bool	      _sem_take(uint8_t timeout);
 
 public:
-    void        Init();
+    void        Init(const struct LogStructure *structure, uint8_t num_types);
     void        ReadManufacturerID();
     bool        CardInserted();
     uint8_t     ReadStatus();

@@ -100,13 +100,13 @@ void VRBRAINSPI1DeviceDriver::transfer(const uint8_t *tx, uint16_t len) {
 
 void VRBRAINSPI1DeviceDriver::set_bus_speed(VRBRAINSPI1DeviceDriver::bus_speed speed)
 {
-/*
+
     if (speed == VRBRAINSPI1DeviceDriver::SPI_SPEED_HIGH) {
 
 	    //init the device
 	    spi_init(_dev);
 
-	    SPIFrequency freq = SPI_9MHZ;
+	    SPIFrequency freq = SPI_18MHZ;
 	    spi_baud_rate baud = determine_baud_rate(freq);
 	    spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
 
@@ -118,7 +118,7 @@ void VRBRAINSPI1DeviceDriver::set_bus_speed(VRBRAINSPI1DeviceDriver::bus_speed s
 	    spi_baud_rate baud = determine_baud_rate(freq);
 	    spi_master_enable(_dev, baud, (spi_mode)0, MSBFIRST);
     }
-	*/
+
 }
 
 void VRBRAINSPI1DeviceDriver::cs_assert() {

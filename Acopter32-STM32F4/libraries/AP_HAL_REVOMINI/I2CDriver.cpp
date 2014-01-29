@@ -49,7 +49,7 @@ uint8_t REVOMINII2CDriver::write(uint8_t addr, uint8_t len, uint8_t* tx_buffer)
 
 	if(ret == 1){
 	    _lockup_count ++;  //hal.console->printf_P(PSTR("Failed I2C write1: Event=0x%08X\n"),ret);
-	//    hal.gpio->write(20, 1);
+//	    hal.gpio->write(20, 1);
 	}
 
 	return ret;
@@ -68,7 +68,7 @@ uint8_t REVOMINII2CDriver::writeRegister(uint8_t addr, uint8_t registerAddress, 
 
 	if(ret == 1){
 	     _lockup_count ++;
-	//     hal.gpio->write(20, 1);
+//	     hal.gpio->write(20, 1);
 	}
 
 	return ret;
@@ -85,7 +85,7 @@ uint8_t REVOMINII2CDriver::read(uint8_t addr, uint8_t numberBytes, uint8_t* data
 
 	if(ret == 1){
 	    _lockup_count ++; //hal.console->printf_P(PSTR("Failed I2C read1: Event=0x%08X\n"),ret);
-	//    hal.gpio->write(20, 1);
+//	    hal.gpio->write(20, 1);
 	}
 	return ret;
 }
@@ -101,7 +101,7 @@ uint8_t REVOMINII2CDriver::readRegister(uint8_t addr, uint8_t reg, uint8_t* data
 
 	if(ret == 1){
 	    _lockup_count ++; //hal.console->println_P("i2c timeout read register");
-	//    hal.gpio->write(20, 1);
+//	    hal.gpio->write(20, 1);
 	}
 
 	return ret;
@@ -119,7 +119,7 @@ uint8_t REVOMINII2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numb
 
 	if(ret == 1){
 	    _lockup_count ++;
-	//    hal.gpio->write(20, 1);
+//	    hal.gpio->write(20, 1);
 	    return ret;
 	}
 
@@ -128,7 +128,7 @@ uint8_t REVOMINII2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numb
 	    if ((time--) == 0)
 		{
 		_lockup_count ++;
-	//	hal.gpio->write(20, 1);
+//		hal.gpio->write(20, 1);
 		return 1;
 		}
 	}

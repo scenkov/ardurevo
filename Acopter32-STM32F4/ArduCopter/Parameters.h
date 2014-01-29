@@ -67,6 +67,12 @@ public:
         // relay object
         k_param_relay,
 
+        // EPM object
+        k_param_epm,
+
+        // BoardConfig object
+        k_param_BoardConfig,
+
         // Misc
         //
         k_param_log_bitmask = 20,
@@ -89,7 +95,8 @@ public:
         k_param_gps_hdop_good,
         k_param_battery,
         k_param_fs_batt_mah,
-        k_param_angle_rate_max,         // 38
+        k_param_angle_rate_max,
+        k_param_rssi_range,             // 39
 
         // 65: AP_Limits Library
         k_param_limits = 65,            // deprecated - remove
@@ -308,13 +315,13 @@ public:
     AP_Int8         optflow_enabled;
     AP_Int8         super_simple;
     AP_Int16        rtl_alt_final;
-    AP_Int8         copter_leds_mode;           // Operating mode of LED
-                                                // lighting system
+
     AP_Int8         rssi_pin;
+    AP_Float        rssi_range;                 // allows to set max voltage for rssi pin such as 5.0, 3.3 etc. 
     AP_Int8         wp_yaw_behavior;            // controls how the autopilot controls yaw during missions
     AP_Int16        angle_max;                  // maximum lean angle of the copter in centi-degrees
     AP_Int32        angle_rate_max;             // maximum rotation rate in roll/pitch axis requested by angle controller used in stabilize, loiter, rtl, auto flight modes
-
+    
     // Waypoints
     //
     AP_Int8         command_total;
@@ -380,11 +387,12 @@ public:
     RC_Channel_aux          rc_6;
     RC_Channel_aux          rc_7;
     RC_Channel_aux          rc_8;
-    RC_Channel_aux          rc_10;
-    RC_Channel_aux          rc_11;
-
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     RC_Channel_aux          rc_9;
+#endif
+    RC_Channel_aux          rc_10;
+    RC_Channel_aux          rc_11;
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     RC_Channel_aux          rc_12;
 #endif
 

@@ -855,17 +855,39 @@ static void set_servos(void)
         channel_rudder->radio_out   = channel_rudder->radio_in;
     }
 
-#if HIL_MODE != HIL_MODE_DISABLED
-    if (!g.hil_servos) {
-        return;
-    }
-#endif
-
     if (g.vtail_output != MIXING_DISABLED) {
         channel_output_mixer(g.vtail_output, channel_pitch->radio_out, channel_rudder->radio_out);
     } else if (g.elevon_output != MIXING_DISABLED) {
         channel_output_mixer(g.elevon_output, channel_pitch->radio_out, channel_roll->radio_out);
     }
+
+    //send throttle to 0 or MIN_PWM if not yet armed
+    if (!arming.is_armed()) {
+        //Some ESCs get noisy (beep error msgs) if PWM == 0.
+        //This little segment aims to avoid this.
+        switch (arming.arming_required()) { 
+            case AP_Arming::YES_MIN_PWM:
+                channel_throttle->radio_out = channel_throttle->radio_min;
+            break;
+            case AP_Arming::YES_ZERO_PWM:
+                channel_throttle->radio_out = 0;
+            break;
+            default:
+                //keep existing behavior: do nothing to radio_out
+                //(don't disarm throttle channel even if AP_Arming class is)
+            break;
+        }
+    }
+
+#if HIL_MODE != HIL_MODE_DISABLED
+    // get the servos to the GCS immediately for HIL
+    if (comm_get_txspace(MAVLINK_COMM_0) - MAVLINK_NUM_NON_PAYLOAD_BYTES >= MAVLINK_MSG_ID_RC_CHANNELS_SCALED_LEN) {
+        send_servo_out(MAVLINK_COMM_0);
+    }
+    if (!g.hil_servos) {
+        return;
+    }
+#endif
 
     // send values to the PWM timers for output
     // ----------------------------------------
@@ -887,7 +909,7 @@ static void set_servos(void)
  #endif
  #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     g.rc_12.output_ch(CH_12);
- # endif
+ #endif
 }
 
 static bool demoing_servos;

@@ -167,7 +167,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
     if (('y' != c) && ('Y' != c))
         return(-1);
     AP_Param::erase_all();
-    cliSerial->printf_P(PSTR("\nFACTORY RESET complete - please reset APM to continue"));
+    cliSerial->printf_P(PSTR("\nFACTORY RESET complete - please reset board to continue"));
 
     //default_flight_modes();   // This will not work here.  Replacement code located in init_ardupilot()
 
@@ -588,11 +588,15 @@ radio_input_switch(void)
 
 static void zero_eeprom(void)
 {
-    uint8_t b = 0;
+//    uint8_t b = 0;
     cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
-    for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
-        hal.storage->write_byte(i, b);
-    }
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+	hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
+#else
+	for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
+		hal.storage->write_byte(i, 0);
+	}
+#endif
     cliSerial->printf_P(PSTR("done\n"));
 }
 

@@ -18,10 +18,14 @@ static void init_sonar(void)
 }
  #endif
 
-static void init_barometer(void)
+static void init_barometer(bool full_calibration)
 {
     gcs_send_text_P(SEVERITY_LOW, PSTR("Calibrating barometer"));
-    barometer.calibrate();
+    if (full_calibration) {
+        barometer.calibrate();
+    }else{
+        barometer.update_calibration();
+    }
     gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
 }
 
@@ -42,7 +46,7 @@ static int16_t read_sonar(void)
         return 0;
     }
 
-    int32_t temp_alt = sonar->read();
+    int16_t temp_alt = sonar->read();
 
     if (temp_alt >= sonar->min_distance && temp_alt <= sonar->max_distance * SONAR_RELIABLE_DISTANCE_PCT) {
         if ( sonar_alt_health < SONAR_ALT_HEALTH_MAX ) {
@@ -77,29 +81,16 @@ static void init_compass()
         return;
     }
     ahrs.set_compass(&compass);
-#if SECONDARY_DMP_ENABLED == ENABLED
-    ahrs2.set_compass(&compass);
-#endif
 }
 
 static void init_optflow()
 {
 #if OPTFLOW == ENABLED
-    if( optflow.init() == false ) {
+    optflow.init();
+    if (!optflow.healthy()) {
         g.optflow_enabled = false;
-        cliSerial->print_P(PSTR("\nFailed to Init OptFlow "));
+        cliSerial->print_P(PSTR("Failed to Init OptFlow\n"));
         Log_Write_Error(ERROR_SUBSYSTEM_OPTFLOW,ERROR_CODE_FAILED_TO_INITIALISE);
-    }else{
-        // suspend timer while we set-up SPI communication
-        hal.scheduler->suspend_timer_procs();
-
-        optflow.set_orientation(OPTFLOW_ORIENTATION);   // set optical flow sensor's orientation on aircraft
-        optflow.set_frame_rate(2000);                   // set minimum update rate (which should lead to maximum low light performance
-        optflow.set_resolution(OPTFLOW_RESOLUTION);     // set optical flow sensor's resolution
-        optflow.set_field_of_view(OPTFLOW_FOV);         // set optical flow sensor's field of view
-
-        // resume timer
-        hal.scheduler->resume_timer_procs();
     }
 #endif      // OPTFLOW == ENABLED
 }
@@ -126,11 +117,12 @@ static void read_battery(void)
 // RC_CHANNELS_SCALED message
 void read_receiver_rssi(void)
 {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-    rssi_analog_source->set_pin(g.rssi_pin);
-    float ret = rssi_analog_source->voltage_average() * 50;
-    receiver_rssi = constrain_int16(ret, 0, 255);
-#else
-    receiver_rssi = 200;
-#endif
+    // avoid divide by zero
+    if (g.rssi_range <= 0) {
+        receiver_rssi = 0;
+    }else{
+        rssi_analog_source->set_pin(g.rssi_pin);
+        float ret = rssi_analog_source->voltage_average() * 255 / g.rssi_range;
+        receiver_rssi = constrain_int16(ret, 0, 255);
+    }
 }

@@ -11,6 +11,8 @@ CFLAGS_$(d) := -Wall -Werror
 cSRCS_$(d) :=
 
 cppSRCS_$(d) := GCS_MAVLink.cpp
+cppSRCS_$(d) += GCS_Common.cpp
+cppSRCS_$(d) += GCS_Logs.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

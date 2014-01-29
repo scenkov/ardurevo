@@ -6,8 +6,6 @@
 
 void boardInit(void);
 
-//#define Port2Pin(port, bit) ((port-'A')*16+bit)
-
 /**
  * @brief Configuration of the Cortex-M4 Processor and Core Peripherals
  */
@@ -25,16 +23,14 @@ void boardInit(void);
 #define STM32_PCLK1   (CYCLES_PER_MICROSECOND*1000000/4)
 #define STM32_PCLK2   (CYCLES_PER_MICROSECOND*1000000/2)
 
-//#define BOARD_LED_PIN           36
-//#define BOARD_BUTTON_PIN        19 // PC13 - not used pin!
-
 #define BOARD_NR_USARTS         5
 #define BOARD_USART1_TX_PIN     23 
 #define BOARD_USART1_RX_PIN     24 
 #define BOARD_USART3_TX_PIN     0
 #define BOARD_USART3_RX_PIN     100
+#define BOARD_USART6_TX_PIN     12
+#define BOARD_USART6_RX_PIN     13
 
-       
 #define BOARD_NR_SPI            3
 #define BOARD_SPI1_NSS_PIN      D51
 #define BOARD_SPI1_SCK_PIN      D52
@@ -63,6 +59,5 @@ void boardInit(void);
 #ifndef MOTOR_PWM_FREQ
   #define MOTOR_PWM_FREQ 60
 #endif
-
 
 #endif
