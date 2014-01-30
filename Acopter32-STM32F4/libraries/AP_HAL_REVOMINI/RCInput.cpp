@@ -93,7 +93,7 @@ void REVOMINIRCInput::init(void* machtnichts)
 
     /*initial check for pin2-pin3 bridge. If detected switch to PPMSUM  */
     //default to standard PPM
-
+/*
     uint8_t channel3_status = 0;
     uint8_t pin2, pin3;
     //input pin 2
@@ -135,6 +135,8 @@ void REVOMINIRCInput::init(void* machtnichts)
 	g_is_ppmsum = 1;
     else
 	g_is_ppmsum = 0;
+*/
+    g_is_ppmsum = 1;
 
     if (!g_is_ppmsum) //PWM
 	{
