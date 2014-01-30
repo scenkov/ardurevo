@@ -126,7 +126,7 @@
 // FRAME_CONFIG
 //
 #ifndef FRAME_CONFIG
- # define FRAME_CONFIG   HEXA_FRAME
+ # define FRAME_CONFIG   QUAD_FRAME //HEXA_FRAME
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////
