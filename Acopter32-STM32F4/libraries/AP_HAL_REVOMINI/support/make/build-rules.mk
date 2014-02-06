@@ -50,7 +50,6 @@ CONLYFLAGS += $(CSTANDARD)
 export VERSION_INFO = python $(SRCROOT)/libraries/$(AP_HAL)/support/scripts/version-info.py --path=$(SRCROOT)
 
 toprel = $(subst $(realpath $(SRCROOT))/,,$(abspath $(1)))
-$(eval $(call OPFW_TEMPLATE,$(BUILD_PATH)/$(BOARD).bin,$(BOARD_TYPE),$(BOARD_REVISION)))
 
 # General directory independent build rules, generate dependency information
 $(BUILD_PATH)/%.o: %.c
@@ -97,3 +96,4 @@ $(BUILD_PATH)/$(notdir $(basename $(1))).opfw : $(1) $(1).firmware_info.bin
 	$(V1) $(CAT) $(1) $(1).firmware_info.bin > $$@
 endef
 	
+$(eval $(call OPFW_TEMPLATE,$(BUILD_PATH)/$(BOARD).bin,$(BOARD_TYPE),$(BOARD_REVISION)))	
