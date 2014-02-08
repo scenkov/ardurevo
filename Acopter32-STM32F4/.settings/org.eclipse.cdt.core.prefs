@@ -10,9 +10,9 @@ environment/project/cdt.managedbuild.toolchain.gnu.base.1248093126/appendContrib
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/CYGWIN/delimiter=;
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/CYGWIN/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/CYGWIN/value=nodosfilewarning
-environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/delimiter=;
+environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/operation=replace
-environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/value=C\:\\vr-universal-ide\\toolchain\\sourcery_4.5.2\\arm-none-eabi\\bin;C\:\\vr-universal-ide\\toolchain\\sourcery_4.5.2\\bin;C\:\\vr-universal-ide\\cygwin\\bin
+environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/PATH/value=/bin\:/home/stefan/gcc-arm-none-eabi-4_7-2013q1/bin\:/home/stefan/code/tools/gcc-arm-none-eabi-4_7-2013q1/bin\:/home/stefan/bin\:/usr/local/bin\:/usr/bin\:/usr/games\:/home/stefan/code/tools/android-sdk-linux/tools\:/home/stefan/code/tools/android-sdk-linux/platform-tools
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/append=true
 environment/project/cdt.managedbuild.toolchain.gnu.base.1730260072/appendContributed=false
 org.eclipse.cdt.core.formatter.alignment_for_arguments_in_method_invocation=16

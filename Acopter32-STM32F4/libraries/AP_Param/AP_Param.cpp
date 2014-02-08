@@ -107,9 +107,7 @@ void AP_Param::erase_all(void)
     hdr.magic[1] = k_EEPROM_magic1;
     hdr.revision = k_EEPROM_revision;
     hdr.spare    = 0;
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-    hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
-#endif
+
     eeprom_write_check(&hdr, 0, sizeof(hdr));
 
     // add a sentinal directly after the header
