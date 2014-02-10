@@ -11,8 +11,13 @@
 #include <RC_Channel.h>     // RC Channel Library
 #include "AP_Motors.h"
 
+// REVO board tail servo uses channel 6
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#define AP_MOTORS_CH_TRI_YAW    CH_6
+#else
 // tail servo uses channel 7
 #define AP_MOTORS_CH_TRI_YAW    CH_7
+#endif
 
 /// @class      AP_MotorsTri
 class AP_MotorsTri : public AP_Motors {

@@ -559,8 +559,12 @@ static void servo_write(uint8_t ch, uint16_t pwm)
         // Quads can use RC5 and higher as servos
         if (ch >= CH_5) servo_ok = true;
     #elif (FRAME_CONFIG == TRI_FRAME || FRAME_CONFIG == SINGLE_FRAME)
-        // Tri's and Singles can use RC5, RC6, RC8 and higher
-        if (ch == CH_5 || ch == CH_6 || ch >= CH_8) servo_ok = true;
+	// Tri's and Singles can use RC5, RC6, RC8 and higher
+      #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+	if (ch == CH_5 || ch == CH_7 || ch >= CH_8) servo_ok = true;
+      #else
+	if (ch == CH_5 || ch == CH_6 || ch >= CH_8) servo_ok = true;
+      #endif
     #elif (FRAME_CONFIG == HEXA_FRAME || FRAME_CONFIG == Y6_FRAME)
         // Hexa and Y6 can use RC7 and higher
         if (ch >= CH_7) servo_ok = true;
