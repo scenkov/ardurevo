@@ -550,6 +550,7 @@ extern timer_dev *TIMER5;
 extern timer_dev *TIMER6;
 extern timer_dev *TIMER7;
 extern timer_dev *TIMER8;
+extern timer_dev *TIMER9;
 extern timer_dev *TIMER12;
 
 /*
