@@ -30,7 +30,7 @@
 
 // TODO [0.1.0] Remove deprecated pieces
 
-#define NR_TIMERS 8
+#define NR_TIMERS 9
 
 #define MAX_RELOAD ((1 << 16) - 1)
 
@@ -47,6 +47,7 @@ HardwareTimer::HardwareTimer(uint8 timerNum) {
         TIMER6,
         TIMER7,
         TIMER8,
+        TIMER9,
     };
     this->dev = devs[timerNum - 1];
 }
@@ -145,3 +146,4 @@ HardwareTimer Timer5(5);
 HardwareTimer Timer6(6);
 HardwareTimer Timer7(7);
 //HardwareTimer Timer8(8);
+HardwareTimer Timer9(9);

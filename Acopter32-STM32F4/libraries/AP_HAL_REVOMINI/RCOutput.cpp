@@ -18,7 +18,7 @@ void REVOMINIRCOutput::InitDefaultPWM(void)
 	output_channel_ch1=46; //Timer3/3
 	output_channel_ch2=45; //Timer3/4
 	output_channel_ch3=50; //Timer9/2
-	output_channel_ch4=49; //Timer2/2
+	output_channel_ch4=49; //Timer2/3
 	output_channel_ch5=48; //Timer5/2
 	output_channel_ch6=47; //Timer5/1
 }
@@ -61,10 +61,17 @@ void REVOMINIRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
 	TIM3->ARR = icr;
     }
 
-    if ((chmask & ( _BV(CH_3) | _BV(CH_4) |  _BV(CH_5) | _BV(CH_6))) != 0) {
+    if ((chmask & ( _BV(CH_3))) != 0) {
+	TIM9->ARR = icr;
+    }
+
+    if ((chmask & ( _BV(CH_4))) != 0) {
 	TIM2->ARR = icr;
     }
 
+    if ((chmask & ( _BV(CH_5) | _BV(CH_6))) != 0) {
+	TIM5->ARR = icr;
+    }
 }
 
 uint16_t REVOMINIRCOutput::get_freq(uint8_t ch) {
@@ -75,10 +82,14 @@ uint16_t REVOMINIRCOutput::get_freq(uint8_t ch) {
         icr = (TIMER3->regs)->ARR;
         break;
     case CH_3:
+        icr = (TIMER9->regs)->ARR;
+        break;
     case CH_4:
+        icr = (TIMER2->regs)->ARR;
+        break;
     case CH_5:
     case CH_6:
-        icr = (TIMER2->regs)->ARR;
+        icr = (TIMER5->regs)->ARR;
         break;
     default:
         return 0;

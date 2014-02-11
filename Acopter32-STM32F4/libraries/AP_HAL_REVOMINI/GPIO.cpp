@@ -78,6 +78,8 @@ void REVOMINIGPIO::pinMode(uint8_t pin, uint8_t output)
 				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM5);
 			else if (PIN_MAP[pin].timer_device->regs == TIM8)
 				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM8);
+			else if (PIN_MAP[pin].timer_device->regs == TIM9)
+				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM9);
 			else if (PIN_MAP[pin].timer_device->regs == TIM13)
 				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM13);
 			else if (PIN_MAP[pin].timer_device->regs == TIM14)

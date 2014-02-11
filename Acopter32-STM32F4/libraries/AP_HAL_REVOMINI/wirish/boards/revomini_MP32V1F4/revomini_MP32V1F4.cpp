@@ -75,10 +75,10 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {_GPIOF,   NULL, NULL, 11, 0, ADCx}, /* D44/PF11 4*/
     {_GPIOB, TIMER3,_ADC1,  1, 4,    9}, /* D45/PB1  5 SERVO2 */
     {_GPIOB, TIMER3,_ADC1,  0, 3,    8}, /* D46/PB0  6 SERVO1 */
-    {_GPIOA, TIMER2,_ADC1,  0, 1,    0}, /* D47/PA0  7 SERVO6 */
-    {_GPIOA, TIMER2,_ADC1,  1, 2,    1}, /* D48/PA1  8 SERVO5 */
+    {_GPIOA, TIMER5,_ADC1,  0, 1,    0}, /* D47/PA0  7 SERVO6 */
+    {_GPIOA, TIMER5,_ADC1,  1, 2,    1}, /* D48/PA1  8 SERVO5 */
     {_GPIOA, TIMER2,_ADC1,  2, 3,    2}, /* D49/PA2  9 SERVO4 */
-    {_GPIOA, TIMER2,_ADC1,  3, 4,    3}, /* D50/PA3  50 SERVO3 */
+    {_GPIOA, TIMER9,_ADC1,  3, 2,    3}, /* D50/PA3  50 SERVO3 */
     {_GPIOA,   NULL,_ADC1,  4, 0,    4}, /* D51/PA4  1 CS_MPU6000 */
     {_GPIOA,   NULL,_ADC1,  5, 0,    5}, /* D52/PA5  2 SPI1_CLK */
     {_GPIOA, TIMER3,_ADC1,  6, 1,    6}, /* D53/PA6  3 SPI1_MISO */

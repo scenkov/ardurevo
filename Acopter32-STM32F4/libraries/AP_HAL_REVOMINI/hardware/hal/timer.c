@@ -49,7 +49,7 @@
 
 static timer_dev timer1 = {
     .regs         = TIM1,
-    .clk	      = RCC_APB2Periph_TIM1,
+    .clk	  = RCC_APB2Periph_TIM1,
     .type         = TIMER_ADVANCED,
     .handlers     = { [NR_ADV_HANDLERS - 1] = 0 },
 };
@@ -67,7 +67,7 @@ timer_dev *TIMER2 = &timer2;
 
 static timer_dev timer3 = {
     .regs         = TIM3,
-    .clk	      = RCC_APB1Periph_TIM3,
+    .clk	  = RCC_APB1Periph_TIM3,
     .type         = TIMER_GENERAL,
     .handlers     = { [NR_GEN_HANDLERS - 1] = 0 },
 };
@@ -118,6 +118,15 @@ static timer_dev timer8 = {
 };
 /** Timer 8 device (advanced) */
 timer_dev *TIMER8 = &timer8;
+
+static timer_dev timer9 = {
+    .regs         = TIM9,
+    .clk          = RCC_APB2Periph_TIM9,
+    .type         = TIMER_GENERAL,
+    .handlers     = { [NR_GEN_HANDLERS - 1] = 0 },
+};
+/** Timer 9 device (general-purpose) */
+timer_dev *TIMER9 = &timer9;
 
 static timer_dev timer12 = {
     .regs         = TIM12,
@@ -223,10 +232,11 @@ void timer_foreach(void (*fn)(timer_dev*)) {
     fn(TIMER2);
     fn(TIMER3);
     fn(TIMER4);
-    //fn(TIMER5);
+    fn(TIMER5);
     //fn(TIMER6);
     fn(TIMER7);
     //fn(TIMER8);
+    fn(TIMER9);
 }
 
 /**
@@ -300,11 +310,11 @@ void TIM3_IRQHandler(void) {
 void TIM4_IRQHandler(void) {
     dispatch_general(TIMER4);
 }
-/*
+
 void TIM5_IRQHandler(void) {
     dispatch_general(TIMER5);
 }
-
+/*
 void TIM6_DAC_IRQHandler(void) {
     dispatch_basic(TIMER6);
 }
@@ -312,6 +322,9 @@ void TIM6_DAC_IRQHandler(void) {
 void TIM7_IRQHandler(void) {
     dispatch_basic(TIMER7);
 }
+
+void TIM9_IRQHandler(void) {
+    dispatch_basic(TIMER9);
 /*
 void TIM8_BRK_TIM12_IRQHandler(void) {
     dispatch_adv_brk(TIMER8);
