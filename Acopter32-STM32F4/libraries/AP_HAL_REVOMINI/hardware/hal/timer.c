@@ -325,6 +325,7 @@ void TIM7_IRQHandler(void) {
 
 void TIM9_IRQHandler(void) {
     dispatch_basic(TIMER9);
+}
 /*
 void TIM8_BRK_TIM12_IRQHandler(void) {
     dispatch_adv_brk(TIMER8);
