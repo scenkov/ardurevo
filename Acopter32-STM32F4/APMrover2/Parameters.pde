@@ -45,14 +45,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: SYSID_THIS_MAV
     // @DisplayName: MAVLink system ID
     // @Description: ID used in MAVLink protocol to identify this vehicle
-    // @Range: 1 255
     // @User: Advanced
 	GSCALAR(sysid_this_mav,         "SYSID_THISMAV",    MAV_SYSTEM_ID),
 
     // @Param: SYSID_MYGCS
     // @DisplayName: MAVLink ground station ID
     // @Description: ID used in MAVLink protocol to identify the controlling ground station
-    // @Range: 1 255
     // @User: Advanced
 	GSCALAR(sysid_my_gcs,           "SYSID_MYGCS",      255),
 
@@ -165,23 +163,23 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(rc_3,                    "RC3_", RC_Channel),
 
     // @Group: RC4_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_4,                    "RC4_", RC_Channel_aux),
 
     // @Group: RC5_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_5,                    "RC5_", RC_Channel_aux),
 
     // @Group: RC6_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_6,                    "RC6_", RC_Channel_aux),
 
     // @Group: RC7_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_7,                    "RC7_", RC_Channel_aux),
 
     // @Group: RC8_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_8,                    "RC8_", RC_Channel_aux),
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -481,10 +479,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: BATT_
     // @Path: ../libraries/AP_BattMonitor/AP_BattMonitor.cpp
     GOBJECT(battery,                "BATT_",       AP_BattMonitor),
-
-    // @Group: BRD_
-    // @Path: ../libraries/AP_BoardConfig/AP_BoardConfig.cpp
-    GOBJECT(BoardConfig,            "BRD_",       AP_BoardConfig),
 
 	AP_VAREND
 };

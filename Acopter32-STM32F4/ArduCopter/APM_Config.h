@@ -33,7 +33,7 @@
 //#define COMPASS_EXT
 /*-----------ND EXTERNAL COMPASS--------------*/
 
-//#define FRAME_CONFIG OCTA_FRAME
+//#define FRAME_CONFIG HEXA_FRAME
 //#define FRAME_ORIENTATION      PLUS_FRAME
 
  //#define GPS_PROTOCOL           GPS_PROTOCOL_NONE
@@ -65,9 +65,8 @@
 //#define SPRAYER               ENABLED             // enable the crop sprayer feature (two ESC controlled pumps the speed of which depends upon the vehicle's horizontal velocity)
 //#define EPM_ENABLED           ENABLED             // enable epm cargo gripper costs 500bytes of flash
 
-// other settings
-//#define THROTTLE_IN_DEADBAND   100                // redefine size of throttle deadband in pwm (0 ~ 1000)
-//#define LAND_REQUIRE_MIN_THROTTLE_TO_DISARM   DISABLED    // when set to DISABLED vehicle will disarm after landing (in LAND mode or RTL) even if pilot has not put throttle to zero
+// redefine size of throttle deadband in pwm (0 ~ 1000)
+//#define THROTTLE_IN_DEADBAND   100
 
 //#define HIL_MODE              HIL_MODE_SENSORS    // build for hardware-in-the-loop simulation
 
@@ -81,3 +80,24 @@
 //#define USERHOOK_MEDIUMLOOP userhook_MediumLoop();        // for code to be run at 10hz
 //#define USERHOOK_SLOWLOOP userhook_SlowLoop();            // for code to be run at 3.3hz
 //#define USERHOOK_SUPERSLOWLOOP userhook_SuperSlowLoop();  // for code to be run at 1hz
+
+// ST-JD
+// Flight modes
+// ------------
+// Flight mode roll, pitch, yaw, throttle and navigation definitions
+// HYBRID Mode
+#ifndef HYBRID_YAW
+ # define HYBRID_YAW           YAW_HOLD
+#endif
+
+#ifndef HYBRID_RP
+ # define HYBRID_RP            ROLL_PITCH_HYBRID
+#endif
+
+#ifndef HYBRID_THR
+ # define HYBRID_THR           THROTTLE_HOLD
+#endif
+
+#ifndef HYBRID_NAV
+ # define HYBRID_NAV           NAV_LOITER
+#endif

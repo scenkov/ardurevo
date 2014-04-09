@@ -1,0 +1,300 @@
+11:35:56 **** Build of configuration Default for project Acopter32-STM32F4 ****
+make -j8 
+rm -f ./ArduCopter/ArduCopter.cpp
+================================================================================
+awk -v mode=header -f SKETCH_SPLITTER     ./ArduCopter/ArduCopter.pde ./ArduCopter/AP_State.pde ./ArduCopter/Attitude.pde ./ArduCopter/GCS_Mavlink.pde ./ArduCopter/Log.pde ./ArduCopter/Parameters.pde ./ArduCopter/UserCode.pde ./ArduCopter/auto_tune.pde ./ArduCopter/commands.pde ./ArduCopter/commands_logic.pde ./ArduCopter/commands_process.pde ./ArduCopter/compat.pde ./ArduCopter/control_modes.pde ./ArduCopter/crash_check.pde ./ArduCopter/drift.pde ./ArduCopter/events.pde ./ArduCopter/failsafe.pde ./ArduCopter/fence.pde ./ArduCopter/flip.pde ./ArduCopter/heli.pde ./ArduCopter/inertia.pde ./ArduCopter/leds.pde ./ArduCopter/motors.pde ./ArduCopter/navigation.pde ./ArduCopter/perf_info.pde ./ArduCopter/position_vector.pde ./ArduCopter/radio.pde ./ArduCopter/sensors.pde ./ArduCopter/setup.pde ./ArduCopter/system.pde ./ArduCopter/test.pde >  ArduCopter/ArduCopter.cpp
+rm -f main.cpp
+
+  Path info:
+     SRC Root:       .
+     BUILD Path:     ./build
+     SUPPORT Path:   ./libraries/AP_HAL_REVOMINI/support
+     LD Path:        ./libraries/AP_HAL_REVOMINI/support/ld
+     MAKE Path:      ./libraries/AP_HAL_REVOMINI/support/make
+     Hardware Path: ./libraries/AP_HAL_REVOMINI/hardware
+awk                -f SKETCH_PROTOTYPER ./ArduCopter/ArduCopter.pde ./ArduCopter/AP_State.pde ./ArduCopter/Attitude.pde ./ArduCopter/GCS_Mavlink.pde ./ArduCopter/Log.pde ./ArduCopter/Parameters.pde ./ArduCopter/UserCode.pde ./ArduCopter/auto_tune.pde ./ArduCopter/commands.pde ./ArduCopter/commands_logic.pde ./ArduCopter/commands_process.pde ./ArduCopter/compat.pde ./ArduCopter/control_modes.pde ./ArduCopter/crash_check.pde ./ArduCopter/drift.pde ./ArduCopter/events.pde ./ArduCopter/failsafe.pde ./ArduCopter/fence.pde ./ArduCopter/flip.pde ./ArduCopter/heli.pde ./ArduCopter/inertia.pde ./ArduCopter/leds.pde ./ArduCopter/motors.pde ./ArduCopter/navigation.pde ./ArduCopter/perf_info.pde ./ArduCopter/position_vector.pde ./ArduCopter/radio.pde ./ArduCopter/sensors.pde ./ArduCopter/setup.pde ./ArduCopter/system.pde ./ArduCopter/test.pde   >> ArduCopter/ArduCopter.cpp
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_adc.o
+     HAL Path:      ./libraries/AP_HAL_REVOMINI/hardware/hal
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/misc.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_can.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_crc.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_aes.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_des.o
+     STM32 Path:    ./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0
+awk -v mode=body   -f SKETCH_SPLITTER   ./ArduCopter/ArduCopter.pde ./ArduCopter/AP_State.pde ./ArduCopter/Attitude.pde ./ArduCopter/GCS_Mavlink.pde ./ArduCopter/Log.pde ./ArduCopter/Parameters.pde ./ArduCopter/UserCode.pde ./ArduCopter/auto_tune.pde ./ArduCopter/commands.pde ./ArduCopter/commands_logic.pde ./ArduCopter/commands_process.pde ./ArduCopter/compat.pde ./ArduCopter/control_modes.pde ./ArduCopter/crash_check.pde ./ArduCopter/drift.pde ./ArduCopter/events.pde ./ArduCopter/failsafe.pde ./ArduCopter/fence.pde ./ArduCopter/flip.pde ./ArduCopter/heli.pde ./ArduCopter/inertia.pde ./ArduCopter/leds.pde ./ArduCopter/motors.pde ./ArduCopter/navigation.pde ./ArduCopter/perf_info.pde ./ArduCopter/position_vector.pde ./ArduCopter/radio.pde ./ArduCopter/sensors.pde ./ArduCopter/setup.pde ./ArduCopter/system.pde ./ArduCopter/test.pde   >> ArduCopter/ArduCopter.cpp
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp_tdes.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_cryp.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dac.o
+     Wirish Path:   ./libraries/AP_HAL_REVOMINI/wirish
+     Libraries Path:./libraries
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dbgmcu.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dcmi.o
+cat ArduCopter/ArduCopter.cpp  ./libraries/AP_HAL_REVOMINI/wirish/main.cxx > main.cpp
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fsmc.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_exti.o
+     Firmware Path: ./ArduCopter
+  Sketch info:
+#rm -f ./ArduCopter/ArduCopter.cpp
+     SKETCH          ArduCopter
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash_md5.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_gpio.o
+     SKETCHPDESRCS   ./ArduCopter/AP_State.pde ./ArduCopter/ArduCopter.pde ./ArduCopter/Attitude.pde ./ArduCopter/GCS_Mavlink.pde ./ArduCopter/Log.pde ./ArduCopter/Parameters.pde ./ArduCopter/UserCode.pde ./ArduCopter/auto_tune.pde ./ArduCopter/commands.pde ./ArduCopter/commands_logic.pde ./ArduCopter/commands_process.pde ./ArduCopter/compat.pde ./ArduCopter/control_modes.pde ./ArduCopter/crash_check.pde ./ArduCopter/drift.pde ./ArduCopter/events.pde ./ArduCopter/failsafe.pde ./ArduCopter/fence.pde ./ArduCopter/flip.pde ./ArduCopter/heli.pde ./ArduCopter/inertia.pde ./ArduCopter/leds.pde ./ArduCopter/motors.pde ./ArduCopter/navigation.pde ./ArduCopter/perf_info.pde ./ArduCopter/position_vector.pde ./ArduCopter/radio.pde ./ArduCopter/sensors.pde ./ArduCopter/setup.pde ./ArduCopter/system.pde ./ArduCopter/test.pde
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash_sha1.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_hash.o
+     SKETCHSRCS     
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_iwdg.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_i2c.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_pwr.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rcc.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rtc.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_sdio.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rng.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spi.o
+     SKETCHPDE       ./ArduCopter/ArduCopter.pde
+     SKETCHCPP       ./ArduCopter/ArduCopter.cpp
+  Build Directories info:
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_syscfg.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_tim.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_usart.o
+     BUILD DIRS:     ./build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src ./build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates/gcc_ride7 ./build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver ./build/./libraries/AP_HAL_REVOMINI/hardware/hal ./build/./libraries/AP_HAL_REVOMINI/wirish ./build/./libraries/AP_HAL_REVOMINI/wirish/comm ./build/./libraries/AP_HAL_REVOMINI/wirish/boards/revomini_MP32V1F4 ./build/./libraries/AP_HAL ./build/./libraries/AP_HAL/utility ./build/./libraries/AP_HAL_REVOMINI ./build/./libraries/AP_HAL_Empty ./build/./libraries/AC_Fence ./build/./libraries/AC_Sprayer ./build/./libraries/AC_PID ./build/./libraries/AC_WPNav ./build/./libraries/AP_ADC ./build/./libraries/AP_AHRS ./build/./libraries/AP_ADC_AnalogSource ./build/./libraries/AP_Airspeed ./build/./libraries/AP_Arming ./build/./libraries/AP_BoardConfig ./build/./libraries/AP_Baro ./build/./libraries/AP_Buffer ./build/./libraries/AP_BattMonitor ./build/./libraries/AP_Camera ./build/./libraries/AP_Common ./build/./libraries/AP_Compass ./build/./libraries/AP_Curve ./build/./libraries/AP_Declination ./build/./libraries/AP_EPM ./build/./libraries/AP_GPS ./build/./libraries/AP_Limits ./build/./libraries/AP_InertialSensor ./build/./libraries/AP_L1_Control ./build/./libraries/AP_InertialNav ./build/./libraries/AP_Math ./build/./libraries/AP_Menu ./build/./libraries/AP_Motors ./build/./libraries/AP_Mount ./build/./libraries/AP_Navigation ./build/./libraries/AP_Notify ./build/./libraries/AP_OpticalFlow ./build/./libraries/AP_Param ./build/./libraries/AP_PerfMon ./build/./libraries/AP_Progmem ./build/./libraries/AP_RangeFinder ./build/./libraries/AP_RCMapper ./build/./libraries/AP_Relay ./build/./libraries/AP_ServoRelayEvents ./build/./libraries/AP_SpdHgtControl ./build/./libraries/AP_TECS ./build/./libraries/AP_Scheduler ./build/./libraries/AP_Vehicle ./build/./libraries/APM_PI ./build/./libraries/APM_OBC ./build/./libraries/APM_Control ./build/./libraries/PID ./build/./libraries/DataFlash ./build/./libraries/Filter ./build/./libraries/GCS_Mavlink ./build/./libraries/memcheck ./build/./libraries/RC_Channel ./build/./libraries/SITL ./build/./ArduCopter
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_wwdg.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usb_core.o
+  Libraries Include info:
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usb_dcd.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usb_dcd_int.o
+     INCLUDES:       -I./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0 -I./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/inc -I./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/CMSIS/Include -I./libraries/AP_HAL_REVOMINI/hardware/STM32F4xx_DSP_StdPeriph_Lib_V1.1.0/Libraries/CMSIS/Device/ST/STM32F4xx/Include -I./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver -I./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver -I./libraries/AP_HAL_REVOMINI/hardware/hal -I./libraries/AP_HAL_REVOMINI/hardware/hal/common -I./libraries/AP_HAL_REVOMINI/hardware/hal/include -I./libraries/AP_HAL_REVOMINI/wirish -I./libraries/AP_HAL_REVOMINI/wirish/comm -I./libraries/AP_HAL_REVOMINI/wirish/boards/revomini_MP32V1F4 -I./libraries/AP_HAL -I./libraries/AP_HAL_REVOMINI -I./libraries/AP_HAL_Empty -I./libraries/AC_Fence -I./libraries/AC_Sprayer -I./libraries/AC_PID -I./libraries/AC_WPNav -I./libraries/AP_ADC -I./libraries/AP_AHRS -I./libraries/AP_ADC_AnalogSource -I./libraries/AP_Airspeed -I./libraries/AP_Arming -I./libraries/AP_BoardConfig -I./libraries/AP_Baro -I./libraries/AP_Buffer -I./libraries/AP_BattMonitor -I./libraries/AP_Camera -I./libraries/AP_Common -I./libraries/AP_Compass -I./libraries/AP_Curve -I./libraries/AP_Declination -I./libraries/AP_EPM -I./libraries/AP_GPS -I./libraries/AP_Limits -I./libraries/AP_InertialSensor -I./libraries/AP_L1_Control -I./libraries/AP_InertialNav -I./libraries/AP_Math -I./libraries/AP_Menu -I./libraries/AP_Motors -I./libraries/AP_Mount -I./libraries/AP_Navigation -I./libraries/AP_Notify -I./libraries/AP_OpticalFlow -I./libraries/AP_Param -I./libraries/AP_PerfMon -I./libraries/AP_Progmem -I./libraries/AP_RangeFinder -I./libraries/AP_RCMapper -I./libraries/AP_Relay -I./libraries/AP_ServoRelayEvents -I./libraries/AP_SpdHgtControl -I./libraries/AP_TECS -I./libraries/AP_Scheduler -I./libraries/AP_Vehicle -I./libraries/APM_PI -I./libraries/APM_OBC -I./libraries/APM_Control -I./libraries/PID -I./libraries/DataFlash -I./libraries/Filter -I./libraries/GCS_Mavlink -I./libraries/memcheck -I./libraries/RC_Channel -I./libraries/SITL -I./ArduCopter
+
+================================================================================
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usbd_cdc_core.o
+
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usbd_core.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usbd_ioreq.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/STM32_USB_Driver/usbd_req.o
+  Build info:
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/exti.o
+     BOARD:           revomini_MP32V1F4
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/gpio_hal.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/i2c.o
+     MCU:             STM32F407VG
+     MEMORY_TARGET:   flash
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/spi.o
+
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/syscalls.o
+  See 'make help' for all possible targets
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/systick.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/timer.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/usart.o
+
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/adc.o
+================================================================================
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/stopwatch.o
+
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/usb.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/hardware/hal/pwm_in.o
+  [CC]        build/./libraries/AP_HAL_REVOMINI/wirish/boards/revomini_MP32V1F4/system_stm32f4xx.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/wirish/boards/revomini_MP32V1F4/revomini_MP32V1F4.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/wirish/boards.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/wirish/ext_interrupts.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/wirish/HardwareTimer.o
+  [AS]        build/./libraries/AP_HAL_REVOMINI/wirish/boards/revomini_MP32V1F4/revomini_MP32V1F4_startup.o
+  [CXX]       build/./libraries/AP_HAL/utility/Print.o
+  [CXX]       build/./libraries/AP_HAL/utility/ftoa_engine.o
+  [CXX]       build/./libraries/AP_HAL/utility/print_vprintf.o
+  [CXX]       build/./libraries/AP_HAL/utility/utoa_invert.o
+  [CXX]       build/./libraries/AP_HAL/UARTDriver.o
+  [CXX]       build/./libraries/AP_HAL/Util.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/AnalogIn.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/AnalogSource.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/GPIO.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/HAL_REVOMINI_Class.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/I2CDriver.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/RCInput.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/RCOutput.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/Scheduler.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/Semaphores.o
+libraries/AP_HAL_REVOMINI/RCOutput.cpp: In member function 'virtual void REVOMINI::REVOMINIRCOutput::init(void*)':
+libraries/AP_HAL_REVOMINI/RCOutput.cpp:28:13: warning: unused variable 'is_ppmsum'
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/SPIDevice_SPI1.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/SPIDevice_SPI2.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/SPIDevice_SPI3.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/SPIDeviceManager.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/Storage.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/UARTDriver.o
+  [CXX]       build/./libraries/AP_HAL_REVOMINI/EEPROM.o
+  [CXX]       build/./libraries/AP_HAL_Empty/AnalogIn.o
+  [CXX]       build/./libraries/AP_HAL_Empty/GPIO.o
+  [CXX]       build/./libraries/AP_HAL_Empty/I2CDriver.o
+  [CXX]       build/./libraries/AP_HAL_Empty/HAL_Empty_Class.o
+  [CXX]       build/./libraries/AP_HAL_Empty/RCInput.o
+  [CXX]       build/./libraries/AP_HAL_Empty/PrivateMember.o
+  [CXX]       build/./libraries/AP_HAL_Empty/RCOutput.o
+  [CXX]       build/./libraries/AP_HAL_Empty/Semaphores.o
+  [CXX]       build/./libraries/AP_HAL_Empty/Scheduler.o
+  [CXX]       build/./libraries/AP_HAL_Empty/SPIDriver.o
+  [CXX]       build/./libraries/AP_HAL_Empty/Storage.o
+  [CXX]       build/./libraries/AP_HAL_Empty/UARTDriver.o
+  [CXX]       build/./libraries/AC_Fence/AC_Fence.o
+  [CXX]       build/./libraries/AC_Sprayer/AC_Sprayer.o
+  [CXX]       build/./libraries/AC_WPNav/AC_WPNav.o
+  [CXX]       build/./libraries/AC_PID/AC_PID.o
+  [CXX]       build/./libraries/AP_ADC/AP_ADC_ADS7844.o
+  [CXX]       build/./libraries/AP_AHRS/AP_AHRS_DCM.o
+  [CXX]       build/./libraries/AP_ADC/AP_ADC.o
+  [CXX]       build/./libraries/AP_ADC/AP_ADC_HIL.o
+  [CXX]       build/./libraries/AP_AHRS/AP_AHRS_HIL.o
+  [CXX]       build/./libraries/AP_AHRS/AP_AHRS.o
+  [CXX]       build/./libraries/AP_ADC_AnalogSource/AP_ADC_AnalogSource.o
+  [CXX]       build/./libraries/AP_Airspeed/Airspeed_Calibration.o
+  [CXX]       build/./libraries/AP_Airspeed/AP_Airspeed.o
+  [CXX]       build/./libraries/AP_Airspeed/AP_Airspeed_analog.o
+  [CXX]       build/./libraries/AP_Airspeed/AP_Airspeed_PX4.o
+  [CXX]       build/./libraries/AP_Airspeed/AP_Airspeed_I2C.o
+  [CXX]       build/./libraries/AP_Arming/AP_Arming.o
+  [CXX]       build/./libraries/AP_BoardConfig/AP_BoardConfig.o
+  [CXX]       build/./libraries/AP_Baro/AP_Baro.o
+  [CXX]       build/./libraries/AP_Baro/AP_Baro_HIL.o
+  [CXX]       build/./libraries/AP_Baro/AP_Baro_MS5611.o
+  [CXX]       build/./libraries/AP_Baro/AP_Baro_BMP085.o
+  [CXX]       build/./libraries/AP_Baro/AP_Baro_PX4.o
+  [CXX]       build/./libraries/AP_BattMonitor/AP_BattMonitor.o
+  [CXX]       build/./libraries/AP_Camera/AP_Camera.o
+  [CXX]       build/./libraries/AP_Common/c++.o
+  [CXX]       build/./libraries/AP_Compass/Compass.o
+  [CXX]       build/./libraries/AP_Compass/AP_Compass_HMC5843.o
+  [CXX]       build/./libraries/AP_Compass/AP_Compass_HIL.o
+  [CXX]       build/./libraries/AP_Compass/AP_Compass_HMC5843_EXT.o
+  [CXX]       build/./libraries/AP_Curve/AP_Curve.o
+  [CXX]       build/./libraries/AP_Declination/AP_Declination.o
+  [CXX]       build/./libraries/AP_EPM/AP_EPM.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_406.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_Auto.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_Glitch.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_HIL.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_MTK19.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_MTK.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_NMEA.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_SIRF.o
+  [CXX]       build/./libraries/AP_GPS/AP_GPS_UBLOX.o
+  [CXX]       build/./libraries/AP_GPS/GPS.o
+  [CXX]       build/./libraries/AP_Limits/AP_Limits.o
+  [CXX]       build/./libraries/AP_Limits/AP_Limit_GPSLock.o
+  [CXX]       build/./libraries/AP_Limits/AP_Limit_Module.o
+  [CXX]       build/./libraries/AP_Limits/AP_Limit_Geofence.o
+  [CXX]       build/./libraries/AP_Limits/AP_Limit_Altitude.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_MPU6000.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_UserInteract_Stream.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_PX4.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_MPU6000_Ext.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_Oilpan.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_UserInteract_MAVLink.o
+  [CXX]       build/./libraries/AP_InertialSensor/AP_InertialSensor_L3G4200D.o
+  [CXX]       build/./libraries/AP_L1_Control/AP_L1_Control.o
+  [CXX]       build/./libraries/AP_InertialNav/AP_InertialNav.o
+  [CXX]       build/./libraries/AP_Math/AP_Math.o
+  [CXX]       build/./libraries/AP_Math/location.o
+  [CXX]       build/./libraries/AP_Math/matrix3.o
+  [CXX]       build/./libraries/AP_Math/polygon.o
+  [CXX]       build/./libraries/AP_Math/quaternion.o
+  [CXX]       build/./libraries/AP_Math/vector2.o
+  [CXX]       build/./libraries/AP_Math/vector3.o
+  [CXX]       build/./libraries/AP_Menu/AP_Menu.o
+  [CXX]       build/./libraries/AP_Motors/AP_Motors_Class.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsHeli.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsHexa.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsOcta.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsMatrix.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsOctaQuad.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsQuad.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsTri.o
+  [CXX]       build/./libraries/AP_Motors/AP_MotorsY6.o
+  [CXX]       build/./libraries/AP_Mount/AP_Mount.o
+  [CXX]       build/./libraries/AP_Notify/AP_BoardLED.o
+  [CXX]       build/./libraries/AP_Notify/Buzzer.o
+  [CXX]       build/./libraries/AP_Notify/AP_Notify.o
+  [CXX]       build/./libraries/AP_Notify/ExternalLED.o
+  [CXX]       build/./libraries/AP_Notify/ToshibaLED_I2C.o
+  [CXX]       build/./libraries/AP_Notify/ToshibaLED_PX4.o
+  [CXX]       build/./libraries/AP_Notify/ToshibaLED.o
+  [CXX]       build/./libraries/AP_Notify/ToneAlarm_PX4.o
+  [CXX]       build/./libraries/AP_OpticalFlow/AP_OpticalFlow.o
+  [CXX]       build/./libraries/AP_OpticalFlow/AP_OpticalFlow_ADNS3080.o
+  [CXX]       build/./libraries/AP_Param/AP_Param.o
+  [CXX]       build/./libraries/AP_PerfMon/AP_PerfMon.o
+  [CXX]       build/./libraries/AP_Progmem/AP_Progmem_AVR.o
+  [CXX]       build/./libraries/AP_RangeFinder/AP_RangeFinder_MaxsonarXL.o
+  [CXX]       build/./libraries/AP_RangeFinder/AP_RangeFinder_SharpGP2Y.o
+  [CXX]       build/./libraries/AP_RangeFinder/RangeFinder.o
+  [CXX]       build/./libraries/AP_RangeFinder/AP_RangeFinder_analog.o
+libraries/AP_PerfMon/AP_PerfMon.cpp: In static member function 'static void AP_PerfMon::DisplayResults()':
+libraries/AP_PerfMon/AP_PerfMon.cpp:129:10: warning: unused variable 'blocking_writes'
+  [CXX]       build/./libraries/AP_Relay/AP_Relay.o
+  [CXX]       build/./libraries/AP_RCMapper/AP_RCMapper.o
+  [CXX]       build/./libraries/AP_ServoRelayEvents/AP_ServoRelayEvents.o
+  [CXX]       build/./libraries/AP_TECS/AP_TECS.o
+  [CXX]       build/./libraries/AP_Scheduler/AP_Scheduler.o
+  [CXX]       build/./libraries/APM_PI/APM_PI.o
+  [CXX]       build/./libraries/APM_OBC/APM_OBC.o
+  [CXX]       build/./libraries/APM_Control/AP_YawController.o
+  [CXX]       build/./libraries/APM_Control/AP_RollController.o
+  [CXX]       build/./libraries/APM_Control/AP_PitchController.o
+  [CXX]       build/./libraries/APM_Control/AP_SteerController.o
+  [CXX]       build/./libraries/PID/PID.o
+  [CXX]       build/./libraries/DataFlash/DataFlash_APM1.o
+  [CXX]       build/./libraries/DataFlash/DataFlash_APM2.o
+libraries/DataFlash/DataFlash_APM1.cpp:53:0: warning: "DF_LAST_PAGE" redefined
+libraries/DataFlash/DataFlash_REVOMINI.h:13:0: note: this is the location of the previous definition
+  [CXX]       build/./libraries/DataFlash/DataFlash_Block.o
+  [CXX]       build/./libraries/DataFlash/DataFlash_Empty.o
+  [CXX]       build/./libraries/DataFlash/DataFlash_SITL.o
+  [CXX]       build/./libraries/DataFlash/DataFlash_REVOMINI.o
+  [CXX]       build/./libraries/DataFlash/DataFlash_File.o
+  [CXX]       build/./libraries/DataFlash/LogFile.o
+  [CXX]       build/./libraries/Filter/DerivativeFilter.o
+  [CXX]       build/./libraries/GCS_Mavlink/GCS_MAVLink.o
+  [CXX]       build/./libraries/GCS_Mavlink/GCS_Logs.o
+  [CXX]       build/./libraries/GCS_Mavlink/GCS_Common.o
+  [CXX]       build/./libraries/memcheck/memcheck.o
+  [CXX]       build/./libraries/RC_Channel/RC_Channel_aux.o
+  [CXX]       build/./libraries/RC_Channel/RC_Channel.o
+  [CXX]       build/./libraries/SITL/SITL.o
+  [CXX]       build/main.o
+./ArduCopter/ArduCopter.pde:170:14: warning: 'void update_optical_flow()' declared 'static' but never defined
+./ArduCopter/GCS_Mavlink.pde:276:22: warning: 'void send_simstate(mavlink_channel_t)' defined but not used
+./ArduCopter/ArduCopter.pde:263:23: warning: 'void send_servo_out(mavlink_channel_t)' declared 'static' but never defined
+./ArduCopter/Log.pde:247:13: warning: 'void Log_Write_Optflow()' defined but not used
+./ArduCopter/Log.pde:552:13: warning: 'void Log_Write_Data(uint8_t, int16_t)' defined but not used
+./ArduCopter/Log.pde:571:13: warning: 'void Log_Write_Data(uint8_t, uint16_t)' defined but not used
+./ArduCopter/Log.pde:628:13: warning: 'void Log_Write_Data(uint8_t, float)' defined but not used
+./ArduCopter/ArduCopter.pde:308:14: warning: 'void Log_Write_IMU()' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:309:14: warning: 'void Log_Write_GPS()' declared 'static' but never defined
+./ArduCopter/compat.pde:8:13: warning: 'void mavlink_delay(uint32_t)' defined but not used
+./ArduCopter/compat.pde:23:13: warning: 'void pinMode(uint8_t, uint8_t)' defined but not used
+./ArduCopter/compat.pde:28:13: warning: 'void digitalWrite(uint8_t, uint8_t)' defined but not used
+./ArduCopter/compat.pde:33:16: warning: 'uint8_t digitalRead(uint8_t)' defined but not used
+./ArduCopter/ArduCopter.pde:422:14: warning: 'void heli_init()' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:423:17: warning: 'int16_t get_pilot_desired_collective(int16_t)' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:424:14: warning: 'void check_dynamic_flight()' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:425:14: warning: 'void heli_integrated_swash_controller(int32_t, int32_t)' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:426:18: warning: 'int16_t get_heli_rate_yaw(int32_t)' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:427:14: warning: 'void heli_update_landing_swash()' declared 'static' but never defined
+./ArduCopter/ArduCopter.pde:428:14: warning: 'void heli_update_rotor_speed_targets()' declared 'static' but never defined
+./ArduCopter/motors.pde:556:13: warning: 'void servo_write(uint8_t, uint16_t)' defined but not used
+./ArduCopter/system.pde:570:17: warning: 'uint32_t map_baudrate(int8_t, uint32_t)' defined but not used
+  [LD]        revomini_MP32V1F4.elf
+  [OBJCOPY]   revomini_MP32V1F4.bin
+  [DISAS]     build/revomini_MP32V1F4.bin.disas
+ 
+Final Size:
+   text	   data	    bss	    dec	    hex	filename
+ 463624	  10996	  15636	 490256	  77b10	build/revomini_MP32V1F4.elf
+ 
+  [FWINFO]    build/revomini_MP32V1F4.bin.firmware_info.c
+  [CC]        build/revomini_MP32V1F4.bin.firmware_info.c
+  [BIN/HEX]   build/revomini_MP32V1F4.bin.firmware_info.bin
+  [OPFW]      build/revomini_MP32V1F4.opfw
+
+11:36:14 Build Finished (took 17s.999ms)
+

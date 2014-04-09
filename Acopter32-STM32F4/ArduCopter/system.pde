@@ -142,9 +142,6 @@ static void init_ardupilot()
     // disable external leds if epm is enabled because of pin conflict on the APM
     notify.init(enable_external_leds);
 
-    hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
-    hal.gpio->write(HAL_GPIO_C_LED_PIN, HAL_GPIO_LED_ON);
-
     // initialise battery monitor
     battery.init();
     
@@ -196,6 +193,7 @@ static void init_ardupilot()
     }
 #endif
 #endif
+
     // identify ourselves correctly with the ground station
     mavlink_system.sysid = g.sysid_this_mav;
     mavlink_system.type = 2; //MAV_QUADROTOR;
@@ -352,6 +350,7 @@ static bool mode_requires_GPS(uint8_t mode) {
         case CIRCLE:
         case POSITION:
         case DRIFT:
+        case HYBRID:    // ST-JD
             return true;
         default:
             return false;
@@ -505,6 +504,16 @@ static bool set_mode(uint8_t mode)
             acro_pitch = ahrs.pitch_sensor;
             control_yaw = ahrs.yaw_sensor;
             break;
+            
+        // ST-JD Hybrid mode
+		case HYBRID:
+			if (GPS_ok() || ignore_checks) {	
+				success = true;
+				set_yaw_mode(HYBRID_YAW);
+				set_roll_pitch_mode(HYBRID_RP);
+				set_throttle_mode(HYBRID_THR);
+			}
+            break;
 
         default:
             success = false;
@@ -652,6 +661,9 @@ print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
     case SPORT:
         port->print_P(PSTR("SPORT"));
         break;
+    case HYBRID:		// ST-JD Hybrid
+		port->print_P(PSTR("HYBRID"));
+		break;
     default:
         port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
         break;

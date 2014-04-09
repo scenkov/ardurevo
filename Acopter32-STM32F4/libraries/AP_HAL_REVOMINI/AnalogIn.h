@@ -88,7 +88,7 @@ public:
     AP_HAL::AnalogSource* channel(int16_t n);
 
 protected: 
-    REVOMINIAnalogSource* _create_channel(uint8_t num);
+    REVOMINIAnalogSource* _create_channel(int16_t num);
     void _register_channel(REVOMINIAnalogSource*);
     void _timer_event(void);
     REVOMINIAnalogSource* _channels[REVOMINI_INPUT_MAX_CHANNELS];

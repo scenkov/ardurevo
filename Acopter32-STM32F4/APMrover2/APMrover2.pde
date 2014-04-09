@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduRover v2.45"
+#define THISFIRMWARE "ArduRover v2.44"
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -79,7 +79,6 @@
 #include <ModeFilter.h>		// Mode Filter from Filter library
 #include <AverageFilter.h>	// Mode Filter from Filter library
 #include <AP_Relay.h>       // APM relay
-#include <AP_ServoRelayEvents.h>
 #include <AP_Mount.h>		// Camera/Antenna mount
 #include <AP_Camera.h>		// Camera triggering
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
@@ -93,10 +92,9 @@
 #include <AP_Navigation.h>
 #include <APM_Control.h>
 #include <AP_L1_Control.h>
-#include <AP_BoardConfig.h>
 
-//#include <AP_HAL_VRBRAIN.h>
-#include <AP_HAL_REVOMINI.h>
+#include <AP_HAL_VRBRAIN.h>
+#include <AP_HAL_Empty.h>
 #include "compat.h"
 
 #include <AP_Notify.h>      // Notify library
@@ -141,9 +139,6 @@ static AP_Scheduler scheduler;
 // mapping between input channels
 static RCMapper rcmap;
 
-// board specific config
-static AP_BoardConfig BoardConfig;
-
 // primary control channels
 static RC_Channel *channel_steer;
 static RC_Channel *channel_throttle;
@@ -166,18 +161,15 @@ static DataFlash_APM2 DataFlash;
 static DataFlash_File DataFlash("logs");
 //static DataFlash_SITL DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
-static DataFlash_File DataFlash("/fs/microsd/APM/LOGS");
+static DataFlash_File DataFlash("/fs/microsd/APM/logs");
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 static DataFlash_File DataFlash("logs");
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 static DataFlash_VRBRAIN DataFlash;
-#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-static DataFlash_REVOMINI DataFlash;
 #else
 DataFlash_Empty DataFlash;
 #endif
 
-static bool in_log_download;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Sensors
@@ -293,8 +285,6 @@ static AP_RangeFinder_analog sonar2;
 
 // relay support
 AP_Relay relay;
-
-AP_ServoRelayEvents ServoRelayEvents(relay);
 
 // Camera
 #if CAMERA == ENABLED
@@ -471,6 +461,22 @@ static float wp_distance;
 static int32_t wp_totalDistance;
 
 ////////////////////////////////////////////////////////////////////////////////
+// repeating event control
+////////////////////////////////////////////////////////////////////////////////
+// Flag indicating current event type
+static uint8_t 		event_id;
+// when the event was started in ms
+static int32_t 		event_timer;
+// how long to delay the next firing of event in millis
+static uint16_t 	event_delay;					
+// how many times to cycle : -1 (or -2) = forever, 2 = do one cycle, 4 = do two cycles
+static int16_t 		event_repeat = 0;
+// per command value, such as PWM for servos
+static int16_t 		event_value; 
+// the value used to cycle events (alternate value to event_value)
+static int16_t 		event_undo_value;
+
+////////////////////////////////////////////////////////////////////////////////
 // Conditional command
 ////////////////////////////////////////////////////////////////////////////////
 // A value used in condition commands (eg delay, change alt, etc.)
@@ -542,7 +548,7 @@ static bool in_reverse;
   time they are expected to take (in microseconds)
  */
 static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
-    { read_radio,             1,   1000 },
+	{ read_radio,             1,   1000 },
     { ahrs_update,            1,   6400 },
     { read_sonars,            1,   2000 },
     { update_current_mode,    1,   1500 },
@@ -561,7 +567,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { read_trim_switch,       5,   1000 },
     { read_battery,           5,   1000 },
     { read_receiver_rssi,     5,   1000 },
-    { update_events,          1,   1000 },
+    { update_events,         15,   1000 },
     { check_usb_mux,         15,   1000 },
     { mount_update,           1,    600 },
     { gcs_failsafe_check,     5,    600 },
@@ -640,10 +646,10 @@ static void ahrs_update()
 
     ahrs.update();
 
-    if (should_log(MASK_LOG_ATTITUDE_FAST))
+    if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
         Log_Write_Attitude();
 
-    if (should_log(MASK_LOG_IMU))
+    if (g.log_bitmask & MASK_LOG_IMU)
         DataFlash.Log_Write_IMU(ins);
 }
 
@@ -689,7 +695,7 @@ static void update_compass(void)
         ahrs.set_compass(&compass);
         // update offsets
         compass.null_offsets();
-        if (should_log(MASK_LOG_COMPASS)) {
+        if (g.log_bitmask & MASK_LOG_COMPASS) {
             Log_Write_Compass();
         }
     } else {
@@ -702,13 +708,13 @@ static void update_compass(void)
  */
 static void update_logging1(void)
 {
-    if (should_log(MASK_LOG_ATTITUDE_MED) && !should_log(MASK_LOG_ATTITUDE_FAST))
+    if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
         Log_Write_Attitude();
     
-    if (should_log(MASK_LOG_CTUN))
+    if (g.log_bitmask & MASK_LOG_CTUN)
         Log_Write_Control_Tuning();
 
-    if (should_log(MASK_LOG_NTUN))
+    if (g.log_bitmask & MASK_LOG_NTUN)
         Log_Write_Nav_Tuning();
 }
 
@@ -717,13 +723,13 @@ static void update_logging1(void)
  */
 static void update_logging2(void)
 {
-    if (should_log(MASK_LOG_STEERING)) {
+    if (g.log_bitmask & MASK_LOG_STEERING) {
         if (control_mode == STEERING || control_mode == AUTO || control_mode == RTL || control_mode == GUIDED) {
             Log_Write_Steering();
         }
     }
 
-    if (should_log(MASK_LOG_RC))
+    if (g.log_bitmask & MASK_LOG_RC)
         Log_Write_RC();
 }
 
@@ -752,7 +758,7 @@ static void update_aux(void)
  */
 static void one_second_loop(void)
 {
-	if (should_log(MASK_LOG_CURRENT))
+	if (g.log_bitmask & MASK_LOG_CURRENT)
 		Log_Write_Current();
 	// send a heartbeat
 	gcs_send_message(MSG_HEARTBEAT);
@@ -781,7 +787,7 @@ static void one_second_loop(void)
         if (scheduler.debug() != 0) {
             hal.console->printf_P(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
         }
-        if (should_log(MASK_LOG_PM))
+        if (g.log_bitmask & MASK_LOG_PM)
             Log_Write_Performance();
         G_Dt_max = 0;
         resetPerfData();
@@ -803,7 +809,7 @@ static void update_GPS_50Hz(void)
 
     if (g_gps->last_message_time_ms() != last_gps_reading) {
         last_gps_reading = g_gps->last_message_time_ms();
-        if (should_log(MASK_LOG_GPS)) {
+        if (g.log_bitmask & MASK_LOG_GPS) {
             DataFlash.Log_Write_GPS(g_gps, current_loc.alt);
         }
     }

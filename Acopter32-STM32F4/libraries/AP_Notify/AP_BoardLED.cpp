@@ -92,7 +92,7 @@ void AP_BoardLED::update(void)
     static uint8_t arm_counter = 0;
 	if (AP_Notify::flags.armed) {
         // red led solid
-//        hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
+        hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
     }else{
         if ((counter2 & 0x2) == 0) {
             arm_counter++;

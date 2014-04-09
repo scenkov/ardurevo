@@ -92,11 +92,6 @@ static void init_ardupilot()
     //
     load_parameters();
 
-    BoardConfig.init();
-
-    // allow servo set on all channels except first 4
-    ServoRelayEvents.set_channel_mask(0xFFF0);
-
     set_control_channels();
 
     // reset the uartA baud rate after parameter load
@@ -121,11 +116,9 @@ static void init_ardupilot()
     check_usb_mux();
 
     // we have a 2nd serial port for telemetry
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD),
                      128, SERIAL1_BUFSIZE);
     gcs[1].init(hal.uartC);
-#endif
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     if (hal.uartD != NULL) {
@@ -148,6 +141,9 @@ static void init_ardupilot()
         for (uint8_t i=0; i<num_gcs; i++) {
             gcs[i].reset_cli_timeout();
         }
+    }
+    if (g.log_bitmask != 0) {
+        start_logging();
     }
 #endif
 
@@ -201,18 +197,15 @@ static void init_ardupilot()
 
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+    if (gcs[1].initialised) {
         hal.uartC->println_P(msg);
-#endif
-
+    }
     if (num_gcs > 2 && gcs[2].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
         hal.uartD->println_P(msg);
-#endif
     }
 
     startup_ground();
-    if (should_log(MASK_LOG_CMD))
+    if (g.log_bitmask & MASK_LOG_CMD)
         Log_Write_Startup(TYPE_GROUNDSTART_MSG);
 
     // choose the nav controller
@@ -277,12 +270,10 @@ static void startup_ground(void)
     // mid-flight, so set the serial ports non-blocking once we are
     // ready to fly
     hal.uartA->set_blocking_writes(false);
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     hal.uartC->set_blocking_writes(false);
     if (hal.uartD != NULL) {
         hal.uartD->set_blocking_writes(false);
     }
-#endif
 
 #if 0
     // leave GPS blocking until we have support for correct handling
@@ -368,7 +359,7 @@ static void set_mode(enum FlightMode mode)
         throttle_suppressed = false;
     }
 
-    if (should_log(MASK_LOG_MODE))
+    if (g.log_bitmask & MASK_LOG_MODE)
         Log_Write_Mode(control_mode);
 
     // reset attitude integrators on mode change
@@ -528,7 +519,7 @@ static void check_usb_mux(void)
     // the user has switched to/from the telemetry port
     usb_connected = usb_check;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
     // the APM2 has a MUX setup where the first serial port switches
     // between USB and a TTL serial connection. When on USB we use
     // SERIAL0_BAUD, but when connected as a TTL serial port we run it
@@ -588,9 +579,6 @@ print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
     case LOITER:
         port->print_P(PSTR("Loiter"));
         break;
-    case GUIDED:
-        port->print_P(PSTR("Guided"));
-        break;
     default:
         port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
         break;
@@ -618,31 +606,4 @@ static void servo_write(uint8_t ch, uint16_t pwm)
 #endif
     hal.rcout->enable_ch(ch);
     hal.rcout->write(ch, pwm);
-}
-
-/*
-  should we log a message type now?
- */
-static bool should_log(uint32_t mask)
-{
-    if (!(mask & g.log_bitmask) || in_mavlink_delay) {
-        return false;
-    }
-    bool armed;
-    if (arming.arming_required() == AP_Arming::NO) {
-        // for logging purposes consider us armed if we either don't
-        // have a safety switch, or we have one and it is disarmed
-        armed = (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED);
-    } else {
-        armed = arming.is_armed();
-    }
-    bool ret = armed || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
-    if (ret && !DataFlash.logging_started() && !in_log_download) {
-        // we have to set in_mavlink_delay to prevent logging while
-        // writing headers
-        in_mavlink_delay = true;
-        start_logging();
-        in_mavlink_delay = false;
-    }
-    return ret;
 }

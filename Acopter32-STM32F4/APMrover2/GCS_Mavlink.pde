@@ -158,7 +158,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
     if (g.compass_enabled && compass.healthy() && ahrs.use_compass()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
     }
-    if (g_gps != NULL && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
+    if (g_gps != NULL && g_gps->status() > GPS::NO_GPS) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
     }
     if (!ins.healthy()) {
@@ -1142,27 +1142,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_DO_SET_SERVO:
-            if (ServoRelayEvents.do_set_servo(packet.param1, packet.param2)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
-            break;
-
-        case MAV_CMD_DO_REPEAT_SERVO:
-            if (ServoRelayEvents.do_repeat_servo(packet.param1, packet.param2, packet.param3, packet.param4*1000)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
-            break;
-
-        case MAV_CMD_DO_SET_RELAY:
-            if (ServoRelayEvents.do_set_relay(packet.param1, packet.param2)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
-            break;
-
-        case MAV_CMD_DO_REPEAT_RELAY:
-            if (ServoRelayEvents.do_repeat_relay(packet.param1, packet.param2, packet.param3*1000)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
+            hal.rcout->enable_ch(packet.param1 - 1);
+            hal.rcout->write(packet.param1 - 1, packet.param2);
+            result = MAV_RESULT_ACCEPTED;
             break;
 
         case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
@@ -1294,19 +1276,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 					param1 = tell_command.p1;
 					break;
 
-            	case MAV_CMD_DO_REPEAT_SERVO:
-                    param4 = tell_command.lng*0.001f; // time
-                    param3 = tell_command.lat;        // repeat
-                    param2 = tell_command.alt;        // pwm
-                    param1 = tell_command.p1;         // channel
-                    break;
-
-            	case MAV_CMD_DO_REPEAT_RELAY:
-                    param3 = tell_command.lat*0.001f; // time
-                    param2 = tell_command.alt;        // count
-                    param1 = tell_command.p1;         // relay number
-                    break;
-
+				case MAV_CMD_DO_REPEAT_SERVO:
+					param4 = tell_command.lng;
+				case MAV_CMD_DO_REPEAT_RELAY:
 				case MAV_CMD_DO_CHANGE_SPEED:
 					param3 = tell_command.lat;
 					param2 = tell_command.alt;
@@ -1361,10 +1333,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
             // mark the firmware version in the tlog
             send_text_P(SEVERITY_LOW, PSTR(FIRMWARE_STRING));
-
-#if defined(PX4_GIT_VERSION) && defined(NUTTX_GIT_VERSION)
-            send_text_P(SEVERITY_LOW, PSTR("PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION));
-#endif
 
             // send system ID if we can
             char sysid[40];
@@ -1595,18 +1563,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 break;
 
             case MAV_CMD_DO_REPEAT_SERVO:
-                tell_command.lng = packet.param4*1000; // time
-                tell_command.lat = packet.param3;      // count
-                tell_command.alt = packet.param2;      // PWM
-                tell_command.p1  = packet.param1;      // channel
-                break;
-
+                tell_command.lng = packet.param4;
             case MAV_CMD_DO_REPEAT_RELAY:
-                tell_command.lat = packet.param3*1000; // time
-                tell_command.alt = packet.param2;      // count
-                tell_command.p1  = packet.param1;      // relay number
-                break;
-
             case MAV_CMD_DO_CHANGE_SPEED:
                 tell_command.lat = packet.param3;
                 tell_command.alt = packet.param2;
@@ -1896,17 +1854,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         }
 
-    case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
-    case MAVLINK_MSG_ID_LOG_ERASE:
-        in_log_download = true;
-        // fallthru
-    case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
-        if (!in_mavlink_delay) {
-            handle_log_message(msg, DataFlash);
-        }
-        break;
-    case MAVLINK_MSG_ID_LOG_REQUEST_END:
-        in_log_download = false;
+    case MAVLINK_MSG_ID_LOG_REQUEST_LIST ... MAVLINK_MSG_ID_LOG_REQUEST_END:
         if (!in_mavlink_delay) {
             handle_log_message(msg, DataFlash);
         }
@@ -1937,7 +1885,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 static void mavlink_delay_cb()
 {
     static uint32_t last_1hz, last_50hz, last_5s;
-    if (!gcs[0].initialised || in_mavlink_delay) return;
+    if (!gcs[0].initialised) return;
 
     in_mavlink_delay = true;
 

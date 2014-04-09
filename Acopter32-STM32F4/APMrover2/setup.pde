@@ -652,8 +652,7 @@ radio_input_switch(void)
 
 static void zero_eeprom(void)
 {
-//	uint8_t b = 0;
-	cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
+    cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 	hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
 #else
@@ -661,7 +660,7 @@ static void zero_eeprom(void)
 		hal.storage->write_byte(i, 0);
 	}
 #endif
-	cliSerial->printf_P(PSTR("done\n"));
+    cliSerial->printf_P(PSTR("done\n"));
 }
 
 static void print_enabled(bool b)

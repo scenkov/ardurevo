@@ -1,37 +1,24 @@
 #line 1 "./APMRover2/APMrover2.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduRover v2.45"
-/*
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+#define THISFIRMWARE "ArduRover v2.43beta2"
 
 /* 
-   This is the APMrover2 firmware. It was originally derived from
-   ArduPlane by Jean-Louis Naudin (JLN), and then rewritten after the
-   AP_HAL merge by Andrew Tridgell
+This is the APMrover2 firmware. It was originally derived from
+ArduPlane by Jean-Louis Naudin (JLN), and then rewritten after the
+AP_HAL merge by Andrew Tridgell
 
-   Maintainer: Andrew Tridgell
+Maintainer: Andrew Tridgell
 
-   Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Andrew Tridgell, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Jean-Louis Naudin
+Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Andrew Tridgell, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Jean-Louis Naudin
+Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier 
+Please contribute your ideas!
+APMrover alpha version tester: Franco Borasio, Daniel Chapelat... 
 
-   Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier 
-
-   APMrover alpha version tester: Franco Borasio, Daniel Chapelat... 
-
-   Please contribute your ideas! See http://dev.ardupilot.com for details
-*/
+This firmware is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
 
 // Radio setup:
 // APM INPUT (Rec = receiver)
@@ -48,6 +35,8 @@
 // Ch2: not used
 // Ch3: to the motor ESC
 // Ch4: not used
+//
+*/
 
 ////////////////////////////////////////////////////////////////////////////////
 // Header includes
@@ -80,28 +69,19 @@
 #include <ModeFilter.h>		// Mode Filter from Filter library
 #include <AverageFilter.h>	// Mode Filter from Filter library
 #include <AP_Relay.h>       // APM relay
-#include <AP_ServoRelayEvents.h>
 #include <AP_Mount.h>		// Camera/Antenna mount
 #include <AP_Camera.h>		// Camera triggering
 #include <GCS_MAVLink.h>    // MAVLink GCS definitions
 #include <AP_Airspeed.h>    // needed for AHRS build
-#include <AP_Vehicle.h>     // needed for AHRS build
+#include <memcheck.h>
 #include <DataFlash.h>
 #include <AP_RCMapper.h>        // RC input mapping library
 #include <SITL.h>
 #include <AP_Scheduler.h>       // main loop scheduler
 #include <stdarg.h>
-#include <AP_Navigation.h>
-#include <APM_Control.h>
-#include <AP_L1_Control.h>
-#include <AP_BoardConfig.h>
 
-//#include <AP_HAL_VRBRAIN.h>
-#include <AP_HAL_REVOMINI.h>
+#include <AP_HAL_VRBRAIN.h>
 #include "compat.h"
-
-#include <AP_Notify.h>      // Notify library
-#include <AP_BattMonitor.h> // Battery monitor library
 
 // Configuration
 #include "config.h"
@@ -115,27 +95,25 @@
 
  void setup() ;
  void loop() ;
- static void ahrs_update() ;
+ static void fast_loop() ;
  static void mount_update(void) ;
- static void gcs_failsafe_check(void) ;
+ static void failsafe_check(void) ;
  static void compass_accumulate(void) ;
  static void update_compass(void) ;
- static void update_logging1(void) ;
- static void update_logging2(void) ;
+ static void update_logging(void) ;
  static void update_aux(void) ;
  static void one_second_loop(void) ;
-  static void update_GPS_50Hz(void) ;
-   static void update_GPS_10Hz(void) ;
+  static void update_GPS(void) ;
   static void update_current_mode(void) ;
   static void update_navigation() ;
   static NOINLINE void send_heartbeat(mavlink_channel_t chan) ;
   static NOINLINE void send_attitude(mavlink_channel_t chan) ;
   static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t packet_drops) ;
+  static void NOINLINE send_meminfo(mavlink_channel_t chan) ;
   static void NOINLINE send_location(mavlink_channel_t chan) ;
   static void NOINLINE send_nav_controller_output(mavlink_channel_t chan) ;
   static void NOINLINE send_gps_raw(mavlink_channel_t chan) ;
-  static void NOINLINE send_system_time(mavlink_channel_t chan) ;
- static void NOINLINE send_servo_out(mavlink_channel_t chan) ;
+  static void NOINLINE send_servo_out(mavlink_channel_t chan) ;
   static void NOINLINE send_radio_in(mavlink_channel_t chan) ;
   static void NOINLINE send_radio_out(mavlink_channel_t chan) ;
   static void NOINLINE send_vfr_hud(mavlink_channel_t chan) ;
@@ -156,13 +134,11 @@
  static void gcs_data_stream_send(void) ;
  static void gcs_update(void) ;
   static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str) ;
- static void gcs_retry_deferred(void) ;
   static bool print_log_menu(void) ;
    static void do_erase_logs(void) ;
  static void Log_Write_Performance() ;
  static void Log_Write_Cmd(uint8_t num, const struct Location *wp) ;
  static void Log_Write_Camera() ;
- static void Log_Write_Steering() ;
   static void Log_Write_Startup(uint8_t type) ;
  static void Log_Write_Control_Tuning() ;
  static void Log_Write_Nav_Tuning() ;
@@ -171,7 +147,6 @@
  static void Log_Write_Sonar() ;
   static void Log_Write_Current() ;
  static void Log_Write_Compass() ;
-   static void Log_Write_RC(void) ;
  static void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page) ;
  static void start_logging()  ;
  static void Log_Write_Startup(uint8_t type) ;
@@ -185,14 +160,13 @@
  static void Log_Write_Attitude() ;
  static void Log_Write_Compass() ;
  static void start_logging() ;
- static void Log_Write_RC(void) ;
-  static void load_parameters(void) ;
+   static void load_parameters(void) ;
  static void throttle_slew_limit(int16_t last_throttle) ;
  static bool auto_check_trigger(void) ;
  static void calc_throttle(float target_speed) ;
-  static void calc_lateral_acceleration() ;
- static void calc_nav_steer() ;
+  static void calc_nav_steer() ;
  static void set_servos(void) ;
+  static void demo_servos(uint8_t i) ;
   static void init_commands() ;
  static struct Location get_cmd_with_index(int i) ;
  static void set_cmd_with_index(struct Location temp, int i) ;
@@ -219,6 +193,10 @@
   static void do_jump() ;
   static void do_change_speed() ;
   static void do_set_home() ;
+  static void do_set_servo() ;
+  static void do_set_relay() ;
+  static void do_repeat_servo() ;
+  static void do_repeat_relay() ;
  static void do_take_picture() ;
  static void change_command(uint8_t cmd_index) ;
  static void update_commands(void) ;
@@ -226,18 +204,23 @@
    static void process_next_command() ;
  static void process_nav_cmd() ;
   static void process_non_nav_command() ;
-  static void delay(uint32_t ms) ;
-  static void mavlink_delay(uint32_t ms) ;
-  static uint32_t millis() ;
-  static uint32_t micros() ;
+  void delay(uint32_t ms) ;
+  void mavlink_delay(uint32_t ms) ;
+  uint32_t millis() ;
+  uint32_t micros() ;
+  void pinMode(uint8_t pin, uint8_t output) ;
+  void digitalWrite(uint8_t pin, uint8_t out) ;
+  uint8_t digitalRead(uint8_t pin) ;
   static void read_control_switch() ;
   static uint8_t readSwitch(void);
   static void reset_control_switch() ;
  static void read_trim_switch() ;
-   static void update_events(void) ;
- static void failsafe_check() ;
+ void failsafe_check(uint32_t tnow) ;
  static void navigate() ;
-   void reached_waypoint() ;
+   static void calc_bearing_error() ;
+  static void update_crosstrack(void) ;
+  static void reset_crosstrack() ;
+  void reached_waypoint() ;
  static void set_control_channels(void) ;
   static void init_rc_in() ;
   static void init_rc_out() ;
@@ -252,6 +235,7 @@
   static void report_batt_monitor() ;
  static void report_radio() ;
   static void report_gains() ;
+  static void report_xtrack() ;
   static void report_throttle() ;
   static void report_compass() ;
   static void report_modes() ;
@@ -266,21 +250,21 @@
   static void print_enabled(bool b) ;
   static void init_ardupilot() ;
  static void startup_ground(void) ;
- static void set_reverse(bool reverse) ;
   static void set_mode(enum mode mode) ;
  static void failsafe_trigger(uint8_t failsafe_type, bool on) ;
   static void startup_INS_ground(bool force_accel_level) ;
- static void update_notify() ;
-  static void resetPerfData(void) ;
+  static void update_GPS_light(void) ;
+   static void resetPerfData(void) ;
  static uint32_t map_baudrate(int8_t rate, uint32_t default_baud) ;
    static void check_usb_mux(void) ;
+ void flash_leds(bool on) ;
  uint16_t board_voltage(void) ;
+ static void reboot_apm(void) ;
  static uint8_t check_digital_pin(uint8_t pin) ;
  static void servo_write(uint8_t ch, uint16_t pwm) ;
- static bool should_log(uint32_t mask) ;
   static void print_hit_enter() ;
   static void test_wp_print(const struct Location *cmd, uint8_t wp_index) ;
-#line 115 "./APMRover2/APMrover2.pde"
+#line 95 "./APMRover2/APMrover2.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -310,9 +294,6 @@ static AP_Scheduler scheduler;
 // mapping between input channels
 static RCMapper rcmap;
 
-// board specific config
-static AP_BoardConfig BoardConfig;
-
 // primary control channels
 static RC_Channel *channel_steer;
 static RC_Channel *channel_throttle;
@@ -332,21 +313,16 @@ static DataFlash_APM1 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 static DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
-static DataFlash_File DataFlash("logs");
-//static DataFlash_SITL DataFlash;
+//static DataFlash_File DataFlash("/tmp/APMlogs");
+static DataFlash_SITL DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
-static DataFlash_File DataFlash("/fs/microsd/APM/LOGS");
-#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-static DataFlash_File DataFlash("logs");
+static DataFlash_File DataFlash("/fs/microsd/APM/logs");
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 static DataFlash_VRBRAIN DataFlash;
-#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-static DataFlash_REVOMINI DataFlash;
 #else
 DataFlash_Empty DataFlash;
 #endif
 
-static bool in_log_download;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Sensors
@@ -414,27 +390,15 @@ AP_GPS_HIL      g_gps_driver;
 AP_InertialSensor_MPU6000 ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_PX4
 AP_InertialSensor_PX4 ins;
-#elif CONFIG_INS_TYPE == CONFIG_INS_HIL
-AP_InertialSensor_HIL ins;
-#elif CONFIG_INS_TYPE == CONFIG_INS_FLYMAPLE
-AP_InertialSensor_Flymaple ins;
-#elif CONFIG_INS_TYPE == CONFIG_INS_L3G4200D
-AP_InertialSensor_L3G4200D ins;
+#elif CONFIG_INS_TYPE == CONFIG_INS_STUB
+AP_InertialSensor_Stub ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_OILPAN
 AP_InertialSensor_Oilpan ins( &adc );
 #else
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 
-AP_AHRS_DCM ahrs(ins, g_gps);
-
-static AP_L1_Control L1_controller(ahrs);
-
-// selected navigation controller
-static AP_Navigation *nav_controller = &L1_controller;
-
-// steering controller
-static AP_SteerController steerController(ahrs);
+AP_AHRS_DCM ahrs(&ins, g_gps);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 SITL sitl;
@@ -444,14 +408,17 @@ SITL sitl;
 // GCS selection
 ////////////////////////////////////////////////////////////////////////////////
 //
-static const uint8_t num_gcs = MAVLINK_COMM_NUM_BUFFERS;
-static GCS_MAVLINK gcs[MAVLINK_COMM_NUM_BUFFERS];
+GCS_MAVLINK	gcs0;
+GCS_MAVLINK	gcs3;
 
 // a pin for reading the receiver RSSI voltage. The scaling by 0.25 
 // is to take the 0 to 1024 range down to an 8 bit range for MAVLink
 AP_HAL::AnalogSource *rssi_analog_source;
 
 AP_HAL::AnalogSource *vcc_pin;
+
+AP_HAL::AnalogSource * batt_volt_pin;
+AP_HAL::AnalogSource * batt_curr_pin;
 
 ////////////////////////////////////////////////////////////////////////////////
 // SONAR selection
@@ -462,8 +429,6 @@ static AP_RangeFinder_analog sonar2;
 
 // relay support
 AP_Relay relay;
-
-AP_ServoRelayEvents ServoRelayEvents(relay);
 
 // Camera
 #if CAMERA == ENABLED
@@ -479,16 +444,17 @@ static struct 	Location current_loc;
 #if MOUNT == ENABLED
 // current_loc uses the baro/gps soloution for altitude rather than gps only.
 // mabe one could use current_loc for lat/lon too and eliminate g_gps alltogether?
-AP_Mount camera_mount(&current_loc, g_gps, ahrs, 0);
+AP_Mount camera_mount(&current_loc, g_gps, &ahrs, 0);
 #endif
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Global variables
 ////////////////////////////////////////////////////////////////////////////////
 
-// if USB is connected
+// APM2 only
+#if USB_MUX_PIN > 0
 static bool usb_connected;
+#endif
 
 /* Radio values
 		Channel assignments
@@ -530,11 +496,13 @@ static struct {
     uint32_t rc_override_timer;
     uint32_t start_time;
     uint8_t triggered;
-    uint32_t last_valid_rc_ms;
 } failsafe;
 
-// notification object for LEDs, buzzers etc (parameter set to false disables external leds)
-static AP_Notify notify;
+////////////////////////////////////////////////////////////////////////////////
+// LED output
+////////////////////////////////////////////////////////////////////////////////
+// state of the GPS light (on/off)
+static bool GPS_light;							
 
 ////////////////////////////////////////////////////////////////////////////////
 // GPS variables
@@ -564,6 +532,17 @@ const	float radius_of_earth 	= 6378100;	// meters
 // true if we have a position estimate from AHRS
 static bool have_position;
 
+// This is the currently calculated direction to fly.  
+// deg * 100 : 0 to 360
+static int32_t nav_bearing;
+// This is the direction to the next waypoint
+// deg * 100 : 0 to 360
+static int32_t target_bearing;	
+//This is the direction from the last waypoint to the next waypoint 
+// deg * 100 : 0 to 360
+static int32_t crosstrack_bearing;
+// A gain scaler to account for ground speed/headwind/tailwind
+static float	nav_gain_scaler 		= 1.0f;		
 static bool rtl_complete = false;
 
 // There may be two active commands in Auto mode.  
@@ -609,6 +588,15 @@ static float 	ground_speed = 0;
 static int16_t throttle_last = 0, throttle = 500;
 
 ////////////////////////////////////////////////////////////////////////////////
+// Location Errors
+////////////////////////////////////////////////////////////////////////////////
+// Difference between current bearing and desired bearing.  in centi-degrees
+static int32_t bearing_error_cd;
+
+// Distance perpandicular to the course line that we are off trackline.  Meters 
+static float	crosstrack_error;
+
+////////////////////////////////////////////////////////////////////////////////
 // CH7 control
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -623,13 +611,19 @@ static int8_t CH7_wp_index;
 ////////////////////////////////////////////////////////////////////////////////
 // Battery Sensors
 ////////////////////////////////////////////////////////////////////////////////
-static AP_BattMonitor battery;
+// Battery pack 1 voltage.  Initialized above the low voltage threshold to pre-load the filter and prevent low voltage events at startup.
+static float 	battery_voltage1 	= LOW_VOLTAGE * 1.05;
+// Battery pack 1 instantaneous currrent draw.  Amperes
+static float	current_amps1;
+// Totalized current (Amp-hours) from battery 1
+static float	current_total1;									
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Navigation control variables
 ////////////////////////////////////////////////////////////////////////////////
-// The instantaneous desired lateral acceleration in m/s/s
-static float lateral_acceleration;
+// The instantaneous desired steering angle.  Hundredths of a degree
+static int32_t nav_steer_cd;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Waypoint distances
@@ -638,6 +632,22 @@ static float lateral_acceleration;
 static float wp_distance;
 // Distance between previous and next waypoint.  Meters
 static int32_t wp_totalDistance;
+
+////////////////////////////////////////////////////////////////////////////////
+// repeating event control
+////////////////////////////////////////////////////////////////////////////////
+// Flag indicating current event type
+static uint8_t 		event_id;
+// when the event was started in ms
+static int32_t 		event_timer;
+// how long to delay the next firing of event in millis
+static uint16_t 	event_delay;					
+// how many times to cycle : -1 (or -2) = forever, 2 = do one cycle, 4 = do two cycles
+static int16_t 		event_repeat = 0;
+// per command value, such as PWM for servos
+static int16_t 		event_value; 
+// the value used to cycle events (alternate value to event_value)
+static int16_t 		event_undo_value;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Conditional command
@@ -684,58 +694,54 @@ static float G_Dt						= 0.02;
 // Timer used to accrue data and trigger recording of the performanc monitoring log message
 static int32_t 	perf_mon_timer;
 // The maximum main loop execution time recorded in the current performance monitoring interval
-static uint32_t 	G_Dt_max;
+static int16_t 	G_Dt_max = 0;
 // The number of gps fixes recorded in the current performance monitoring interval
 static uint8_t 	gps_fix_count = 0;
+// A variable used by developers to track performanc metrics.
+// Currently used to record the number of GCS heartbeat messages received
+static int16_t pmTest1 = 0;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // System Timers
 ////////////////////////////////////////////////////////////////////////////////
-// Time in microseconds of start of main control loop. 
-static uint32_t 	fast_loopTimer_us;
+// Time in miliseconds of start of main control loop.  Milliseconds
+static uint32_t 	fast_loopTimer;
+// Time Stamp when fast loop was complete.  Milliseconds
+static uint32_t 	fast_loopTimeStamp;
 // Number of milliseconds used in last main loop cycle
-static uint32_t		delta_us_fast_loop;
+static uint8_t 		delta_ms_fast_loop;
 // Counter of main loop executions.  Used for performance monitoring and failsafe processing
 static uint16_t			mainLoop_count;
 
-// set if we are driving backwards
-static bool in_reverse;
+// % MCU cycles used
+static float 			load;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
-  scheduler table - all regular tasks should be listed here, along
-  with how often they should be called (in 20ms units) and the maximum
-  time they are expected to take (in microseconds)
+  scheduler table - all regular tasks apart from the fast_loop()
+  should be listed here, along with how often they should be called
+  (in 20ms units) and the maximum time they are expected to take (in
+  microseconds)
  */
 static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
-	{ read_radio,             1,   1000 },
-    { ahrs_update,            1,   6400 },
-    { read_sonars,            1,   2000 },
-    { update_current_mode,    1,   1500 },
-    { set_servos,             1,   1500 },
-    { update_GPS_50Hz,        1,   2500 },
-    { update_GPS_10Hz,        5,   2500 },
+    { update_GPS,             5,   2500 },
     { navigate,               5,   1600 },
     { update_compass,         5,   2000 },
     { update_commands,        5,   1000 },
-    { update_logging1,        5,   1000 },
-    { update_logging2,        5,   1000 },
-    { gcs_retry_deferred,     1,   1000 },
-    { gcs_update,             1,   1700 },
-    { gcs_data_stream_send,   1,   3000 },
-    { read_control_switch,   15,   1000 },
-    { read_trim_switch,       5,   1000 },
+    { update_logging,         5,   1000 },
     { read_battery,           5,   1000 },
     { read_receiver_rssi,     5,   1000 },
-    { update_events,          1,   1000 },
+    { read_trim_switch,       5,   1000 },
+    { read_control_switch,   15,   1000 },
+    { update_events,         15,   1000 },
     { check_usb_mux,         15,   1000 },
-    { mount_update,           1,    600 },
-    { gcs_failsafe_check,     5,    600 },
+    { mount_update,           1,    500 },
+    { failsafe_check,         5,    500 },
     { compass_accumulate,     1,    900 },
-    { update_notify,          1,    300 },
     { one_second_loop,       50,   3000 }
 };
 
@@ -744,22 +750,16 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
   setup is called when the sketch starts
  */
 void setup() {
+	memcheck_init();
     cliSerial = hal.console;
 
     // load the default values of variables listed in var_info[]
     AP_Param::setup_sketch_defaults();
 
-    // rover does not use arming nor pre-arm checks
-    AP_Notify::flags.armed = true;
-    AP_Notify::flags.pre_arm_check = true;
-    AP_Notify::flags.failsafe_battery = false;
-
-    notify.init(false);
-
-    battery.init();
-
     rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE);
     vcc_pin = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
+    batt_volt_pin = hal.analogin->channel(g.battery_volt_pin);
+    batt_curr_pin = hal.analogin->channel(g.battery_curr_pin);
 
 	init_ardupilot();
 
@@ -772,48 +772,78 @@ void setup() {
  */
 void loop()
 {
-    // wait for an INS sample
-    if (!ins.wait_for_sample(1000)) {
-        return;
+    uint32_t timer = millis();
+
+    // We want this to execute at 50Hz, but synchronised with the gyro/accel
+    uint16_t num_samples = ins.num_samples_available();
+    if (num_samples >= 1) {
+		delta_ms_fast_loop	= timer - fast_loopTimer;
+		load                = (float)(fast_loopTimeStamp - fast_loopTimer)/delta_ms_fast_loop;
+		G_Dt                = (float)delta_ms_fast_loop / 1000.f;
+		fast_loopTimer      = timer;
+
+		mainLoop_count++;
+
+		// Execute the fast loop
+		// ---------------------
+		fast_loop();
+
+        // tell the scheduler one tick has passed
+        scheduler.tick();
+		fast_loopTimeStamp = millis();
+    } else {
+        uint16_t dt = timer - fast_loopTimer;
+        if (dt < 20) {
+            uint16_t time_to_next_loop = 20 - dt;
+            scheduler.run(time_to_next_loop * 1000U);
+        }
     }
-    uint32_t timer = hal.scheduler->micros();
-
-    delta_us_fast_loop	= timer - fast_loopTimer_us;
-    G_Dt                = delta_us_fast_loop * 1.0e-6f;
-    fast_loopTimer_us   = timer;
-
-	if (delta_us_fast_loop > G_Dt_max)
-		G_Dt_max = delta_us_fast_loop;
-
-    mainLoop_count++;
-
-    // tell the scheduler one tick has passed
-    scheduler.tick();
-
-    scheduler.run(19500U);
 }
 
-// update AHRS system
-static void ahrs_update()
+// Main loop 50Hz
+static void fast_loop()
 {
-#if HIL_MODE != HIL_MODE_DISABLED
-    // update hil before AHRS update
-    gcs_update();
-#endif
+	// This is the fast loop - we want it to execute at 50Hz if possible
+	// -----------------------------------------------------------------
+	if (delta_ms_fast_loop > G_Dt_max)
+		G_Dt_max = delta_ms_fast_loop;
 
-    // when in reverse we need to tell AHRS not to assume we are a
-    // 'fly forward' vehicle, otherwise it will see a large
-    // discrepancy between the mag and the GPS heading and will try to
-    // correct for it, leading to a large yaw error
-    ahrs.set_fly_forward(!in_reverse);
+	// Read radio
+	// ----------
+	read_radio();
 
-    ahrs.update();
+    // try to send any deferred messages if the serial port now has
+    // some space available
+    gcs_send_message(MSG_RETRY_DEFERRED);
 
-    if (should_log(MASK_LOG_ATTITUDE_FAST))
+	#if HIL_MODE != HIL_MODE_DISABLED
+		// update hil before dcm update
+		gcs_update();
+	#endif
+
+	ahrs.update();
+
+    read_sonars();
+
+	// uses the yaw from the DCM to give more accurate turns
+	calc_bearing_error();
+
+    if (g.log_bitmask & MASK_LOG_ATTITUDE_FAST)
         Log_Write_Attitude();
 
-    if (should_log(MASK_LOG_IMU))
-        DataFlash.Log_Write_IMU(ins);
+    if (g.log_bitmask & MASK_LOG_IMU)
+        DataFlash.Log_Write_IMU(&ins);
+
+	// custom code/exceptions for flight modes
+	// ---------------------------------------
+	update_current_mode();
+
+	// write out the servo PWM values
+	// ------------------------------
+	set_servos();
+
+    gcs_update();
+    gcs_data_stream_send();
 }
 
 /*
@@ -832,11 +862,9 @@ static void mount_update(void)
 /*
   check for GCS failsafe - 10Hz
  */
-static void gcs_failsafe_check(void)
+static void failsafe_check(void)
 {
-	if (g.fs_gcs_enabled) {
-        failsafe_trigger(FAILSAFE_EVENT_GCS, last_heartbeat_ms != 0 && (millis() - last_heartbeat_ms) > 2000);
-    }
+    failsafe_trigger(FAILSAFE_EVENT_GCS, last_heartbeat_ms != 0 && (millis() - last_heartbeat_ms) > 2000);
 }
 
 /*
@@ -858,7 +886,7 @@ static void update_compass(void)
         ahrs.set_compass(&compass);
         // update offsets
         compass.null_offsets();
-        if (should_log(MASK_LOG_COMPASS)) {
+        if (g.log_bitmask & MASK_LOG_COMPASS) {
             Log_Write_Compass();
         }
     } else {
@@ -869,31 +897,16 @@ static void update_compass(void)
 /*
   log some key data - 10Hz
  */
-static void update_logging1(void)
+static void update_logging(void)
 {
-    if (should_log(MASK_LOG_ATTITUDE_MED) && !should_log(MASK_LOG_ATTITUDE_FAST))
+    if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
         Log_Write_Attitude();
     
-    if (should_log(MASK_LOG_CTUN))
+    if (g.log_bitmask & MASK_LOG_CTUN)
         Log_Write_Control_Tuning();
 
-    if (should_log(MASK_LOG_NTUN))
+    if (g.log_bitmask & MASK_LOG_NTUN)
         Log_Write_Nav_Tuning();
-}
-
-/*
-  log some key data - 10Hz
- */
-static void update_logging2(void)
-{
-    if (should_log(MASK_LOG_STEERING)) {
-        if (control_mode == STEERING || control_mode == AUTO || control_mode == RTL || control_mode == GUIDED) {
-            Log_Write_Steering();
-        }
-    }
-
-    if (should_log(MASK_LOG_RC))
-        Log_Write_RC();
 }
 
 
@@ -915,13 +928,12 @@ static void update_aux(void)
     camera_mount.update_mount_type();
 #endif
 }
-
 /*
   once a second events
  */
 static void one_second_loop(void)
 {
-	if (should_log(MASK_LOG_CURRENT))
+	if (g.log_bitmask & MASK_LOG_CURRENT)
 		Log_Write_Current();
 	// send a heartbeat
 	gcs_send_message(MSG_HEARTBEAT);
@@ -946,13 +958,9 @@ static void one_second_loop(void)
     counter++;
 
     // write perf data every 20s
-    if (counter % 10 == 0) {
-        if (scheduler.debug() != 0) {
-            hal.console->printf_P(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
-        }
-        if (should_log(MASK_LOG_PM))
+    if (counter == 20) {
+        if (g.log_bitmask & MASK_LOG_PM)
             Log_Write_Performance();
-        G_Dt_max = 0;
         resetPerfData();
     }
 
@@ -965,23 +973,20 @@ static void one_second_loop(void)
     }
 }
 
-static void update_GPS_50Hz(void)
+static void update_GPS(void)
 {        
     static uint32_t last_gps_reading;
 	g_gps->update();
+	update_GPS_light();
 
     if (g_gps->last_message_time_ms() != last_gps_reading) {
         last_gps_reading = g_gps->last_message_time_ms();
-        if (should_log(MASK_LOG_GPS)) {
+        if (g.log_bitmask & MASK_LOG_GPS) {
             DataFlash.Log_Write_GPS(g_gps, current_loc.alt);
         }
     }
-}
 
-
-static void update_GPS_10Hz(void)
-{        
-    have_position = ahrs.get_projected_position(current_loc);
+    have_position = ahrs.get_projected_position(&current_loc);
 
 	if (g_gps->new_data && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
 		gps_fix_count++;
@@ -999,10 +1004,6 @@ static void update_GPS_10Hz(void)
 
 			} else {
                 init_home();
-
-                // set system clock for log timestamps
-                hal.util->set_system_clock(g_gps->time_epoch_usec());
-
 				if (g.compass_enabled) {
 					// Set compass declination automatically
 					compass.set_initial_location(g_gps->latitude, g_gps->longitude);
@@ -1026,40 +1027,23 @@ static void update_current_mode(void)
     case AUTO:
     case RTL:
     case GUIDED:
-        set_reverse(false);
-        calc_lateral_acceleration();
         calc_nav_steer();
         calc_throttle(g.speed_cruise);
         break;
 
-    case STEERING: {
+    case STEERING:
         /*
-          in steering mode we control lateral acceleration
-          directly. We first calculate the maximum lateral
-          acceleration at full steering lock for this speed. That is
-          V^2/R where R is the radius of turn. We get the radius of
-          turn from half the STEER2SRV_P.
+          in steering mode we control the bearing error, which gives
+          the same type of steering control as auto mode. The throttle
+          controls the target speed, in proportion to the throttle
          */
-        float max_g_force = ground_speed * ground_speed / steerController.get_turn_radius();
-
-        // constrain to user set TURN_MAX_G
-        max_g_force = constrain_float(max_g_force, 0.1f, g.turn_max_g * GRAVITY_MSS);
-
-        lateral_acceleration = max_g_force * (channel_steer->pwm_to_angle()/4500.0f);
+        bearing_error_cd = channel_steer->pwm_to_angle();
         calc_nav_steer();
 
-        // and throttle gives speed in proportion to cruise speed, up
-        // to 50% throttle, then uses nudging above that.
-        float target_speed = channel_throttle->pwm_to_angle() * 0.01 * 2 * g.speed_cruise;
-        set_reverse(target_speed < 0);
-        if (in_reverse) {
-            target_speed = constrain_float(target_speed, -g.speed_cruise, 0);
-        } else {
-            target_speed = constrain_float(target_speed, 0, g.speed_cruise);
-        }
-        calc_throttle(target_speed);
+        /* we need to reset the I term or it will build up */
+        g.pidNavSteer.reset_I();
+        calc_throttle(channel_throttle->pwm_to_angle() * 0.01 * g.speed_cruise);
         break;
-    }
 
     case LEARNING:
     case MANUAL:
@@ -1071,17 +1055,12 @@ static void update_current_mode(void)
          */
         channel_throttle->servo_out = channel_throttle->control_in;
         channel_steer->servo_out = channel_steer->pwm_to_angle();
-
-        // mark us as in_reverse when using a negative throttle to
-        // stop AHRS getting off
-        set_reverse(channel_throttle->servo_out < 0);
         break;
 
     case HOLD:
         // hold position - stop motors and center steering
         channel_throttle->servo_out = 0;
         channel_steer->servo_out = 0;
-        set_reverse(false);
         break;
 
     case INITIALISING:
@@ -1106,8 +1085,8 @@ static void update_navigation()
     case RTL:
     case GUIDED:
         // no loitering around the wp with the rover, goes direct to the wp position
-        calc_lateral_acceleration();
         calc_nav_steer();
+        calc_bearing_error();
         if (verify_RTL()) {  
             channel_throttle->servo_out = g.throttle_min.get();
             set_mode(HOLD);
@@ -1120,17 +1099,11 @@ AP_HAL_MAIN();
 #line 1 "./APMRover2/GCS_Mavlink.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// default sensors are present and healthy: gyro, accelerometer, rate_control, attitude_stabilization, yaw_position, altitude control, x/y position control, motor_control
-#define MAVLINK_SENSOR_PRESENT_DEFAULT (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL | MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL | MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION | MAV_SYS_STATUS_SENSOR_YAW_POSITION | MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL | MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS)
-
 // use this to prevent recursion during sensor init
 static bool in_mavlink_delay;
 
 // true when we have received at least 1 MAVLink packet
 static bool mavlink_active;
-
-// true if we are out of time in our event timeslice
-static bool	gcs_out_of_time;
 
 // check if a message will fit in the payload space available
 #define CHECK_PAYLOAD_SIZE(id) if (payload_space < MAVLINK_MSG_ID_## id ##_LEN) return false
@@ -1230,23 +1203,34 @@ static NOINLINE void send_attitude(mavlink_channel_t chan)
 
 static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t packet_drops)
 {
-    uint32_t control_sensors_present;
+    uint32_t control_sensors_present = 0;
     uint32_t control_sensors_enabled;
     uint32_t control_sensors_health;
 
-    // default sensors present
-    control_sensors_present = MAVLINK_SENSOR_PRESENT_DEFAULT;
-
     // first what sensors/controllers we have
+    control_sensors_present |= (1<<0); // 3D gyro present
+    control_sensors_present |= (1<<1); // 3D accelerometer present
     if (g.compass_enabled) {
-        control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG; // compass present
+        control_sensors_present |= (1<<2); // compass present
     }
-    if (g_gps != NULL && g_gps->status() > GPS::NO_GPS) {
-        control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
+    control_sensors_present |= (1<<3); // absolute pressure sensor present
+    if (g_gps != NULL && g_gps->status() >= GPS::NO_FIX) {
+        control_sensors_present |= (1<<5); // GPS present
     }
+    control_sensors_present |= (1<<10); // 3D angular rate control
+    control_sensors_present |= (1<<11); // attitude stabilisation
+    control_sensors_present |= (1<<12); // yaw position
+    control_sensors_present |= (1<<13); // altitude control
+    control_sensors_present |= (1<<14); // X/Y position control
+    control_sensors_present |= (1<<15); // motor control
 
-    // all present sensors enabled by default except rate control, attitude stabilization, yaw, altitude, position control and motor output which we will set individually
-    control_sensors_enabled = control_sensors_present & (~MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL & ~MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION & ~MAV_SYS_STATUS_SENSOR_YAW_POSITION & ~MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL & ~MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS);
+    // now what sensors/controllers are enabled
+
+    // first the sensors
+    control_sensors_enabled = control_sensors_present & 0x1FF;
+
+    // now the controllers
+    control_sensors_enabled = control_sensors_present & 0x1FF;
 
     switch (control_mode) {
     case MANUAL:
@@ -1255,42 +1239,50 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
 
     case LEARNING:
     case STEERING:
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL; // 3D angular rate control
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION; // attitude stabilisation
+        control_sensors_enabled |= (1<<10); // 3D angular rate control
+        control_sensors_enabled |= (1<<11); // attitude stabilisation
         break;
 
     case AUTO:
     case RTL:
     case GUIDED:
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL; // 3D angular rate control
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION; // attitude stabilisation
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_YAW_POSITION; // yaw position
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL; // X/Y position control
-        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS; // motor control
+        control_sensors_enabled |= (1<<10); // 3D angular rate control
+        control_sensors_enabled |= (1<<11); // attitude stabilisation
+        control_sensors_enabled |= (1<<12); // yaw position
+        control_sensors_enabled |= (1<<13); // altitude control
+        control_sensors_enabled |= (1<<14); // X/Y position control
+        control_sensors_enabled |= (1<<15); // motor control
         break;
 
     case INITIALISING:
         break;
     }
 
-    // default to all healthy except compass and gps which we set individually
-    control_sensors_health = control_sensors_present & (~MAV_SYS_STATUS_SENSOR_3D_MAG & ~MAV_SYS_STATUS_SENSOR_GPS);
-    if (g.compass_enabled && compass.healthy() && ahrs.use_compass()) {
-        control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
+    // at the moment all sensors/controllers are assumed healthy
+    control_sensors_health = control_sensors_present;
+
+    if (!compass.healthy) {
+        control_sensors_health &= ~(1<<2); // compass
     }
-    if (g_gps != NULL && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
-        control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
-    }
-    if (!ins.healthy()) {
-        control_sensors_health &= ~(MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL);
+    if (!compass.use_for_yaw()) {
+        control_sensors_enabled &= ~(1<<2); // compass
     }
 
-    int16_t battery_current = -1;
-    int8_t battery_remaining = -1;
+    uint16_t battery_current = -1;
+    uint8_t  battery_remaining = -1;
 
-    if (battery.monitoring() == AP_BATT_MONITOR_VOLTAGE_AND_CURRENT) {
-        battery_remaining = battery.capacity_remaining_pct();
-        battery_current = battery.current_amps() * 100;
+    if (current_total1 != 0 && g.pack_capacity != 0) {
+        battery_remaining = (100.0 * (g.pack_capacity - current_total1) / g.pack_capacity);
+    }
+    if (current_total1 != 0) {
+        battery_current = current_amps1 * 100;
+    }
+
+    if (g.battery_monitoring == 3) {
+        /*setting a out-of-range value.
+         *  It informs to external devices that
+         *  it cannot be calculated properly just by voltage*/
+        battery_remaining = 150;
     }
 
     mavlink_msg_sys_status_send(
@@ -1298,14 +1290,22 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
         control_sensors_present,
         control_sensors_enabled,
         control_sensors_health,
-        (uint16_t)(scheduler.load_average(20000) * 1000),
-        battery.voltage() * 1000, // mV
+        (uint16_t)(load * 1000),
+        battery_voltage1 * 1000, // mV
         battery_current,        // in 10mA units
         battery_remaining,      // in %
         0, // comm drops %,
         0, // comm drops in pkts,
         0, 0, 0, 0);
 
+}
+
+static void NOINLINE send_meminfo(mavlink_channel_t chan)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2
+    extern unsigned __brkval;
+    mavlink_msg_meminfo_send(chan, __brkval, memcheck_available_memory());
+#endif
 }
 
 static void NOINLINE send_location(mavlink_channel_t chan)
@@ -1336,16 +1336,17 @@ static void NOINLINE send_location(mavlink_channel_t chan)
 
 static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
 {
+    int16_t bearing = nav_bearing / 100;
     mavlink_msg_nav_controller_output_send(
         chan,
-        lateral_acceleration, // use nav_roll to hold demanded Y accel
-        g_gps->ground_speed_cm * 0.01f * ins.get_gyro().z, // use nav_pitch to hold actual Y accel
-        nav_controller->nav_bearing_cd() * 0.01f,
-        nav_controller->target_bearing_cd() * 0.01f,
+        nav_steer_cd / 1.0e2,
+        0,
+        bearing,
+        target_bearing / 100,
         wp_distance,
         0,
         groundspeed_error,
-        nav_controller->crosstrack_error());
+        crosstrack_error);
 }
 
 static void NOINLINE send_gps_raw(mavlink_channel_t chan)
@@ -1364,16 +1365,6 @@ static void NOINLINE send_gps_raw(mavlink_channel_t chan)
         g_gps->num_sats);
 }
 
-static void NOINLINE send_system_time(mavlink_channel_t chan)
-{
-    mavlink_msg_system_time_send(
-        chan,
-        g_gps->time_epoch_usec(),
-        hal.scheduler->millis());
-}
-
-
-#if HIL_MODE != HIL_MODE_DISABLED
 static void NOINLINE send_servo_out(mavlink_channel_t chan)
 {
     // normalized values scaled to -10000 to 10000
@@ -1393,7 +1384,6 @@ static void NOINLINE send_servo_out(mavlink_channel_t chan)
         0,
         receiver_rssi);
 }
-#endif
 
 static void NOINLINE send_radio_in(mavlink_channel_t chan)
 {
@@ -1450,16 +1440,15 @@ static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
         (float)g_gps->ground_speed_cm / 100.0,
         (float)g_gps->ground_speed_cm / 100.0,
         (ahrs.yaw_sensor / 100) % 360,
-        (uint16_t)(100 * fabsf(channel_throttle->norm_output())),
+        (uint16_t)(100 * channel_throttle->norm_output()),
         current_loc.alt / 100.0,
         0);
 }
 
 static void NOINLINE send_raw_imu1(mavlink_channel_t chan)
 {
-    const Vector3f &accel = ins.get_accel();
-    const Vector3f &gyro = ins.get_gyro();
-    const Vector3f &mag = compass.get_field();
+    Vector3f accel = ins.get_accel();
+    Vector3f gyro = ins.get_gyro();
 
     mavlink_msg_raw_imu_send(
         chan,
@@ -1470,37 +1459,16 @@ static void NOINLINE send_raw_imu1(mavlink_channel_t chan)
         gyro.x * 1000.0,
         gyro.y * 1000.0,
         gyro.z * 1000.0,
-        mag.x,
-        mag.y,
-        mag.z);
-
-    if (ins.get_gyro_count() <= 1 &&
-        ins.get_accel_count() <= 1 &&
-        compass.get_count() <= 1) {
-        return;
-    }
-    const Vector3f &accel2 = ins.get_accel(1);
-    const Vector3f &gyro2 = ins.get_gyro(1);
-    const Vector3f &mag2 = compass.get_field(1);
-    mavlink_msg_scaled_imu2_send(
-        chan,
-        millis(),
-        accel2.x * 1000.0f / GRAVITY_MSS,
-        accel2.y * 1000.0f / GRAVITY_MSS,
-        accel2.z * 1000.0f / GRAVITY_MSS,
-        gyro2.x * 1000.0f,
-        gyro2.y * 1000.0f,
-        gyro2.z * 1000.0f,
-        mag2.x,
-        mag2.y,
-        mag2.z);        
+        compass.mag_x,
+        compass.mag_y,
+        compass.mag_z);
 }
 
 static void NOINLINE send_raw_imu3(mavlink_channel_t chan)
 {
-    const Vector3f &mag_offsets = compass.get_offsets();
-    const Vector3f &accel_offsets = ins.get_accel_offsets();
-    const Vector3f &gyro_offsets = ins.get_gyro_offsets();
+    Vector3f mag_offsets = compass.get_offsets();
+    Vector3f accel_offsets = ins.get_accel_offsets();
+    Vector3f gyro_offsets = ins.get_gyro_offsets();
 
     mavlink_msg_sensor_offsets_send(chan,
                                     mag_offsets.x,
@@ -1518,7 +1486,7 @@ static void NOINLINE send_raw_imu3(mavlink_channel_t chan)
 
 static void NOINLINE send_ahrs(mavlink_channel_t chan)
 {
-    const Vector3f &omega_I = ahrs.get_gyro_drift();
+    Vector3f omega_I = ahrs.get_gyro_drift();
     mavlink_msg_ahrs_send(
         chan,
         omega_I.x,
@@ -1586,7 +1554,7 @@ static void NOINLINE send_current_waypoint(mavlink_channel_t chan)
 
 static void NOINLINE send_statustext(mavlink_channel_t chan)
 {
-    mavlink_statustext_t *s = &gcs[chan-MAVLINK_COMM_0].pending_status;
+    mavlink_statustext_t *s = (chan == MAVLINK_COMM_0?&gcs0.pending_status:&gcs3.pending_status);
     mavlink_msg_statustext_send(
         chan,
         s->severity,
@@ -1600,13 +1568,22 @@ static bool telemetry_delayed(mavlink_channel_t chan)
     if (tnow > (uint32_t)g.telem_delay) {
         return false;
     }
-    if (chan == MAVLINK_COMM_0 && hal.gpio->usb_connected()) {
-        // this is USB telemetry, so won't be an Xbee
+#if USB_MUX_PIN > 0
+    if (chan == MAVLINK_COMM_0 && usb_connected) {
+        // this is an APM2 with USB telemetry
         return false;
     }
     // we're either on the 2nd UART, or no USB cable is connected
-    // we need to delay telemetry by the TELEM_DELAY time
+    // we need to delay telemetry
     return true;
+#else
+    if (chan == MAVLINK_COMM_0) {
+        // we're on the USB port
+        return false;
+    }
+    // don't send telemetry yet
+    return true;
+#endif
 }
 
 
@@ -1619,18 +1596,9 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         return false;
     }
 
-    // if we don't have at least 1ms remaining before the main loop
-    // wants to fire then don't send a mavlink message. We want to
-    // prioritise the main flight control loop over communications
-    if (!in_mavlink_delay && scheduler.time_available_usec() < 1200) {
-        gcs_out_of_time = true;
-        return false;
-    }
-
     switch (id) {
     case MSG_HEARTBEAT:
         CHECK_PAYLOAD_SIZE(HEARTBEAT);
-        gcs[chan-MAVLINK_COMM_0].last_heartbeat_time = hal.scheduler->millis();        
         send_heartbeat(chan);
         return true;
 
@@ -1641,7 +1609,7 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
 
     case MSG_EXTENDED_STATUS2:
         CHECK_PAYLOAD_SIZE(MEMINFO);
-        gcs[chan-MAVLINK_COMM_0].send_meminfo();
+        send_meminfo(chan);
         break;
 
     case MSG_ATTITUDE:
@@ -1666,16 +1634,9 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_gps_raw(chan);
         break;
 
-    case MSG_SYSTEM_TIME:
-        CHECK_PAYLOAD_SIZE(SYSTEM_TIME);
-        send_system_time(chan);
-        break;
-
     case MSG_SERVO_OUT:
-#if HIL_MODE != HIL_MODE_DISABLED
         CHECK_PAYLOAD_SIZE(RC_CHANNELS_SCALED);
         send_servo_out(chan);
-#endif
         break;
 
     case MSG_RADIO_IN:
@@ -1710,12 +1671,20 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
 
     case MSG_NEXT_PARAM:
         CHECK_PAYLOAD_SIZE(PARAM_VALUE);
-        gcs[chan-MAVLINK_COMM_0].queued_param_send();
+        if (chan == MAVLINK_COMM_0) {
+            gcs0.queued_param_send();
+        } else if (gcs3.initialised) {
+            gcs3.queued_param_send();
+        }
         break;
 
     case MSG_NEXT_WAYPOINT:
         CHECK_PAYLOAD_SIZE(MISSION_REQUEST);
-        gcs[chan-MAVLINK_COMM_0].queued_waypoint_send();
+        if (chan == MAVLINK_COMM_0) {
+            gcs0.queued_waypoint_send();
+        } else if (gcs3.initialised) {
+            gcs3.queued_waypoint_send();
+        }
         break;
 
     case MSG_STATUSTEXT:
@@ -1743,18 +1712,9 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
         send_rangefinder(chan);
         break;
 
-    case MSG_RAW_IMU2:
-    case MSG_LIMITS_STATUS:
-    case MSG_FENCE_STATUS:
-    case MSG_WIND:
-        // unused
-        break;
-
     case MSG_RETRY_DEFERRED:
         break; // just here to prevent a warning
 	}
-
-    
     return true;
 }
 
@@ -1764,7 +1724,7 @@ static struct mavlink_queue {
     enum ap_message deferred_messages[MAX_DEFERRED_MESSAGES];
     uint8_t next_deferred_message;
     uint8_t num_deferred_messages;
-} mavlink_queue[MAVLINK_COMM_NUM_BUFFERS];
+} mavlink_queue[2];
 
 // send a message using mavlink
 static void mavlink_send_message(mavlink_channel_t chan, enum ap_message id, uint16_t packet_drops)
@@ -1826,7 +1786,7 @@ void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char
 
     if (severity == SEVERITY_LOW) {
         // send via the deferred queuing system
-        mavlink_statustext_t *s = &gcs[chan-MAVLINK_COMM_0].pending_status;
+        mavlink_statustext_t *s = (chan == MAVLINK_COMM_0?&gcs0.pending_status:&gcs3.pending_status);
         s->severity = (uint8_t)severity;
         strncpy((char *)s->text, str, sizeof(s->text));
         mavlink_send_message(chan, MSG_STATUSTEXT, 0);
@@ -1836,93 +1796,41 @@ void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char
     }
 }
 
-/*
-  default stream rates to 1Hz
- */
 const AP_Param::GroupInfo GCS_MAVLINK::var_info[] PROGMEM = {
-    // @Param: RAW_SENS
-    // @DisplayName: Raw sensor stream rate
-    // @Description: Raw sensor stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("RAW_SENS", 0, GCS_MAVLINK, streamRates[0],  1),
-
-    // @Param: EXT_STAT
-    // @DisplayName: Extended status stream rate to ground station
-    // @Description: Extended status stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("EXT_STAT", 1, GCS_MAVLINK, streamRates[1],  1),
-
-    // @Param: RC_CHAN
-    // @DisplayName: RC Channel stream rate to ground station
-    // @Description: RC Channel stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("RC_CHAN",  2, GCS_MAVLINK, streamRates[2],  1),
-
-    // @Param: RAW_CTRL
-    // @DisplayName: Raw Control stream rate to ground station
-    // @Description: Raw Control stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("RAW_CTRL", 3, GCS_MAVLINK, streamRates[3],  1),
-
-    // @Param: POSITION
-    // @DisplayName: Position stream rate to ground station
-    // @Description: Position stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("POSITION", 4, GCS_MAVLINK, streamRates[4],  1),
-
-    // @Param: EXTRA1
-    // @DisplayName: Extra data type 1 stream rate to ground station
-    // @Description: Extra data type 1 stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("EXTRA1",   5, GCS_MAVLINK, streamRates[5],  1),
-
-    // @Param: EXTRA2
-    // @DisplayName: Extra data type 2 stream rate to ground station
-    // @Description: Extra data type 2 stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("EXTRA2",   6, GCS_MAVLINK, streamRates[6],  1),
-
-    // @Param: EXTRA3
-    // @DisplayName: Extra data type 3 stream rate to ground station
-    // @Description: Extra data type 3 stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("EXTRA3",   7, GCS_MAVLINK, streamRates[7],  1),
-
-    // @Param: PARAMS
-    // @DisplayName: Parameter stream rate to ground station
-    // @Description: Parameter stream rate to ground station
-    // @Units: Hz
-    // @Range: 0 10
-    // @Increment: 1
-    // @User: Advanced
-    AP_GROUPINFO("PARAMS",   8, GCS_MAVLINK, streamRates[8],  10),
+    AP_GROUPINFO("RAW_SENS", 0, GCS_MAVLINK, streamRateRawSensors,      0),
+	AP_GROUPINFO("EXT_STAT", 1, GCS_MAVLINK, streamRateExtendedStatus,  0),
+    AP_GROUPINFO("RC_CHAN",  2, GCS_MAVLINK, streamRateRCChannels,      0),
+	AP_GROUPINFO("RAW_CTRL", 3, GCS_MAVLINK, streamRateRawController,   0),
+	AP_GROUPINFO("POSITION", 4, GCS_MAVLINK, streamRatePosition,        0),
+	AP_GROUPINFO("EXTRA1",   5, GCS_MAVLINK, streamRateExtra1,          0),
+	AP_GROUPINFO("EXTRA2",   6, GCS_MAVLINK, streamRateExtra2,          0),
+	AP_GROUPINFO("EXTRA3",   7, GCS_MAVLINK, streamRateExtra3,          0),
+	AP_GROUPINFO("PARAMS",   8, GCS_MAVLINK, streamRateParams,          0),
     AP_GROUPEND
 };
 
+
+GCS_MAVLINK::GCS_MAVLINK() :
+    packet_drops(0),
+    waypoint_send_timeout(1000), // 1 second
+    waypoint_receive_timeout(1000) // 1 second
+{
+}
+
+void
+GCS_MAVLINK::init(AP_HAL::UARTDriver *port)
+{
+    GCS_Class::init(port);
+    if (port == (AP_HAL::BetterStream*)hal.uartA) {
+        mavlink_comm_0_port = port;
+        chan = MAVLINK_COMM_0;
+    }else{
+        mavlink_comm_1_port = port;
+        chan = MAVLINK_COMM_1;
+    }
+    _queued_parameter = NULL;
+    reset_cli_timeout();
+}
 
 void
 GCS_MAVLINK::update(void)
@@ -1933,8 +1841,7 @@ GCS_MAVLINK::update(void)
 	status.packet_rx_drop_count = 0;
 
     // process received bytes
-    uint16_t nbytes = comm_get_available(chan);
-    for (uint16_t i=0; i<nbytes; i++)
+    while (comm_get_available(chan))
     {
         uint8_t c = comm_receive_ch(chan);
 
@@ -1958,7 +1865,7 @@ GCS_MAVLINK::update(void)
         if (mavlink_parse_char(chan, c, &msg, &status)) {
             // we exclude radio packets to make it possible to use the
             // CLI over the radio
-            if (msg.msgid != MAVLINK_MSG_ID_RADIO && msg.msgid != MAVLINK_MSG_ID_RADIO_STATUS) {
+            if (msg.msgid != MAVLINK_MSG_ID_RADIO) {
                 mavlink_active = true;
             }
             handleMessage(&msg);
@@ -1990,15 +1897,12 @@ GCS_MAVLINK::update(void)
 // see if we should send a stream now. Called at 50Hz
 bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
 {
-    if (stream_num >= NUM_STREAMS) {
-        return false;
-    }
-    float rate = (uint8_t)streamRates[stream_num].get();
+    AP_Int16 *stream_rates = &streamRateRawSensors;
+    float rate = (uint8_t)stream_rates[stream_num].get();
 
     // send at a much lower rate while handling waypoints and
     // parameter sends
-    if ((stream_num != STREAM_PARAMS) && 
-        (waypoint_receiving || _queued_parameter != NULL)) {
+    if (waypoint_receiving || _queued_parameter != NULL) {
         rate *= 0.25;
     }
 
@@ -2023,22 +1927,14 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
 void
 GCS_MAVLINK::data_stream_send(void)
 {
-    gcs_out_of_time = false;
-
-    if (!in_mavlink_delay) {
-        handle_log_send(DataFlash);
-    }
-
     if (_queued_parameter != NULL) {
-        if (streamRates[STREAM_PARAMS].get() <= 0) {
-            streamRates[STREAM_PARAMS].set(10);
+        if (streamRateParams.get() <= 0) {
+            streamRateParams.set(50);
         }
         if (stream_trigger(STREAM_PARAMS)) {
             send_message(MSG_NEXT_PARAM);
         }
     }
-
-    if (gcs_out_of_time) return;
 
     if (in_mavlink_delay) {
 #if HIL_MODE != HIL_MODE_DISABLED
@@ -2056,14 +1952,10 @@ GCS_MAVLINK::data_stream_send(void)
         return;
     }
 
-    if (gcs_out_of_time) return;
-
     if (stream_trigger(STREAM_RAW_SENSORS)) {
         send_message(MSG_RAW_IMU1);
         send_message(MSG_RAW_IMU3);
     }
-
-    if (gcs_out_of_time) return;
 
     if (stream_trigger(STREAM_EXTENDED_STATUS)) {
         send_message(MSG_EXTENDED_STATUS1);
@@ -2073,46 +1965,33 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_NAV_CONTROLLER_OUTPUT);
     }
 
-    if (gcs_out_of_time) return;
-
     if (stream_trigger(STREAM_POSITION)) {
         // sent with GPS read
         send_message(MSG_LOCATION);
     }
 
-    if (gcs_out_of_time) return;
-
     if (stream_trigger(STREAM_RAW_CONTROLLER)) {
         send_message(MSG_SERVO_OUT);
     }
-
-    if (gcs_out_of_time) return;
 
     if (stream_trigger(STREAM_RC_CHANNELS)) {
         send_message(MSG_RADIO_OUT);
         send_message(MSG_RADIO_IN);
     }
 
-    if (gcs_out_of_time) return;
-
     if (stream_trigger(STREAM_EXTRA1)) {
         send_message(MSG_ATTITUDE);
         send_message(MSG_SIMSTATE);
     }
 
-    if (gcs_out_of_time) return;
-
     if (stream_trigger(STREAM_EXTRA2)) {
         send_message(MSG_VFR_HUD);
     }
-
-    if (gcs_out_of_time) return;
 
     if (stream_trigger(STREAM_EXTRA3)) {
         send_message(MSG_AHRS);
         send_message(MSG_HWSTATUS);
         send_message(MSG_RANGEFINDER);
-        send_message(MSG_SYSTEM_TIME);
     }
 }
 
@@ -2166,35 +2045,55 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             switch(packet.req_stream_id){
 
                 case MAV_DATA_STREAM_ALL:
-            // note that we don't set STREAM_PARAMS - that is internal only
-            for (uint8_t i=0; i<STREAM_PARAMS; i++) {
-                streamRates[i].set_and_save_ifchanged(freq);
-            }
+                    streamRateRawSensors.set_and_save_ifchanged(freq);
+                    streamRateExtendedStatus.set_and_save_ifchanged(freq);
+                    streamRateRCChannels.set_and_save_ifchanged(freq);
+                    streamRateRawController.set_and_save_ifchanged(freq);
+                    streamRatePosition.set_and_save_ifchanged(freq);
+                    streamRateExtra1.set_and_save_ifchanged(freq);
+                    streamRateExtra2.set_and_save_ifchanged(freq);
+                    streamRateExtra3.set_and_save_ifchanged(freq);
                     break;
 
                 case MAV_DATA_STREAM_RAW_SENSORS:
-            streamRates[STREAM_RAW_SENSORS].set_and_save_ifchanged(freq);
+            if (freq <= 5) {
+                streamRateRawSensors.set_and_save_ifchanged(freq);
+            } else {
+                // We do not set and save this one so that if HIL is shut down incorrectly
+														// we will not continue to broadcast raw sensor data at 50Hz.
+                streamRateRawSensors = freq;
+            }
                     break;
+
                 case MAV_DATA_STREAM_EXTENDED_STATUS:
-            streamRates[STREAM_EXTENDED_STATUS].set_and_save_ifchanged(freq);
+                    streamRateExtendedStatus.set_and_save_ifchanged(freq);
                     break;
+
                 case MAV_DATA_STREAM_RC_CHANNELS:
-            streamRates[STREAM_RC_CHANNELS].set_and_save_ifchanged(freq);
+                    streamRateRCChannels.set_and_save_ifchanged(freq);
                     break;
+
                 case MAV_DATA_STREAM_RAW_CONTROLLER:
-            streamRates[STREAM_RAW_CONTROLLER].set_and_save_ifchanged(freq);
+                    streamRateRawController.set_and_save_ifchanged(freq);
                     break;
+
                 case MAV_DATA_STREAM_POSITION:
-            streamRates[STREAM_POSITION].set_and_save_ifchanged(freq);
+                    streamRatePosition.set_and_save_ifchanged(freq);
                     break;
+
                 case MAV_DATA_STREAM_EXTRA1:
-            streamRates[STREAM_EXTRA1].set_and_save_ifchanged(freq);
+                    streamRateExtra1.set_and_save_ifchanged(freq);
                     break;
+
                 case MAV_DATA_STREAM_EXTRA2:
-            streamRates[STREAM_EXTRA2].set_and_save_ifchanged(freq);
+                    streamRateExtra2.set_and_save_ifchanged(freq);
                     break;
+
                 case MAV_DATA_STREAM_EXTRA3:
-            streamRates[STREAM_EXTRA3].set_and_save_ifchanged(freq);
+                    streamRateExtra3.set_and_save_ifchanged(freq);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -2262,33 +2161,14 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_DO_SET_SERVO:
-            if (ServoRelayEvents.do_set_servo(packet.param1, packet.param2)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
-            break;
-
-        case MAV_CMD_DO_REPEAT_SERVO:
-            if (ServoRelayEvents.do_repeat_servo(packet.param1, packet.param2, packet.param3, packet.param4*1000)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
-            break;
-
-        case MAV_CMD_DO_SET_RELAY:
-            if (ServoRelayEvents.do_set_relay(packet.param1, packet.param2)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
-            break;
-
-        case MAV_CMD_DO_REPEAT_RELAY:
-            if (ServoRelayEvents.do_repeat_relay(packet.param1, packet.param2, packet.param3*1000)) {
-                result = MAV_RESULT_ACCEPTED;
-            }
+            hal.rcout->enable_ch(packet.param1 - 1);
+            hal.rcout->write(packet.param1 - 1, packet.param2);
+            result = MAV_RESULT_ACCEPTED;
             break;
 
         case MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-            if (packet.param1 == 1 || packet.param1 == 3) {
-                // when packet.param1 == 3 we reboot to hold in bootloader
-                hal.scheduler->reboot(packet.param1 == 3);
+            if (packet.param1 == 1) {
+                reboot_apm();
                 result = MAV_RESULT_ACCEPTED;
             }
             break;
@@ -2346,6 +2226,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 msg->compid,
                 g.command_total + 1); // + home
 
+            waypoint_timelast_send   = millis();
             waypoint_receiving       = false;
             waypoint_dest_sysid      = msg->sysid;
             waypoint_dest_compid     = msg->compid;
@@ -2414,19 +2295,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 					param1 = tell_command.p1;
 					break;
 
-            	case MAV_CMD_DO_REPEAT_SERVO:
-                    param4 = tell_command.lng*0.001f; // time
-                    param3 = tell_command.lat;        // repeat
-                    param2 = tell_command.alt;        // pwm
-                    param1 = tell_command.p1;         // channel
-                    break;
-
-            	case MAV_CMD_DO_REPEAT_RELAY:
-                    param3 = tell_command.lat*0.001f; // time
-                    param2 = tell_command.alt;        // count
-                    param1 = tell_command.p1;         // relay number
-                    break;
-
+				case MAV_CMD_DO_REPEAT_SERVO:
+					param4 = tell_command.lng;
+				case MAV_CMD_DO_REPEAT_RELAY:
 				case MAV_CMD_DO_CHANGE_SPEED:
 					param3 = tell_command.lat;
 					param2 = tell_command.alt;
@@ -2438,10 +2309,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 				case MAV_CMD_DO_SET_SERVO:
 					param2 = tell_command.alt;
 					param1 = tell_command.p1;
-					break;
-
-				case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-					param1 = tell_command.alt;
 					break;
 			}
 
@@ -2459,6 +2326,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 										x,
 										y,
 										z);
+
+            // update last waypoint comm stamp
+            waypoint_timelast_send = millis();
             break;
         }
 
@@ -2479,20 +2349,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             mavlink_msg_param_request_list_decode(msg, &packet);
             if (mavlink_check_target(packet.target_system,packet.target_component)) break;
 
-            // mark the firmware version in the tlog
-            send_text_P(SEVERITY_LOW, PSTR(FIRMWARE_STRING));
-
-#if defined(PX4_GIT_VERSION) && defined(NUTTX_GIT_VERSION)
-            send_text_P(SEVERITY_LOW, PSTR("PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION));
-#endif
-
-            // send system ID if we can
-            char sysid[40];
-            if (hal.util->get_system_id(sysid)) {
-                mavlink_send_text(chan, SEVERITY_LOW, sysid);
-            }
-
             // Start sending parameters - next call to ::update will kick the first one out
+
             _queued_parameter = AP_Param::first(&_queued_parameter_token, &_queued_parameter_type);
             _queued_parameter_index = 0;
             _queued_parameter_count = _count_parameters();
@@ -2715,18 +2573,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 break;
 
             case MAV_CMD_DO_REPEAT_SERVO:
-                tell_command.lng = packet.param4*1000; // time
-                tell_command.lat = packet.param3;      // count
-                tell_command.alt = packet.param2;      // PWM
-                tell_command.p1  = packet.param1;      // channel
-                break;
-
+                tell_command.lng = packet.param4;
             case MAV_CMD_DO_REPEAT_RELAY:
-                tell_command.lat = packet.param3*1000; // time
-                tell_command.alt = packet.param2;      // count
-                tell_command.p1  = packet.param1;      // relay number
-                break;
-
             case MAV_CMD_DO_CHANGE_SPEED:
                 tell_command.lat = packet.param3;
                 tell_command.alt = packet.param2;
@@ -2738,10 +2586,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             case MAV_CMD_DO_SET_SERVO:
                 tell_command.alt = packet.param2;
                 tell_command.p1 = packet.param1;
-                break;
-
-            case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-                tell_command.alt = packet.param1;
                 break;
 
             default:
@@ -2852,7 +2696,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 } else if (var_type == AP_PARAM_INT32) {
                     if (packet.param_value < 0) rounding_addition = -rounding_addition;
                     float v = packet.param_value+rounding_addition;
-                v = constrain_float(v, -2147483648.0, 2147483647.0);
+                    v = constrain_float(v, -2147483648.0f, 2147483647.0f);
 					((AP_Int32 *)vp)->set_and_save(v);
                 } else if (var_type == AP_PARAM_INT16) {
                     if (packet.param_value < 0) rounding_addition = -rounding_addition;
@@ -2921,6 +2765,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			if(msg->sysid != g.sysid_my_gcs) break;
             last_heartbeat_ms = failsafe.rc_override_timer = millis();
             failsafe_trigger(FAILSAFE_EVENT_GCS, false);
+			pmTest1++;
             break;
         }
 
@@ -2993,7 +2838,6 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 #endif // MOUNT == ENABLED
 
     case MAVLINK_MSG_ID_RADIO:
-    case MAVLINK_MSG_ID_RADIO_STATUS:
         {
             mavlink_radio_t packet;
             mavlink_msg_radio_decode(msg, &packet);
@@ -3016,38 +2860,107 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
         }
 
-    case MAVLINK_MSG_ID_LOG_REQUEST_DATA:
-    case MAVLINK_MSG_ID_LOG_ERASE:
-        in_log_download = true;
-        // fallthru
-    case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
-        if (!in_mavlink_delay) {
-            handle_log_message(msg, DataFlash);
-        }
-        break;
-    case MAVLINK_MSG_ID_LOG_REQUEST_END:
-        in_log_download = false;
-        if (!in_mavlink_delay) {
-            handle_log_message(msg, DataFlash);
-        }
-        break;
-
     default:
         // forward unknown messages to the other link if there is one
-        for (uint8_t i=0; i<num_gcs; i++) {
-            if (gcs[i].initialised && i != (uint8_t)chan) {
-                mavlink_channel_t out_chan = (mavlink_channel_t)i;
-                // only forward if it would fit in the transmit buffer
+        if ((chan == MAVLINK_COMM_1 && gcs0.initialised) ||
+            (chan == MAVLINK_COMM_0 && gcs3.initialised)) {
+            mavlink_channel_t out_chan = (mavlink_channel_t)(((uint8_t)chan)^1);
+            // only forward if it would fit in our transmit buffer
             if (comm_get_txspace(out_chan) > ((uint16_t)msg->len) + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
                 _mavlink_resend_uart(out_chan, msg);
             }
-        }
         }
         break;
 
     } // end switch
 } // end handle mavlink
 
+uint16_t
+GCS_MAVLINK::_count_parameters()
+{
+    // if we haven't cached the parameter count yet...
+    if (0 == _parameter_count) {
+        AP_Param  *vp;
+        AP_Param::ParamToken token;
+
+        vp = AP_Param::first(&token, NULL);
+        do {
+            _parameter_count++;
+        } while (NULL != (vp = AP_Param::next_scalar(&token, NULL)));
+    }
+    return _parameter_count;
+}
+
+/**
+* @brief Send the next pending parameter, called from deferred message
+* handling code
+*/
+void
+GCS_MAVLINK::queued_param_send()
+{
+    if (_queued_parameter == NULL) {
+        return;
+    }
+
+    uint16_t bytes_allowed;
+    uint8_t count;
+    uint32_t tnow = millis();
+
+    // use at most 30% of bandwidth on parameters. The constant 26 is
+    // 1/(1000 * 1/8 * 0.001 * 0.3)
+    bytes_allowed = g.serial3_baud * (tnow - _queued_parameter_send_time_ms) * 26;
+    if (bytes_allowed > comm_get_txspace(chan)) {
+        bytes_allowed = comm_get_txspace(chan);
+    }
+    count = bytes_allowed / (MAVLINK_MSG_ID_PARAM_VALUE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
+
+    while (_queued_parameter != NULL && count--) {
+    AP_Param      *vp;
+    float       value;
+
+    // copy the current parameter and prepare to move to the next
+    vp = _queued_parameter;
+
+    // if the parameter can be cast to float, report it here and break out of the loop
+    value = vp->cast_to_float(_queued_parameter_type);
+
+    char param_name[AP_MAX_NAME_SIZE];
+    vp->copy_name_token(_queued_parameter_token, param_name, sizeof(param_name), true);
+
+    mavlink_msg_param_value_send(
+        chan,
+        param_name,
+        value,
+        mav_var_type(_queued_parameter_type),
+        _queued_parameter_count,
+        _queued_parameter_index);
+
+    _queued_parameter = AP_Param::next_scalar(&_queued_parameter_token, &_queued_parameter_type);
+    _queued_parameter_index++;
+}
+    _queued_parameter_send_time_ms = tnow;
+}
+
+/**
+* @brief Send the next pending waypoint, called from deferred message
+* handling code
+*/
+void
+GCS_MAVLINK::queued_waypoint_send()
+{
+    if (waypoint_receiving &&
+        waypoint_request_i <= waypoint_request_last) {
+        mavlink_msg_mission_request_send(
+            chan,
+            waypoint_dest_sysid,
+            waypoint_dest_compid,
+            waypoint_request_i);
+    }
+}
+
+void GCS_MAVLINK::reset_cli_timeout() {
+      _cli_timeout = millis();
+}
 /*
  *  a delay() callback that processes MAVLink packets. We set this as the
  *  callback in long running library initialisation routines to allow
@@ -3057,7 +2970,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 static void mavlink_delay_cb()
 {
     static uint32_t last_1hz, last_50hz, last_5s;
-    if (!gcs[0].initialised || in_mavlink_delay) return;
+    if (!gcs0.initialised) return;
 
     in_mavlink_delay = true;
 
@@ -3071,7 +2984,6 @@ static void mavlink_delay_cb()
         last_50hz = tnow;
         gcs_update();
         gcs_data_stream_send();
-        notify.update();
     }
     if (tnow - last_5s > 5000) {
         last_5s = tnow;
@@ -3087,10 +2999,9 @@ static void mavlink_delay_cb()
  */
 static void gcs_send_message(enum ap_message id)
 {
-    for (uint8_t i=0; i<num_gcs; i++) {
-        if (gcs[i].initialised) {
-            gcs[i].send_message(id);
-        }
+    gcs0.send_message(id);
+    if (gcs3.initialised) {
+        gcs3.send_message(id);
     }
 }
 
@@ -3099,10 +3010,9 @@ static void gcs_send_message(enum ap_message id)
  */
 static void gcs_data_stream_send(void)
 {
-    for (uint8_t i=0; i<num_gcs; i++) {
-        if (gcs[i].initialised) {
-            gcs[i].data_stream_send();
-        }
+    gcs0.data_stream_send();
+    if (gcs3.initialised) {
+        gcs3.data_stream_send();
     }
 }
 
@@ -3111,23 +3021,19 @@ static void gcs_data_stream_send(void)
  */
 static void gcs_update(void)
 {
-    for (uint8_t i=0; i<num_gcs; i++) {
-        if (gcs[i].initialised) {
-            gcs[i].update();
-        }
+	gcs0.update();
+    if (gcs3.initialised) {
+        gcs3.update();
     }
 }
 
 static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
 {
-    for (uint8_t i=0; i<num_gcs; i++) {
-        if (gcs[i].initialised) {
-            gcs[i].send_text_P(severity, str);
+    gcs0.send_text_P(severity, str);
+    if (gcs3.initialised) {
+        gcs3.send_text_P(severity, str);
     }
-    }
-#if LOGGING_ENABLED == ENABLED
     DataFlash.Log_Write_Message_P(str);
-#endif
 }
 
 /*
@@ -3138,31 +3044,19 @@ static void gcs_send_text_P(gcs_severity severity, const prog_char_t *str)
 void gcs_send_text_fmt(const prog_char_t *fmt, ...)
 {
     va_list arg_list;
-    gcs[0].pending_status.severity = (uint8_t)SEVERITY_LOW;
+    gcs0.pending_status.severity = (uint8_t)SEVERITY_LOW;
     va_start(arg_list, fmt);
-    hal.util->vsnprintf_P((char *)gcs[0].pending_status.text,
-            sizeof(gcs[0].pending_status.text), fmt, arg_list);
+    hal.util->vsnprintf_P((char *)gcs0.pending_status.text,
+            sizeof(gcs0.pending_status.text), fmt, arg_list);
     va_end(arg_list);
-#if LOGGING_ENABLED == ENABLED
-    DataFlash.Log_Write_Message(gcs[0].pending_status.text);
-#endif
+    DataFlash.Log_Write_Message(gcs0.pending_status.text);
+    gcs3.pending_status = gcs0.pending_status;
     mavlink_send_message(MAVLINK_COMM_0, MSG_STATUSTEXT, 0);
-    for (uint8_t i=1; i<num_gcs; i++) {
-        if (gcs[i].initialised) {
-            gcs[i].pending_status = gcs[0].pending_status;
-            mavlink_send_message((mavlink_channel_t)i, MSG_STATUSTEXT, 0);
-        }
+    if (gcs3.initialised) {
+        mavlink_send_message(MAVLINK_COMM_1, MSG_STATUSTEXT, 0);
     }
 }
 
-
-/**
-   retry any deferred messages
- */
-static void gcs_retry_deferred(void)
-{
-    gcs_send_message(MSG_RETRY_DEFERRED);
-}
 #line 1 "./APMRover2/Log.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -3217,7 +3111,6 @@ print_log_menu(void)
 		PLOG(SONAR);
 		PLOG(COMPASS);
 		PLOG(CAMERA);
-		PLOG(STEERING);
 		#undef PLOG
 	}
 
@@ -3310,7 +3203,6 @@ select_logs(uint8_t argc, const Menu::arg *argv)
 		TARG(SONAR);
 		TARG(COMPASS);
 		TARG(CAMERA);
-		TARG(STEERING);
 		#undef TARG
 	}
 
@@ -3331,17 +3223,17 @@ process_logs(uint8_t argc, const Menu::arg *argv)
 
 struct PACKED log_Performance {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     uint32_t loop_time;
     uint16_t main_loop_count;
-    uint32_t g_dt_max;
+    int16_t  g_dt_max;
     uint8_t  renorm_count;
     uint8_t  renorm_blowup;
+    uint8_t  gps_fix_count;
     int16_t  gyro_drift_x;
     int16_t  gyro_drift_y;
     int16_t  gyro_drift_z;
+    int16_t  pm_test;
     uint8_t  i2c_lockup_count;
-    uint16_t ins_error_count;
 };
 
 // Write a performance monitoring packet. Total length : 19 bytes
@@ -3349,24 +3241,23 @@ static void Log_Write_Performance()
 {
     struct log_Performance pkt = {
         LOG_PACKET_HEADER_INIT(LOG_PERFORMANCE_MSG),
-        time_ms         : millis(),
         loop_time       : millis()- perf_mon_timer,
         main_loop_count : mainLoop_count,
         g_dt_max        : G_Dt_max,
         renorm_count    : ahrs.renorm_range_count,
         renorm_blowup   : ahrs.renorm_blowup_count,
+        gps_fix_count   : gps_fix_count,
         gyro_drift_x    : (int16_t)(ahrs.get_gyro_drift().x * 1000),
         gyro_drift_y    : (int16_t)(ahrs.get_gyro_drift().y * 1000),
         gyro_drift_z    : (int16_t)(ahrs.get_gyro_drift().z * 1000),
-        i2c_lockup_count: hal.i2c->lockup_count(),
-        ins_error_count  : ins.error_count()
+        pm_test         : pmTest1,
+        i2c_lockup_count: hal.i2c->lockup_count()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
 struct PACKED log_Cmd {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     uint8_t command_total;
     uint8_t command_number;
     uint8_t waypoint_id;
@@ -3382,7 +3273,6 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
 {
     struct log_Cmd pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CMD_MSG),
-        time_ms             : millis(),
         command_total       : g.command_total,
         command_number      : num,
         waypoint_id         : wp->id,
@@ -3397,9 +3287,7 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
 
 struct PACKED log_Camera {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     uint32_t gps_time;
-    uint16_t gps_week;
     int32_t  latitude;
     int32_t  longitude;
     int16_t  roll;
@@ -3413,9 +3301,7 @@ static void Log_Write_Camera()
 #if CAMERA == ENABLED
     struct log_Camera pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
-        time_ms     : millis(),
-        gps_time    : g_gps->time_week_ms,
-        gps_week    : g_gps->time_week,
+        gps_time    : g_gps->time,
         latitude    : current_loc.lat,
         longitude   : current_loc.lng,
         roll        : (int16_t)ahrs.roll_sensor,
@@ -3426,28 +3312,8 @@ static void Log_Write_Camera()
 #endif
 }
 
-struct PACKED log_Steering {
-    LOG_PACKET_HEADER;
-    uint32_t time_ms;
-    float demanded_accel;
-    float achieved_accel;
-};
-
-// Write a steering packet
-static void Log_Write_Steering()
-{
-    struct log_Steering pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_STEERING_MSG),
-        time_ms        : hal.scheduler->millis(),
-        demanded_accel : lateral_acceleration,
-        achieved_accel : g_gps->ground_speed_cm * 0.01f * ins.get_gyro().z,
-    };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
-}
-
 struct PACKED log_Startup {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     uint8_t startup_type;
     uint8_t command_total;
 };
@@ -3456,7 +3322,6 @@ static void Log_Write_Startup(uint8_t type)
 {
     struct log_Startup pkt = {
         LOG_PACKET_HEADER_INIT(LOG_STARTUP_MSG),
-        time_ms         : millis(),
         startup_type    : type,
         command_total   : g.command_total
     };
@@ -3472,7 +3337,6 @@ static void Log_Write_Startup(uint8_t type)
 
 struct PACKED log_Control_Tuning {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     int16_t steer_out;
     int16_t roll;
     int16_t pitch;
@@ -3486,7 +3350,6 @@ static void Log_Write_Control_Tuning()
     Vector3f accel = ins.get_accel();
     struct log_Control_Tuning pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CTUN_MSG),
-        time_ms         : millis(),
         steer_out       : (int16_t)channel_steer->servo_out,
         roll            : (int16_t)ahrs.roll_sensor,
         pitch           : (int16_t)ahrs.pitch_sensor,
@@ -3498,11 +3361,11 @@ static void Log_Write_Control_Tuning()
 
 struct PACKED log_Nav_Tuning {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     uint16_t yaw;
     float    wp_distance;
     uint16_t target_bearing_cd;
     uint16_t nav_bearing_cd;
+    int16_t  nav_gain_scalar;
     int8_t   throttle;
 };
 
@@ -3511,11 +3374,11 @@ static void Log_Write_Nav_Tuning()
 {
     struct log_Nav_Tuning pkt = {
         LOG_PACKET_HEADER_INIT(LOG_NTUN_MSG),
-        time_ms             : millis(),
         yaw                 : (uint16_t)ahrs.yaw_sensor,
         wp_distance         : wp_distance,
-        target_bearing_cd   : (uint16_t)nav_controller->target_bearing_cd(),
-        nav_bearing_cd      : (uint16_t)nav_controller->nav_bearing_cd(),
+        target_bearing_cd   : (uint16_t)target_bearing,
+        nav_bearing_cd      : (uint16_t)nav_bearing,
+        nav_gain_scalar     : (int16_t)(nav_gain_scaler*1000),
         throttle            : (int8_t)(100 * channel_throttle->norm_output())
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
@@ -3523,7 +3386,6 @@ static void Log_Write_Nav_Tuning()
 
 struct PACKED log_Attitude {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     int16_t roll;
     int16_t pitch;
     uint16_t yaw;
@@ -3535,27 +3397,24 @@ static void Log_Write_Attitude()
 {
     struct log_Attitude pkt = {
         LOG_PACKET_HEADER_INIT(LOG_ATTITUDE_MSG),
-        time_ms : millis(),
-        roll    : (int16_t)ahrs.roll_sensor,
-        pitch   : (int16_t)ahrs.pitch_sensor,
-        yaw     : (uint16_t)ahrs.yaw_sensor
+        roll  : (int16_t)ahrs.roll_sensor,
+        pitch : (int16_t)ahrs.pitch_sensor,
+        yaw   : (uint16_t)ahrs.yaw_sensor
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-struct PACKED log_Mode {
+struct log_Mode {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     uint8_t mode;
     uint8_t mode_num;
 };
 
-// Write a mode packet
+// Write a mode packet. Total length : 7 bytes
 static void Log_Write_Mode()
 {
     struct log_Mode pkt = {
         LOG_PACKET_HEADER_INIT(LOG_MODE_MSG),
-        time_ms         : millis(),
         mode            : (uint8_t)control_mode,
         mode_num        : (uint8_t)control_mode
     };
@@ -3565,8 +3424,7 @@ static void Log_Write_Mode()
 
 struct PACKED log_Sonar {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
-    float    lateral_accel;
+    int16_t nav_steer;
     uint16_t sonar1_distance;
     uint16_t sonar2_distance;
     uint16_t detected_count;
@@ -3585,8 +3443,7 @@ static void Log_Write_Sonar()
     }
     struct log_Sonar pkt = {
         LOG_PACKET_HEADER_INIT(LOG_SONAR_MSG),
-        time_ms         : millis(),
-        lateral_accel   : lateral_acceleration,
+        nav_steer       : (int16_t)nav_steer_cd,
         sonar1_distance : (uint16_t)sonar.distance_cm(),
         sonar2_distance : (uint16_t)sonar2.distance_cm(),
         detected_count  : obstacle.detected_count,
@@ -3600,7 +3457,6 @@ static void Log_Write_Sonar()
 
 struct PACKED log_Current {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     int16_t throttle_in;
     int16_t battery_voltage;
     int16_t current_amps;
@@ -3612,19 +3468,17 @@ static void Log_Write_Current()
 {
     struct log_Current pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CURRENT_MSG),
-        time_ms                 : millis(),
         throttle_in             : channel_throttle->control_in,
-        battery_voltage         : (int16_t)(battery.voltage() * 100.0),
-        current_amps            : (int16_t)(battery.current_amps() * 100.0),
+        battery_voltage         : (int16_t)(battery_voltage1 * 100.0),
+        current_amps            : (int16_t)(current_amps1 * 100.0),
         board_voltage           : board_voltage(),
-        current_total           : battery.current_total_mah()
+        current_total           : current_total1
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
 struct PACKED log_Compass {
     LOG_PACKET_HEADER;
-    uint32_t time_ms;
     int16_t mag_x;
     int16_t mag_y;
     int16_t mag_z;
@@ -3639,15 +3493,13 @@ struct PACKED log_Compass {
 // Write a Compass packet. Total length : 15 bytes
 static void Log_Write_Compass()
 {
-    const Vector3f &mag_offsets = compass.get_offsets();
-    const Vector3f &mag_motor_offsets = compass.get_motor_offsets();
-    const Vector3f &mag = compass.get_field();
+    Vector3f mag_offsets = compass.get_offsets();
+    Vector3f mag_motor_offsets = compass.get_motor_offsets();
     struct log_Compass pkt = {
         LOG_PACKET_HEADER_INIT(LOG_COMPASS_MSG),
-        time_ms         : millis(),
-        mag_x           : (int16_t)mag.x,
-        mag_y           : (int16_t)mag.y,
-        mag_z           : (int16_t)mag.z,
+        mag_x           : compass.mag_x,
+        mag_y           : compass.mag_y,
+        mag_z           : compass.mag_z,
         offset_x        : (int16_t)mag_offsets.x,
         offset_y        : (int16_t)mag_offsets.y,
         offset_z        : (int16_t)mag_offsets.z,
@@ -3656,77 +3508,48 @@ static void Log_Write_Compass()
         motor_offset_z  : (int16_t)mag_motor_offsets.z
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
-#if COMPASS_MAX_INSTANCES > 1
-    if (compass.get_count() > 1) {
-        const Vector3f &mag2_offsets = compass.get_offsets(1);
-        const Vector3f &mag2_motor_offsets = compass.get_motor_offsets(1);
-        const Vector3f &mag2 = compass.get_field(1);
-        struct log_Compass pkt2 = {
-            LOG_PACKET_HEADER_INIT(LOG_COMPASS2_MSG),
-            time_ms         : millis(),
-            mag_x           : (int16_t)mag2.x,
-            mag_y           : (int16_t)mag2.y,
-            mag_z           : (int16_t)mag2.z,
-            offset_x        : (int16_t)mag2_offsets.x,
-            offset_y        : (int16_t)mag2_offsets.y,
-            offset_z        : (int16_t)mag2_offsets.z,
-            motor_offset_x  : (int16_t)mag2_motor_offsets.x,
-            motor_offset_y  : (int16_t)mag2_motor_offsets.y,
-            motor_offset_z  : (int16_t)mag2_motor_offsets.z
-        };
-        DataFlash.WriteBlock(&pkt2, sizeof(pkt2));
-    }
-#endif
 }
 
-
-static void Log_Write_RC(void)
-{
-    DataFlash.Log_Write_RCIN();
-    DataFlash.Log_Write_RCOUT();
-}
 
 static const struct LogStructure log_structure[] PROGMEM = {
     LOG_COMMON_STRUCTURES,
     { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
-      "ATT", "IccC",        "TimeMS,Roll,Pitch,Yaw" },
+      "ATT", "ccC",        "Roll,Pitch,Yaw" },
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
-      "PM",  "IIHIBBhhhBH", "TimeMS,LTime,MLC,gDt,RNCnt,RNBl,GDx,GDy,GDz,I2CErr,INSErr" },
+      "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,PMT,I2CErr" },
     { LOG_CMD_MSG, sizeof(log_Cmd),                 
-      "CMD", "IBBBBBeLL",   "TimeMS,CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
+      "CMD", "BBBBBeLL",   "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
     { LOG_CAMERA_MSG, sizeof(log_Camera),                 
-      "CAM", "IIHLLeccC",   "TimeMS,GPSTime,GPSWeek,Lat,Lng,Alt,Roll,Pitch,Yaw" },
+      "CAM", "ILLccC",   "GPSTime,Lat,Lng,Roll,Pitch,Yaw" },
     { LOG_STARTUP_MSG, sizeof(log_Startup),         
-      "STRT", "IBB",        "TimeMS,SType,CTot" },
+      "STRT", "BB",         "SType,CTot" },
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     
-      "CTUN", "Ihcchf",     "TimeMS,Steer,Roll,Pitch,ThrOut,AccY" },
+      "CTUN", "hcchf",      "Steer,Roll,Pitch,ThrOut,AccY" },
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
-      "NTUN", "IHfHHb",     "TimeMS,Yaw,WpDist,TargBrg,NavBrg,Thr" },
+      "NTUN", "HfHHhb",     "Yaw,WpDist,TargBrg,NavBrg,NavGain,Thr" },
     { LOG_SONAR_MSG, sizeof(log_Sonar),             
-      "SONR", "IfHHHbHCb",  "TimeMS,LatAcc,S1Dist,S2Dist,DCnt,TAng,TTim,Spd,Thr" },
+      "SONR", "hHHHbHCb",   "NavStr,S1Dist,S2Dist,DCnt,TAng,TTim,Spd,Thr" },
     { LOG_CURRENT_MSG, sizeof(log_Current),             
-      "CURR", "IhhhHf",     "TimeMS,Thr,Volt,Curr,Vcc,CurrTot" },
+      "CURR", "hhhHf",      "Thr,Volt,Curr,Vcc,CurrTot" },
     { LOG_MODE_MSG, sizeof(log_Mode),             
-      "MODE", "IMB",        "TimeMS,Mode,ModeNum" },
+      "MODE", "MB",          "Mode,ModeNum" },
     { LOG_COMPASS_MSG, sizeof(log_Compass),             
-      "MAG", "Ihhhhhhhhh",  "TimeMS,MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" },
-    { LOG_COMPASS2_MSG, sizeof(log_Compass),             
-      "MAG2", "Ihhhhhhhhh",   "TimeMS,MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" },
-    { LOG_STEERING_MSG, sizeof(log_Steering),             
-      "STER", "Iff",   "TimeMS,Demanded,Achieved" },
+      "MAG", "hhhhhhhhh",   "MagX,MagY,MagZ,OfsX,OfsY,OfsZ,MOfsX,MOfsY,MOfsZ" },
 };
 
 
 // Read the DataFlash log memory : Packet Parser
 static void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page)
 {
-    cliSerial->printf_P(PSTR("\n" FIRMWARE_STRING
+    cliSerial->printf_P(PSTR("\n" THISFIRMWARE
                              "\nFree RAM: %u\n"),
-                        (unsigned)hal.util->available_memory());
+                        (unsigned) memcheck_available_memory());
 
     cliSerial->println_P(PSTR(HAL_BOARD_NAME));
 
 	DataFlash.LogReadProcess(log_num, start_page, end_page, 
+                             sizeof(log_structure)/sizeof(log_structure[0]),
+                             log_structure, 
                              print_mode,
                              cliSerial);
 }
@@ -3734,20 +3557,7 @@ static void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page)
 // start a new log
 static void start_logging() 
 {
-    in_mavlink_delay = true;
-    DataFlash.StartNewLog();
-    in_mavlink_delay = false;
-    DataFlash.Log_Write_Message_P(PSTR(FIRMWARE_STRING));
-
-#if defined(PX4_GIT_VERSION) && defined(NUTTX_GIT_VERSION)
-    DataFlash.Log_Write_Message_P(PSTR("PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION));
-#endif
-
-    // write system identifier as well if available
-    char sysid[40];
-    if (hal.util->get_system_id(sysid)) {
-        DataFlash.Log_Write_Message(sysid);
-    }
+    DataFlash.StartNewLog(sizeof(log_structure)/sizeof(log_structure[0]), log_structure);
 }
 
 #else // LOGGING_ENABLED
@@ -3765,7 +3575,6 @@ static void Log_Write_Mode() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_Compass() {}
 static void start_logging() {}
-static void Log_Write_RC(void) {}
 
 #endif // LOGGING_ENABLED
 
@@ -3774,12 +3583,16 @@ static void Log_Write_RC(void) {}
 
 /*
   ArduPlane parameter definitions
+
+  This firmware is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
 */
 
 #define GSCALAR(v, name, def) { g.v.vtype, name, Parameters::k_param_ ## v, &g.v, {def_value:def} }
 #define GGROUP(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &g.v, {group_info:class::var_info} }
 #define GOBJECT(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &v, {group_info:class::var_info} }
-#define GOBJECTN(v, pname, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## pname, &v, {group_info : class::var_info} }
 
 const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(format_version,         "FORMAT_VERSION",   1),
@@ -3814,42 +3627,45 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(rssi_pin,            "RSSI_PIN",         -1),
 
+    // @Param: BATT_VOLT_PIN
+    // @DisplayName: Battery Voltage sensing pin
+    // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13. For the 3DR power brick on APM2.5 it should be set to 13. On the PX4 it should be set to 100.
+    // @Values: -1:Disabled, 0:A0, 1:A1, 13:A13, 100:PX4
+    // @User: Standard
+    GSCALAR(battery_volt_pin,    "BATT_VOLT_PIN",    1),
+
+    // @Param: BATT_CURR_PIN
+    // @DisplayName: Battery Current sensing pin
+    // @Description: Setting this to 0 ~ 13 will enable battery current sensing on pins A0 ~ A13. For the 3DR power brick on APM2.5 it should be set to 12. On the PX4 it should be set to 101. 
+    // @Values: -1:Disabled, 1:A1, 2:A2, 12:A12, 101:PX4
+    // @User: Standard
+    GSCALAR(battery_curr_pin,    "BATT_CURR_PIN",    2),
+
     // @Param: SYSID_THIS_MAV
     // @DisplayName: MAVLink system ID
     // @Description: ID used in MAVLink protocol to identify this vehicle
-    // @Range: 1 255
     // @User: Advanced
 	GSCALAR(sysid_this_mav,         "SYSID_THISMAV",    MAV_SYSTEM_ID),
 
     // @Param: SYSID_MYGCS
     // @DisplayName: MAVLink ground station ID
     // @Description: ID used in MAVLink protocol to identify the controlling ground station
-    // @Range: 1 255
     // @User: Advanced
 	GSCALAR(sysid_my_gcs,           "SYSID_MYGCS",      255),
 
     // @Param: SERIAL0_BAUD
     // @DisplayName: USB Console Baud Rate
-    // @Description: The baud rate used on the USB console
+    // @Description: The baud rate used on the first serial port
     // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
-	GSCALAR(serial0_baud,           "SERIAL0_BAUD",     115),
+	GSCALAR(serial0_baud,           "SERIAL0_BAUD",     SERIAL0_BAUD/1000),
 
-    // @Param: SERIAL1_BAUD
+    // @Param: SERIAL3_BAUD
     // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the first telemetry port
+    // @Description: The baud rate used on the telemetry port
     // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
-	GSCALAR(serial1_baud,           "SERIAL1_BAUD",     57),
-
-#if MAVLINK_COMM_NUM_BUFFERS > 2
-    // @Param: SERIAL2_BAUD
-    // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the second telemetry port (where available)
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
-    // @User: Standard
-	GSCALAR(serial2_baud,           "SERIAL2_BAUD",     57),
-#endif
+	GSCALAR(serial3_baud,           "SERIAL3_BAUD",     SERIAL3_BAUD/1000),
 
     // @Param: TELEM_DELAY
     // @DisplayName: Telemetry startup delay 
@@ -3860,19 +3676,55 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 1
     GSCALAR(telem_delay,            "TELEM_DELAY",     0),
 
-    // @Param: SKIP_GYRO_CAL
-    // @DisplayName: Skip gyro calibration
-    // @Description: When enabled this tells the APM to skip the normal gyroscope calibration at startup, and instead use the saved gyro calibration from the last flight. You should only enable this if you are careful to check that your aircraft has good attitude control before flying, as some boards may have significantly different gyro calibration between boots, especially if the temperature changes a lot. If gyro calibration is skipped then APM relies on using the gyro drift detection code to get the right gyro calibration in the few minutes after it boots. This option is mostly useful where the requirement to hold the vehicle still while it is booting is a significant problem.
-    // @Values: 0:Disabled,1:Enabled
-    // @User: Advanced
-    GSCALAR(skip_gyro_cal,           "SKIP_GYRO_CAL",   0),
-
     // @Param: MAG_ENABLED
     // @DisplayName: Magnetometer (compass) enabled
     // @Description: This should be set to 1 if a compass is installed
     // @User: Standard
     // @Values: 0:Disabled,1:Enabled
 	GSCALAR(compass_enabled,        "MAG_ENABLE",       MAGNETOMETER),
+
+    // @Param: BATT_MONITOR
+    // @DisplayName: Battery monitoring
+    // @Description: Controls enabling monitoring of the battery's voltage and current
+    // @Values: 0:Disabled,3:Voltage Only,4:Voltage and Current
+    // @User: Standard
+	GSCALAR(battery_monitoring,     "BATT_MONITOR",     DISABLED),
+
+    // @Param: VOLT_DIVIDER
+    // @DisplayName: Voltage Divider
+    // @Description: Used to convert the voltage of the voltage sensing pin (BATT_VOLT_PIN) to the actual battery's voltage (pin_voltage * VOLT_DIVIDER). For the 3DR Power brick, this should be set to 10.1. For the PX4 using the PX4IO power supply this should be set to 1.
+    // @User: Advanced
+	GSCALAR(volt_div_ratio,         "VOLT_DIVIDER",     VOLT_DIV_RATIO),
+
+    // @Param: AMP_PER_VOLT
+    // @DisplayName: Current Amps per volt
+    // @Description: Used to convert the voltage on the current sensing pin (BATT_CURR_PIN) to the actual current being consumed in amps (curr pin voltage * INPUT_VOLTS/1024 * AMP_PER_VOLT )
+    // @User: Advanced
+	GSCALAR(curr_amp_per_volt,      "AMP_PER_VOLT",     CURR_AMP_PER_VOLT),
+
+    // @Param: BATT_CAPACITY
+    // @DisplayName: Battery Capacity
+    // @Description: Battery capacity in milliamp-hours (mAh)
+    // @Units: mAh
+	// @User: Standard
+	GSCALAR(pack_capacity,          "BATT_CAPACITY",    HIGH_DISCHARGE),
+
+    // @Param: XTRK_GAIN_SC
+    // @DisplayName: Crosstrack Gain
+    // @Description: This controls how hard the Rover tries to follow the lines between waypoints, as opposed to driving directly to the next waypoint. The value is the scale between distance off the line and angle to meet the line (in Degrees * 100)
+    // @Range: 0 2000
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(crosstrack_gain,        "XTRK_GAIN_SC",     XTRACK_GAIN_SCALED),
+
+    // @Param: XTRK_ANGLE_CD
+    // @DisplayName: Crosstrack Entry Angle
+    // @Description: Maximum angle used to correct for track following.
+    // @Units: centi-Degrees
+    // @Range: 0 9000
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(crosstrack_entry_angle, "XTRK_ANGLE_CD",    XTRACK_ENTRY_ANGLE_CENTIDEGREE),
 
 	// @Param: AUTO_TRIGGER_PIN
 	// @DisplayName: Auto mode trigger pin
@@ -3937,23 +3789,23 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(rc_3,                    "RC3_", RC_Channel),
 
     // @Group: RC4_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_4,                    "RC4_", RC_Channel_aux),
 
     // @Group: RC5_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_5,                    "RC5_", RC_Channel_aux),
 
     // @Group: RC6_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_6,                    "RC6_", RC_Channel_aux),
 
     // @Group: RC7_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_7,                    "RC7_", RC_Channel_aux),
 
     // @Group: RC8_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
 	GGROUP(rc_8,                    "RC8_", RC_Channel_aux),
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -4165,19 +4017,8 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(waypoint_radius,        "WP_RADIUS",        2.0f),
 
-    // @Param: TURN_MAX_G
-    // @DisplayName: Turning maximum G force
-    // @Description: The maximum turning acceleration (in units of gravities) that the rover can handle while remaining stable. The navigation code will keep the lateral acceleration below this level to avoid rolling over or slipping the wheels in turns
-    // @Units: gravities
-    // @Range: 0.2 10
-    // @Increment: 0.1
-    // @User: Standard
-	GSCALAR(turn_max_g,             "TURN_MAX_G",      2.0f),
-
-    // @Group: STEER2SRV_
-    // @Path: ../libraries/APM_Control/AP_SteerController.cpp
-	GOBJECT(steerController,        "STEER2SRV_",   AP_SteerController),
-
+	GGROUP(pidNavSteer,             "HDNG2STEER_",  PID),
+	GGROUP(pidServoSteer,           "STEER2SRV_",   PID),
 	GGROUP(pidSpeedThrottle,        "SPEED2THR_", PID),
 
 	// variables not in the g class which contain EEPROM saved variables
@@ -4198,23 +4039,8 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_RCMapper/AP_RCMapper.cpp
     GOBJECT(rcmap,                 "RCMAP_",         RCMapper),
 
-    // @Group: SR0_
-    // @Path: GCS_Mavlink.pde
-    GOBJECTN(gcs[0], gcs0,        "SR0_",     GCS_MAVLINK),
-
-    // @Group: SR1_
-    // @Path: GCS_Mavlink.pde
-    GOBJECTN(gcs[1],  gcs1,       "SR1_",     GCS_MAVLINK),
-
-#if MAVLINK_COMM_NUM_BUFFERS > 2
-    // @Group: SR2_
-    // @Path: GCS_Mavlink.pde
-    GOBJECTN(gcs[2],  gcs2,       "SR2_",     GCS_MAVLINK),
-#endif
-
-    // @Group: NAVL1_
-    // @Path: ../libraries/AP_L1_Control/AP_L1_Control.cpp
-    GOBJECT(L1_controller,         "NAVL1_",   AP_L1_Control),
+	GOBJECT(gcs0,					"SR0_",     GCS_MAVLINK),
+	GOBJECT(gcs3,					"SR3_",     GCS_MAVLINK),
 
     // @Group: SONAR_
     // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
@@ -4250,38 +4076,9 @@ const AP_Param::Info var_info[] PROGMEM = {
     GOBJECT(camera_mount,           "MNT_", AP_Mount),
 #endif
 
-    // @Group: BATT_
-    // @Path: ../libraries/AP_BattMonitor/AP_BattMonitor.cpp
-    GOBJECT(battery,                "BATT_",       AP_BattMonitor),
-
-    // @Group: BRD_
-    // @Path: ../libraries/AP_BoardConfig/AP_BoardConfig.cpp
-    GOBJECT(BoardConfig,            "BRD_",       AP_BoardConfig),
-
 	AP_VAREND
 };
 
-/*
-  This is a conversion table from old parameter values to new
-  parameter names. The startup code looks for saved values of the old
-  parameters and will copy them across to the new parameters if the
-  new parameter does not yet have a saved value. It then saves the new
-  value.
-
-  Note that this works even if the old parameter has been removed. It
-  relies on the old k_param index not being removed
-
-  The second column below is the index in the var_info[] table for the
-  old object. This should be zero for top level parameters.
- */
-const AP_Param::ConversionInfo conversion_table[] PROGMEM = {
-    { Parameters::k_param_battery_monitoring, 0,      AP_PARAM_INT8,  "BATT_MONITOR" },
-    { Parameters::k_param_battery_volt_pin,   0,      AP_PARAM_INT8,  "BATT_VOLT_PIN" },
-    { Parameters::k_param_battery_curr_pin,   0,      AP_PARAM_INT8,  "BATT_CURR_PIN" },
-    { Parameters::k_param_volt_div_ratio,     0,      AP_PARAM_FLOAT, "BATT_VOLT_MULT" },
-    { Parameters::k_param_curr_amp_per_volt,  0,      AP_PARAM_FLOAT, "BATT_AMP_PERVOLT" },
-    { Parameters::k_param_pack_capacity,      0,      AP_PARAM_INT32, "BATT_CAPACITY" },
-};
 
 static void load_parameters(void)
 {
@@ -4302,13 +4099,6 @@ static void load_parameters(void)
 
 	    cliSerial->printf_P(PSTR("load_all took %luus\n"), micros() - before);
 	}
-
-    // set a lower default filter frequency for rovers, due to very
-    // high vibration levels on rough surfaces
-    ins.set_default_filter(5);
-
-    // set a more reasonable default NAVL1_PERIOD for rovers
-    L1_controller.set_default_period(8);
 }
 #line 1 "./APMRover2/Steering.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
@@ -4388,14 +4178,19 @@ static void calc_throttle(float target_speed)
         return;
     }
 
-    float throttle_base = (fabsf(target_speed) / g.speed_cruise) * g.throttle_cruise;
-    int throttle_target = throttle_base + throttle_nudge;  
+    if (target_speed <= 0) {
+        // cope with zero requested speed
+        channel_throttle->servo_out = g.throttle_min.get();
+        return;
+    }
+
+    int throttle_target = g.throttle_cruise + throttle_nudge;  
 
     /*
       reduce target speed in proportion to turning rate, up to the
       SPEED_TURN_GAIN percentage.
     */
-    float steer_rate = fabsf(lateral_acceleration / (g.turn_max_g*GRAVITY_MSS));
+    float steer_rate = fabsf((nav_steer_cd/nav_gain_scaler) / (float)SERVO_MAX);
     steer_rate = constrain_float(steer_rate, 0.0, 1.0);
     float reduction = 1.0 - steer_rate*(100 - g.speed_turn_gain)*0.01;
     
@@ -4410,7 +4205,7 @@ static void calc_throttle(float target_speed)
     // reduce the target speed by the reduction factor
     target_speed *= reduction;
 
-    groundspeed_error = fabsf(target_speed) - ground_speed; 
+    groundspeed_error = target_speed - ground_speed; 
     
     throttle = throttle_target + (g.pidSpeedThrottle.get_pid(groundspeed_error * 100) / 100);
 
@@ -4418,59 +4213,34 @@ static void calc_throttle(float target_speed)
     // much faster response in turns
     throttle *= reduction;
 
-    if (in_reverse) {
-        channel_throttle->servo_out = constrain_int16(-throttle, -g.throttle_max, -g.throttle_min);
-    } else {
-        channel_throttle->servo_out = constrain_int16(throttle, g.throttle_min, g.throttle_max);
-    }
+    channel_throttle->servo_out = constrain_int16(throttle, g.throttle_min.get(), g.throttle_max.get());
 }
 
 /*****************************************
  * Calculate desired turn angles (in medium freq loop)
  *****************************************/
 
-static void calc_lateral_acceleration()
+static void calc_nav_steer()
 {
-    switch (control_mode) {
-    case AUTO:
-        nav_controller->update_waypoint(prev_WP, next_WP);
-        break;
-
-    case RTL:
-    case GUIDED:
-    case STEERING:
-        nav_controller->update_waypoint(current_loc, next_WP);
-        break;
-    default:
-        return;
+	// Adjust gain based on ground speed
+    if (ground_speed < 0.01) {
+        nav_gain_scaler = 1.4f;
+    } else {
+        nav_gain_scaler = g.speed_cruise / ground_speed;
     }
+	nav_gain_scaler = constrain_float(nav_gain_scaler, 0.2f, 1.4f);
 
-	// Calculate the required turn of the wheels
+	// Calculate the required turn of the wheels rover
+	// ----------------------------------------
 
     // negative error = left turn
 	// positive error = right turn
-    lateral_acceleration = nav_controller->lateral_acceleration();
-}
+	nav_steer_cd = g.pidNavSteer.get_pid_4500(bearing_error_cd, nav_gain_scaler);
 
-/*
-  calculate steering angle given lateral_acceleration
- */
-static void calc_nav_steer()
-{
-    float speed = g_gps->ground_speed_cm * 0.01f;
+    // avoid obstacles, if any
+    nav_steer_cd += obstacle.turn_angle*100;
 
-    if (speed < 1.0f) {
-        // gps speed isn't very accurate at low speed
-        speed = 1.0f;
-    }
-
-    // add in obstacle avoidance
-    lateral_acceleration += (obstacle.turn_angle/45.0f) * g.turn_max_g;
-
-    // constrain to max G force
-    lateral_acceleration = constrain_float(lateral_acceleration, -g.turn_max_g*GRAVITY_MSS, g.turn_max_g*GRAVITY_MSS);
-
-    channel_steer->servo_out = steerController.get_steering_out_lat_accel(lateral_acceleration);
+    channel_steer->servo_out = nav_steer_cd;
 }
 
 /*****************************************
@@ -4491,15 +4261,9 @@ static void set_servos(void)
         }
 	} else {       
         channel_steer->calc_pwm();
-        if (in_reverse) {
-            channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
-                                                          -g.throttle_max,
-                                                          -g.throttle_min);
-        } else {
-            channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
-                                                          g.throttle_min.get(), 
-                                                          g.throttle_max.get());
-        }
+		channel_throttle->servo_out = constrain_int16(channel_throttle->servo_out, 
+                                                       g.throttle_min.get(), 
+                                                       g.throttle_max.get());
 
         if ((failsafe.bits & FAILSAFE_EVENT_THROTTLE) && control_mode < AUTO) {
             // suppress throttle if in failsafe
@@ -4560,7 +4324,25 @@ static void set_servos(void)
 #endif
 }
 
+static bool demoing_servos;
 
+static void demo_servos(uint8_t i) {
+
+    while(i > 0) {
+        gcs_send_text_P(SEVERITY_LOW,PSTR("Demo Servos!"));
+        demoing_servos = true;
+#if HIL_MODE == HIL_MODE_DISABLED || HIL_SERVOS
+        hal.rcout->write(1, 1400);
+        mavlink_delay(400);
+        hal.rcout->write(1, 1600);
+        mavlink_delay(200);
+        hal.rcout->write(1, 1500);
+#endif
+        demoing_servos = false;
+        mavlink_delay(400);
+        i--;
+    }
+}
 #line 1 "./APMRover2/commands.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -4685,8 +4467,14 @@ static void set_next_WP(const struct Location *wp)
     }
 
 	// this is handy for the groundstation
-	wp_totalDistance 	= get_distance(current_loc, next_WP);
+	wp_totalDistance 	= get_distance(&current_loc, &next_WP);
 	wp_distance 		= wp_totalDistance;
+	target_bearing 		= get_bearing_cd(&current_loc, &next_WP);
+	nav_bearing 		= target_bearing;
+
+	// set a new crosstrack bearing
+	// ----------------------------
+	reset_crosstrack();
 }
 
 static void set_guided_WP(void)
@@ -4700,8 +4488,13 @@ static void set_guided_WP(void)
 	next_WP = guided_WP;
 
 	// this is handy for the groundstation
-	wp_totalDistance 	= get_distance(current_loc, next_WP);
+	wp_totalDistance 	= get_distance(&current_loc, &next_WP);
 	wp_distance 		= wp_totalDistance;
+	target_bearing 		= get_bearing_cd(&current_loc, &next_WP);
+
+	// set a new crosstrack bearing
+	// ----------------------------
+	reset_crosstrack();
 }
 
 // run this at setup on the ground
@@ -4738,6 +4531,7 @@ void init_home()
 
 static void restart_nav()
 {  
+    g.pidNavSteer.reset_I();
     g.pidSpeedThrottle.reset_I();
     prev_WP = current_loc;
     nav_command_ID = NO_COMMAND;
@@ -4753,6 +4547,10 @@ static void restart_nav()
 static void
 handle_process_nav_cmd()
 {
+	// reset navigation integrators
+	// -------------------------
+    g.pidNavSteer.reset_I();
+
     gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nav_command.id);
 
 	switch(next_nav_command.id){
@@ -4813,23 +4611,21 @@ static void handle_process_do_command()
 			do_set_home();
 			break;
 
-    	case MAV_CMD_DO_SET_SERVO:
-            ServoRelayEvents.do_set_servo(next_nonnav_command.p1, next_nonnav_command.alt);
-            break;
+		case MAV_CMD_DO_SET_SERVO:
+			do_set_servo();
+			break;
 
-    	case MAV_CMD_DO_SET_RELAY:
-            ServoRelayEvents.do_set_relay(next_nonnav_command.p1, next_nonnav_command.alt);
-            break;
+		case MAV_CMD_DO_SET_RELAY:
+			do_set_relay();
+			break;
 
-    	case MAV_CMD_DO_REPEAT_SERVO:
-            ServoRelayEvents.do_repeat_servo(next_nonnav_command.p1, next_nonnav_command.alt,
-                                             next_nonnav_command.lat, next_nonnav_command.lng);
-            break;
+		case MAV_CMD_DO_REPEAT_SERVO:
+			do_repeat_servo();
+			break;
 
-    	case MAV_CMD_DO_REPEAT_RELAY:
-            ServoRelayEvents.do_repeat_relay(next_nonnav_command.p1, next_nonnav_command.alt,
-                                             next_nonnav_command.lat);
-            break;
+		case MAV_CMD_DO_REPEAT_RELAY:
+			do_repeat_relay();
+			break;
 
 #if CAMERA == ENABLED
     case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
@@ -4840,10 +4636,6 @@ static void handle_process_do_command()
 
     case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
         do_take_picture();
-        break;
-
-    case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-        camera.set_trigger_distance(next_nonnav_command.alt);
         break;
 #endif
 
@@ -4960,10 +4752,12 @@ static bool verify_takeoff()
 
 static bool verify_nav_wp()
 {
+    update_crosstrack();
+
     if ((wp_distance > 0) && (wp_distance <= g.waypoint_radius)) {
         gcs_send_text_fmt(PSTR("Reached Waypoint #%i dist %um"),
                           (unsigned)nav_command_index,
-                          (unsigned)get_distance(current_loc, next_WP));
+                          (unsigned)get_distance(&current_loc, &next_WP));
         return true;
     }
 
@@ -4971,7 +4765,7 @@ static bool verify_nav_wp()
     if (location_passed_point(current_loc, prev_WP, next_WP)) {
         gcs_send_text_fmt(PSTR("Passed Waypoint #%i dist %um"),
                           (unsigned)nav_command_index,
-                          (unsigned)get_distance(current_loc, next_WP));
+                          (unsigned)get_distance(&current_loc, &next_WP));
         return true;
     }
 
@@ -4989,7 +4783,7 @@ static bool verify_RTL()
     // have we gone past the waypoint?
     if (location_passed_point(current_loc, prev_WP, next_WP)) {
         gcs_send_text_fmt(PSTR("Reached Home dist %um"),
-                          (unsigned)get_distance(current_loc, next_WP));
+                          (unsigned)get_distance(&current_loc, &next_WP));
         return true;
     }
 
@@ -5115,12 +4909,53 @@ static void do_set_home()
 	}
 }
 
+static void do_set_servo()
+{
+    hal.rcout->enable_ch(next_nonnav_command.p1 - 1);
+    hal.rcout->write(next_nonnav_command.p1 - 1, next_nonnav_command.alt);
+}
+
+static void do_set_relay()
+{
+	if (next_nonnav_command.p1 == 1) {
+		relay.on();
+	} else if (next_nonnav_command.p1 == 0) {
+		relay.off();
+	}else{
+		relay.toggle();
+	}
+}
+
+static void do_repeat_servo()
+{
+	event_id = next_nonnav_command.p1 - 1;
+
+	if(next_nonnav_command.p1 >= CH_5 + 1 && next_nonnav_command.p1 <= CH_8 + 1) {
+		event_timer 	= 0;
+		event_delay 	= next_nonnav_command.lng * 500.0;	// /2 (half cycle time) * 1000 (convert to milliseconds)
+		event_repeat 	= next_nonnav_command.lat * 2;
+		event_value 	= next_nonnav_command.alt;
+        event_undo_value  = RC_Channel::rc_channel(next_nonnav_command.p1-1)->radio_trim;
+		update_events();
+	}
+}
+
+static void do_repeat_relay()
+{
+	event_id 		= RELAY_TOGGLE;
+	event_timer 	= 0;
+	event_delay 	= next_nonnav_command.lat * 500.0;	// /2 (half cycle time) * 1000 (convert to milliseconds)
+	event_repeat	= next_nonnav_command.alt * 2;
+	update_events();
+}
+
+
 // do_take_picture - take a picture with the camera library
 static void do_take_picture()
 {
 #if CAMERA == ENABLED
     camera.trigger_pic();
-    if (should_log(MASK_LOG_CAMERA)) {
+    if (g.log_bitmask & MASK_LOG_CAMERA) {
         Log_Write_Camera();
     }
 #endif
@@ -5269,24 +5104,39 @@ static void process_non_nav_command()
 #line 1 "./APMRover2/compat.pde"
 
 
-static void delay(uint32_t ms)
+void delay(uint32_t ms)
 {
     hal.scheduler->delay(ms);
 }
 
-static void mavlink_delay(uint32_t ms)
+void mavlink_delay(uint32_t ms)
 {
     hal.scheduler->delay(ms);
 }
 
-static uint32_t millis()
+uint32_t millis()
 {
     return hal.scheduler->millis();
 }
 
-static uint32_t micros()
+uint32_t micros()
 {
     return hal.scheduler->micros();
+}
+
+void pinMode(uint8_t pin, uint8_t output)
+{
+    hal.gpio->pinMode(pin, output);
+}
+
+void digitalWrite(uint8_t pin, uint8_t out)
+{
+    hal.gpio->write(pin,out);
+}
+
+uint8_t digitalRead(uint8_t pin)
+{
+    return hal.gpio->read(pin);
 }
 
 #line 1 "./APMRover2/control_modes.pde"
@@ -5316,7 +5166,9 @@ static void read_control_switch()
 		oldSwitchPosition = switchPosition;
 		prev_WP = current_loc;
 
-		// reset speed integrator
+		// reset navigation and speed integrators
+		// -------------------------
+        g.pidNavSteer.reset_I();
         g.pidSpeedThrottle.reset_I();
 	}
 
@@ -5403,9 +5255,30 @@ static void read_trim_switch()
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 
-static void update_events(void)
+static void update_events(void)	// Used for MAV_CMD_DO_REPEAT_SERVO and MAV_CMD_DO_REPEAT_RELAY
 {
-    ServoRelayEvents.update_events();
+	if(event_repeat == 0 || (millis() - event_timer) < event_delay)
+		return;
+
+	if (event_repeat > 0){
+		event_repeat --;
+	}
+
+	if(event_repeat != 0) {		// event_repeat = -1 means repeat forever
+		event_timer = millis();
+
+		if (event_id >= CH_5 && event_id <= CH_8) {
+			if(event_repeat%2) {
+				hal.rcout->write(event_id, event_value); // send to Servos
+			} else {
+				hal.rcout->write(event_id, event_undo_value);
+			}
+		}
+
+		if  (event_id == RELAY_TOGGLE) {
+			relay.toggle();
+		}
+	}
 }
 #line 1 "./APMRover2/failsafe.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
@@ -5423,12 +5296,11 @@ static void update_events(void)
   this failsafe_check function is called from the core timer interrupt
   at 1kHz.
  */
-static void failsafe_check()
+void failsafe_check(uint32_t tnow)
 {
     static uint16_t last_mainLoop_count;
     static uint32_t last_timestamp;
     static bool in_failsafe;
-    uint32_t tnow = hal.scheduler->micros();
 
     if (mainLoop_count != last_mainLoop_count) {
         // the main loop is running, all is OK
@@ -5452,6 +5324,9 @@ static void failsafe_check()
         last_timestamp = tnow;
         hal.rcin->clear_overrides();
         uint8_t start_ch = 0;
+        if (demoing_servos) {
+            start_ch = 1;
+        }
         for (uint8_t ch=start_ch; ch<4; ch++) {
             hal.rcout->write(ch, hal.rcin->read(ch));
         }
@@ -5478,18 +5353,52 @@ static void navigate()
 
 	// waypoint distance from rover
 	// ----------------------------
-	wp_distance = get_distance(current_loc, next_WP);
+	wp_distance = get_distance(&current_loc, &next_WP);
 
 	if (wp_distance < 0){
 		gcs_send_text_P(SEVERITY_HIGH,PSTR("<navigate> WP error - distance < 0"));
 		return;
 	}
 
+	// target_bearing is where we should be heading
+	// --------------------------------------------
+	target_bearing 	= get_bearing_cd(&current_loc, &next_WP);
+
+	// nav_bearing will includes xtrac correction
+	// ------------------------------------------
+	nav_bearing = target_bearing;
+
 	// control mode specific updates to nav_bearing
 	// --------------------------------------------
 	update_navigation();
 }
 
+
+static void calc_bearing_error()
+{    
+    static butter10hz1_6 butter;
+
+	bearing_error_cd = wrap_180_cd(nav_bearing - ahrs.yaw_sensor);
+    bearing_error_cd = butter.filter(bearing_error_cd);
+}
+
+static void update_crosstrack(void)
+{
+	// Crosstrack Error
+	// ----------------
+
+    // If we are too far off or too close we don't do track following
+	if (abs(wrap_180_cd(target_bearing - crosstrack_bearing)) < 4500 && wp_distance >= 3.0f) {	 
+		crosstrack_error = sinf(radians((target_bearing - crosstrack_bearing) / (float)100)) * wp_distance;	 // Meters we are off track line
+		nav_bearing += constrain_float(crosstrack_error * g.crosstrack_gain, -g.crosstrack_entry_angle.get(), g.crosstrack_entry_angle.get());
+		nav_bearing = wrap_360_cd(nav_bearing);
+	}
+}
+
+static void reset_crosstrack()
+{
+	crosstrack_bearing 	= get_bearing_cd(&prev_WP, &next_WP);	// Used for track following
+}
 
 void reached_waypoint()
 {       
@@ -5544,13 +5453,6 @@ static void init_rc_out()
 
 static void read_radio()
 {
-    if (!hal.rcin->valid_channels()) {
-        control_failsafe(channel_throttle->radio_in);
-        return;
-    }
-
-    failsafe.last_valid_rc_ms = hal.scheduler->millis();
-
     for (uint8_t i=0; i<8; i++) {
         RC_Channel::rc_channel(i)->set_pwm(RC_Channel::rc_channel(i)->read());
     }
@@ -5559,8 +5461,8 @@ static void read_radio()
 
 	channel_throttle->servo_out = channel_throttle->control_in;
 
-	if (abs(channel_throttle->servo_out) > 50) {
-        throttle_nudge = (g.throttle_max - g.throttle_cruise) * ((fabsf(channel_throttle->norm_input())-0.5) / 0.5);
+	if (channel_throttle->servo_out > 50) {
+        throttle_nudge = (g.throttle_max - g.throttle_cruise) * ((channel_throttle->norm_input()-0.5) / 0.5);
 	} else {
 		throttle_nudge = 0;
 	}
@@ -5607,11 +5509,7 @@ static void control_failsafe(uint16_t pwm)
 	if (rc_override_active) {
         failsafe_trigger(FAILSAFE_EVENT_RC, (millis() - failsafe.rc_override_timer) > 1500);
 	} else if (g.fs_throttle_enabled) {
-        bool failed = pwm < (uint16_t)g.fs_throttle_value;
-        if (hal.scheduler->millis() - failsafe.last_valid_rc_ms > 2000) {
-            failed = true;
-        }
-        failsafe_trigger(FAILSAFE_EVENT_THROTTLE, failed);
+        failsafe_trigger(FAILSAFE_EVENT_THROTTLE, pwm < (uint16_t)g.fs_throttle_value);
 	}
 }
 
@@ -5648,12 +5546,37 @@ static void init_sonar(void)
 #endif
 }
 
-// read_battery - reads battery voltage and current and invokes failsafe
-// should be called at 10hz
+/*
+  read and update the battery
+ */
 static void read_battery(void)
 {
-    battery.read();
+	if(g.battery_monitoring == 0) {
+		battery_voltage1 = 0;
+		return;
+	}
+	
+    if(g.battery_monitoring == 3 || g.battery_monitoring == 4) {
+        // this copes with changing the pin at runtime
+        batt_volt_pin->set_pin(g.battery_volt_pin);
+        battery_voltage1 = BATTERY_VOLTAGE(batt_volt_pin);
+    }
+
+    if (g.battery_monitoring == 4) {
+        static uint32_t last_time_ms;
+        uint32_t tnow = hal.scheduler->millis();
+        float dt = tnow - last_time_ms;
+        if (last_time_ms != 0 && dt < 2000) {
+            // this copes with changing the pin at runtime
+            batt_curr_pin->set_pin(g.battery_curr_pin);
+            current_amps1    = CURRENT_AMPS(batt_curr_pin);
+            // .0002778 is 1/3600 (conversion to hours)
+            current_total1   += current_amps1 * dt * 0.0002778f; 
+        }
+        last_time_ms = tnow;
+    }
 }
+
 
 // read the receiver RSSI as an 8 bit number for MAVLink
 // RC_CHANNELS_SCALED message
@@ -5746,6 +5669,7 @@ static int8_t   setup_level         (uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_erase			(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_compass		(uint8_t argc, const Menu::arg *argv);
 static int8_t	setup_declination	(uint8_t argc, const Menu::arg *argv);
+static int8_t	setup_batt_monitor	(uint8_t argc, const Menu::arg *argv);
 
 // Command/function table for the setup menu
 static const struct Menu::command setup_menu_commands[] PROGMEM = {
@@ -5760,6 +5684,7 @@ static const struct Menu::command setup_menu_commands[] PROGMEM = {
 #endif
 	{"compass",			setup_compass},
 	{"declination",		setup_declination},
+	{"battery",			setup_batt_monitor},
 	{"show",			setup_show},
 #if !defined( __AVR_ATmega1280__ )
 	{"set",				setup_set},
@@ -5838,6 +5763,7 @@ setup_show(uint8_t argc, const Menu::arg *argv)
 	report_radio();
 	report_batt_monitor();
 	report_gains();
+	report_xtrack();
 	report_throttle();
 	report_modes();
 	report_compass();
@@ -5930,7 +5856,7 @@ setup_factory(uint8_t argc, const Menu::arg *argv)
 	if (('y' != c) && ('Y' != c))
 		return(-1);
 	AP_Param::erase_all();
-	cliSerial->printf_P(PSTR("\nFACTORY RESET complete - please reset board to continue"));
+	cliSerial->printf_P(PSTR("\nFACTORY RESET complete - please reset APM to continue"));
 
 	for (;;) {
 	}
@@ -6140,9 +6066,10 @@ setup_accel_scale(uint8_t argc, const Menu::arg *argv)
     cliSerial->println_P(PSTR("Initialising gyros"));
     ahrs.init();
     ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate);
+             ins_sample_rate,
+             flash_leds);
     AP_InertialSensor_UserInteractStream interact(hal.console);
-    if(ins.calibrate_accel(&interact, trim_roll, trim_pitch)) {
+    if(ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch)) {
         // reset ahrs's trim to suggested values from calibration routine
         ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
     }
@@ -6156,8 +6083,9 @@ setup_level(uint8_t argc, const Menu::arg *argv)
     cliSerial->println_P(PSTR("Initialising gyros"));
     ahrs.init();
     ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate);
-    ins.init_accel();
+             ins_sample_rate,
+             flash_leds);
+    ins.init_accel(flash_leds);
     ahrs.set_trim(Vector3f(0, 0, 0));
     return(0);
 }
@@ -6189,19 +6117,33 @@ setup_compass(uint8_t argc, const Menu::arg *argv)
 	return 0;
 }
 
+static int8_t
+setup_batt_monitor(uint8_t argc, const Menu::arg *argv)
+{
+	if(argv[1].i >= 0 && argv[1].i <= 4){
+		g.battery_monitoring.set_and_save(argv[1].i);
+
+	} else {
+		cliSerial->printf_P(PSTR("\nOptions: 3-4"));
+	}
+
+	report_batt_monitor();
+	return 0;
+}
+
 /***************************************************************************/
 // CLI reports
 /***************************************************************************/
 
 static void report_batt_monitor()
 {
-    //print_blanks(2);
-    cliSerial->printf_P(PSTR("Batt Mointor\n"));
-    print_divider();
-    if(battery.monitoring() == AP_BATT_MONITOR_DISABLED) cliSerial->printf_P(PSTR("Batt monitoring disabled"));
-    if(battery.monitoring() == AP_BATT_MONITOR_VOLTAGE_ONLY) cliSerial->printf_P(PSTR("Monitoring batt volts"));
-    if(battery.monitoring() == AP_BATT_MONITOR_VOLTAGE_AND_CURRENT) cliSerial->printf_P(PSTR("Monitoring volts and current"));
-    print_blanks(2);
+	//print_blanks(2);
+	cliSerial->printf_P(PSTR("Batt Mointor\n"));
+	print_divider();
+	if(g.battery_monitoring == 0)	cliSerial->printf_P(PSTR("Batt monitoring disabled"));
+	if(g.battery_monitoring == 3)	cliSerial->printf_P(PSTR("Monitoring batt volts"));
+	if(g.battery_monitoring == 4)	cliSerial->printf_P(PSTR("Monitoring volts and current"));
+	print_blanks(2);
 }
 static void report_radio()
 {
@@ -6219,9 +6161,28 @@ static void report_gains()
 	cliSerial->printf_P(PSTR("Gains\n"));
 	print_divider();
 
+	cliSerial->printf_P(PSTR("servo steer:\n"));
+	print_PID(&g.pidServoSteer);
+
+	cliSerial->printf_P(PSTR("nav steer:\n"));
+	print_PID(&g.pidNavSteer);
+
 	cliSerial->printf_P(PSTR("speed throttle:\n"));
 	print_PID(&g.pidSpeedThrottle);
 
+	print_blanks(2);
+}
+
+static void report_xtrack()
+{
+	//print_blanks(2);
+	cliSerial->printf_P(PSTR("Crosstrack\n"));
+	print_divider();
+	// radio
+	cliSerial->printf_P(PSTR("XTRACK: %4.2f\n"
+						 "XTRACK angle: %d\n"),
+						 (float)g.crosstrack_gain,
+						 (int)g.crosstrack_entry_angle);
 	print_blanks(2);
 }
 
@@ -6383,15 +6344,11 @@ radio_input_switch(void)
 
 static void zero_eeprom(void)
 {
-//	uint8_t b = 0;
+	uint8_t b = 0;
 	cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-	hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
-#else
 	for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
-		hal.storage->write_byte(i, 0);
+		hal.storage->write_byte(i, b);
 	}
-#endif
 	cliSerial->printf_P(PSTR("done\n"));
 }
 
@@ -6453,7 +6410,7 @@ MENU(main_menu, THISFIRMWARE, main_menu_commands);
 
 static int8_t reboot_board(uint8_t argc, const Menu::arg *argv)
 {
-    hal.scheduler->reboot(false);
+    reboot_apm();
     return 0;
 }
 
@@ -6479,6 +6436,24 @@ static void run_cli(AP_HAL::UARTDriver *port)
 
 static void init_ardupilot()
 {
+#if USB_MUX_PIN > 0
+    // on the APM2 board we have a mux thet switches UART0 between
+    // USB and the board header. If the right ArduPPM firmware is
+    // installed we can detect if USB is connected using the
+    // USB_MUX_PIN
+    pinMode(USB_MUX_PIN, INPUT);
+
+    usb_connected = !digitalRead(USB_MUX_PIN);
+    if (!usb_connected) {
+        // USB is not connected, this means UART0 may be a Xbee, with
+        // its darned bricking problem. We can't write to it for at
+        // least one second after powering up. Simplest solution for
+        // now is to delay for 1 second. Something more elegant may be
+        // added later
+        delay(1000);
+    }
+#endif
+
 	// Console serial port
 	//
 	// The console port buffers are defined to be sufficiently large to support
@@ -6500,11 +6475,11 @@ static void init_ardupilot()
 	// on the message set configured.
 	//
     // standard gps running
-    hal.uartB->begin(115200, 256, 16);
+    hal.uartB->begin(115200, 128, 16);
 
-	cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
+	cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
 						 "\n\nFree RAM: %u\n"),
-                        hal.util->available_memory());
+                    memcheck_available_memory());
                     
 	//
 	// Check the EEPROM format version before loading any parameters from EEPROM.
@@ -6512,45 +6487,38 @@ static void init_ardupilot()
 	
     load_parameters();
 
-    BoardConfig.init();
-
-    ServoRelayEvents.set_channel_mask(0xFFF0);
-
     set_control_channels();
 
     // after parameter load setup correct baud rate on uartA
-//    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
+    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
     // keep a record of how many resets have happened. This can be
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
 
-    // init the GCS
-    gcs[0].init(hal.uartA);
+	// init the GCS
+	gcs0.init(hal.uartA);
 
-    // we start by assuming USB connected, as we initialed the serial
-    // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
-    usb_connected = true;
-    check_usb_mux();
+    // Register mavlink_delay_cb, which will run anytime you have
+    // more than 5ms remaining in your call to hal.scheduler->delay
+    hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
 
-    // we have a 2nd serial port for telemetry
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-    hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
-	gcs[1].init(hal.uartC);
-#endif
-
-#if MAVLINK_COMM_NUM_BUFFERS > 2
-    // we may have a 3rd serial port for telemetry
-    if (hal.uartD != NULL) {
-        hal.uartD->begin(map_baudrate(g.serial2_baud, SERIAL2_BAUD), 128, 128);
-        gcs[2].init(hal.uartD);
+#if USB_MUX_PIN > 0
+    if (!usb_connected) {
+        // we are not connected via USB, re-init UART0 with right
+        // baud rate
+        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
     }
+#else
+    // we have a 2nd serial port for telemetry
+    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
+	gcs3.init(hal.uartC);
 #endif
 
 	mavlink_system.sysid = g.sysid_this_mav;
 
 #if LOGGING_ENABLED == ENABLED
-	DataFlash.Init(log_structure, sizeof(log_structure)/sizeof(log_structure[0]));
+	DataFlash.Init(); 	// DataFlash log initialization
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash card inserted"));
         g.log_bitmask.set(0);
@@ -6562,10 +6530,6 @@ static void init_ardupilot()
 		start_logging();
 	}
 #endif
-
-    // Register mavlink_delay_cb, which will run anytime you have
-    // more than 5ms remaining in your call to hal.scheduler->delay
-    hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
     adc.Init();      // APM ADC library initialization
@@ -6587,7 +6551,7 @@ static void init_ardupilot()
 	// Do GPS init
 	g_gps = &g_gps_driver;
     // GPS initialisation
-	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_4G);
+	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AUTOMOTIVE);
 
 	//mavlink_system.sysid = MAV_SYSTEM_ID;				// Using g.sysid_this_mav
 	mavlink_system.compid = 1;	//MAV_COMP_ID_IMU;   // We do not check for comp id
@@ -6598,7 +6562,18 @@ static void init_ardupilot()
 	init_rc_in();		// sets up rc channels from radio
 	init_rc_out();		// sets up the timer libs
 
+	pinMode(C_LED_PIN, OUTPUT);			// GPS status LED
+	pinMode(A_LED_PIN, OUTPUT);			// GPS status LED
+	pinMode(B_LED_PIN, OUTPUT);			// GPS status LED
+#if SLIDE_SWITCH_PIN > 0
+	pinMode(SLIDE_SWITCH_PIN, INPUT);	// To enter interactive mode
+#endif
+#if CONFIG_PUSHBUTTON == ENABLED
+	pinMode(PUSHBUTTON_PIN, INPUT);		// unused
+#endif
+#if CONFIG_RELAY == ENABLED
     relay.init();
+#endif
 
     /*
       setup the 'main loop is dead' check. Note that this relies on
@@ -6612,18 +6587,25 @@ static void init_ardupilot()
 	// the system in an odd state, we don't let the user exit the top
 	// menu; they must reset in order to fly.
 	//
+#if CLI_ENABLED == ENABLED && CLI_SLIDER_ENABLED == ENABLED
+	if (digitalRead(SLIDE_SWITCH_PIN) == 0) {
+		digitalWrite(A_LED_PIN,LED_ON);		// turn on setup-mode LED
+		cliSerial->printf_P(PSTR("\n"
+							 "Entering interactive setup mode...\n"
+							 "\n"
+							 "If using the Arduino Serial Monitor, ensure Line Ending is set to Carriage Return.\n"
+							 "Type 'help' to list commands, 'exit' to leave a submenu.\n"
+							 "Visit the 'setup' menu for first-time configuration.\n"));
+        cliSerial->println_P(PSTR("\nMove the slide switch and reset to FLY.\n"));
+        run_cli(&cliSerial);
+	}
+#else
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
-    if (gcs[1].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-        hal.uartC->println_P(msg);
+#if USB_MUX_PIN == 0
+    hal.uartC->println_P(msg);
 #endif
-    }
-    if (num_gcs > 2 && gcs[2].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-        hal.uartD->println_P(msg);
-#endif
-    }
+#endif // CLI_ENABLED
 
 	startup_ground();
 
@@ -6651,6 +6633,11 @@ static void startup_ground(void)
 		delay(GROUND_START_DELAY * 1000);
 	#endif
 
+	// Makes the servos wiggle
+	// step 1 = 1 wiggle
+	// -----------------------
+	demo_servos(1);
+
 	//IMU ground start
 	//------------------------
     //
@@ -6665,25 +6652,15 @@ static void startup_ground(void)
 	// -------------------
 	init_commands();
 
+	// Makes the servos wiggle - 3 times signals ready to fly
+	// -----------------------
+	demo_servos(3);
+
     hal.uartA->set_blocking_writes(false);
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+    hal.uartB->set_blocking_writes(false);
     hal.uartC->set_blocking_writes(false);
-#endif
 
-    gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
-}
-
-/*
-  set the in_reverse flag
-  reset the throttle integrator if this changes in_reverse
- */
-static void set_reverse(bool reverse)
-{
-    if (in_reverse == reverse) {
-        return;
-    }
-    g.pidSpeedThrottle.reset_I();    
-    in_reverse = reverse;
+	gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
 }
 
 static void set_mode(enum mode mode)
@@ -6696,8 +6673,6 @@ static void set_mode(enum mode mode)
 	control_mode = mode;
     throttle_last = 0;
     throttle = 500;
-    set_reverse(false);
-    g.pidSpeedThrottle.reset_I();
 
     if (control_mode != AUTO) {
         auto_triggered = false;
@@ -6778,37 +6753,56 @@ static void startup_INS_ground(bool force_accel_level)
 
 	// Makes the servos wiggle twice - about to begin INS calibration - HOLD LEVEL AND STILL!!
 	// -----------------------
+	demo_servos(2);
     gcs_send_text_P(SEVERITY_MEDIUM, PSTR("Beginning INS calibration; do not move vehicle"));
 	mavlink_delay(1000);
 
     ahrs.init();
 	ahrs.set_fly_forward(true);
-
-    AP_InertialSensor::Start_style style;
-    if (g.skip_gyro_cal && !force_accel_level) {
-        style = AP_InertialSensor::WARM_START;
-    } else {
-        style = AP_InertialSensor::COLD_START;
-    }
-
-	ins.init(style, ins_sample_rate);
-
+	ins.init(AP_InertialSensor::COLD_START, 
+             ins_sample_rate, 
+             flash_leds);
     if (force_accel_level) {
         // when MANUAL_LEVEL is set to 1 we don't do accelerometer
         // levelling on each boot, and instead rely on the user to do
         // it once via the ground station	
-        ins.init_accel();
+        ins.init_accel(flash_leds);
         ahrs.set_trim(Vector3f(0, 0, 0));
 	}
     ahrs.reset();
+
+	digitalWrite(B_LED_PIN, LED_ON);		// Set LED B high to indicate INS ready
+	digitalWrite(A_LED_PIN, LED_OFF);
+	digitalWrite(C_LED_PIN, LED_OFF);
 }
 
-// updates the notify state
-// should be called at 50hz
-static void update_notify()
+static void update_GPS_light(void)
 {
-    notify.update();
+	// GPS LED on if we have a fix or Blink GPS LED if we are receiving data
+	// ---------------------------------------------------------------------
+	switch (g_gps->status()) {
+		case(2):
+			digitalWrite(C_LED_PIN, LED_ON);  //Turn LED C on when gps has valid fix.
+			break;
+
+		case(1):
+			if (g_gps->valid_read == true){
+				GPS_light = !GPS_light; // Toggle light on and off to indicate gps messages being received, but no GPS fix lock
+				if (GPS_light){
+					digitalWrite(C_LED_PIN, LED_OFF);
+				} else {
+					digitalWrite(C_LED_PIN, LED_ON);
+				}
+				g_gps->valid_read = false;
+			}
+			break;
+
+		default:
+			digitalWrite(C_LED_PIN, LED_OFF);
+			break;
+	}
 }
+
 
 static void resetPerfData(void) {
 	mainLoop_count 			= 0;
@@ -6816,6 +6810,7 @@ static void resetPerfData(void) {
 	ahrs.renorm_range_count 	= 0;
 	ahrs.renorm_blowup_count = 0;
 	gps_fix_count 			= 0;
+	pmTest1					= 0;
 	perf_mon_timer 			= millis();
 }
 
@@ -6836,41 +6831,47 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
     case 111:  return 111100;
     case 115:  return 115200;
     }
-    cliSerial->println_P(PSTR("Invalid baudrate"));
+    cliSerial->println_P(PSTR("Invalid SERIAL3_BAUD"));
     return default_baud;
 }
 
 
 static void check_usb_mux(void)
 {
-    bool usb_check = hal.gpio->usb_connected();
+#if USB_MUX_PIN > 0
+    bool usb_check = !digitalRead(USB_MUX_PIN);
     if (usb_check == usb_connected) {
         return;
     }
 
     // the user has switched to/from the telemetry port
     usb_connected = usb_check;
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
-    // the APM2 has a MUX setup where the first serial port switches
-    // between USB and a TTL serial connection. When on USB we use
-    // SERIAL0_BAUD, but when connected as a TTL serial port we run it
-    // at SERIAL1_BAUD.
     if (usb_connected) {
-        hal.uartA->begin(SERIAL0_BAUD);
+        hal.uartA->begin(SERIAL0_BAUD, 128, 128);
     } else {
-        hal.uartA->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD));
+        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
     }
 #endif
 }
 
 
+
 /*
- * Read board voltage in millivolts
+  called by gyro/accel init to flash LEDs so user
+  has some mesmerising lights to watch while waiting
+ */
+void flash_leds(bool on)
+{
+    digitalWrite(A_LED_PIN, on?LED_OFF:LED_ON);
+    digitalWrite(C_LED_PIN, on?LED_ON:LED_OFF);
+}
+
+/*
+ * Read Vcc vs 1.1v internal reference
  */
 uint16_t board_voltage(void)
 {
-    return vcc_pin->voltage_latest() * 1000;
+    return vcc_pin->read_latest();
 }
 
 static void
@@ -6887,7 +6888,7 @@ print_mode(AP_HAL::BetterStream *port, uint8_t mode)
         port->print_P(PSTR("Learning"));
         break;
     case STEERING:
-        port->print_P(PSTR("Steering"));
+        port->print_P(PSTR("Stearing"));
         break;
     case AUTO:
         port->print_P(PSTR("AUTO"));
@@ -6899,6 +6900,15 @@ print_mode(AP_HAL::BetterStream *port, uint8_t mode)
         port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
         break;
     }
+}
+
+/*
+  force a software reset of the APM
+ */
+static void reboot_apm(void)
+{
+    hal.scheduler->reboot();
+    while (1);
 }
 
 /*
@@ -6933,28 +6943,6 @@ static void servo_write(uint8_t ch, uint16_t pwm)
     hal.rcout->write(ch, pwm);
 #endif
 }
-
-/*
-  should we log a message type now?
- */
-static bool should_log(uint32_t mask)
-{
-    if (!(mask & g.log_bitmask) || in_mavlink_delay) {
-        return false;
-    }
-    bool armed;
-    armed = (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED);
-
-    bool ret = armed || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
-    if (ret && !DataFlash.logging_started() && !in_log_download) {
-        // we have to set in_mavlink_delay to prevent logging while
-        // writing headers
-        in_mavlink_delay = true;
-        start_logging();
-        in_mavlink_delay = false;
-    }
-    return ret;
-}
 #line 1 "./APMRover2/test.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -6968,6 +6956,7 @@ static int8_t	test_passthru(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_failsafe(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_gps(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_ins(uint8_t argc, 			const Menu::arg *argv);
+static int8_t	test_battery(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_relay(uint8_t argc,	 	const Menu::arg *argv);
 static int8_t	test_wp(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_sonar(uint8_t argc, 	const Menu::arg *argv);
@@ -6987,6 +6976,7 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
 	{"radio",			test_radio},
 	{"passthru",		test_passthru},
 	{"failsafe",		test_failsafe},
+	{"battery",	test_battery},
 	{"relay",			test_relay},
 	{"waypoints",		test_wp},
 	{"modeswitch",		test_modeswitch},
@@ -7168,6 +7158,43 @@ test_failsafe(uint8_t argc, const Menu::arg *argv)
 }
 
 static int8_t
+test_battery(uint8_t argc, const Menu::arg *argv)
+{
+if (g.battery_monitoring == 3 || g.battery_monitoring == 4) {
+	print_hit_enter();
+
+	while(1){
+		delay(100);
+		read_radio();
+		read_battery();
+		if (g.battery_monitoring == 3){
+			cliSerial->printf_P(PSTR("V: %4.4f\n"),
+						battery_voltage1,
+						current_amps1,
+						current_total1);
+		} else {
+			cliSerial->printf_P(PSTR("V: %4.4f, A: %4.4f, mAh: %4.4f\n"),
+						battery_voltage1,
+						current_amps1,
+						current_total1);
+		}
+
+		// write out the servo PWM values
+		// ------------------------------
+		set_servos();
+
+		if(cliSerial->available() > 0){
+			return (0);
+		}
+	}
+} else {
+	cliSerial->printf_P(PSTR("Not enabled\n"));
+	return (0);
+}
+
+}
+
+static int8_t
 test_relay(uint8_t argc, const Menu::arg *argv)
 {
 	print_hit_enter();
@@ -7175,14 +7202,14 @@ test_relay(uint8_t argc, const Menu::arg *argv)
 
 	while(1){
 		cliSerial->printf_P(PSTR("Relay on\n"));
-		relay.on(0);
+		relay.on();
 		delay(3000);
 		if(cliSerial->available() > 0){
 			return (0);
 		}
 
 		cliSerial->printf_P(PSTR("Relay off\n"));
-		relay.off(0);
+		relay.off();
 		delay(3000);
 		if(cliSerial->available() > 0){
 			return (0);
@@ -7227,7 +7254,7 @@ test_modeswitch(uint8_t argc, const Menu::arg *argv)
 
 	cliSerial->printf_P(PSTR("Control CH "));
 
-	cliSerial->println(MODE_CHANNEL, BASE_DEC);
+	cliSerial->println(MODE_CHANNEL, DEC);
 
 	while(1){
 		delay(20);
@@ -7266,6 +7293,10 @@ test_gps(uint8_t argc, const Menu::arg *argv)
 	while(1){
 		delay(100);
 
+		// Blink GPS LED if we don't have a fix
+		// ------------------------------------
+		update_GPS_light();
+
 		g_gps->update();
 
 		if (g_gps->new_data){
@@ -7290,7 +7321,8 @@ test_ins(uint8_t argc, const Menu::arg *argv)
 	ahrs.init();
     ahrs.set_fly_forward(true);
 	ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate);
+             ins_sample_rate, 
+             flash_leds);
     ahrs.reset();
 
 	print_hit_enter();
@@ -7299,32 +7331,39 @@ test_ins(uint8_t argc, const Menu::arg *argv)
     uint8_t medium_loopCounter = 0;
 
 	while(1){
-        ins.wait_for_sample(1000);
+		delay(20);
+		if (millis() - fast_loopTimer > 19) {
+			delta_ms_fast_loop 	= millis() - fast_loopTimer;
+			G_Dt 				= (float)delta_ms_fast_loop / 1000.f;		// used by DCM integrator
+			fast_loopTimer		= millis();
 
-        ahrs.update();
+			// INS
+			// ---
+			ahrs.update();
 
-        if(g.compass_enabled) {
-            medium_loopCounter++;
-            if(medium_loopCounter >= 5){
-                compass.read();
-                medium_loopCounter = 0;
-            }
-        }
-        
-        // We are using the IMU
-        // ---------------------
-        Vector3f gyros 	= ins.get_gyro();
-        Vector3f accels = ins.get_accel();
-        cliSerial->printf_P(PSTR("r:%4d  p:%4d  y:%3d  g=(%5.1f %5.1f %5.1f)  a=(%5.1f %5.1f %5.1f)\n"),
+			if(g.compass_enabled) {
+				medium_loopCounter++;
+				if(medium_loopCounter >= 5){
+					compass.read();
+                    medium_loopCounter = 0;
+				}
+			}
+
+			// We are using the IMU
+			// ---------------------
+            Vector3f gyros 	= ins.get_gyro();
+            Vector3f accels = ins.get_accel();
+			cliSerial->printf_P(PSTR("r:%4d  p:%4d  y:%3d  g=(%5.1f %5.1f %5.1f)  a=(%5.1f %5.1f %5.1f)\n"),
                             (int)ahrs.roll_sensor / 100,
                             (int)ahrs.pitch_sensor / 100,
                             (uint16_t)ahrs.yaw_sensor / 100,
                             gyros.x, gyros.y, gyros.z,
                             accels.x, accels.y, accels.z);
-    }
-    if(cliSerial->available() > 0){
-        return (0);
-    }
+		}
+		if(cliSerial->available() > 0){
+			return (0);
+		}
+	}
 }
 
 
@@ -7348,7 +7387,8 @@ test_mag(uint8_t argc, const Menu::arg *argv)
 
     // we need the AHRS initialised for this test
 	ins.init(AP_InertialSensor::COLD_START, 
-             ins_sample_rate);
+             ins_sample_rate, 
+             flash_leds);
     ahrs.reset();
 
 	int counter = 0;
@@ -7359,34 +7399,45 @@ test_mag(uint8_t argc, const Menu::arg *argv)
     uint8_t medium_loopCounter = 0;
 
     while(1) {
-        ins.wait_for_sample(1000);
-        ahrs.update();
+		delay(20);
+		if (millis() - fast_loopTimer > 19) {
+			delta_ms_fast_loop 	= millis() - fast_loopTimer;
+			G_Dt 				= (float)delta_ms_fast_loop / 1000.f;		// used by DCM integrator
+			fast_loopTimer		= millis();
 
-        medium_loopCounter++;
-        if(medium_loopCounter >= 5){
-            if (compass.read()) {
-                // Calculate heading
-                Matrix3f m = ahrs.get_dcm_matrix();
-                heading = compass.calculate_heading(m);
-                compass.null_offsets();
+			// IMU
+			// ---
+			ahrs.update();
+
+            medium_loopCounter++;
+            if(medium_loopCounter >= 5){
+                if (compass.read()) {
+                    // Calculate heading
+                    Matrix3f m = ahrs.get_dcm_matrix();
+                    heading = compass.calculate_heading(m);
+                    compass.null_offsets();
+                }
+                medium_loopCounter = 0;
             }
-            medium_loopCounter = 0;
-        }
-        
-        counter++;
-        if (counter>20) {
-            if (compass.healthy()) {
-                const Vector3f mag_ofs = compass.get_offsets();
-                const Vector3f mag = compass.get_field();
-                cliSerial->printf_P(PSTR("Heading: %ld, XYZ: %.0f, %.0f, %.0f,\tXYZoff: %6.2f, %6.2f, %6.2f\n"),
+
+			counter++;
+			if (counter>20) {
+                if (compass.healthy) {
+                    Vector3f maggy = compass.get_offsets();
+                    cliSerial->printf_P(PSTR("Heading: %ld, XYZ: %d, %d, %d,\tXYZoff: %6.2f, %6.2f, %6.2f\n"),
                                     (wrap_360_cd(ToDeg(heading) * 100)) /100,
-                                    mag.x, mag.y, mag.z,
-                                    mag_ofs.x, mag_ofs.y, mag_ofs.z);
-            } else {
-                cliSerial->println_P(PSTR("compass not healthy"));
+                                    (int)compass.mag_x,
+                                    (int)compass.mag_y,
+                                    (int)compass.mag_z,
+                                    maggy.x,
+                                    maggy.y,
+                                    maggy.z);
+                } else {
+                    cliSerial->println_P(PSTR("compass not healthy"));
+                }
+                counter=0;
             }
-            counter=0;
-        }
+		}
         if (cliSerial->available() > 0) {
             break;
         }

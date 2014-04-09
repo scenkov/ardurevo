@@ -22,6 +22,8 @@
 #include <AP_HAL.h>
 #include <AP_Param.h>
 
+//#define ENABLE_JTAG
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
  #define EXTERNAL_LED_ARMED   61    // Armed LED - AN7
  #define EXTERNAL_LED_GPS     60    // GPS LED - AN6
@@ -33,12 +35,17 @@
  #define EXTERNAL_LED_MOTOR1  62    // Motor1 LED - AN8
  #define EXTERNAL_LED_MOTOR2  66    // Motor2 LED - AN12
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- #define EXTERNAL_LED_ARMED 102     // GPS LED - PIN1
- #define EXTERNAL_LED_GPS 65  	    // Armed LED - PIN2
- #define EXTERNAL_LED_MOTOR1 254    // NC
- #define EXTERNAL_LED_MOTOR2 254    // NC
+ #define EXTERNAL_LED_ARMED 102  	// GPS LED - PIN1
+ #define EXTERNAL_LED_GPS 65  		// Armed LED - PIN2
+ #define EXTERNAL_LED_MOTOR1 254  	// NC
+ #define EXTERNAL_LED_MOTOR2 254  	// NC
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#ifdef ENABLE_JTAG
+ #define EXTERNAL_LED_ARMED  255    // NC
+#else
  #define EXTERNAL_LED_ARMED  106    // PA13
+#endif
+//#endif
  #define EXTERNAL_LED_GPS    254    // NC
  #define EXTERNAL_LED_MOTOR1 254    // NC
  #define EXTERNAL_LED_MOTOR2 254    // NC

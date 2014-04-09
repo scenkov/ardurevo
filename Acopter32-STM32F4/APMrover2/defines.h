@@ -48,7 +48,7 @@ enum ch7_option {
 // ----------------
 enum mode {
     MANUAL=0,
-    LEARNING=2,
+	LEARNING=2,
     STEERING=3,
     HOLD=4,
     AUTO=10,
@@ -84,12 +84,12 @@ enum mode {
 
 //  Logging parameters
 #define LOG_CTUN_MSG	        0x01
-#define LOG_NTUN_MSG    	0x02
-#define LOG_PERFORMANCE_MSG	0x03
-#define LOG_CMD_MSG		0x04
-#define LOG_CURRENT_MSG 	0x05
-#define LOG_STARTUP_MSG 	0x06
-#define LOG_SONAR_MSG 		0x07
+#define LOG_NTUN_MSG    		0x02
+#define LOG_PERFORMANCE_MSG		0x03
+#define LOG_CMD_MSG			    0x04
+#define LOG_CURRENT_MSG 		0x05
+#define LOG_STARTUP_MSG 		0x06
+#define LOG_SONAR_MSG 		    0x07
 #define LOG_ATTITUDE_MSG        0x08
 #define LOG_MODE_MSG            0x09
 #define LOG_COMPASS_MSG         0x0A
@@ -97,26 +97,25 @@ enum mode {
 #define LOG_COMPASS2_MSG        0x0C
 #define LOG_STEERING_MSG        0x0D
 
-#define TYPE_AIRSTART_MSG	0x00
+#define TYPE_AIRSTART_MSG		0x00
 #define TYPE_GROUNDSTART_MSG	0x01
-#define MAX_NUM_LOGS		100
+#define MAX_NUM_LOGS			100
 
 #define MASK_LOG_ATTITUDE_FAST 	(1<<0)
 #define MASK_LOG_ATTITUDE_MED 	(1<<1)
-#define MASK_LOG_GPS 		(1<<2)
-#define MASK_LOG_PM 		(1<<3)
-#define MASK_LOG_CTUN 		(1<<4)
-#define MASK_LOG_NTUN		(1<<5)
-#define MASK_LOG_MODE		(1<<6)
-#define MASK_LOG_IMU		(1<<7)
-#define MASK_LOG_CMD		(1<<8)
-#define MASK_LOG_CURRENT	(1<<9)
-#define MASK_LOG_SONAR   	(1<<10)
-#define MASK_LOG_COMPASS   	(1<<11)
-#define MASK_LOG_CAMERA   	(1<<12)
-#define MASK_LOG_STEERING  	(1<<13)
-#define MASK_LOG_RC     	(1<<14)
-#define MASK_LOG_WHEN_DISARMED  (1<<30)
+#define MASK_LOG_GPS 			(1<<2)
+#define MASK_LOG_PM 			(1<<3)
+#define MASK_LOG_CTUN 			(1<<4)
+#define MASK_LOG_NTUN			(1<<5)
+#define MASK_LOG_MODE			(1<<6)
+#define MASK_LOG_IMU			(1<<7)
+#define MASK_LOG_CMD			(1<<8)
+#define MASK_LOG_CURRENT		(1<<9)
+#define MASK_LOG_SONAR   		(1<<10)
+#define MASK_LOG_COMPASS   		(1<<11)
+#define MASK_LOG_CAMERA   		(1<<12)
+#define MASK_LOG_STEERING  		(1<<13)
+#define MASK_LOG_RC     		(1<<14)
 
 // Waypoint Modes
 // ----------------

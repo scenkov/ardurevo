@@ -73,7 +73,7 @@ private:
     // support for updating filter at runtime
     uint8_t _last_filter_hz;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
     // support for _sample_rate
     uint8_t _sample_rate;
     //how many seconds between samples

@@ -112,7 +112,7 @@
  # define MAGNETOMETER         ENABLED
  # define CONFIG_BARO          AP_BARO_MS5611
  # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
- # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
+ # define CONFIG_SONAR_SOURCE  SONAR_SOURCE_ANALOG_PIN
  # define CONFIG_SONAR_SOURCE_ANALOG_PIN 254
  # define CONFIG_ADC           DISABLED
  # define CONFIG_PUSHBUTTON    DISABLED
@@ -126,7 +126,7 @@
 // FRAME_CONFIG
 //
 #ifndef FRAME_CONFIG
- # define FRAME_CONFIG   QUAD_FRAME //HEXA_FRAME
+ # define FRAME_CONFIG   QUAD_FRAME
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////

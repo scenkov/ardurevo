@@ -46,7 +46,7 @@ void REVOMINIAnalogIn::init(void* machtnichts) {
     _register_channel(&_vcc);
 }
 
-REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(uint8_t chnum) {
+REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(int16_t chnum) {
 
     REVOMINIAnalogSource *ch = new REVOMINIAnalogSource(chnum);
     _register_channel(ch);

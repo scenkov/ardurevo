@@ -46,7 +46,7 @@ void VRBRAINAnalogIn::init(void* machtnichts) {
     _register_channel(&_vcc);
 }
 
-VRBRAINAnalogSource* VRBRAINAnalogIn::_create_channel(uint8_t chnum) {
+VRBRAINAnalogSource* VRBRAINAnalogIn::_create_channel(int16_t chnum) {
 
     VRBRAINAnalogSource *ch = new VRBRAINAnalogSource(chnum);
     _register_channel(ch);

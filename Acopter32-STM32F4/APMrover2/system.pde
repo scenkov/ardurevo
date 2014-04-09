@@ -104,10 +104,6 @@ static void init_ardupilot()
 	
     load_parameters();
 
-    BoardConfig.init();
-
-    ServoRelayEvents.set_channel_mask(0xFFF0);
-
     set_control_channels();
 
     // after parameter load setup correct baud rate on uartA
@@ -117,8 +113,8 @@ static void init_ardupilot()
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
 
-    // init the GCS
-    gcs[0].init(hal.uartA);
+	// init the GCS
+	gcs[0].init(hal.uartA);
 
     // we start by assuming USB connected, as we initialed the serial
     // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
@@ -126,10 +122,8 @@ static void init_ardupilot()
     check_usb_mux();
 
     // we have a 2nd serial port for telemetry
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
 	gcs[1].init(hal.uartC);
-#endif
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     // we may have a 3rd serial port for telemetry
@@ -179,7 +173,7 @@ static void init_ardupilot()
 	// Do GPS init
 	g_gps = &g_gps_driver;
     // GPS initialisation
-	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_4G);
+	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AUTOMOTIVE);
 
 	//mavlink_system.sysid = MAV_SYSTEM_ID;				// Using g.sysid_this_mav
 	mavlink_system.compid = 1;	//MAV_COMP_ID_IMU;   // We do not check for comp id
@@ -207,14 +201,10 @@ static void init_ardupilot()
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
     if (gcs[1].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
         hal.uartC->println_P(msg);
-#endif
     }
     if (num_gcs > 2 && gcs[2].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
         hal.uartD->println_P(msg);
-#endif
     }
 
 	startup_ground();
@@ -258,11 +248,9 @@ static void startup_ground(void)
 	init_commands();
 
     hal.uartA->set_blocking_writes(false);
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     hal.uartC->set_blocking_writes(false);
-#endif
 
-    gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
+	gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
 }
 
 /*
@@ -479,7 +467,7 @@ print_mode(AP_HAL::BetterStream *port, uint8_t mode)
         port->print_P(PSTR("Learning"));
         break;
     case STEERING:
-        port->print_P(PSTR("Steering"));
+        port->print_P(PSTR("Stearing"));
         break;
     case AUTO:
         port->print_P(PSTR("AUTO"));
@@ -524,26 +512,4 @@ static void servo_write(uint8_t ch, uint16_t pwm)
     hal.rcout->enable_ch(ch);
     hal.rcout->write(ch, pwm);
 #endif
-}
-
-/*
-  should we log a message type now?
- */
-static bool should_log(uint32_t mask)
-{
-    if (!(mask & g.log_bitmask) || in_mavlink_delay) {
-        return false;
-    }
-    bool armed;
-    armed = (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED);
-
-    bool ret = armed || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
-    if (ret && !DataFlash.logging_started() && !in_log_download) {
-        // we have to set in_mavlink_delay to prevent logging while
-        // writing headers
-        in_mavlink_delay = true;
-        start_logging();
-        in_mavlink_delay = false;
-    }
-    return ret;
 }
