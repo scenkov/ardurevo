@@ -1,0 +1,8 @@
+08:11:14 **** Build of configuration Default for project Acopter32-STM32F4 ****
+make clean 
+rm -f ./ArduCopter/ArduCopter.cpp
+rm -f main.cpp
+rm -rf build
+
+08:11:15 Build Finished (took 1s.594ms)
+
