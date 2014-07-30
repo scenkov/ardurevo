@@ -12,6 +12,7 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_Math.cpp
+cppSRCS_$(d) += edc.cpp
 cppSRCS_$(d) += location.cpp
 cppSRCS_$(d) += matrix3.cpp
 cppSRCS_$(d) += polygon.cpp

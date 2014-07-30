@@ -67,13 +67,34 @@ int32_t AP_L1_Control::bearing_error_cd(void) const
 
 int32_t AP_L1_Control::target_bearing_cd(void) const
 {
-	return _target_bearing_cd;
+	return wrap_180_cd(_target_bearing_cd);
 }
 
+/*
+  this is the turn distance assuming a 90 degree turn
+ */
 float AP_L1_Control::turn_distance(float wp_radius) const
 {
     wp_radius *= sq(_ahrs.get_EAS2TAS());
 	return min(wp_radius, _L1_dist);
+}
+
+/*
+  this approximates the turn distance for a given turn angle. If the
+  turn_angle is > 90 then a 90 degree turn distance is used, otherwise
+  the turn distance is reduced linearly. 
+  This function allows straight ahead mission legs to avoid thinking
+  they have reached the waypoint early, which makes things like camera
+  trigger and ball drop at exact positions under mission control much easier
+ */
+float AP_L1_Control::turn_distance(float wp_radius, float turn_angle) const
+{
+    float distance_90 = turn_distance(wp_radius);
+    turn_angle = fabsf(turn_angle);
+    if (turn_angle >= 90) {
+        return distance_90;
+    }
+    return distance_90 * turn_angle / 90.0f;
 }
 
 bool AP_L1_Control::reached_loiter_target(void)
@@ -123,11 +144,6 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
     _ahrs.get_position(_current_loc);
 
 	Vector2f _groundspeed_vector = _ahrs.groundspeed_vector();
-
-    // update the position for lag. This helps especially for rovers
-    // where waypoints may be very close together
-    Vector2f lag_offset = _groundspeed_vector * _ahrs.get_position_lag();
-    location_offset(_current_loc, lag_offset.x, lag_offset.y);
 
 	// update _target_bearing_cd
 	_target_bearing_cd = get_bearing_cd(_current_loc, next_WP);
@@ -228,11 +244,6 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     _ahrs.get_position(_current_loc);
 
 	Vector2f _groundspeed_vector = _ahrs.groundspeed_vector();
-
-    // update the position for lag. This helps especially for rovers
-    // where waypoints may be very close together
-    Vector2f lag_offset = _groundspeed_vector * _ahrs.get_position_lag();
-    location_offset(_current_loc, lag_offset.x, lag_offset.y);
 
 	//Calculate groundspeed
 	float groundSpeed = max(_groundspeed_vector.length() , 1.0f);

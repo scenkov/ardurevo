@@ -11,16 +11,15 @@ CFLAGS_$(d) :=
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
-cppSRCS_$(d) += AP_GPS_406.cpp
-cppSRCS_$(d) += AP_GPS_Auto.cpp
+cppSRCS_$(d) += AP_GPS.cpp
 cppSRCS_$(d) += AP_GPS_Glitch.cpp
-cppSRCS_$(d) += AP_GPS_HIL.cpp
 cppSRCS_$(d) += AP_GPS_MTK.cpp
 cppSRCS_$(d) += AP_GPS_MTK19.cpp
 cppSRCS_$(d) += AP_GPS_NMEA.cpp
+cppSRCS_$(d) += AP_GPS_SBP.cpp
 cppSRCS_$(d) += AP_GPS_SIRF.cpp
 cppSRCS_$(d) += AP_GPS_UBLOX.cpp
-cppSRCS_$(d) += GPS.cpp
+cppSRCS_$(d) += GPS_Backend.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

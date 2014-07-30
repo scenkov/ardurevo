@@ -16,7 +16,7 @@
 // enable debug to see a register dump on startup
 #define MPU6000_DEBUG 0
 
-#define ENHANCED
+//#define ENHANCED
 
 class AP_InertialSensor_MPU6000_Ext : public AP_InertialSensor
 {
@@ -32,11 +32,12 @@ public:
     bool                wait_for_sample(uint16_t timeout_ms);
 
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float            	get_delta_time();
+    float            	get_delta_time() const;
 
     uint16_t error_count(void) const { return _error_count; }
     bool healthy(void) const { return _error_count <= 4; }
-
+    bool get_gyro_health(uint8_t instance) const { return healthy(); }
+    bool get_accel_health(uint8_t instance) const { return healthy(); }
 
 protected:
     uint16_t                    _init_sensor( Sample_rate sample_rate );

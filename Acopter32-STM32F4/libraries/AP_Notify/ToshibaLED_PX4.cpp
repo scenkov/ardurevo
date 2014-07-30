@@ -65,13 +65,13 @@ void ToshibaLED_PX4::update_timer(void)
     }
     rgbled_rgbset_t v;
 
-    v.red = next[0];
+    v.red   = next[0];
     v.green = next[1];
-    v.blue = next[2];
+    v.blue  = next[2];
 
     ioctl(_rgbled_fd, RGBLED_SET_RGB, (unsigned long)&v);
 
     last = next;
 }
 
-#endif
+#endif // CONFIG_HAL_BOARD == HAL_BOARD_PX4

@@ -62,18 +62,20 @@ void GCS_MAVLINK::handle_log_request_list(mavlink_message_t *msg, DataFlash_Clas
 
     _log_num_logs = dataflash.get_num_logs();
     if (_log_num_logs == 0) {
-        return;
-    }
-    int16_t last_log_num = dataflash.find_last_log();
+        _log_next_list_entry = 0;
+        _log_last_list_entry = 0;        
+    } else {
+        uint16_t last_log_num = dataflash.find_last_log();
 
-    _log_next_list_entry = packet.start;
-    _log_last_list_entry = packet.end;
+        _log_next_list_entry = packet.start;
+        _log_last_list_entry = packet.end;
 
-    if (_log_last_list_entry > last_log_num) {
-        _log_last_list_entry = last_log_num;
-    }
-    if (_log_next_list_entry < last_log_num + 1 - _log_num_logs) {
-        _log_next_list_entry = last_log_num + 1 - _log_num_logs;
+        if (_log_last_list_entry > last_log_num) {
+            _log_last_list_entry = last_log_num;
+        }
+        if (_log_next_list_entry < last_log_num + 1 - _log_num_logs) {
+            _log_next_list_entry = last_log_num + 1 - _log_num_logs;
+        }
     }
 
     _log_listing = true;
@@ -96,7 +98,7 @@ void GCS_MAVLINK::handle_log_request_data(mavlink_message_t *msg, DataFlash_Clas
         _log_sending = false;
 
         uint16_t num_logs = dataflash.get_num_logs();
-        int16_t last_log_num = dataflash.find_last_log();
+        uint16_t last_log_num = dataflash.find_last_log();
         if (packet.id > last_log_num || packet.id < last_log_num + 1 - num_logs) {
             return;
         }
@@ -110,6 +112,7 @@ void GCS_MAVLINK::handle_log_request_data(mavlink_message_t *msg, DataFlash_Clas
         dataflash.get_log_boundaries(packet.id, _log_data_page, end);
     }
 
+    _log_data_offset = packet.ofs;
     if (_log_data_offset >= _log_data_size) {
         _log_data_remaining = 0;
     } else {
@@ -118,7 +121,6 @@ void GCS_MAVLINK::handle_log_request_data(mavlink_message_t *msg, DataFlash_Clas
     if (_log_data_remaining > packet.count) {
         _log_data_remaining = packet.count;
     }
-    _log_data_offset = packet.ofs;
     _log_sending = true;
 
     handle_log_send(dataflash);
@@ -132,10 +134,15 @@ void GCS_MAVLINK::handle_log_send(DataFlash_Class &dataflash)
     if (_log_listing) {
         handle_log_send_listing(dataflash);
     }
+    if (!_log_sending) {
+        return;
+    }
     uint8_t num_sends = 1;
     if (chan == MAVLINK_COMM_0 && hal.gpio->usb_connected()) {
         // when on USB we can send a lot more data
         num_sends = 40;
+    } else if (have_flow_control()) {
+        num_sends = 10;        
     }
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
@@ -143,10 +150,6 @@ void GCS_MAVLINK::handle_log_send(DataFlash_Class &dataflash)
     num_sends = 40;
 #endif
 
-    if (stream_slowdown != 0) {
-        // we're using a radio and starting to clag up, slowdown log send
-        num_sends = 1;
-    }
     for (uint8_t i=0; i<num_sends; i++) {
         if (_log_sending) {
             if (!handle_log_send_data(dataflash)) break;
@@ -170,7 +173,12 @@ void GCS_MAVLINK::handle_log_send_listing(DataFlash_Class &dataflash)
     }
 
     uint32_t size, time_utc;
-    dataflash.get_log_info(_log_next_list_entry, size, time_utc);
+    if (_log_next_list_entry == 0) {
+        size = 0;
+        time_utc = 0;
+    } else {
+        dataflash.get_log_info(_log_next_list_entry, size, time_utc);
+    }
     mavlink_msg_log_entry_send(chan, _log_next_list_entry, _log_num_logs, _log_last_list_entry, time_utc, size);
     if (_log_next_list_entry == _log_last_list_entry) {
         _log_listing = false;
@@ -196,20 +204,26 @@ bool GCS_MAVLINK::handle_log_send_data(DataFlash_Class &dataflash)
 
     int16_t ret = 0;
     uint32_t len = _log_data_remaining;
-    uint8_t data[90];
+	mavlink_log_data_t packet;
 
     if (len > 90) {
         len = 90;
     }
-    ret = dataflash.get_log_data(_log_num_data, _log_data_page, _log_data_offset, len, data);
+    ret = dataflash.get_log_data(_log_num_data, _log_data_page, _log_data_offset, len, packet.data);
     if (ret < 0) {
         // report as EOF on error
         ret = 0;
     }
     if (ret < 90) {
-        memset(&data[ret], 0, 90-ret);
+        memset(&packet.data[ret], 0, 90-ret);
     }
-    mavlink_msg_log_data_send(chan, _log_num_data, _log_data_offset, ret, data);
+
+    packet.ofs = _log_data_offset;
+    packet.id = _log_num_data;
+    packet.count = ret;
+    _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_LOG_DATA, (const char *)&packet, 
+                                    MAVLINK_MSG_ID_LOG_DATA_LEN, MAVLINK_MSG_ID_LOG_DATA_CRC);
+
     _log_data_offset += len;
     _log_data_remaining -= len;
     if (ret < 90 || _log_data_remaining == 0) {

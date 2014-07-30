@@ -82,15 +82,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // main board differences
 //
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-# define CONFIG_INS_TYPE      CONFIG_INS_MPU6000
-# define CONFIG_BARO          AP_BARO_MS5611
-# define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
-# define CONFIG_COMPASS       AP_COMPASS_HMC5843
-# define BATTERY_VOLT_PIN     7
-# define BATTERY_CURR_PIN     8
-# define SERIAL0_BAUD         57600
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define CONFIG_INS_TYPE CONFIG_INS_OILPAN
  # define CONFIG_BARO     AP_BARO_BMP085
  # define CONFIG_COMPASS  AP_COMPASS_HMC5843
@@ -124,13 +116,17 @@
  # define CONFIG_BARO     AP_BARO_BMP085
  # define CONFIG_COMPASS  AP_COMPASS_HMC5843
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
- # define CONFIG_BARO     AP_BARO_MS5611
- # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
- # define BATTERY_VOLT_PIN      6
- # define BATTERY_CURR_PIN      7
- # define SERIAL0_BAUD 57600
+# define CONFIG_INS_TYPE   CONFIG_INS_VRBRAIN
+# define CONFIG_BARO     AP_BARO_MS5611
+# define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
+# define CONFIG_COMPASS  AP_COMPASS_HMC5843
+# define SERIAL0_BAUD 57600
+#elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+# define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
+# define CONFIG_BARO     AP_BARO_MS5611
+# define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
+# define CONFIG_COMPASS  AP_COMPASS_HMC5843
+# define SERIAL0_BAUD 57600
 #endif
 
 
@@ -150,24 +146,12 @@
 #endif
 
 #if HIL_MODE != HIL_MODE_DISABLED       // we are in HIL mode
- #undef GPS_PROTOCOL
- #define GPS_PROTOCOL GPS_PROTOCOL_HIL
  #undef CONFIG_BARO
  #define CONFIG_BARO AP_BARO_HIL
  #undef CONFIG_INS_TYPE
  #define CONFIG_INS_TYPE CONFIG_INS_HIL
  #undef  CONFIG_COMPASS
  #define CONFIG_COMPASS  AP_COMPASS_HIL
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// GPS_PROTOCOL
-//
-// Note that this test must follow the HIL_PROTOCOL block as the HIL
-// setup may override the GPS configuration.
-//
-#ifndef GPS_PROTOCOL
- # define GPS_PROTOCOL GPS_PROTOCOL_AUTO
 #endif
 
 #ifndef MAV_SYSTEM_ID
@@ -425,7 +409,7 @@
  # define HEAD_MAX                               45
 #endif
 #ifndef PITCH_MAX
- # define PITCH_MAX                              15
+ # define PITCH_MAX                              20
 #endif
 #ifndef PITCH_MIN
  # define PITCH_MIN                              -25

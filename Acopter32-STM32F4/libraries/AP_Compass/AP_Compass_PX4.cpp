@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <drivers/drv_device.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <stdio.h>
@@ -43,19 +44,24 @@ extern const AP_HAL::HAL& hal;
 bool AP_Compass_PX4::init(void)
 {
 	_mag_fd[0] = open(MAG_DEVICE_PATH, O_RDONLY);
-	if (_mag_fd[0] < 0) {
+	_mag_fd[1] = open(MAG_DEVICE_PATH "1", O_RDONLY);
+	_mag_fd[2] = open(MAG_DEVICE_PATH "2", O_RDONLY);
+
+    _num_instances = 0;
+    for (uint8_t i=0; i<COMPASS_MAX_INSTANCES; i++) {
+        if (_mag_fd[i] >= 0) {
+            _num_instances = i+1;
+        }
+    }    
+	if (_num_instances == 0) {
         hal.console->printf("Unable to open " MAG_DEVICE_PATH "\n");
         return false;
 	}
 
-	_mag_fd[1] = open(MAG_DEVICE_PATH "1", O_RDONLY);
-	if (_mag_fd[1] >= 0) {
-        _num_instances = 2;
-	} else {
-        _num_instances = 1;
-    }
-
     for (uint8_t i=0; i<_num_instances; i++) {
+        // get device id
+        _dev_id[i] = ioctl(_mag_fd[i], DEVIOCGDEVICEID, 0);
+
         // average over up to 20 samples
         if (ioctl(_mag_fd[i], SENSORIOCSQUEUEDEPTH, 20) != 0) {
             hal.console->printf("Failed to setup compass queue\n");
@@ -64,7 +70,7 @@ bool AP_Compass_PX4::init(void)
 
         // remember if the compass is external
         _is_external[i] = (ioctl(_mag_fd[i], MAGIOCGEXTERNAL, 0) > 0);
-        if (_is_external[0]) {
+        if (_is_external[i]) {
             hal.console->printf("Using external compass[%u]\n", (unsigned)i);
         }
         _count[0] = 0;
@@ -92,6 +98,9 @@ bool AP_Compass_PX4::read(void)
     }
 
     for (uint8_t i=0; i<_num_instances; i++) {
+        // avoid division by zero if we haven't received any mag reports
+        if (_count[i] == 0) continue;
+
         _sum[i] /= _count[i];
         _sum[i] *= 1000;
 
@@ -126,9 +135,9 @@ bool AP_Compass_PX4::read(void)
         _count[i] = 0;
     }
 
-    last_update = _last_timestamp[0];
+    last_update = _last_timestamp[_get_primary()];
     
-    return _healthy[0];
+    return _healthy[_get_primary()];
 }
 
 void AP_Compass_PX4::accumulate(void)
@@ -146,6 +155,9 @@ void AP_Compass_PX4::accumulate(void)
 
 uint8_t AP_Compass_PX4::_get_primary(void) const
 {
+    if (_primary < _num_instances && _healthy[_primary]) {
+        return _primary;
+    }
     for (uint8_t i=0; i<_num_instances; i++) {
         if (_healthy[i]) return i;
     }    

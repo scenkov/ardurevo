@@ -70,6 +70,10 @@
  */
 #define BIT_IS_SET(value, bitnumber) (((value) & (1U<<(bitnumber))) != 0)
 
+// get high or low bytes from 2 byte integer
+#define LOWBYTE(i) ((uint8_t)(i))
+#define HIGHBYTE(i) ((uint8_t)(((uint16_t)(i))>>8))
+
 // @}
 
 
@@ -88,24 +92,24 @@
 
 //@{
 
-struct Location {
-    uint8_t id;                                                 ///< command id
-    uint8_t options;                                    ///< options bitmask (1<<0 = relative altitude)
-    uint8_t p1;                                                 ///< param 1
-    int32_t alt;                                        ///< param 2 - Altitude in centimeters (meters * 100)
-    int32_t lat;                                        ///< param 3 - Lattitude * 10**7
-    int32_t lng;                                        ///< param 4 - Longitude * 10**7
+struct PACKED Location_Option_Flags {
+    uint8_t relative_alt : 1;           // 1 if altitude is relateive to home
+    uint8_t unused1      : 1;           // unused flag (defined so that loiter_ccw uses the correct bit)
+    uint8_t loiter_ccw   : 1;           // 0 if clockwise, 1 if counter clockwise
 };
 
-struct PACKED RallyLocation {
-    int32_t lat;        //Latitude * 10^7
-    int32_t lng;        //Longitude * 10^7
-    int16_t alt;        //transit altitude (and loiter altitude) in meters;
-    int16_t break_alt;  //when autolanding, break out of loiter at this alt (meters) 
-    uint16_t land_dir;   //when the time comes to auto-land, try to land in this direction (centidegrees)
-    uint8_t flags;      //bit 0 = seek favorable winds when choosing a landing poi
-                        //bit 1 = do auto land after arriving
-                        //all other bits are for future use.
+struct PACKED Location {
+    union {
+        Location_Option_Flags flags;                    ///< options bitmask (1<<0 = relative altitude)
+        uint8_t options;                                /// allows writing all flags to eeprom as one byte
+    };
+    // by making alt 24 bit we can make p1 in a command 16 bit,
+    // allowing an accurate angle in centi-degrees. This keeps the
+    // storage cost per mission item at 15 bytes, and allows mission
+    // altitudes of up to +/- 83km
+    int32_t alt:24;                                     ///< param 2 - Altitude in centimeters (meters * 100)
+    int32_t lat;                                        ///< param 3 - Lattitude * 10**7
+    int32_t lng;                                        ///< param 4 - Longitude * 10**7
 };
 
 //@}
@@ -139,6 +143,10 @@ struct PACKED RallyLocation {
 #define AP_PRODUCT_ID_APM2_REV_D9       0x59    // APM2 with MPU6000_REV_D9
 #define AP_PRODUCT_ID_FLYMAPLE          0x100   // Flymaple with ITG3205, ADXL345, HMC5883, BMP085
 #define AP_PRODUCT_ID_L3G4200D          0x101   // Linux with L3G4200D and ADXL345
-#define AP_PRODUCT_ID_VRBRAIN           0x102   // VRBRAIN with MPU6000
+#define AP_PRODUCT_ID_PIXHAWK_FIRE_CAPE 0x102   // Linux with the PixHawk Fire Cape
+#define AP_PRODUCT_ID_VRBRAIN           0x150   // VRBRAIN on NuttX
+
+// map from kbaud rate to baudrate
+uint32_t map_baudrate(int16_t rate);
 
 #endif // _AP_COMMON_H

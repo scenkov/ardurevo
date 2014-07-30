@@ -18,6 +18,12 @@
 #define CH_10 9
 #define CH_11 10
 #define CH_12 11
+#define CH_13 12
+#define CH_14 13
+#define CH_15 14
+#define CH_16 15
+#define CH_17 16
+#define CH_18 17
 #endif
 
 
@@ -48,6 +54,16 @@ public:
       in the safe state
      */
     virtual void     set_safety_pwm(uint32_t chmask, uint16_t period_us) {}
+
+    /*
+      set PWM to send to a set of channels if the FMU firmware dies
+     */
+    virtual void     set_failsafe_pwm(uint32_t chmask, uint16_t period_us) {}
+
+    /*
+      force the safety switch off, enabling PWM output from the IO board
+     */
+    virtual void     force_safety_off(void) {}
 };
 
 #endif // __AP_HAL_RC_OUTPUT_H__

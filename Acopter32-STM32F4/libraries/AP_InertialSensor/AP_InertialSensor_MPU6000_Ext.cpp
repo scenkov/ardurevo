@@ -270,34 +270,34 @@ bool AP_InertialSensor_MPU6000_Ext::update( void )
         return false;
     }
 
-    _previous_accel[1] = _accel[1];
+    _previous_accel[0] = _accel[0];
 
     // disable timer procs for mininum time
     hal.scheduler->suspend_timer_procs();
-    _gyro[1]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
-    _accel[1] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
+    _gyro[0]  = Vector3f(_gyro_sum.x, _gyro_sum.y, _gyro_sum.z);
+    _accel[0] = Vector3f(_accel_sum.x, _accel_sum.y, _accel_sum.z);
     _num_samples = _sum_count;
     _accel_sum.zero();
     _gyro_sum.zero();
-    _temp[1] = _temp_sum; 
+    _temp[0] = _temp_sum; 
     _temp_sum = 0;
     _sum_count = 0;
     hal.scheduler->resume_timer_procs();
 
-    _gyro[1].rotate(_board_orientation);
-    _gyro[1] *= _gyro_scale / _num_samples;
-    _gyro[1] -= _gyro_offset[1];
+    _gyro[0].rotate(_board_orientation);
+    _gyro[0] *= _gyro_scale / _num_samples;
+    _gyro[0] -= _gyro_offset[0];
 
-    _accel[1].rotate(_board_orientation);
-    _accel[1] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
+    _accel[0].rotate(_board_orientation);
+    _accel[0] *= MPU6000_ACCEL_SCALE_1G / _num_samples;
 
-    Vector3f accel_scale = _accel_scale[1].get();
-    _accel[1].x *= accel_scale.x;
-    _accel[1].y *= accel_scale.y;
-    _accel[1].z *= accel_scale.z;
-    _accel[1] -= _accel_offset[1];
+    Vector3f accel_scale = _accel_scale[0].get();
+    _accel[0].x *= accel_scale.x;
+    _accel[0].y *= accel_scale.y;
+    _accel[0].z *= accel_scale.z;
+    _accel[0] -= _accel_offset[0];
 
-    _temp[1]    = _temp_to_celsius(_temp[1] / _num_samples);
+    _temp[0]    = _temp_to_celsius(_temp[0] /_num_samples);;
 
     if (_last_filter_hz != _mpu6000_filter) {
         if (_spi_sem->take(10)) {
@@ -558,11 +558,21 @@ bool AP_InertialSensor_MPU6000_Ext::_hardware_init(Sample_rate sample_rate)
         _sample_shift = 0;
         break;
     case RATE_200HZ:
-    default:
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #ifdef ENHANCED
 	_sample_rate = MPUREG_SMPLRT_200HZ;
 	_sample_time_usec = 5000;
+#endif
+#endif
+        default_filter = BITS_DLPF_CFG_20HZ;
+        _sample_shift = 0;
+        break;
+    case RATE_400HZ:
+    default:
+#if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#ifdef ENHANCED
+	_sample_rate = MPUREG_SMPLRT_500HZ;
+	_sample_time_usec = 2000;
 #endif
 #endif
         default_filter = BITS_DLPF_CFG_20HZ;
@@ -649,7 +659,7 @@ bool AP_InertialSensor_MPU6000_Ext::_sample_available()
 {
     _poll_data();
 #ifdef ENHANCED
-    return (_sum_count >> _sample_shift) > 9;
+    return (_sum_count >> _sample_shift) > 1;
 #else
     return (_sum_count >> _sample_shift) > 0;
 #endif
@@ -674,7 +684,7 @@ void AP_InertialSensor_MPU6000_Ext::_dump_registers(void)
 
 
 // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-float AP_InertialSensor_MPU6000_Ext::get_delta_time()
+float AP_InertialSensor_MPU6000_Ext::get_delta_time() const
 {
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
 #ifdef ENHANCED

@@ -36,7 +36,7 @@
 
 #include <boards.h>
 
-#define MINONWIDTH 920 * 2
+#define MINONWIDTH 900 * 2
 #define MAXONWIDTH 2120 * 2
 // PATCH FOR FAILSAFE AND FRSKY
 #define MINOFFWIDTH 1000 * 2
@@ -201,7 +201,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
     // static uint32_t throttle_timer = 0;
 
-    if (g_is_ppmsum > 0)
+    if (g_is_ppmsum == 1)
 	{
 	struct TIM_Channel channel = Channels[0];
 	struct PWM_State *input = &Inputs[0];
@@ -284,6 +284,10 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 			input->capture = time_on >> 1;
 			}
 
+		    if (pwm_capture_callback) {
+			pwm_capture_callback(i, time_on >> 1);
+		    }
+
 		    // switch state
 		    input->state = 0;
 
@@ -292,6 +296,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 		    TIM_ICInit(channel.tim, &TIM_ICInitStructure);
 
 		    }
+		break;
 		}
 	    }
 	}
@@ -446,7 +451,7 @@ void pwmInit()
 uint16_t pwmRead(uint8_t channel)
     {
     if(channel == 2) {
-	if(systick_uptime() - Inputs[channel].last_pulse > 50) {
+	if(systick_uptime() - Inputs[channel].last_pulse > 100) {
 	    return 900;
 	}
     }

@@ -11,6 +11,7 @@ CFLAGS_$(d) :=
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
+cppSRCS_$(d) += AP_AutoTune.cpp
 cppSRCS_$(d) += AP_YawController.cpp
 cppSRCS_$(d) += AP_RollController.cpp
 cppSRCS_$(d) += AP_PitchController.cpp

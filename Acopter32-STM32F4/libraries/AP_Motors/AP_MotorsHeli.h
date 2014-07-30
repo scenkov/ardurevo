@@ -12,10 +12,6 @@
 #include <RC_Channel.h>     // RC Channel Library
 #include "AP_Motors.h"
 
-// output channels
-#define AP_MOTORS_HELI_EXT_GYRO                 CH_7    // tail servo uses channel 7
-#define AP_MOTORS_HELI_EXT_RSC                  CH_8    // main rotor controlled with channel 8
-
 // maximum number of swashplate servos
 #define AP_MOTORS_HELI_NUM_SWASHPLATE_SERVOS    3
 
@@ -91,16 +87,16 @@ class AP_MotorsHeli : public AP_Motors {
 public:
 
     /// Constructor
-    AP_MotorsHeli( RC_Channel*      rc_roll,
-                   RC_Channel*      rc_pitch,
-                   RC_Channel*      rc_throttle,
-                   RC_Channel*      rc_yaw,
-                   RC_Channel*      servo_aux,
-                   RC_Channel*      servo_rotor,
-                   RC_Channel*      swash_servo_1,
-                   RC_Channel*      swash_servo_2,
-                   RC_Channel*      swash_servo_3,
-                   RC_Channel*      yaw_servo,
+    AP_MotorsHeli( RC_Channel&      rc_roll,
+                   RC_Channel&      rc_pitch,
+                   RC_Channel&      rc_throttle,
+                   RC_Channel&      rc_yaw,
+                   RC_Channel&      servo_aux,
+                   RC_Channel&      servo_rotor,
+                   RC_Channel&      swash_servo_1,
+                   RC_Channel&      swash_servo_2,
+                   RC_Channel&      swash_servo_3,
+                   RC_Channel&      yaw_servo,
                    uint16_t         speed_hz = AP_MOTORS_HELI_SPEED_DEFAULT) :
         AP_Motors(rc_roll, rc_pitch, rc_throttle, rc_yaw, speed_hz),
         _servo_aux(servo_aux),
@@ -119,7 +115,9 @@ public:
         _rsc_ramp_increment(0.0f),
         _rsc_runup_increment(0.0f),
         _rotor_speed_estimate(0.0f),
-        _tail_direct_drive_out(0)
+        _tail_direct_drive_out(0),
+        _dt(0.01f),
+        _delta_phase_angle(0)
     {
 		AP_Param::setup_object_defaults(this, var_info);
 
@@ -142,55 +140,64 @@ public:
     // output_min - sends minimum values out to the motors
     void output_min();
 
-    // output_test - wiggle servos in order to show connections are correct
-    void output_test();
+    // output_test - spin a motor at the pwm value specified
+    //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
+    //  pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000
+    virtual void        output_test(uint8_t motor_seq, int16_t pwm);
 
     //
     // heli specific methods
     //
 
     // allow_arming - returns true if main rotor is spinning and it is ok to arm
-    bool allow_arming();
+    bool allow_arming() const;
 
     // _tail_type - returns the tail type (servo, servo with ext gyro, direct drive var pitch, direct drive fixed pitch)
-    int16_t tail_type() { return _tail_type; }
+    int16_t tail_type() const { return _tail_type; }
 
     // ext_gyro_gain - gets and sets external gyro gain as a pwm (1000~2000)
-    int16_t ext_gyro_gain() { return _ext_gyro_gain; }
+    int16_t ext_gyro_gain() const { return _ext_gyro_gain; }
     void ext_gyro_gain(int16_t pwm) { _ext_gyro_gain = pwm; }
 
     // has_flybar - returns true if we have a mechical flybar
-    bool has_flybar() { return _flybar_mode; }
+    bool has_flybar() const { return _flybar_mode; }
 
     // get_collective_mid - returns collective mid position as a number from 0 ~ 1000
-    int16_t get_collective_mid() { return  _collective_mid; }
+    int16_t get_collective_mid() const { return  _collective_mid; }
 
     // get_collective_out - returns collective position from last output as a number from 0 ~ 1000
-    int16_t get_collective_out() { return _collective_out; }
+    int16_t get_collective_out() const { return _collective_out; }
 
     // set_collective_for_landing - limits collective from going too low if we know we are landed
     void set_collective_for_landing(bool landing) { _heliflags.landing_collective = landing; }
 
     // get_rsc_mode - gets the rotor speed control method (AP_MOTORS_HELI_RSC_MODE_NONE, AP_MOTORS_HELI_RSC_MODE_CH8_PASSTHROUGH or AP_MOTORS_HELI_RSC_MODE_SETPOINT)
-    uint8_t get_rsc_mode() { return _rsc_mode; }
+    uint8_t get_rsc_mode() const { return _rsc_mode; }
 
     // get_rsc_setpoint - gets contents of _rsc_setpoint parameter (0~1000)
-    int16_t get_rsc_setpoint() { return _rsc_setpoint; }
+    int16_t get_rsc_setpoint() const { return _rsc_setpoint; }
 
     // set_desired_rotor_speed - sets target rotor speed as a number from 0 ~ 1000
     void set_desired_rotor_speed(int16_t desired_speed);
 
     // return true if the main rotor is up to speed
-    bool motor_runup_complete();
+    bool motor_runup_complete() const;
 
     // recalc_scalers - recalculates various scalers used.  Should be called at about 1hz to allow users to see effect of changing parameters
     void recalc_scalers();
 
     // get_phase_angle - returns phase angle
-    int16_t get_phase_angle() { return _phase_angle; }
+    int16_t get_phase_angle() const { return _phase_angle; }
 
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];
+    
+    // set_dt for setting main loop rate time
+    void set_dt(float dt) { _dt = dt; }
+    
+    // set_delta_phase_angle for setting variable phase angle compensation and force
+    // recalculation of collective factors
+    void set_delta_phase_angle(int16_t angle);
 
 protected:
 
@@ -232,12 +239,12 @@ private:
     void write_aux(int16_t servo_out);
 
     // external objects we depend upon
-    RC_Channel      *_servo_aux;                // output to ext gyro gain and tail direct drive esc (ch7)
-    RC_Channel      *_servo_rsc;                // output to main rotor esc (ch8)
-    RC_Channel      *_servo_1;                  // swash plate servo #1
-    RC_Channel      *_servo_2;                  // swash plate servo #2
-    RC_Channel      *_servo_3;                  // swash plate servo #3
-    RC_Channel      *_servo_4;                  // tail servo
+    RC_Channel&     _servo_aux;                 // output to ext gyro gain and tail direct drive esc (ch7)
+    RC_Channel&     _servo_rsc;                 // output to main rotor esc (ch8)
+    RC_Channel&     _servo_1;                   // swash plate servo #1
+    RC_Channel&     _servo_2;                   // swash plate servo #2
+    RC_Channel&     _servo_3;                   // swash plate servo #3
+    RC_Channel&     _servo_4;                   // tail servo
 
     // flags bitmask
     struct heliflags_type {
@@ -285,6 +292,8 @@ private:
     float           _rsc_runup_increment;       // the amount we can increase the rotor's estimated speed during each 100hz iteration
     float           _rotor_speed_estimate;      // estimated speed of the main rotor (0~1000)
     int16_t         _tail_direct_drive_out;     // current ramped speed of output on ch7 when using direct drive variable pitch tail type
+    float           _dt;                        // main loop time
+    int16_t         _delta_phase_angle;         // phase angle dynamic compensation
 };
 
 #endif  // AP_MOTORSHELI

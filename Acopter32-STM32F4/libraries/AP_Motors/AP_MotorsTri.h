@@ -11,20 +11,15 @@
 #include <RC_Channel.h>     // RC Channel Library
 #include "AP_Motors.h"
 
-// REVO board tail servo uses channel 6
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-#define AP_MOTORS_CH_TRI_YAW    CH_6
-#else
 // tail servo uses channel 7
 #define AP_MOTORS_CH_TRI_YAW    CH_7
-#endif
 
 /// @class      AP_MotorsTri
 class AP_MotorsTri : public AP_Motors {
 public:
 
     /// Constructor
-    AP_MotorsTri( RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_throttle, RC_Channel* rc_yaw, RC_Channel* rc_tail, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
+    AP_MotorsTri( RC_Channel& rc_roll, RC_Channel& rc_pitch, RC_Channel& rc_throttle, RC_Channel& rc_yaw, RC_Channel& rc_tail, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
         AP_Motors(rc_roll, rc_pitch, rc_throttle, rc_yaw, speed_hz),
         _rc_tail(rc_tail) {
     };
@@ -38,8 +33,10 @@ public:
     // enable - starts allowing signals to be sent to motors
     virtual void        enable();
 
-    // motor test
-    virtual void        output_test();
+    // output_test - spin a motor at the pwm value specified
+    //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
+    //  pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000
+    virtual void        output_test(uint8_t motor_seq, int16_t pwm);
 
     // output_min - sends minimum values out to the motors
     virtual void        output_min();
@@ -49,7 +46,7 @@ protected:
     virtual void        output_armed();
     virtual void        output_disarmed();
 
-    RC_Channel*         _rc_tail;       // REV parameter used from this channel to determine direction of tail servo movement
+    RC_Channel&         _rc_tail;       // REV parameter used from this channel to determine direction of tail servo movement
 };
 
 #endif  // AP_MOTORSTRI

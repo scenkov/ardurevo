@@ -95,12 +95,19 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] PROGMEM = {
     AP_GROUPINFO("GYR2OFFS",    7, AP_InertialSensor, _gyro_offset[1],   0),
 #endif
 
+#if INS_MAX_INSTANCES > 2
+    AP_GROUPINFO("ACC3SCAL",    8, AP_InertialSensor, _accel_scale[2],   0),
+    AP_GROUPINFO("ACC3OFFS",    9, AP_InertialSensor, _accel_offset[2],  0),
+    AP_GROUPINFO("GYR3OFFS",   10, AP_InertialSensor, _gyro_offset[2],   0),
+#endif
+
     AP_GROUPEND
 };
 
 AP_InertialSensor::AP_InertialSensor() :
     _accel(),
-    _gyro()
+    _gyro(),
+    _board_orientation(ROTATION_NONE)
 {
     AP_Param::setup_object_defaults(this, var_info);        
 }
@@ -148,9 +155,9 @@ void
 AP_InertialSensor::_init_gyro()
 {
     uint8_t num_gyros = min(get_gyro_count(), INS_MAX_INSTANCES);
-    Vector3f last_average[num_gyros], best_avg[num_gyros];
-    float best_diff[num_gyros];
-    bool converged[num_gyros];
+    Vector3f last_average[INS_MAX_INSTANCES], best_avg[INS_MAX_INSTANCES];
+    float best_diff[INS_MAX_INSTANCES];
+    bool converged[INS_MAX_INSTANCES];
 
     // cold start
     hal.console->print_P(PSTR("Init Gyro"));
@@ -180,9 +187,11 @@ AP_InertialSensor::_init_gyro()
     // we try to get a good calibration estimate for up to 10 seconds
     // if the gyros are stable, we should get it in 1 second
     for (int16_t j = 0; j <= 20 && num_converged < num_gyros; j++) {
-        Vector3f gyro_sum[num_gyros], gyro_avg[num_gyros], gyro_diff[num_gyros];
-        float diff_norm[num_gyros];
+        Vector3f gyro_sum[INS_MAX_INSTANCES], gyro_avg[INS_MAX_INSTANCES], gyro_diff[INS_MAX_INSTANCES];
+        float diff_norm[INS_MAX_INSTANCES];
         uint8_t i;
+
+        memset(diff_norm, 0, sizeof(diff_norm));
 
         hal.console->print_P(PSTR("*"));
 
@@ -256,10 +265,13 @@ AP_InertialSensor::_init_accel()
 {
     uint8_t num_accels = min(get_accel_count(), INS_MAX_INSTANCES);
     uint8_t flashcount = 0;
-    Vector3f prev[num_accels];
-    Vector3f accel_offset[num_accels];
-    float total_change[num_accels];
-    float max_offset[num_accels];
+    Vector3f prev[INS_MAX_INSTANCES];
+    Vector3f accel_offset[INS_MAX_INSTANCES];
+    float total_change[INS_MAX_INSTANCES];
+    float max_offset[INS_MAX_INSTANCES];
+
+    memset(max_offset, 0, sizeof(max_offset));
+    memset(total_change, 0, sizeof(total_change));
 
     // cold start
     hal.scheduler->delay(100);
@@ -360,11 +372,11 @@ bool AP_InertialSensor::calibrate_accel(AP_InertialSensor_UserInteract* interact
                                         float &trim_pitch)
 {
     uint8_t num_accels = min(get_accel_count(), INS_MAX_INSTANCES);
-    Vector3f samples[num_accels][6];
-    Vector3f new_offsets[num_accels];
-    Vector3f new_scaling[num_accels];
-    Vector3f orig_offset[num_accels];
-    Vector3f orig_scale[num_accels];
+    Vector3f samples[INS_MAX_INSTANCES][6];
+    Vector3f new_offsets[INS_MAX_INSTANCES];
+    Vector3f new_scaling[INS_MAX_INSTANCES];
+    Vector3f orig_offset[INS_MAX_INSTANCES];
+    Vector3f orig_scale[INS_MAX_INSTANCES];
     uint8_t num_ok = 0;
 
     for (uint8_t k=0; k<num_accels; k++) {
@@ -479,7 +491,14 @@ failed:
 /// @note this should not be called while flying because it reads from the eeprom which can be slow
 bool AP_InertialSensor::calibrated()
 {
-    return _accel_offset[0].load();
+    // check each accelerometer has offsets saved
+    for (uint8_t i=0; i<get_accel_count(); i++) {
+        if (!_accel_offset[i].load()) {
+            return false;
+        }
+    }
+    // if we got this far the accelerometers must have been calibrated
+    return true;
 }
 
 // _calibrate_model - perform low level accel calibration

@@ -1,26 +1,11 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// filter altitude from the barometer with a low pass filter
-static LowPassFilterInt32 altitude_filter;
-
-
 static void init_barometer(void)
 {
     gcs_send_text_P(SEVERITY_LOW, PSTR("Calibrating barometer"));    
     barometer.calibrate();
 
-    // filter at 100ms sampling, with 0.7Hz cutoff frequency
-    altitude_filter.set_cutoff_frequency(0.1, 0.7);
-
     gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
-}
-
-// read the barometer and return the updated altitude in centimeters
-// above the calibration altitude
-static int32_t read_barometer(void)
-{
-    barometer.read();
-    return altitude_filter.apply(barometer.get_altitude() * 100.0);
 }
 
 static void init_sonar(void)
@@ -51,6 +36,9 @@ static void read_airspeed(void)
 {
     if (airspeed.enabled()) {
         airspeed.read();
+        if (should_log(MASK_LOG_IMU)) {
+            Log_Write_Airspeed();
+        }
         calc_airspeed_errors();
     }
 }
@@ -66,6 +54,7 @@ static void zero_airspeed(void)
 static void read_battery(void)
 {
     battery.read();
+    compass.set_current(battery.current_amps());
 
     if (!usb_connected && battery.exhausted(g.fs_batt_voltage, g.fs_batt_mah)) {
         low_battery_event();
@@ -77,11 +66,15 @@ static void read_battery(void)
 // RC_CHANNELS_SCALED message
 void read_receiver_rssi(void)
 {
-    rssi_analog_source->set_pin(g.rssi_pin);
-    float ret = rssi_analog_source->voltage_average() * 50;
-    receiver_rssi = constrain_int16(ret, 0, 255);
+    // avoid divide by zero
+    if (g.rssi_range <= 0) {
+        receiver_rssi = 0;
+    }else{
+        rssi_analog_source->set_pin(g.rssi_pin);
+        float ret = rssi_analog_source->voltage_average() * 255 / g.rssi_range;
+        receiver_rssi = constrain_int16(ret, 0, 255);
+    }
 }
-
 
 /*
   return current_loc.alt adjusted for ALT_OFFSET

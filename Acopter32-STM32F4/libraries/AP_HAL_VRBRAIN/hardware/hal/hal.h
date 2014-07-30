@@ -14,7 +14,7 @@
 #include "adc.h"
 
 #define OK	1
-#define ERROR	0
+//#define ERROR	0
 
 #define I2C_OK	0
 #define I2C_ERROR	1

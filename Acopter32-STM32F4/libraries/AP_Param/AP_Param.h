@@ -112,8 +112,6 @@ public:
         uint16_t i;
         for (i=0; pgm_read_byte(&info[i].type) != AP_PARAM_NONE; i++) ;
         _num_vars = i;
-        
-        check_var_info();
     }
 
     // empty constructor
@@ -201,6 +199,12 @@ public:
     // load default values for scalars in a group
     static void         setup_object_defaults(const void *object_pointer, const struct GroupInfo *group_info);
 
+    // set a value directly in an object. This should only be used by
+    // example code, not by mainline vehicle code
+    static void set_object_value(const void *object_pointer, 
+                                 const struct GroupInfo *group_info, 
+                                 const char *name, float value);
+
     // load default values for all scalars in the main sketch. This
     // does not recurse into the sub-objects    
     static void         setup_sketch_defaults(void);
@@ -245,6 +249,9 @@ public:
     /// cast a variable to a float given its type
     float                   cast_to_float(enum ap_var_type type) const;
 
+    // check var table for consistency
+    static bool             check_var_info(void);
+
 private:
     /// EEPROM header
     ///
@@ -285,7 +292,6 @@ private:
 
     static bool                 check_group_info(const struct GroupInfo *group_info, uint16_t *total_size, uint8_t max_bits);
     static bool                 duplicate_key(uint8_t vindex, uint8_t key);
-    static bool                 check_var_info(void);
     const struct Info *         find_var_info_group(
                                     const struct GroupInfo *    group_info,
                                     uint8_t                     vindex,

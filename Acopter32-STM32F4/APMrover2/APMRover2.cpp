@@ -71,6 +71,8 @@
 #include <AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
 #include <AP_InertialSensor.h> // Inertial Sensor (uncalibated IMU) Library
 #include <AP_AHRS.h>         // ArduPilot Mega DCM Library
+#include <AP_NavEKF.h>
+#include <AP_Mission.h>     // Mission command library
 #include <PID.h>            // PID library
 #include <RC_Channel.h>     // RC Channel Library
 #include <AP_RangeFinder.h>	// Range finder library
@@ -98,6 +100,7 @@
 
 //#include <AP_HAL_VRBRAIN.h>
 #include <AP_HAL_REVOMINI.h>
+#include <AP_HAL_Empty.h>
 #include "compat.h"
 
 #include <AP_Notify.h>      // Notify library
@@ -117,6 +120,7 @@
  void loop() ;
  static void ahrs_update() ;
  static void mount_update(void) ;
+  static void update_alt() ;
  static void gcs_failsafe_check(void) ;
  static void compass_accumulate(void) ;
  static void update_compass(void) ;
@@ -128,9 +132,10 @@
    static void update_GPS_10Hz(void) ;
   static void update_current_mode(void) ;
   static void update_navigation() ;
+  static void read_sonar_depth(void);
   static NOINLINE void send_heartbeat(mavlink_channel_t chan) ;
   static NOINLINE void send_attitude(mavlink_channel_t chan) ;
-  static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t packet_drops) ;
+  static NOINLINE void send_extended_status1(mavlink_channel_t chan) ;
   static void NOINLINE send_location(mavlink_channel_t chan) ;
   static void NOINLINE send_nav_controller_output(mavlink_channel_t chan) ;
   static void NOINLINE send_gps_raw(mavlink_channel_t chan) ;
@@ -148,9 +153,6 @@
   static void NOINLINE send_current_waypoint(mavlink_channel_t chan) ;
   static void NOINLINE send_statustext(mavlink_channel_t chan) ;
  static bool telemetry_delayed(mavlink_channel_t chan) ;
- static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id, uint16_t packet_drops) ;
- static void mavlink_send_message(mavlink_channel_t chan, enum ap_message id, uint16_t packet_drops) ;
-  void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char *str) ;
  static void mavlink_delay_cb() ;
  static void gcs_send_message(enum ap_message id) ;
  static void gcs_data_stream_send(void) ;
@@ -160,7 +162,6 @@
   static bool print_log_menu(void) ;
    static void do_erase_logs(void) ;
  static void Log_Write_Performance() ;
- static void Log_Write_Cmd(uint8_t num, const struct Location *wp) ;
  static void Log_Write_Camera() ;
  static void Log_Write_Steering() ;
   static void Log_Write_Startup(uint8_t type) ;
@@ -168,64 +169,50 @@
  static void Log_Write_Nav_Tuning() ;
  static void Log_Write_Attitude() ;
  static void Log_Write_Mode() ;
+ static void Log_Write_SonarDepth() ;
  static void Log_Write_Sonar() ;
   static void Log_Write_Current() ;
  static void Log_Write_Compass() ;
    static void Log_Write_RC(void) ;
+  static void Log_Write_Baro(void) ;
  static void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page) ;
  static void start_logging()  ;
  static void Log_Write_Startup(uint8_t type) ;
- static void Log_Write_Cmd(uint8_t num, const struct Location *wp) ;
  static void Log_Write_Current() ;
  static void Log_Write_Nav_Tuning() ;
  static void Log_Write_Performance() ;
  static void Log_Write_Control_Tuning() ;
  static void Log_Write_Sonar() ;
+ static void Log_Write_SonarDepth() ;
  static void Log_Write_Mode() ;
  static void Log_Write_Attitude() ;
  static void Log_Write_Compass() ;
  static void start_logging() ;
  static void Log_Write_RC(void) ;
   static void load_parameters(void) ;
+  void read_Sonar() ;
+  int read_tokens (char character, struct tokens *buffer) ;
+  int checksum(char *str) ;
+  int hex2int(char a) ;
+  float fixDM(float DM) ;
  static void throttle_slew_limit(int16_t last_throttle) ;
  static bool auto_check_trigger(void) ;
+ static bool use_pivot_steering(void) ;
  static void calc_throttle(float target_speed) ;
   static void calc_lateral_acceleration() ;
  static void calc_nav_steer() ;
  static void set_servos(void) ;
-  static void init_commands() ;
- static struct Location get_cmd_with_index(int i) ;
- static void set_cmd_with_index(struct Location temp, int i) ;
- static void set_next_WP(const struct Location *wp) ;
+ static void set_next_WP(const struct Location& loc) ;
   static void set_guided_WP(void) ;
  void init_home() ;
   static void restart_nav() ;
- static void handle_process_nav_cmd() ;
-  static void handle_process_condition_command() ;
-  static void handle_process_do_command() ;
-  static void handle_no_commands() ;
+ static void exit_mission() ;
   static void do_RTL(void) ;
-  static void do_takeoff() ;
-  static void do_nav_wp() ;
- static bool verify_takeoff() ;
-  static bool verify_nav_wp() ;
   static bool verify_RTL() ;
-  static void do_wait_delay() ;
-  static void do_change_alt() ;
-  static void do_within_distance() ;
   static bool verify_wait_delay() ;
-  static bool verify_change_alt() ;
   static bool verify_within_distance() ;
-  static void do_jump() ;
-  static void do_change_speed() ;
-  static void do_set_home() ;
  static void do_take_picture() ;
- static void change_command(uint8_t cmd_index) ;
  static void update_commands(void) ;
-  static void verify_commands(void) ;
-   static void process_next_command() ;
- static void process_nav_cmd() ;
-  static void process_non_nav_command() ;
   static void delay(uint32_t ms) ;
   static void mavlink_delay(uint32_t ms) ;
   static uint32_t millis() ;
@@ -245,6 +232,7 @@
   static void control_failsafe(uint16_t pwm) ;
   static void trim_control_surfaces() ;
   static void trim_radio() ;
+  static void init_barometer(void) ;
   static void init_sonar(void) ;
  static void read_battery(void) ;
  void read_receiver_rssi(void) ;
@@ -272,15 +260,12 @@
   static void startup_INS_ground(bool force_accel_level) ;
  static void update_notify() ;
   static void resetPerfData(void) ;
- static uint32_t map_baudrate(int8_t rate, uint32_t default_baud) ;
    static void check_usb_mux(void) ;
- uint16_t board_voltage(void) ;
  static uint8_t check_digital_pin(uint8_t pin) ;
  static void servo_write(uint8_t ch, uint16_t pwm) ;
  static bool should_log(uint32_t mask) ;
   static void print_hit_enter() ;
-  static void test_wp_print(const struct Location *cmd, uint8_t wp_index) ;
-#line 115 "./APMRover2/APMrover2.pde"
+#line 118 "./APMRover2/APMrover2.pde"
 AP_HAL::BetterStream* cliSerial;
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
@@ -289,7 +274,7 @@ const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 // must be the first AP_Param variable declared to ensure its
 // constructor runs before the constructors of the other AP_Param
 // variables
-AP_Param param_loader(var_info, WP_START_BYTE);
+AP_Param param_loader(var_info, MISSION_START_BYTE);
 
 ////////////////////////////////////////////////////////////////////////////////
 // the rate we run the main loop at
@@ -361,8 +346,8 @@ static bool in_log_download;
 //   supply data from the simulation.
 //
 
-// All GPS access should be through this pointer.
-static GPS         *g_gps;
+// GPS driver
+static AP_GPS gps;
 
 // flight modes convenience array
 static AP_Int8		*modes = &g.mode1;
@@ -373,6 +358,8 @@ static AP_ADC_ADS7844 adc;
 
 #if CONFIG_COMPASS == AP_COMPASS_PX4
 static AP_Compass_PX4 compass;
+#elif CONFIG_COMPASS == AP_COMPASS_VRBRAIN
+static AP_Compass_VRBRAIN compass;
 #elif CONFIG_COMPASS == AP_COMPASS_HMC5843
 static AP_Compass_HMC5843 compass;
 #elif CONFIG_COMPASS == AP_COMPASS_HIL
@@ -381,39 +368,12 @@ static AP_Compass_HIL compass;
  #error Unrecognized CONFIG_COMPASS setting
 #endif
 
-// GPS selection
-#if   GPS_PROTOCOL == GPS_PROTOCOL_AUTO
-AP_GPS_Auto     g_gps_driver(&g_gps);
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_NMEA
-AP_GPS_NMEA     g_gps_driver;
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_SIRF
-AP_GPS_SIRF     g_gps_driver;
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_UBLOX
-AP_GPS_UBLOX    g_gps_driver;
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_MTK
-AP_GPS_MTK      g_gps_driver;
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_MTK19
-AP_GPS_MTK19    g_gps_driver;
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_NONE
-AP_GPS_None     g_gps_driver;
-
-#elif GPS_PROTOCOL == GPS_PROTOCOL_HIL
-AP_GPS_HIL      g_gps_driver;
-
-#else
-  #error Unrecognised GPS_PROTOCOL setting.
-#endif // GPS PROTOCOL
-
 #if CONFIG_INS_TYPE == CONFIG_INS_MPU6000
 AP_InertialSensor_MPU6000 ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_PX4
 AP_InertialSensor_PX4 ins;
+#elif CONFIG_INS_TYPE == CONFIG_INS_VRBRAIN
+AP_InertialSensor_VRBRAIN ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_HIL
 AP_InertialSensor_HIL ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_FLYMAPLE
@@ -426,7 +386,33 @@ AP_InertialSensor_Oilpan ins( &adc );
   #error Unrecognised CONFIG_INS_TYPE setting.
 #endif // CONFIG_INS_TYPE
 
-AP_AHRS_DCM ahrs(ins, g_gps);
+
+#if CONFIG_BARO == AP_BARO_BMP085
+static AP_Baro_BMP085 barometer;
+#elif CONFIG_BARO == AP_BARO_PX4
+static AP_Baro_PX4 barometer;
+#elif CONFIG_BARO == AP_BARO_VRBRAIN
+static AP_Baro_VRBRAIN barometer;
+#elif CONFIG_BARO == AP_BARO_HIL
+static AP_Baro_HIL barometer;
+#elif CONFIG_BARO == AP_BARO_MS5611
+ #if CONFIG_MS5611_SERIAL == AP_BARO_MS5611_SPI
+ static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::spi);
+ #elif CONFIG_MS5611_SERIAL == AP_BARO_MS5611_I2C
+ static AP_Baro_MS5611 barometer(&AP_Baro_MS5611::i2c);
+ #else
+ #error Unrecognized CONFIG_MS5611_SERIAL setting.
+ #endif
+#else
+ #error Unrecognized CONFIG_BARO setting
+#endif
+
+// Inertial Navigation EKF
+#if AP_AHRS_NAVEKF_AVAILABLE
+AP_AHRS_NavEKF ahrs(ins, barometer, gps);
+#else
+AP_AHRS_DCM ahrs(ins, barometer, gps);
+#endif
 
 static AP_L1_Control L1_controller(ahrs);
 
@@ -435,6 +421,15 @@ static AP_Navigation *nav_controller = &L1_controller;
 
 // steering controller
 static AP_SteerController steerController(ahrs);
+
+////////////////////////////////////////////////////////////////////////////////
+// Mission library
+// forward declaration to avoid compiler errors
+////////////////////////////////////////////////////////////////////////////////
+static bool start_command(const AP_Mission::Mission_Command& cmd);
+static bool verify_command(const AP_Mission::Mission_Command& cmd);
+static void exit_mission();
+AP_Mission mission(ahrs, &start_command, &verify_command, &exit_mission, MISSION_START_BYTE, MISSION_END_BYTE);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 SITL sitl;
@@ -450,8 +445,6 @@ static GCS_MAVLINK gcs[MAVLINK_COMM_NUM_BUFFERS];
 // a pin for reading the receiver RSSI voltage. The scaling by 0.25 
 // is to take the 0 to 1024 range down to an 8 bit range for MAVLink
 AP_HAL::AnalogSource *rssi_analog_source;
-
-AP_HAL::AnalogSource *vcc_pin;
 
 ////////////////////////////////////////////////////////////////////////////////
 // SONAR selection
@@ -478,8 +471,7 @@ static struct 	Location current_loc;
 // --------------------------------------
 #if MOUNT == ENABLED
 // current_loc uses the baro/gps soloution for altitude rather than gps only.
-// mabe one could use current_loc for lat/lon too and eliminate g_gps alltogether?
-AP_Mount camera_mount(&current_loc, g_gps, ahrs, 0);
+AP_Mount camera_mount(&current_loc, ahrs, 0);
 #endif
 
 
@@ -536,23 +528,9 @@ static struct {
 // notification object for LEDs, buzzers etc (parameter set to false disables external leds)
 static AP_Notify notify;
 
-////////////////////////////////////////////////////////////////////////////////
-// GPS variables
-////////////////////////////////////////////////////////////////////////////////
-// This is used to scale GPS values for EEPROM storage
-// 10^7 times Decimal GPS means 1 == 1cm
-// This approximation makes calculations integer and it's easy to read
-static const 	float t7			= 10000000.0;	
-// We use atan2 and other trig techniques to calaculate angles
-
 // A counter used to count down valid gps fixes to allow the gps estimate to settle
 // before recording our home position (and executing a ground start if we booted with an air start)
-static uint8_t 	ground_start_count	= 5;
-// Used to compute a speed estimate from the first valid gps fixes to decide if we are 
-// on the ground or in the air.  Used to decide if a ground start is appropriate if we
-// booted with an air start.
-static int16_t     ground_start_avg;
-static int32_t          gps_base_alt;		
+static uint8_t 	ground_start_count	= 20;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Location & Navigation
@@ -566,14 +544,9 @@ static bool have_position;
 
 static bool rtl_complete = false;
 
-// There may be two active commands in Auto mode.  
-// This indicates the active navigation command by index number
-static uint8_t	nav_command_index;					
-// This indicates the active non-navigation command by index number
-static uint8_t	non_nav_command_index;				
-// This is the command type (eg navigate to waypoint) of the active navigation command
-static uint8_t	nav_command_ID		= NO_COMMAND;	
-static uint8_t	non_nav_command_ID	= NO_COMMAND;	
+
+// angle of our next navigation waypoint
+static int32_t next_navigation_leg_cd;
 
 // ground speed error in m/s
 static float	groundspeed_error;	
@@ -616,9 +589,6 @@ static int16_t throttle_last = 0, throttle = 500;
 // When CH7 goes LOW PWM from HIGH PWM, this value will have been set true
 // This allows advanced functionality to know when to execute
 static bool ch7_flag;
-// This register tracks the current Mission Command index when writing
-// a mission using CH7 in flight
-static int8_t CH7_wp_index;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Battery Sensors
@@ -648,16 +618,14 @@ static int32_t 	condition_value;
 // A starting value used to check the status of a conditional command.
 // For example in a delay command the condition_start records that start time for the delay
 static int32_t 	condition_start;
-// A value used in condition commands.  For example the rate at which to change altitude.
-static int16_t 		condition_rate;
 
 ////////////////////////////////////////////////////////////////////////////////
 // 3D Location vectors
 // Location structure defined in AP_Common
 ////////////////////////////////////////////////////////////////////////////////
 // The home location used for RTL.  The location is set when we first get stable GPS lock
-static struct 	Location home;
-// Flag for if we have g_gps lock and have set the home location
+static const struct	Location &home = ahrs.get_home();
+// Flag for if we have gps lock and have set the home location
 static bool	home_is_set;
 // The location of the previous waypoint.  Used for track following and altitude ramp calculations
 static struct 	Location prev_WP;
@@ -665,11 +633,6 @@ static struct 	Location prev_WP;
 static struct 	Location next_WP;
 // The location of the active waypoint in Guided mode.
 static struct  	Location guided_WP;
-
-// The location structure information from the Nav command being processed
-static struct 	Location next_nav_command;	
-// The location structure information from the Non-Nav command being processed
-static struct 	Location next_nonnav_command;
 
 ////////////////////////////////////////////////////////////////////////////////
 // IMU variables
@@ -685,8 +648,6 @@ static float G_Dt						= 0.02;
 static int32_t 	perf_mon_timer;
 // The maximum main loop execution time recorded in the current performance monitoring interval
 static uint32_t 	G_Dt_max;
-// The number of gps fixes recorded in the current performance monitoring interval
-static uint8_t 	gps_fix_count = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // System Timers
@@ -700,6 +661,26 @@ static uint16_t			mainLoop_count;
 
 // set if we are driving backwards
 static bool in_reverse;
+
+////////////////
+// Sonar Depth
+///////////////
+
+#define DIM 20
+#define DIM2 80
+#define DIM3 15
+
+static float Depth;
+static float Temp;
+int sonar_serial_timer = 0;
+
+struct tokens {
+ byte ready;
+ byte char_index;
+ char array[DIM2];
+ char *token[DIM3];
+} Sonar_tokens;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Top-level logic
@@ -718,6 +699,7 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { set_servos,             1,   1500 },
     { update_GPS_50Hz,        1,   2500 },
     { update_GPS_10Hz,        5,   2500 },
+    { update_alt,             5,   3400 },
     { navigate,               5,   1600 },
     { update_compass,         5,   2000 },
     { update_commands,        5,   1000 },
@@ -736,7 +718,8 @@ static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
     { gcs_failsafe_check,     5,    600 },
     { compass_accumulate,     1,    900 },
     { update_notify,          1,    300 },
-    { one_second_loop,       50,   3000 }
+    { one_second_loop,       50,   3000 },
+    { read_sonar_depth,      10,   3000 }
 };
 
 
@@ -759,7 +742,6 @@ void setup() {
     battery.init();
 
     rssi_analog_source = hal.analogin->channel(ANALOG_INPUT_NONE);
-    vcc_pin = hal.analogin->channel(ANALOG_INPUT_BOARD_VCC);
 
 	init_ardupilot();
 
@@ -796,6 +778,8 @@ void loop()
 // update AHRS system
 static void ahrs_update()
 {
+    ahrs.set_armed(hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED);
+
 #if HIL_MODE != HIL_MODE_DISABLED
     // update hil before AHRS update
     gcs_update();
@@ -808,6 +792,12 @@ static void ahrs_update()
     ahrs.set_fly_forward(!in_reverse);
 
     ahrs.update();
+
+    // if using the EKF get a speed update now (from accelerometers)
+    Vector3f velocity;
+    if (ahrs.get_velocity_NED(velocity)) {
+        ground_speed = pythagorous2(velocity.x, velocity.y);
+    }
 
     if (should_log(MASK_LOG_ATTITUDE_FAST))
         Log_Write_Attitude();
@@ -827,6 +817,14 @@ static void mount_update(void)
 #if CAMERA == ENABLED
     camera.trigger_pic_cleanup();
 #endif
+}
+
+static void update_alt()
+{
+    barometer.read();
+    if (should_log(MASK_LOG_IMU)) {
+        Log_Write_Baro();
+    }
 }
 
 /*
@@ -857,7 +855,7 @@ static void update_compass(void)
     if (g.compass_enabled && compass.read()) {
         ahrs.set_compass(&compass);
         // update offsets
-        compass.null_offsets();
+        compass.learn_offsets();
         if (should_log(MASK_LOG_COMPASS)) {
             Log_Write_Compass();
         }
@@ -902,14 +900,7 @@ static void update_logging2(void)
  */
 static void update_aux(void)
 {
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_9, &g.rc_10, &g.rc_11, &g.rc_12);
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
-    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8, &g.rc_10, &g.rc_11);
-#else
-    update_aux_servo_function(&g.rc_5, &g.rc_6, &g.rc_7, &g.rc_8);
-#endif
-    enable_aux_servos();
+    RC_Channel_aux::enable_aux_servos();
         
 #if MOUNT == ENABLED
     camera_mount.update_mount_type();
@@ -967,13 +958,15 @@ static void one_second_loop(void)
 
 static void update_GPS_50Hz(void)
 {        
-    static uint32_t last_gps_reading;
-	g_gps->update();
+    static uint32_t last_gps_reading[GPS_MAX_INSTANCES];
+	gps.update();
 
-    if (g_gps->last_message_time_ms() != last_gps_reading) {
-        last_gps_reading = g_gps->last_message_time_ms();
-        if (should_log(MASK_LOG_GPS)) {
-            DataFlash.Log_Write_GPS(g_gps, current_loc.alt);
+    for (uint8_t i=0; i<gps.num_sensors(); i++) {
+        if (gps.last_message_time_ms(i) != last_gps_reading[i]) {
+            last_gps_reading[i] = gps.last_message_time_ms(i);
+            if (should_log(MASK_LOG_GPS)) {
+                DataFlash.Log_Write_GPS(gps, i, current_loc.alt);
+            }
         }
     }
 }
@@ -981,36 +974,38 @@ static void update_GPS_50Hz(void)
 
 static void update_GPS_10Hz(void)
 {        
-    have_position = ahrs.get_projected_position(current_loc);
+    have_position = ahrs.get_position(current_loc);
 
-	if (g_gps->new_data && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
-		gps_fix_count++;
+	if (have_position && gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
 
-		if(ground_start_count > 1){
+		if (ground_start_count > 1){
 			ground_start_count--;
-			ground_start_avg += g_gps->ground_speed_cm;
 
 		} else if (ground_start_count == 1) {
 			// We countdown N number of good GPS fixes
 			// so that the altitude is more accurate
 			// -------------------------------------
 			if (current_loc.lat == 0) {
-				ground_start_count = 5;
-
+				ground_start_count = 20;
 			} else {
                 init_home();
 
                 // set system clock for log timestamps
-                hal.util->set_system_clock(g_gps->time_epoch_usec());
+                hal.util->set_system_clock(gps.time_epoch_usec());
 
 				if (g.compass_enabled) {
 					// Set compass declination automatically
-					compass.set_initial_location(g_gps->latitude, g_gps->longitude);
+					compass.set_initial_location(gps.location().lat, gps.location().lng);
 				}
 				ground_start_count = 0;
 			}
 		}
-        ground_speed   = g_gps->ground_speed_cm * 0.01;
+        Vector3f velocity;
+        if (ahrs.get_velocity_NED(velocity)) {
+            ground_speed = pythagorous2(velocity.x, velocity.y);
+        } else {
+            ground_speed   = gps.ground_speed();
+        }
 
 #if CAMERA == ENABLED
         if (camera.update_location(current_loc) == true) {
@@ -1100,7 +1095,7 @@ static void update_navigation()
         break;
 
     case AUTO:
-		verify_commands();
+		mission.update();
         break;
 
     case RTL:
@@ -1116,18 +1111,23 @@ static void update_navigation()
 	}
 }
 
+static void read_sonar_depth(void){
+
+    read_Sonar();
+    if (should_log(MASK_LOG_SONARDEPTH))
+        Log_Write_SonarDepth();
+
+}
+
 AP_HAL_MAIN();
 #line 1 "./APMRover2/GCS_Mavlink.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 // default sensors are present and healthy: gyro, accelerometer, rate_control, attitude_stabilization, yaw_position, altitude control, x/y position control, motor_control
-#define MAVLINK_SENSOR_PRESENT_DEFAULT (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL | MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL | MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION | MAV_SYS_STATUS_SENSOR_YAW_POSITION | MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL | MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS)
+#define MAVLINK_SENSOR_PRESENT_DEFAULT (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL | MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL | MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION | MAV_SYS_STATUS_SENSOR_YAW_POSITION | MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL | MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS | MAV_SYS_STATUS_AHRS)
 
 // use this to prevent recursion during sensor init
 static bool in_mavlink_delay;
-
-// true when we have received at least 1 MAVLink packet
-static bool mavlink_active;
 
 // true if we are out of time in our event timeslice
 static bool	gcs_out_of_time;
@@ -1198,7 +1198,7 @@ static NOINLINE void send_heartbeat(mavlink_channel_t chan)
 #endif
 
     // we are armed if we are not initialising
-    if (control_mode != INITIALISING) {
+    if (control_mode != INITIALISING && ahrs.get_armed()) {
         base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
     }
 
@@ -1228,7 +1228,7 @@ static NOINLINE void send_attitude(mavlink_channel_t chan)
         omega.z);
 }
 
-static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t packet_drops)
+static NOINLINE void send_extended_status1(mavlink_channel_t chan)
 {
     uint32_t control_sensors_present;
     uint32_t control_sensors_enabled;
@@ -1241,7 +1241,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
     if (g.compass_enabled) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG; // compass present
     }
-    if (g_gps != NULL && g_gps->status() > GPS::NO_GPS) {
+    if (gps.status() > AP_GPS::NO_GPS) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
     }
 
@@ -1275,14 +1275,19 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
 
     // default to all healthy except compass and gps which we set individually
     control_sensors_health = control_sensors_present & (~MAV_SYS_STATUS_SENSOR_3D_MAG & ~MAV_SYS_STATUS_SENSOR_GPS);
-    if (g.compass_enabled && compass.healthy() && ahrs.use_compass()) {
+    if (g.compass_enabled && compass.healthy(0) && ahrs.use_compass()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
     }
-    if (g_gps != NULL && g_gps->status() >= GPS::GPS_OK_FIX_3D) {
+    if (gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
     }
     if (!ins.healthy()) {
         control_sensors_health &= ~(MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL);
+    }
+
+    if (!ahrs.healthy()) {
+        // AHRS subsystem is unhealthy
+        control_sensors_health &= ~MAV_SYS_STATUS_AHRS;
     }
 
     int16_t battery_current = -1;
@@ -1316,21 +1321,22 @@ static void NOINLINE send_location(mavlink_channel_t chan)
     // positions.
     // If we don't have a GPS fix then we are dead reckoning, and will
     // use the current boot time as the fix time.    
-    if (g_gps->status() >= GPS::GPS_OK_FIX_2D) {
-        fix_time = g_gps->last_fix_time;
+    if (gps.status() >= AP_GPS::GPS_OK_FIX_2D) {
+        fix_time = gps.last_fix_time_ms();
     } else {
         fix_time = millis();
     }
+    const Vector3f &vel = gps.velocity();
     mavlink_msg_global_position_int_send(
         chan,
         fix_time,
-        current_loc.lat,                // in 1E7 degrees
-        current_loc.lng,                // in 1E7 degrees
-        g_gps->altitude_cm * 10,             // millimeters above sea level
-        (current_loc.alt - home.alt) * 10,           // millimeters above ground
-        g_gps->velocity_north() * 100,  // X speed cm/s (+ve North)
-        g_gps->velocity_east()  * 100,  // Y speed cm/s (+ve East)
-        g_gps->velocity_down()  * -100, // Z speed cm/s (+ve up)
+        current_loc.lat,                   // in 1E7 degrees
+        current_loc.lng,                   // in 1E7 degrees
+        gps.location().alt * 10UL,         // millimeters above sea level
+        (current_loc.alt - home.alt) * 10, // millimeters above ground
+        vel.x * 100,  // X speed cm/s (+ve North)
+        vel.y * 100,  // Y speed cm/s (+ve East)
+        vel.z * -100, // Z speed cm/s (+ve up)
         ahrs.yaw_sensor);
 }
 
@@ -1339,7 +1345,7 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
     mavlink_msg_nav_controller_output_send(
         chan,
         lateral_acceleration, // use nav_roll to hold demanded Y accel
-        g_gps->ground_speed_cm * 0.01f * ins.get_gyro().z, // use nav_pitch to hold actual Y accel
+        gps.ground_speed() * ins.get_gyro().z, // use nav_pitch to hold actual Y accel
         nav_controller->nav_bearing_cd() * 0.01f,
         nav_controller->target_bearing_cd() * 0.01f,
         wp_distance,
@@ -1350,25 +1356,57 @@ static void NOINLINE send_nav_controller_output(mavlink_channel_t chan)
 
 static void NOINLINE send_gps_raw(mavlink_channel_t chan)
 {
-    mavlink_msg_gps_raw_int_send(
-        chan,
-        g_gps->last_fix_time*(uint64_t)1000,
-        g_gps->status(),
-        g_gps->latitude,      // in 1E7 degrees
-        g_gps->longitude,     // in 1E7 degrees
-        g_gps->altitude_cm * 10, // in mm
-        g_gps->hdop,
-        65535,
-        g_gps->ground_speed_cm,  // cm/s
-        g_gps->ground_course_cd, // 1/100 degrees,
-        g_gps->num_sats);
+    static uint32_t last_send_time_ms;
+    if (last_send_time_ms == 0 || last_send_time_ms != gps.last_message_time_ms(0)) {
+        last_send_time_ms = gps.last_message_time_ms(0);
+        const Location &loc = gps.location(0);
+        mavlink_msg_gps_raw_int_send(
+            chan,
+            gps.last_fix_time_ms(0)*(uint64_t)1000,
+            gps.status(0),
+            loc.lat,        // in 1E7 degrees
+            loc.lng,        // in 1E7 degrees
+            loc.alt * 10UL, // in mm
+            gps.get_hdop(0),
+            65535,
+            gps.ground_speed(0)*100,  // cm/s
+            gps.ground_course_cd(0), // 1/100 degrees,
+            gps.num_sats(0));
+    }
+
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
+    static uint32_t last_send_time_ms2;
+    if (gps.num_sensors() > 1 && 
+        gps.status(1) > AP_GPS::NO_GPS &&
+        (last_send_time_ms2 == 0 || last_send_time_ms2 != gps.last_message_time_ms(1))) {
+        int16_t payload_space = comm_get_txspace(chan) - MAVLINK_NUM_NON_PAYLOAD_BYTES;
+        if (payload_space >= MAVLINK_MSG_ID_GPS2_RAW_LEN) {
+            const Location &loc = gps.location(1);
+            last_send_time_ms = gps.last_message_time_ms(1);
+            mavlink_msg_gps2_raw_send(
+                chan,
+                gps.last_fix_time_ms(1)*(uint64_t)1000,
+                gps.status(1),
+                loc.lat,
+                loc.lng,
+                loc.alt * 10UL,
+                gps.get_hdop(1),
+                65535,
+                gps.ground_speed(1)*100,  // cm/s
+                gps.ground_course_cd(1), // 1/100 degrees,
+                gps.num_sats(1),
+                0,
+                0);
+        }
+    }
+#endif
 }
 
 static void NOINLINE send_system_time(mavlink_channel_t chan)
 {
     mavlink_msg_system_time_send(
         chan,
-        g_gps->time_epoch_usec(),
+        gps.time_epoch_usec(),
         hal.scheduler->millis());
 }
 
@@ -1410,6 +1448,32 @@ static void NOINLINE send_radio_in(mavlink_channel_t chan)
         hal.rcin->read(CH_7),
         hal.rcin->read(CH_8),
         receiver_rssi);
+    if (hal.rcin->num_channels() > 8 && 
+        comm_get_txspace(chan) - MAVLINK_NUM_NON_PAYLOAD_BYTES >= MAVLINK_MSG_ID_RC_CHANNELS_LEN) {
+        mavlink_msg_rc_channels_send(
+            chan,
+            millis(),
+            hal.rcin->num_channels(),
+            hal.rcin->read(CH_1),
+            hal.rcin->read(CH_2),
+            hal.rcin->read(CH_3),
+            hal.rcin->read(CH_4),
+            hal.rcin->read(CH_5),
+            hal.rcin->read(CH_6),
+            hal.rcin->read(CH_7),
+            hal.rcin->read(CH_8),
+            hal.rcin->read(CH_9),
+            hal.rcin->read(CH_10),
+            hal.rcin->read(CH_11),
+            hal.rcin->read(CH_12),
+            hal.rcin->read(CH_13),
+            hal.rcin->read(CH_14),
+            hal.rcin->read(CH_15),
+            hal.rcin->read(CH_16),
+            hal.rcin->read(CH_17),
+            hal.rcin->read(CH_18),
+            receiver_rssi);        
+    }
 }
 
 static void NOINLINE send_radio_out(mavlink_channel_t chan)
@@ -1447,8 +1511,8 @@ static void NOINLINE send_vfr_hud(mavlink_channel_t chan)
 {
     mavlink_msg_vfr_hud_send(
         chan,
-        (float)g_gps->ground_speed_cm / 100.0,
-        (float)g_gps->ground_speed_cm / 100.0,
+        gps.ground_speed(),
+        gps.ground_speed(),
         (ahrs.yaw_sensor / 100) % 360,
         (uint16_t)(100 * fabsf(channel_throttle->norm_output())),
         current_loc.alt / 100.0,
@@ -1542,7 +1606,7 @@ static void NOINLINE send_hwstatus(mavlink_channel_t chan)
 {
     mavlink_msg_hwstatus_send(
         chan,
-        board_voltage(),
+        hal.analogin->board_voltage()*1000,
         hal.i2c->lockup_count());
 }
 
@@ -1579,9 +1643,7 @@ static void NOINLINE send_rangefinder(mavlink_channel_t chan)
 
 static void NOINLINE send_current_waypoint(mavlink_channel_t chan)
 {
-    mavlink_msg_mission_current_send(
-        chan,
-        g.command_index);
+    mavlink_msg_mission_current_send(chan, mission.get_current_nav_index());
 }
 
 static void NOINLINE send_statustext(mavlink_channel_t chan)
@@ -1611,7 +1673,7 @@ static bool telemetry_delayed(mavlink_channel_t chan)
 
 
 // try to send a message, return false if it won't fit in the serial tx buffer
-static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id, uint16_t packet_drops)
+bool GCS_MAVLINK::try_send_message(enum ap_message id)
 {
     int16_t payload_space = comm_get_txspace(chan) - MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
@@ -1636,7 +1698,9 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
 
     case MSG_EXTENDED_STATUS1:
         CHECK_PAYLOAD_SIZE(SYS_STATUS);
-        send_extended_status1(chan, packet_drops);
+        send_extended_status1(chan);
+        CHECK_PAYLOAD_SIZE(POWER_STATUS);
+        gcs[chan-MAVLINK_COMM_0].send_power_status();
         break;
 
     case MSG_EXTENDED_STATUS2:
@@ -1758,84 +1822,6 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
     return true;
 }
 
-
-#define MAX_DEFERRED_MESSAGES MSG_RETRY_DEFERRED
-static struct mavlink_queue {
-    enum ap_message deferred_messages[MAX_DEFERRED_MESSAGES];
-    uint8_t next_deferred_message;
-    uint8_t num_deferred_messages;
-} mavlink_queue[MAVLINK_COMM_NUM_BUFFERS];
-
-// send a message using mavlink
-static void mavlink_send_message(mavlink_channel_t chan, enum ap_message id, uint16_t packet_drops)
-{
-    uint8_t i, nextid;
-    struct mavlink_queue *q = &mavlink_queue[(uint8_t)chan];
-
-    // see if we can send the deferred messages, if any
-    while (q->num_deferred_messages != 0) {
-        if (!mavlink_try_send_message(chan,
-                                      q->deferred_messages[q->next_deferred_message],
-                                      packet_drops)) {
-            break;
-        }
-        q->next_deferred_message++;
-        if (q->next_deferred_message == MAX_DEFERRED_MESSAGES) {
-            q->next_deferred_message = 0;
-        }
-        q->num_deferred_messages--;
-    }
-
-    if (id == MSG_RETRY_DEFERRED) {
-        return;
-    }
-
-    // this message id might already be deferred
-    for (i=0, nextid = q->next_deferred_message; i < q->num_deferred_messages; i++) {
-        if (q->deferred_messages[nextid] == id) {
-            // its already deferred, discard
-            return;
-        }
-        nextid++;
-        if (nextid == MAX_DEFERRED_MESSAGES) {
-            nextid = 0;
-        }
-    }
-
-    if (q->num_deferred_messages != 0 ||
-        !mavlink_try_send_message(chan, id, packet_drops)) {
-        // can't send it now, so defer it
-        if (q->num_deferred_messages == MAX_DEFERRED_MESSAGES) {
-            // the defer buffer is full, discard
-            return;
-        }
-        nextid = q->next_deferred_message + q->num_deferred_messages;
-        if (nextid >= MAX_DEFERRED_MESSAGES) {
-            nextid -= MAX_DEFERRED_MESSAGES;
-        }
-        q->deferred_messages[nextid] = id;
-        q->num_deferred_messages++;
-    }
-}
-
-void mavlink_send_text(mavlink_channel_t chan, gcs_severity severity, const char *str)
-{
-    if (telemetry_delayed(chan)) {
-        return;
-    }
-
-    if (severity == SEVERITY_LOW) {
-        // send via the deferred queuing system
-        mavlink_statustext_t *s = &gcs[chan-MAVLINK_COMM_0].pending_status;
-        s->severity = (uint8_t)severity;
-        strncpy((char *)s->text, str, sizeof(s->text));
-        mavlink_send_message(chan, MSG_STATUSTEXT, 0);
-    } else {
-        // send immediately
-        mavlink_msg_statustext_send(chan, severity, str);
-    }
-}
-
 /*
   default stream rates to 1Hz
  */
@@ -1923,69 +1909,6 @@ const AP_Param::GroupInfo GCS_MAVLINK::var_info[] PROGMEM = {
     AP_GROUPEND
 };
 
-
-void
-GCS_MAVLINK::update(void)
-{
-    // receive new packets
-    mavlink_message_t msg;
-    mavlink_status_t status;
-	status.packet_rx_drop_count = 0;
-
-    // process received bytes
-    uint16_t nbytes = comm_get_available(chan);
-    for (uint16_t i=0; i<nbytes; i++)
-    {
-        uint8_t c = comm_receive_ch(chan);
-
-#if CLI_ENABLED == ENABLED
-        /* allow CLI to be started by hitting enter 3 times, if no
-         *  heartbeat packets have been received */
-        if (mavlink_active == 0 && (millis() - _cli_timeout) < 20000 && 
-            comm_is_idle(chan)) {
-            if (c == '\n' || c == '\r') {
-                crlf_count++;
-            } else {
-                crlf_count = 0;
-            }
-            if (crlf_count == 3) {
-                run_cli(_port);
-            }
-        }
-#endif
-
-        // Try to get a new message
-        if (mavlink_parse_char(chan, c, &msg, &status)) {
-            // we exclude radio packets to make it possible to use the
-            // CLI over the radio
-            if (msg.msgid != MAVLINK_MSG_ID_RADIO && msg.msgid != MAVLINK_MSG_ID_RADIO_STATUS) {
-                mavlink_active = true;
-            }
-            handleMessage(&msg);
-        }
-    }
-
-    // Update packet drops counter
-    packet_drops += status.packet_rx_drop_count;
-
-    if (!waypoint_receiving) {
-        return;
-    }
-
-    uint32_t tnow = millis();
-
-    if (waypoint_receiving &&
-        waypoint_request_i <= waypoint_request_last &&
-        tnow > waypoint_timelast_request + 500 + (stream_slowdown*20)) {
-        waypoint_timelast_request = tnow;
-        send_message(MSG_NEXT_WAYPOINT);
-    }
-
-    // stop waypoint receiving if timeout
-    if (waypoint_receiving && (millis() - waypoint_timelast_receive) > waypoint_receive_timeout){
-        waypoint_receiving = false;
-    }
-}
 
 // see if we should send a stream now. Called at 50Hz
 bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
@@ -2118,85 +2041,28 @@ GCS_MAVLINK::data_stream_send(void)
 
 
 
-void
-GCS_MAVLINK::send_message(enum ap_message id)
+void GCS_MAVLINK::handle_guided_request(AP_Mission::Mission_Command &cmd)
 {
-    mavlink_send_message(chan,id, packet_drops);
+    guided_WP = cmd.content.location;
+
+    set_mode(GUIDED);
+
+    // make any new wp uploaded instant (in case we are already in Guided mode)
+    set_guided_WP();
 }
 
-void
-GCS_MAVLINK::send_text_P(gcs_severity severity, const prog_char_t *str)
+void GCS_MAVLINK::handle_change_alt_request(AP_Mission::Mission_Command &cmd)
 {
-    mavlink_statustext_t m;
-    uint8_t i;
-    for (i=0; i<sizeof(m.text); i++) {
-        m.text[i] = pgm_read_byte((const prog_char *)(str++));
-        if (m.text[i] == '\0') {
-            break;
-        }
-    }
-    if (i < sizeof(m.text)) m.text[i] = 0;
-    mavlink_send_text(chan, severity, (const char *)m.text);
+    // nothing to do
 }
 
 void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 {
-    struct Location tell_command = {};                // command for telemetry
-
     switch (msg->msgid) {
 
     case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
         {
-            // decode
-            mavlink_request_data_stream_t packet;
-            mavlink_msg_request_data_stream_decode(msg, &packet);
-
-			if (mavlink_check_target(packet.target_system, packet.target_component))
-				break;
-
-        int16_t freq = 0;     // packet frequency
-
-			if (packet.start_stop == 0)
-				freq = 0; // stop sending
-			else if (packet.start_stop == 1)
-				freq = packet.req_message_rate; // start sending
-			else
-				break;
-
-            switch(packet.req_stream_id){
-
-                case MAV_DATA_STREAM_ALL:
-            // note that we don't set STREAM_PARAMS - that is internal only
-            for (uint8_t i=0; i<STREAM_PARAMS; i++) {
-                streamRates[i].set_and_save_ifchanged(freq);
-            }
-                    break;
-
-                case MAV_DATA_STREAM_RAW_SENSORS:
-            streamRates[STREAM_RAW_SENSORS].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_EXTENDED_STATUS:
-            streamRates[STREAM_EXTENDED_STATUS].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_RC_CHANNELS:
-            streamRates[STREAM_RC_CHANNELS].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_RAW_CONTROLLER:
-            streamRates[STREAM_RAW_CONTROLLER].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_POSITION:
-            streamRates[STREAM_POSITION].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_EXTRA1:
-            streamRates[STREAM_EXTRA1].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_EXTRA2:
-            streamRates[STREAM_EXTRA2].set_and_save_ifchanged(freq);
-                    break;
-                case MAV_DATA_STREAM_EXTRA3:
-            streamRates[STREAM_EXTRA3].set_and_save_ifchanged(freq);
-                    break;
-            }
+            handle_request_data_stream(msg, true);
             break;
         }
 
@@ -2207,7 +2073,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             mavlink_msg_command_long_decode(msg, &packet);
             if (mavlink_check_target(packet.target_system, packet.target_component)) break;
 
-        uint8_t result = MAV_RESULT_UNSUPPORTED;
+            uint8_t result = MAV_RESULT_UNSUPPORTED;
 
             // do command
             send_text_P(SEVERITY_LOW,PSTR("command received: "));
@@ -2297,7 +2163,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 break;
             }
 
-            mavlink_msg_command_ack_send(
+            mavlink_msg_command_ack_send_buf(
+                msg,
                 chan,
                 packet.command,
                 result);
@@ -2334,282 +2201,58 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
     case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
         {
-            // decode
-            mavlink_mission_request_list_t packet;
-            mavlink_msg_mission_request_list_decode(msg, &packet);
-			if (mavlink_check_target(packet.target_system, packet.target_component))
-				break;
-
-            // Start sending waypoints
-            mavlink_msg_mission_count_send(
-                chan,msg->sysid,
-                msg->compid,
-                g.command_total + 1); // + home
-
-            waypoint_receiving       = false;
-            waypoint_dest_sysid      = msg->sysid;
-            waypoint_dest_compid     = msg->compid;
+            handle_mission_request_list(mission, msg);
             break;
         }
 
 
 	// XXX read a WP from EEPROM and send it to the GCS
     case MAVLINK_MSG_ID_MISSION_REQUEST:
-        {
-            // decode
-            mavlink_mission_request_t packet;
-            mavlink_msg_mission_request_decode(msg, &packet);
-
- 			if (mavlink_check_target(packet.target_system, packet.target_component))
- 				break;
-
-            // send waypoint
-            tell_command = get_cmd_with_index(packet.seq);
-
-            // set frame of waypoint
-            uint8_t frame;
-
-			if (tell_command.options & MASK_OPTIONS_RELATIVE_ALT) {
-                frame = MAV_FRAME_GLOBAL_RELATIVE_ALT; // reference frame
-            } else {
-                frame = MAV_FRAME_GLOBAL; // reference frame
-            }
-
-            float param1 = 0, param2 = 0 , param3 = 0, param4 = 0;
-
-        // time that the mav should loiter in milliseconds
-            uint8_t current = 0; // 1 (true), 0 (false)
-
-			if (packet.seq == (uint16_t)g.command_index)
-            	current = 1;
-
-            uint8_t autocontinue = 1; // 1 (true), 0 (false)
-
-            float x = 0, y = 0, z = 0;
-
-            if (tell_command.id < MAV_CMD_NAV_LAST || tell_command.id == MAV_CMD_CONDITION_CHANGE_ALT) {
-                // command needs scaling
-                x = tell_command.lat/1.0e7; // local (x), global (latitude)
-                y = tell_command.lng/1.0e7; // local (y), global (longitude)
-            z = tell_command.alt/1.0e2;
-            }
-
-			switch (tell_command.id) {				// Switch to map APM command fields inot MAVLink command fields
-
-				case MAV_CMD_NAV_TAKEOFF:
-				case MAV_CMD_DO_SET_HOME:
-					param1 = tell_command.p1;
-					break;
-
-				case MAV_CMD_CONDITION_CHANGE_ALT:
-					x=0;	// Clear fields loaded above that we don't want sent for this command
-					y=0;
-				case MAV_CMD_CONDITION_DELAY:
-				case MAV_CMD_CONDITION_DISTANCE:
-					param1 = tell_command.lat;
-					break;
-
-				case MAV_CMD_DO_JUMP:
-					param2 = tell_command.lat;
-					param1 = tell_command.p1;
-					break;
-
-            	case MAV_CMD_DO_REPEAT_SERVO:
-                    param4 = tell_command.lng*0.001f; // time
-                    param3 = tell_command.lat;        // repeat
-                    param2 = tell_command.alt;        // pwm
-                    param1 = tell_command.p1;         // channel
-                    break;
-
-            	case MAV_CMD_DO_REPEAT_RELAY:
-                    param3 = tell_command.lat*0.001f; // time
-                    param2 = tell_command.alt;        // count
-                    param1 = tell_command.p1;         // relay number
-                    break;
-
-				case MAV_CMD_DO_CHANGE_SPEED:
-					param3 = tell_command.lat;
-					param2 = tell_command.alt;
-					param1 = tell_command.p1;
-					break;
-
-				case MAV_CMD_DO_SET_PARAMETER:
-				case MAV_CMD_DO_SET_RELAY:
-				case MAV_CMD_DO_SET_SERVO:
-					param2 = tell_command.alt;
-					param1 = tell_command.p1;
-					break;
-
-				case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-					param1 = tell_command.alt;
-					break;
-			}
-
-			mavlink_msg_mission_item_send(chan,msg->sysid,
-										msg->compid,
-										packet.seq,
-										frame,
-										tell_command.id,
-										current,
-										autocontinue,
-										param1,
-										param2,
-										param3,
-										param4,
-										x,
-										y,
-										z);
-            break;
-        }
+    {
+        handle_mission_request(mission, msg);
+        break;
+    }
 
 
     case MAVLINK_MSG_ID_MISSION_ACK:
         {
-            // decode
-            mavlink_mission_ack_t packet;
-            mavlink_msg_mission_ack_decode(msg, &packet);
-            if (mavlink_check_target(packet.target_system,packet.target_component)) break;
+            // not used
             break;
         }
 
     case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
         {
-            // decode
-            mavlink_param_request_list_t packet;
-            mavlink_msg_param_request_list_decode(msg, &packet);
-            if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-
-            // mark the firmware version in the tlog
-            send_text_P(SEVERITY_LOW, PSTR(FIRMWARE_STRING));
-
-#if defined(PX4_GIT_VERSION) && defined(NUTTX_GIT_VERSION)
-            send_text_P(SEVERITY_LOW, PSTR("PX4: " PX4_GIT_VERSION " NuttX: " NUTTX_GIT_VERSION));
-#endif
-
-            // send system ID if we can
-            char sysid[40];
-            if (hal.util->get_system_id(sysid)) {
-                mavlink_send_text(chan, SEVERITY_LOW, sysid);
-            }
-
-            // Start sending parameters - next call to ::update will kick the first one out
-            _queued_parameter = AP_Param::first(&_queued_parameter_token, &_queued_parameter_type);
-            _queued_parameter_index = 0;
-            _queued_parameter_count = _count_parameters();
+            handle_param_request_list(msg);
             break;
         }
 
     case MAVLINK_MSG_ID_PARAM_REQUEST_READ:
     {
-        // decode
-        mavlink_param_request_read_t packet;
-        mavlink_msg_param_request_read_decode(msg, &packet);
-        if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-        enum ap_var_type p_type;
-        AP_Param *vp;
-        char param_name[AP_MAX_NAME_SIZE+1];
-        if (packet.param_index != -1) {
-            AP_Param::ParamToken token;
-            vp = AP_Param::find_by_index(packet.param_index, &p_type, &token);
-            if (vp == NULL) {
-                gcs_send_text_fmt(PSTR("Unknown parameter index %d"), packet.param_index);
-                break;
-            }
-            vp->copy_name_token(token, param_name, AP_MAX_NAME_SIZE, true);
-            param_name[AP_MAX_NAME_SIZE] = 0;
-        } else {
-            strncpy(param_name, packet.param_id, AP_MAX_NAME_SIZE);
-            param_name[AP_MAX_NAME_SIZE] = 0;
-            vp = AP_Param::find(param_name, &p_type);
-            if (vp == NULL) {
-                gcs_send_text_fmt(PSTR("Unknown parameter %.16s"), packet.param_id);
-                break;
-            }
-        }
-
-        float value = vp->cast_to_float(p_type);
-        mavlink_msg_param_value_send(
-            chan,
-            param_name,
-            value,
-            mav_var_type(p_type),
-            _count_parameters(),
-            packet.param_index);
+        handle_param_request_read(msg);
         break;
     }
 
     case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
         {
-            // decode
-            mavlink_mission_clear_all_t packet;
-            mavlink_msg_mission_clear_all_decode(msg, &packet);
-			if (mavlink_check_target(packet.target_system, packet.target_component)) break;
-
-            // clear all commands
-            g.command_total.set_and_save(0);
-
-            // note that we don't send multiple acks, as otherwise a
-            // GCS that is doing a clear followed by a set may see
-            // the additional ACKs as ACKs of the set operations
-            mavlink_msg_mission_ack_send(chan, msg->sysid, msg->compid, MAV_MISSION_ACCEPTED);
+            handle_mission_clear_all(mission, msg);
             break;
         }
 
     case MAVLINK_MSG_ID_MISSION_SET_CURRENT:
         {
-            // decode
-            mavlink_mission_set_current_t packet;
-            mavlink_msg_mission_set_current_decode(msg, &packet);
-            if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-
-            // set current command
-            change_command(packet.seq);
-
-            mavlink_msg_mission_current_send(chan, g.command_index);
+            handle_mission_set_current(mission, msg);
             break;
         }
 
     case MAVLINK_MSG_ID_MISSION_COUNT:
         {
-            // decode
-            mavlink_mission_count_t packet;
-            mavlink_msg_mission_count_decode(msg, &packet);
-            if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-
-            // start waypoint receiving
-            if (packet.count > MAX_WAYPOINTS) {
-                packet.count = MAX_WAYPOINTS;
-            }
-            g.command_total.set_and_save(packet.count - 1);
-
-            waypoint_timelast_receive = millis();
-            waypoint_timelast_request = 0;
-            waypoint_receiving   = true;
-            waypoint_request_i   = 0;
-            waypoint_request_last= g.command_total;
+            handle_mission_count(mission, msg);
             break;
         }
 
     case MAVLINK_MSG_ID_MISSION_WRITE_PARTIAL_LIST:
     {
-        // decode
-        mavlink_mission_write_partial_list_t packet;
-        mavlink_msg_mission_write_partial_list_decode(msg, &packet);
-        if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-
-        // start waypoint receiving
-        if (packet.start_index > g.command_total ||
-            packet.end_index > g.command_total ||
-            packet.end_index < packet.start_index) {
-            send_text_P(SEVERITY_LOW,PSTR("flight plan update rejected"));
-            break;
-        }
-
-        waypoint_timelast_receive = millis();
-        waypoint_timelast_request = 0;
-        waypoint_receiving   = true;
-        waypoint_request_i   = packet.start_index;
-        waypoint_request_last= packet.end_index;
+        handle_mission_write_partial_list(mission, msg);
         break;
     }
 
@@ -2627,264 +2270,16 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 	// XXX receive a WP from GCS and store in EEPROM
     case MAVLINK_MSG_ID_MISSION_ITEM:
         {
-            // decode
-            mavlink_mission_item_t packet;
-            uint8_t result = MAV_MISSION_ACCEPTED;
-
-            mavlink_msg_mission_item_decode(msg, &packet);
-            if (mavlink_check_target(packet.target_system,packet.target_component)) break;
-
-            // defaults
-            tell_command.id = packet.command;
-
-			switch (packet.frame)
-			{
-				case MAV_FRAME_MISSION:
-				case MAV_FRAME_GLOBAL:
-					{
-						tell_command.lat = 1.0e7f*packet.x; // in as DD converted to * t7
-						tell_command.lng = 1.0e7f*packet.y; // in as DD converted to * t7
-						tell_command.alt = packet.z*1.0e2f; // in as m converted to cm
-						tell_command.options = 0; // absolute altitude
-						break;
-					}
-
-#ifdef MAV_FRAME_LOCAL_NED
-				case MAV_FRAME_LOCAL_NED: // local (relative to home position)
-					{
-						tell_command.lat = 1.0e7f*ToDeg(packet.x/
-						(radius_of_earth*cosf(ToRad(home.lat/1.0e7f)))) + home.lat;
-						tell_command.lng = 1.0e7f*ToDeg(packet.y/radius_of_earth) + home.lng;
-						tell_command.alt = -packet.z*1.0e2f;
-						tell_command.options = MASK_OPTIONS_RELATIVE_ALT;
-						break;
-					}
-#endif
-
-#ifdef MAV_FRAME_LOCAL
-				case MAV_FRAME_LOCAL: // local (relative to home position)
-					{
-						tell_command.lat = 1.0e7f*ToDeg(packet.x/
-						(radius_of_earth*cosf(ToRad(home.lat/1.0e7f)))) + home.lat;
-						tell_command.lng = 1.0e7f*ToDeg(packet.y/radius_of_earth) + home.lng;
-						tell_command.alt = packet.z*1.0e2f;
-						tell_command.options = MASK_OPTIONS_RELATIVE_ALT;
-						break;
-					}
-#endif
-
-				case MAV_FRAME_GLOBAL_RELATIVE_ALT: // absolute lat/lng, relative altitude
-					{
-						tell_command.lat = 1.0e7f * packet.x; // in as DD converted to * t7
-						tell_command.lng = 1.0e7f * packet.y; // in as DD converted to * t7
-						tell_command.alt = packet.z * 1.0e2f;
-						tell_command.options = MASK_OPTIONS_RELATIVE_ALT; // store altitude relative!! Always!!
-						break;
-					}
-
-            default:
-                result = MAV_MISSION_UNSUPPORTED_FRAME;
-                break;
-			}
-
-            
-            if (result != MAV_MISSION_ACCEPTED) goto mission_failed;
-
-            switch (tell_command.id) {                    // Switch to map APM command fields inot MAVLink command fields
-            case MAV_CMD_NAV_WAYPOINT:
-            case MAV_CMD_NAV_RETURN_TO_LAUNCH:
-                break;
-
-            case MAV_CMD_NAV_TAKEOFF:
-            case MAV_CMD_DO_SET_HOME:
-                tell_command.p1 = packet.param1;
-                break;
-
-            case MAV_CMD_CONDITION_CHANGE_ALT:
-                tell_command.lat = packet.param1;
-                break;
-
-            case MAV_CMD_CONDITION_DELAY:
-            case MAV_CMD_CONDITION_DISTANCE:
-                tell_command.lat = packet.param1;
-                break;
-
-            case MAV_CMD_DO_JUMP:
-                tell_command.lat = packet.param2;
-                tell_command.p1 = packet.param1;
-                break;
-
-            case MAV_CMD_DO_REPEAT_SERVO:
-                tell_command.lng = packet.param4*1000; // time
-                tell_command.lat = packet.param3;      // count
-                tell_command.alt = packet.param2;      // PWM
-                tell_command.p1  = packet.param1;      // channel
-                break;
-
-            case MAV_CMD_DO_REPEAT_RELAY:
-                tell_command.lat = packet.param3*1000; // time
-                tell_command.alt = packet.param2;      // count
-                tell_command.p1  = packet.param1;      // relay number
-                break;
-
-            case MAV_CMD_DO_CHANGE_SPEED:
-                tell_command.lat = packet.param3;
-                tell_command.alt = packet.param2;
-                tell_command.p1 = packet.param1;
-                break;
-
-            case MAV_CMD_DO_SET_PARAMETER:
-            case MAV_CMD_DO_SET_RELAY:
-            case MAV_CMD_DO_SET_SERVO:
-                tell_command.alt = packet.param2;
-                tell_command.p1 = packet.param1;
-                break;
-
-            case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-                tell_command.alt = packet.param1;
-                break;
-
-            default:
-                result = MAV_MISSION_UNSUPPORTED;
-                break;
-            }
-
-            if (result != MAV_MISSION_ACCEPTED) goto mission_failed;
-
-			if(packet.current == 2){ 				//current = 2 is a flag to tell us this is a "guided mode" waypoint and not for the mission
-				guided_WP = tell_command;
-
-				// add home alt if needed
-				if (guided_WP.options & MASK_OPTIONS_RELATIVE_ALT){
-					guided_WP.alt += home.alt;
-				}
-
-				set_mode(GUIDED);
-
-				// make any new wp uploaded instant (in case we are already in Guided mode)
-				set_guided_WP();
-
-				// verify we recevied the command
-				mavlink_msg_mission_ack_send(
-						chan,
-						msg->sysid,
-						msg->compid,
-						0);
-
-			} else {
-				// Check if receiving waypoints (mission upload expected)
-				if (!waypoint_receiving) {
-                    result = MAV_MISSION_ERROR;
-                    goto mission_failed;
-                }
-
-				// check if this is the requested waypoint
-				if (packet.seq != waypoint_request_i) {
-                    result = MAV_MISSION_INVALID_SEQUENCE;
-                    goto mission_failed;
-                }
-
-                set_cmd_with_index(tell_command, packet.seq);
-
-				// update waypoint receiving state machine
-				waypoint_timelast_receive = millis();
-                waypoint_timelast_request = 0;
-				waypoint_request_i++;
-
-                if (waypoint_request_i > waypoint_request_last) {
-					mavlink_msg_mission_ack_send(
-						chan,
-						msg->sysid,
-						msg->compid,
-						result);
-
-					send_text_P(SEVERITY_LOW,PSTR("flight plan received"));
-					waypoint_receiving = false;
-					// XXX ignores waypoint radius for individual waypoints, can
-					// only set WP_RADIUS parameter
-				}
-			}
-            break;
-
-        mission_failed:
-            // we are rejecting the mission/waypoint
-            mavlink_msg_mission_ack_send(
-                chan,
-                msg->sysid,
-                msg->compid,
-                result);
+            handle_mission_item(msg, mission);
             break;
         }
 
 
     case MAVLINK_MSG_ID_PARAM_SET:
         {
-            AP_Param                  *vp;
-            enum ap_var_type        var_type;
-
-            // decode
-            mavlink_param_set_t packet;
-            mavlink_msg_param_set_decode(msg, &packet);
-
-			if (mavlink_check_target(packet.target_system, packet.target_component))
-				break;
-
-            // set parameter
-
-            char key[AP_MAX_NAME_SIZE+1];
-            strncpy(key, (char *)packet.param_id, AP_MAX_NAME_SIZE);
-            key[AP_MAX_NAME_SIZE] = 0;
-
-            // find the requested parameter
-            vp = AP_Param::find(key, &var_type);
-            if ((NULL != vp) &&                             // exists
-                    !isnan(packet.param_value) &&               // not nan
-                    !isinf(packet.param_value)) {               // not inf
-
-                // add a small amount before casting parameter values
-                // from float to integer to avoid truncating to the
-                // next lower integer value.
-				float rounding_addition = 0.01;
-
-                // handle variables with standard type IDs
-                if (var_type == AP_PARAM_FLOAT) {
-                    ((AP_Float *)vp)->set_and_save(packet.param_value);
-                } else if (var_type == AP_PARAM_INT32) {
-                    if (packet.param_value < 0) rounding_addition = -rounding_addition;
-                    float v = packet.param_value+rounding_addition;
-                v = constrain_float(v, -2147483648.0, 2147483647.0);
-					((AP_Int32 *)vp)->set_and_save(v);
-                } else if (var_type == AP_PARAM_INT16) {
-                    if (packet.param_value < 0) rounding_addition = -rounding_addition;
-                    float v = packet.param_value+rounding_addition;
-                    v = constrain_float(v, -32768, 32767);
-					((AP_Int16 *)vp)->set_and_save(v);
-                } else if (var_type == AP_PARAM_INT8) {
-                    if (packet.param_value < 0) rounding_addition = -rounding_addition;
-                    float v = packet.param_value+rounding_addition;
-                    v = constrain_float(v, -128, 127);
-					((AP_Int8 *)vp)->set_and_save(v);
-                } else {
-                    // we don't support mavlink set on this parameter
-                    break;
-                }
-
-                // Report back the new value if we accepted the change
-                // we send the value we actually set, which could be
-                // different from the value sent, in case someone sent
-                // a fractional value to an integer type
-                mavlink_msg_param_value_send(
-                    chan,
-                    key,
-                    vp->cast_to_float(var_type),
-                    mav_var_type(var_type),
-                    _count_parameters(),
-                    -1); // XXX we don't actually know what its index is...
-                DataFlash.Log_Write_Parameter(key, vp->cast_to_float(var_type));
-            }
-
+            handle_param_set(msg, &DataFlash);
             break;
-        } // end case
+        }
 
     case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
     {
@@ -2930,13 +2325,17 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 			mavlink_hil_state_t packet;
 			mavlink_msg_hil_state_decode(msg, &packet);
 			
-			float vel = pythagorous2(packet.vx, packet.vy);
-            float cog = wrap_360_cd(ToDeg(atan2f(packet.vy, packet.vx)) * 100);
-			
             // set gps hil sensor
-            g_gps->setHIL(packet.time_usec/1000,
-                          packet.lat*1.0e-7f, packet.lon*1.0e-7f, packet.alt*1.0e-3f,
-                          vel*1.0e-2f, cog*1.0e-2f, 0, 10);
+            Location loc;
+            loc.lat = packet.lat;
+            loc.lng = packet.lon;
+            loc.alt = packet.alt/10;
+            Vector3f vel(packet.vx, packet.vy, packet.vz);
+            vel *= 0.01f;
+            
+            gps.setHIL(0, AP_GPS::GPS_OK_FIX_3D,
+                       packet.time_usec/1000,
+                       loc, vel, 10, 0, true);
 			
 			// rad/sec
             Vector3f gyros;
@@ -2950,9 +2349,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             accels.y = packet.yacc * (GRAVITY_MSS/1000.0f);
             accels.z = packet.zacc * (GRAVITY_MSS/1000.0f);
             
-            ins.set_gyro(gyros);
+            ins.set_gyro(0, gyros);
 
-            ins.set_accel(accels);
+            ins.set_accel(0, accels);
             compass.setHIL(packet.roll, packet.pitch, packet.yaw);
             break;
 		}
@@ -2995,24 +2394,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_RADIO:
     case MAVLINK_MSG_ID_RADIO_STATUS:
         {
-            mavlink_radio_t packet;
-            mavlink_msg_radio_decode(msg, &packet);
-            // use the state of the transmit buffer in the radio to
-            // control the stream rate, giving us adaptive software
-            // flow control
-            if (packet.txbuf < 20 && stream_slowdown < 100) {
-                // we are very low on space - slow down a lot
-                stream_slowdown += 3;
-            } else if (packet.txbuf < 50 && stream_slowdown < 100) {
-                // we are a bit low on space, slow down slightly
-                stream_slowdown += 1;
-            } else if (packet.txbuf > 95 && stream_slowdown > 10) {
-                // the buffer has plenty of space, speed up a lot
-                stream_slowdown -= 2;
-            } else if (packet.txbuf > 90 && stream_slowdown != 0) {
-                // the buffer has enough space, speed up a bit
-                stream_slowdown--;
-            }
+            handle_radio_status(msg, DataFlash, should_log(MASK_LOG_PM));
             break;
         }
 
@@ -3031,6 +2413,12 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             handle_log_message(msg, DataFlash);
         }
         break;
+
+#if HAL_CPU_CLASS > HAL_CPU_CLASS_16
+    case MAVLINK_MSG_ID_SERIAL_CONTROL:
+        handle_serial_control(msg, gps);
+        break;
+#endif
 
     default:
         // forward unknown messages to the other link if there is one
@@ -3113,7 +2501,11 @@ static void gcs_update(void)
 {
     for (uint8_t i=0; i<num_gcs; i++) {
         if (gcs[i].initialised) {
-            gcs[i].update();
+#if CLI_ENABLED == ENABLED
+            gcs[i].update(run_cli);
+#else
+            gcs[i].update(NULL);
+#endif
         }
     }
 }
@@ -3146,11 +2538,11 @@ void gcs_send_text_fmt(const prog_char_t *fmt, ...)
 #if LOGGING_ENABLED == ENABLED
     DataFlash.Log_Write_Message(gcs[0].pending_status.text);
 #endif
-    mavlink_send_message(MAVLINK_COMM_0, MSG_STATUSTEXT, 0);
+    gcs[0].send_message(MSG_STATUSTEXT);
     for (uint8_t i=1; i<num_gcs; i++) {
         if (gcs[i].initialised) {
             gcs[i].pending_status = gcs[0].pending_status;
-            mavlink_send_message((mavlink_channel_t)i, MSG_STATUSTEXT, 0);
+            gcs[i].send_message(MSG_STATUSTEXT);
         }
     }
 }
@@ -3335,8 +2727,6 @@ struct PACKED log_Performance {
     uint32_t loop_time;
     uint16_t main_loop_count;
     uint32_t g_dt_max;
-    uint8_t  renorm_count;
-    uint8_t  renorm_blowup;
     int16_t  gyro_drift_x;
     int16_t  gyro_drift_y;
     int16_t  gyro_drift_z;
@@ -3353,8 +2743,6 @@ static void Log_Write_Performance()
         loop_time       : millis()- perf_mon_timer,
         main_loop_count : mainLoop_count,
         g_dt_max        : G_Dt_max,
-        renorm_count    : ahrs.renorm_range_count,
-        renorm_blowup   : ahrs.renorm_blowup_count,
         gyro_drift_x    : (int16_t)(ahrs.get_gyro_drift().x * 1000),
         gyro_drift_y    : (int16_t)(ahrs.get_gyro_drift().y * 1000),
         gyro_drift_z    : (int16_t)(ahrs.get_gyro_drift().z * 1000),
@@ -3364,35 +2752,12 @@ static void Log_Write_Performance()
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
-struct PACKED log_Cmd {
-    LOG_PACKET_HEADER;
-    uint32_t time_ms;
-    uint8_t command_total;
-    uint8_t command_number;
-    uint8_t waypoint_id;
-    uint8_t waypoint_options;
-    uint8_t waypoint_param1;
-    int32_t waypoint_altitude;
-    int32_t waypoint_latitude;
-    int32_t waypoint_longitude;
-};
-
-// Write a command processing packet. Total length : 19 bytes
-static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
+// Write a mission command. Total length : 36 bytes
+static void Log_Write_Cmd(const AP_Mission::Mission_Command &cmd)
 {
-    struct log_Cmd pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_CMD_MSG),
-        time_ms             : millis(),
-        command_total       : g.command_total,
-        command_number      : num,
-        waypoint_id         : wp->id,
-        waypoint_options    : wp->options,
-        waypoint_param1     : wp->p1,
-        waypoint_altitude   : wp->alt,
-        waypoint_latitude   : wp->lat,
-        waypoint_longitude  : wp->lng
-    };
-    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+    mavlink_mission_item_t mav_cmd = {};
+    AP_Mission::mission_cmd_to_mavlink(cmd,mav_cmd);
+    DataFlash.Log_Write_MavCmd(mission.num_commands(),mav_cmd);
 }
 
 struct PACKED log_Camera {
@@ -3414,8 +2779,8 @@ static void Log_Write_Camera()
     struct log_Camera pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
         time_ms     : millis(),
-        gps_time    : g_gps->time_week_ms,
-        gps_week    : g_gps->time_week,
+        gps_time    : gps.time_week_ms(),
+        gps_week    : gps.time_week(),
         latitude    : current_loc.lat,
         longitude   : current_loc.lng,
         roll        : (int16_t)ahrs.roll_sensor,
@@ -3440,7 +2805,7 @@ static void Log_Write_Steering()
         LOG_PACKET_HEADER_INIT(LOG_STEERING_MSG),
         time_ms        : hal.scheduler->millis(),
         demanded_accel : lateral_acceleration,
-        achieved_accel : g_gps->ground_speed_cm * 0.01f * ins.get_gyro().z,
+        achieved_accel : gps.ground_speed() * ins.get_gyro().z,
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -3449,7 +2814,7 @@ struct PACKED log_Startup {
     LOG_PACKET_HEADER;
     uint32_t time_ms;
     uint8_t startup_type;
-    uint8_t command_total;
+    uint16_t command_total;
 };
 
 static void Log_Write_Startup(uint8_t type)
@@ -3458,15 +2823,16 @@ static void Log_Write_Startup(uint8_t type)
         LOG_PACKET_HEADER_INIT(LOG_STARTUP_MSG),
         time_ms         : millis(),
         startup_type    : type,
-        command_total   : g.command_total
+        command_total   : mission.num_commands()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 
     // write all commands to the dataflash as well
-    struct Location cmd;
-    for (uint8_t i = 0; i <= g.command_total; i++) {
-        cmd = get_cmd_with_index(i);
-        Log_Write_Cmd(i, &cmd);
+    AP_Mission::Mission_Command cmd;
+    for (uint16_t i = 0; i < mission.num_commands(); i++) {
+        if(mission.read_cmd_from_storage(i,cmd)) {
+            Log_Write_Cmd(cmd);
+        }
     }
 }
 
@@ -3541,6 +2907,10 @@ static void Log_Write_Attitude()
         yaw     : (uint16_t)ahrs.yaw_sensor
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
+#if AP_AHRS_NAVEKF_AVAILABLE
+    DataFlash.Log_Write_EKF(ahrs);
+    DataFlash.Log_Write_AHRS2(ahrs);
+#endif
 }
 
 struct PACKED log_Mode {
@@ -3562,6 +2932,29 @@ static void Log_Write_Mode()
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
+struct PACKED log_SonarDepth {
+    LOG_PACKET_HEADER;
+    uint32_t time_ms;
+    uint32_t gps_time;
+    uint16_t gps_week;
+    float sonar_depth;
+    float sonar_temp;
+};
+
+// Write a sonar packet
+static void Log_Write_SonarDepth()
+{
+
+    struct log_SonarDepth pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_SONARDEPTH_MSG),
+        time_ms         : millis(),
+        gps_time        : gps.time_week_ms(),
+        gps_week        : gps.time_week(),
+        sonar_depth     : Depth,
+        sonar_temp      : Temp
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
 
 struct PACKED log_Sonar {
     LOG_PACKET_HEADER;
@@ -3616,10 +3009,13 @@ static void Log_Write_Current()
         throttle_in             : channel_throttle->control_in,
         battery_voltage         : (int16_t)(battery.voltage() * 100.0),
         current_amps            : (int16_t)(battery.current_amps() * 100.0),
-        board_voltage           : board_voltage(),
+        board_voltage           : (uint16_t)(hal.analogin->board_voltage()*1000),
         current_total           : battery.current_total_mah()
     };
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
+
+    // also write power status
+    DataFlash.Log_Write_Power();
 }
 
 struct PACKED log_Compass {
@@ -3686,18 +3082,21 @@ static void Log_Write_RC(void)
     DataFlash.Log_Write_RCOUT();
 }
 
+static void Log_Write_Baro(void)
+{
+    DataFlash.Log_Write_Baro(barometer);
+}
+
 static const struct LogStructure log_structure[] PROGMEM = {
     LOG_COMMON_STRUCTURES,
     { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
       "ATT", "IccC",        "TimeMS,Roll,Pitch,Yaw" },
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
-      "PM",  "IIHIBBhhhBH", "TimeMS,LTime,MLC,gDt,RNCnt,RNBl,GDx,GDy,GDz,I2CErr,INSErr" },
-    { LOG_CMD_MSG, sizeof(log_Cmd),                 
-      "CMD", "IBBBBBeLL",   "TimeMS,CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
+      "PM",  "IIHIhhhBH", "TimeMS,LTime,MLC,gDt,GDx,GDy,GDz,I2CErr,INSErr" },
     { LOG_CAMERA_MSG, sizeof(log_Camera),                 
       "CAM", "IIHLLeccC",   "TimeMS,GPSTime,GPSWeek,Lat,Lng,Alt,Roll,Pitch,Yaw" },
     { LOG_STARTUP_MSG, sizeof(log_Startup),         
-      "STRT", "IBB",        "TimeMS,SType,CTot" },
+      "STRT", "IBH",        "TimeMS,SType,CTot" },
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     
       "CTUN", "Ihcchf",     "TimeMS,Steer,Roll,Pitch,ThrOut,AccY" },
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
@@ -3754,13 +3153,14 @@ static void start_logging()
 
 // dummy functions
 static void Log_Write_Startup(uint8_t type) {}
-static void Log_Write_Cmd(uint8_t num, const struct Location *wp) {}
 static void Log_Write_Current() {}
 static void Log_Write_Nav_Tuning() {}
 static void Log_Write_Performance() {}
+static void Log_Write_Cmd(const AP_Mission::Mission_Command &cmd) {}
 static int8_t process_logs(uint8_t argc, const Menu::arg *argv) { return 0; }
 static void Log_Write_Control_Tuning() {}
 static void Log_Write_Sonar() {}
+static void Log_Write_SonarDepth() {}
 static void Log_Write_Mode() {}
 static void Log_Write_Attitude() {}
 static void Log_Write_Compass() {}
@@ -3773,7 +3173,7 @@ static void Log_Write_RC(void) {}
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /*
-  ArduPlane parameter definitions
+  APMRover2 parameter definitions
 */
 
 #define GSCALAR(v, name, def) { g.v.vtype, name, Parameters::k_param_ ## v, &g.v, {def_value:def} }
@@ -3810,7 +3210,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: RSSI_PIN
     // @DisplayName: Receiver RSSI sensing pin
     // @Description: This selects an analog pin for the receiver RSSI voltage. It assumes the voltage is 5V for max rssi, 0V for minimum
-    // @Values: -1:Disabled, 0:A0, 1:A1, 13:A13
+    // @Values: -1:Disabled, 0:APM2 A0, 1:APM2 A1, 2:APM2 A2, 13:APM2 A13, 103:Pixhawk SBUS
     // @User: Standard
     GSCALAR(rssi_pin,            "RSSI_PIN",         -1),
 
@@ -3830,25 +3230,25 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: SERIAL0_BAUD
     // @DisplayName: USB Console Baud Rate
-    // @Description: The baud rate used on the USB console
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
+    // @Description: The baud rate used on the USB console. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
     // @User: Standard
-	GSCALAR(serial0_baud,           "SERIAL0_BAUD",     115),
+    GSCALAR(serial0_baud,           "SERIAL0_BAUD",   SERIAL0_BAUD/1000),
 
     // @Param: SERIAL1_BAUD
     // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the first telemetry port
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
+    // @Description: The baud rate used on the first telemetry port. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
     // @User: Standard
-	GSCALAR(serial1_baud,           "SERIAL1_BAUD",     57),
+    GSCALAR(serial1_baud,           "SERIAL1_BAUD",   SERIAL1_BAUD/1000),
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     // @Param: SERIAL2_BAUD
     // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the second telemetry port (where available)
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
+    // @Description: The baud rate used on the second telemetry port. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
     // @User: Standard
-	GSCALAR(serial2_baud,           "SERIAL2_BAUD",     57),
+    GSCALAR(serial2_baud,           "SERIAL2_BAUD",   SERIAL2_BAUD/1000),
 #endif
 
     // @Param: TELEM_DELAY
@@ -3916,6 +3316,33 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 0.1
     // @User: Standard
 	GSCALAR(speed_turn_dist,    "SPEED_TURN_DIST",  2.0f),
+
+    // @Param: BRAKING_PERCENT
+    // @DisplayName: Percentage braking to apply
+    // @Description: The maximum reverse throttle braking percentage to apply when cornering
+    // @Units: percent
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(braking_percent,    "BRAKING_PERCENT",  0),
+
+    // @Param: BRAKING_SPEEDERR
+    // @DisplayName: Speed error at which to apply braking
+    // @Description: The amount of overspeed error at which to start applying braking
+    // @Units: m/s
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(braking_speederr,   "BRAKING_SPEEDERR",  3),
+
+    // @Param: PIVOT_TURN_ANGLE
+    // @DisplayName: Pivot turn angle
+    // @Description: Navigation angle threshold in degrees to switch to pivot steering when SKID_STEER_OUT is 1. This allows you to setup a skid steering rover to turn on the spot in auto mode when the angle it needs to turn it greater than this angle. An angle of zero means to disable pivot turning. Note that you will probably also want to set a low value for WP_RADIUS to get neat turns.
+    // @Units: degrees
+    // @Range: 0 360
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(pivot_turn_angle,   "PIVOT_TURN_ANGLE",  30),
 
     // @Param: CH7_OPTION
     // @DisplayName: Channel 7 option
@@ -4153,9 +3580,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(mode6,           "MODE6",         MODE_6),
 
-	GSCALAR(command_total,          "CMD_TOTAL",        0),
-	GSCALAR(command_index,          "CMD_INDEX",        0),
-
     // @Param: WP_RADIUS
     // @DisplayName: Waypoint radius
     // @Description: The distance in meters from a waypoint when we consider the waypoint has been reached. This determines when the rover will turn along the next waypoint path.
@@ -4189,6 +3613,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: SCHED_
     // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
     GOBJECT(scheduler, "SCHED_", AP_Scheduler),
+
+    // barometer ground calibration. The GND_ prefix is chosen for
+    // compatibility with previous releases of ArduPlane
+    // @Group: GND_
+    // @Path: ../libraries/AP_Baro/AP_Baro.cpp
+    GOBJECT(barometer, "GND_", AP_Baro),
 
     // @Group: RELAY_
     // @Path: ../libraries/AP_Relay/AP_Relay.cpp
@@ -4258,6 +3688,21 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_BoardConfig/AP_BoardConfig.cpp
     GOBJECT(BoardConfig,            "BRD_",       AP_BoardConfig),
 
+    // GPS driver
+    // @Group: GPS_
+    // @Path: ../libraries/AP_GPS/AP_GPS.cpp
+    GOBJECT(gps, "GPS_", AP_GPS),
+
+#if AP_AHRS_NAVEKF_AVAILABLE
+    // @Group: EKF_
+    // @Path: ../libraries/AP_NavEKF/AP_NavEKF.cpp
+    GOBJECTN(ahrs.get_NavEKF(), NavEKF, "EKF_", NavEKF),
+#endif
+
+    // @Group: MIS_
+    // @Path: ../libraries/AP_Mission/AP_Mission.cpp
+    GOBJECT(mission, "MIS_",       AP_Mission),
+
 	AP_VAREND
 };
 
@@ -4285,6 +3730,11 @@ const AP_Param::ConversionInfo conversion_table[] PROGMEM = {
 
 static void load_parameters(void)
 {
+    if (!AP_Param::check_var_info()) {
+        cliSerial->printf_P(PSTR("Bad var table\n"));        
+        hal.scheduler->panic(PSTR("Bad var table"));
+    }
+
 	if (!g.format_version.load() ||
 	     g.format_version != Parameters::k_format_version) {
 
@@ -4310,6 +3760,87 @@ static void load_parameters(void)
     // set a more reasonable default NAVL1_PERIOD for rovers
     L1_controller.set_default_period(8);
 }
+#line 1 "./APMRover2/SonarDepth.pde"
+
+//#include <string.h>
+//#include <stdio.h>
+
+void read_Sonar() {
+
+ while (hal.uartC->available()) {
+  if (read_tokens(hal.uartC->read(), &Sonar_tokens)) {
+   if (!strcmp(Sonar_tokens.token[1],"$SDDPT")) Depth = atof(Sonar_tokens.token[2]);
+   if (!strcmp(Sonar_tokens.token[1],"$SDMTW")) Temp = atof(Sonar_tokens.token[2]);
+   
+   sonar_serial_timer = hal.scheduler->millis(); //timer to detect bad serial or no serial connected
+   
+
+  }
+  
+  if ( hal.scheduler->millis()-sonar_serial_timer > 4000 ) { // check if serial stream is not present for 4 sec
+    
+    Depth = 999; // debug value that means no serial or bad serial for more than 4 sec
+    Temp = 999;  // debug value that means no serial or bad serial for more than 4 sec
+    
+    }
+ }
+/*
+hal.console->println();
+hal.console->printf("--------------------------------------");
+hal.console->printf("Sonar Depth : %f Temp: %f",Depth,Temp);        //Debug Echo Data
+hal.console->println("--------------------------------------");
+*/
+}
+
+int read_tokens (char character, struct tokens *buffer) {
+ char *p, *token;
+ uint8_t i;
+ if (character == '\r') {
+  buffer->array[buffer->char_index] = 0;
+  buffer->char_index = 0;
+  if (!checksum(buffer->array)) return 0;
+  p = buffer->array;
+  i = 0;
+  while ((token = strtok_r(p, ",", &p))){
+      buffer->token[++i] = token;
+  }
+  return i;
+ }
+ if (character == '\n') {
+  buffer->char_index = 0;
+  return 0;
+ }
+ buffer->array[buffer->char_index] = character;
+ if (buffer->char_index < DIM2) (buffer->char_index)++;
+ return 0;
+}
+
+int checksum(char *str) {
+ int j, len, xor1, xor2;
+ len = strlen(str);
+ if (str[0] != '$') return 0;
+ if (str[len-3] != '*') return 0;
+ xor1 = 16*hex2int(str[len-2]) + hex2int(str[len-1]);
+ xor2 = 0;
+ for (j=1;j<len-3;j++) xor2 = xor2 ^ str[j];
+ if (xor1 != xor2) return 0;
+ return 1;
+}
+
+int hex2int(char a) {
+ if (a>='A' && a<='F') return 10+(a-'A');
+ if (a>='a' && a<='f') return 10+(a-'a');
+ if (a>='0' && a<='9') return a-'0';
+ return 0;
+}
+
+float fixDM(float DM) {
+ int D; float F;
+ F = DM /100;
+ D = int (F);
+ return D + (F - D)/0.6;
+}
+
 #line 1 "./APMRover2/Steering.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
@@ -4377,6 +3908,20 @@ static bool auto_check_trigger(void)
     return false;   
 }
 
+/*
+  work out if we are going to use pivot steering
+ */
+static bool use_pivot_steering(void)
+{
+    if (control_mode >= AUTO && g.skid_steer_out && g.pivot_turn_angle != 0) {
+        int16_t bearing_error = wrap_180_cd(nav_controller->target_bearing_cd() - ahrs.yaw_sensor) / 100;
+        if (abs(bearing_error) > g.pivot_turn_angle) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 /*
   calculate the throtte for auto-throttle modes
@@ -4397,11 +3942,18 @@ static void calc_throttle(float target_speed)
     */
     float steer_rate = fabsf(lateral_acceleration / (g.turn_max_g*GRAVITY_MSS));
     steer_rate = constrain_float(steer_rate, 0.0, 1.0);
-    float reduction = 1.0 - steer_rate*(100 - g.speed_turn_gain)*0.01;
+
+    // use g.speed_turn_gain for a 90 degree turn, and in proportion
+    // for other turn angles
+    int32_t turn_angle = wrap_180_cd(next_navigation_leg_cd - ahrs.yaw_sensor);
+    float speed_turn_ratio = constrain_float(fabsf(turn_angle / 9000.0f), 0, 1);
+    float speed_turn_reduction = (100 - g.speed_turn_gain) * speed_turn_ratio * 0.01f;
+
+    float reduction = 1.0 - steer_rate*speed_turn_reduction;
     
     if (control_mode >= AUTO && wp_distance <= g.speed_turn_dist) {
         // in auto-modes we reduce speed when approaching waypoints
-        float reduction2 = 1.0 - (100-g.speed_turn_gain)*0.01*((g.speed_turn_dist - wp_distance)/g.speed_turn_dist);
+        float reduction2 = 1.0 - speed_turn_reduction;
         if (reduction2 < reduction) {
             reduction = reduction2;
         }
@@ -4422,6 +3974,27 @@ static void calc_throttle(float target_speed)
         channel_throttle->servo_out = constrain_int16(-throttle, -g.throttle_max, -g.throttle_min);
     } else {
         channel_throttle->servo_out = constrain_int16(throttle, g.throttle_min, g.throttle_max);
+    }
+
+    if (!in_reverse && g.braking_percent != 0 && groundspeed_error < -g.braking_speederr) {
+        // the user has asked to use reverse throttle to brake. Apply
+        // it in proportion to the ground speed error, but only when
+        // our ground speed error is more than BRAKING_SPEEDERR.
+        //
+        // We use a linear gain, with 0 gain at a ground speed error
+        // of braking_speederr, and 100% gain when groundspeed_error
+        // is 2*braking_speederr
+        float brake_gain = constrain_float(((-groundspeed_error)-g.braking_speederr)/g.braking_speederr, 0, 1);
+        int16_t braking_throttle = g.throttle_max * (g.braking_percent * 0.01f) * brake_gain;
+        channel_throttle->servo_out = constrain_int16(-braking_throttle, -g.throttle_max, -g.throttle_min);
+        
+        // temporarily set us in reverse to allow the PWM setting to
+        // go negative
+        set_reverse(true);
+    }
+    
+    if (use_pivot_steering()) {
+        channel_throttle->servo_out = 0;
     }
 }
 
@@ -4450,6 +4023,14 @@ static void calc_lateral_acceleration()
     // negative error = left turn
 	// positive error = right turn
     lateral_acceleration = nav_controller->lateral_acceleration();
+    if (use_pivot_steering()) {
+        int16_t bearing_error = wrap_180_cd(nav_controller->target_bearing_cd() - ahrs.yaw_sensor) / 100;
+        if (bearing_error > 0) {
+            lateral_acceleration = g.turn_max_g*GRAVITY_MSS;
+        } else {
+            lateral_acceleration = -g.turn_max_g*GRAVITY_MSS;
+        }
+    }
 }
 
 /*
@@ -4457,13 +4038,6 @@ static void calc_lateral_acceleration()
  */
 static void calc_nav_steer()
 {
-    float speed = g_gps->ground_speed_cm * 0.01f;
-
-    if (speed < 1.0f) {
-        // gps speed isn't very accurate at low speed
-        speed = 1.0f;
-    }
-
     // add in obstacle avoidance
     lateral_acceleration += (obstacle.turn_angle/45.0f) * g.turn_max_g;
 
@@ -4479,6 +4053,9 @@ static void calc_nav_steer()
 static void set_servos(void)
 {
     int16_t last_throttle = channel_throttle->radio_out;
+
+    // support a separate steering channel
+    RC_Channel_aux::set_servo_out(RC_Channel_aux::k_steering, channel_steer->pwm_to_angle_dz(0));
 
 	if ((control_mode == MANUAL || control_mode == LEARNING) &&
         (g.skid_steer_out == g.skid_steer_in)) {
@@ -4538,25 +4115,7 @@ static void set_servos(void)
 	// ----------------------------------------
     channel_steer->output(); 
     channel_throttle->output();
-
-	// Route configurable aux. functions to their respective servos
-	g.rc_2.output_ch(CH_2);
-	g.rc_4.output_ch(CH_4);
-	g.rc_5.output_ch(CH_5);
-	g.rc_6.output_ch(CH_6);
-	g.rc_7.output_ch(CH_7);
-	g.rc_8.output_ch(CH_8);
- #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    g.rc_9.output_ch(CH_9);
- #endif
- #if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    g.rc_10.output_ch(CH_10);
-    g.rc_11.output_ch(CH_11);
- #endif
- #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    g.rc_12.output_ch(CH_12);
- #endif
-
+    RC_Channel_aux::output_ch_all();
 #endif
 }
 
@@ -4565,106 +4124,18 @@ static void set_servos(void)
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /* Functions in this file:
-	void init_commands()
-	struct Location get_cmd_with_index(int i)
-	void set_cmd_with_index(struct Location temp, int i)
-	void increment_cmd_index()
-	void decrement_cmd_index()
-	long read_alt_to_hold()
-	void set_next_WP(struct Location *wp)
+	void set_next_WP(const AP_Mission::Mission_Command& cmd)
 	void set_guided_WP(void)
 	void init_home()
 	void restart_nav()
 ************************************************************ 
 */
 
-static void init_commands()
-{
-    g.command_index.set_and_save(0);
-	nav_command_ID	= NO_COMMAND;
-	non_nav_command_ID	= NO_COMMAND;
-	next_nav_command.id 	= CMD_BLANK;
-}
-
-// Getters
-// -------
-static struct Location get_cmd_with_index(int i)
-{
-	struct Location temp;
-	uint16_t mem;
-
-	// Find out proper location in memory by using the start_byte position + the index
-	// --------------------------------------------------------------------------------
-	if (i > g.command_total) {
-		memset(&temp, 0, sizeof(temp));
-		temp.id = CMD_BLANK;
-	}else{
-		// read WP position
-		mem = (WP_START_BYTE) + (i * WP_SIZE);
-		temp.id = hal.storage->read_byte(mem);
-
-		mem++;
-		temp.options = hal.storage->read_byte(mem);
-
-		mem++;
-		temp.p1 = hal.storage->read_byte(mem);
-
-		mem++;
-		temp.alt = (long)hal.storage->read_dword(mem);
-
-		mem += 4;
-		temp.lat = (long)hal.storage->read_dword(mem);
-
-		mem += 4;
-		temp.lng = (long)hal.storage->read_dword(mem);
-	}
-
-	// Add on home altitude if we are a nav command (or other command with altitude) and stored alt is relative
-	if((temp.id < MAV_CMD_NAV_LAST || temp.id == MAV_CMD_CONDITION_CHANGE_ALT) && temp.options & MASK_OPTIONS_RELATIVE_ALT){
-		temp.alt += home.alt;
-	}
-
-	return temp;
-}
-
-// Setters
-// -------
-static void set_cmd_with_index(struct Location temp, int i)
-{
-	i = constrain_int16(i, 0, g.command_total.get());
-	uint16_t mem = WP_START_BYTE + (i * WP_SIZE);
-
-	// Set altitude options bitmask
-	// XXX What is this trying to do?
-	if ((temp.options & MASK_OPTIONS_RELATIVE_ALT) && i != 0){
-		temp.options = MASK_OPTIONS_RELATIVE_ALT;
-	} else {
-		temp.options = 0;
-	}
-
-	hal.storage->write_byte(mem, temp.id);
-
-    mem++;
-	hal.storage->write_byte(mem, temp.options);
-
-	mem++;
-	hal.storage->write_byte(mem, temp.p1);
-
-	mem++;
-	hal.storage->write_dword(mem, temp.alt);
-
-	mem += 4;
-	hal.storage->write_dword(mem, temp.lat);
-
-	mem += 4;
-	hal.storage->write_dword(mem, temp.lng);
-}
 
 /*
-This function stores waypoint commands
-It looks to see what the next command type is and finds the last command.
-*/
-static void set_next_WP(const struct Location *wp)
+ *  set_next_WP - sets the target location the vehicle should fly to
+ */
+static void set_next_WP(const struct Location& loc)
 {
 	// copy the current WP into the OldWP slot
 	// ---------------------------------------
@@ -4672,7 +4143,7 @@ static void set_next_WP(const struct Location *wp)
 
 	// Load the next_WP slot
 	// ---------------------
-	next_WP = *wp;
+	next_WP = loc;
 
     // are we already past the waypoint? This happens when we jump
     // waypoints, and it can cause us to skip a waypoint. If we are
@@ -4715,17 +4186,11 @@ void init_home()
 
 	gcs_send_text_P(SEVERITY_LOW, PSTR("init home"));
 
-	home.id 	= MAV_CMD_NAV_WAYPOINT;
-
-	home.lng 	= g_gps->longitude;				// Lon * 10**7
-	home.lat 	= g_gps->latitude;				// Lat * 10**7
-    gps_base_alt    = max(g_gps->altitude_cm, 0);
-    home.alt        = g_gps->altitude_cm;
+    ahrs.set_home(gps.location());
 	home_is_set = true;
 
-	// Save Home to EEPROM - Command 0
-	// -------------------
-	set_cmd_with_index(home, 0);
+	// Save Home to EEPROM
+	mission.write_home_to_storage();
 
 	// Save prev loc
 	// -------------
@@ -4740,111 +4205,99 @@ static void restart_nav()
 {  
     g.pidSpeedThrottle.reset_I();
     prev_WP = current_loc;
-    nav_command_ID = NO_COMMAND;
-    nav_command_index = 0;
-    process_next_command();
+    mission.start_or_resume();
 }
 #line 1 "./APMRover2/commands_logic.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
+// forward declarations to make compiler happy
+static void do_nav_wp(const AP_Mission::Mission_Command& cmd);
+static void do_wait_delay(const AP_Mission::Mission_Command& cmd);
+static void do_within_distance(const AP_Mission::Mission_Command& cmd);
+static void do_change_speed(const AP_Mission::Mission_Command& cmd);
+static void do_set_home(const AP_Mission::Mission_Command& cmd);
+static bool verify_nav_wp(const AP_Mission::Mission_Command& cmd);
+
 /********************************************************************************/
 // Command Event Handlers
 /********************************************************************************/
-static void
-handle_process_nav_cmd()
+static bool
+start_command(const AP_Mission::Mission_Command& cmd)
 {
-    gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nav_command.id);
+    // log when new commands start
+    if (should_log(MASK_LOG_CMD)) {
+        Log_Write_Cmd(cmd);
+    }
 
-	switch(next_nav_command.id){
-		case MAV_CMD_NAV_TAKEOFF:
-			do_takeoff();
-			break;
+    // exit immediately if not in AUTO mode
+    if (control_mode != AUTO) {
+        return false;
+    }
 
+    gcs_send_text_fmt(PSTR("Executing command ID #%i"),cmd.id);
+
+    // remember the course of our next navigation leg
+    next_navigation_leg_cd = mission.get_next_ground_course_cd(0);
+
+	switch(cmd.id){
 		case MAV_CMD_NAV_WAYPOINT:	// Navigate to Waypoint
-			do_nav_wp();
+			do_nav_wp(cmd);
 			break;
 
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 			do_RTL();
 			break;
 
-		default:
-			break;
-	}
-}
-
-static void
-handle_process_condition_command()
-{
-	gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nonnav_command.id);
-	switch(next_nonnav_command.id){
-
+        // Conditional commands
 		case MAV_CMD_CONDITION_DELAY:
-			do_wait_delay();
+			do_wait_delay(cmd);
 			break;
 
 		case MAV_CMD_CONDITION_DISTANCE:
-			do_within_distance();
+			do_within_distance(cmd);
 			break;
 
-		case MAV_CMD_CONDITION_CHANGE_ALT:
-			do_change_alt();
-			break;
-
-		default:
-			break;
-	}
-}
-
-static void handle_process_do_command()
-{
-	gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nonnav_command.id);
-	switch(next_nonnav_command.id){
-
-		case MAV_CMD_DO_JUMP:
-			do_jump();
-			break;
-
+        // Do commands
 		case MAV_CMD_DO_CHANGE_SPEED:
-			do_change_speed();
+			do_change_speed(cmd);
 			break;
 
 		case MAV_CMD_DO_SET_HOME:
-			do_set_home();
+			do_set_home(cmd);
 			break;
 
     	case MAV_CMD_DO_SET_SERVO:
-            ServoRelayEvents.do_set_servo(next_nonnav_command.p1, next_nonnav_command.alt);
+            ServoRelayEvents.do_set_servo(cmd.content.servo.channel, cmd.content.servo.pwm);
             break;
 
     	case MAV_CMD_DO_SET_RELAY:
-            ServoRelayEvents.do_set_relay(next_nonnav_command.p1, next_nonnav_command.alt);
+            ServoRelayEvents.do_set_relay(cmd.content.relay.num, cmd.content.relay.state);
             break;
 
     	case MAV_CMD_DO_REPEAT_SERVO:
-            ServoRelayEvents.do_repeat_servo(next_nonnav_command.p1, next_nonnav_command.alt,
-                                             next_nonnav_command.lat, next_nonnav_command.lng);
+            ServoRelayEvents.do_repeat_servo(cmd.content.repeat_servo.channel, cmd.content.repeat_servo.pwm,
+                                             cmd.content.repeat_servo.repeat_count, cmd.content.repeat_servo.cycle_time * 1000.0f);
             break;
 
     	case MAV_CMD_DO_REPEAT_RELAY:
-            ServoRelayEvents.do_repeat_relay(next_nonnav_command.p1, next_nonnav_command.alt,
-                                             next_nonnav_command.lat);
+            ServoRelayEvents.do_repeat_relay(cmd.content.repeat_relay.num, cmd.content.repeat_relay.repeat_count,
+                                             cmd.content.repeat_relay.cycle_time * 1000.0f);
             break;
 
 #if CAMERA == ENABLED
-    case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
-        break;
+        case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
+            break;
 
-    case MAV_CMD_DO_DIGICAM_CONFIGURE:                  // Mission command to configure an on-board camera controller system. |Modes: P, TV, AV, M, Etc| Shutter speed: Divisor number for one second| Aperture: F stop number| ISO number e.g. 80, 100, 200, Etc| Exposure type enumerator| Command Identity| Main engine cut-off time before camera trigger in seconds/10 (0 means no cut-off)|
-        break;
+        case MAV_CMD_DO_DIGICAM_CONFIGURE:                  // Mission command to configure an on-board camera controller system. |Modes: P, TV, AV, M, Etc| Shutter speed: Divisor number for one second| Aperture: F stop number| ISO number e.g. 80, 100, 200, Etc| Exposure type enumerator| Command Identity| Main engine cut-off time before camera trigger in seconds/10 (0 means no cut-off)|
+            break;
 
-    case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
-        do_take_picture();
-        break;
+        case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
+            do_take_picture();
+            break;
 
-    case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-        camera.set_trigger_distance(next_nonnav_command.alt);
-        break;
+        case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+            camera.set_trigger_distance(cmd.content.cam_trigg_dist.meters);
+            break;
 #endif
 
 #if MOUNT == ENABLED
@@ -4856,7 +4309,7 @@ static void handle_process_do_command()
 		case MAV_CMD_DO_SET_ROI:
 #if 0
             // not supported yet
-			camera_mount.set_roi_cmd();
+			camera_mount.set_roi_cmd(&cmd.content.location);
 #endif
 			break;
 
@@ -4868,64 +4321,59 @@ static void handle_process_do_command()
 			camera_mount.control_cmd();
 			break;
 #endif
+
+		default:
+		    // return false for unhandled commands
+		    return false;
 	}
+
+	// if we got this far we must have been successful
+	return true;
 }
 
-static void handle_no_commands()
-{      
-	gcs_send_text_fmt(PSTR("No commands - setting HOLD"));
-    set_mode(HOLD);
+// exit_mission - callback function called from ap-mission when the mission has completed
+//      we double check that the flight mode is AUTO to avoid the possibility of ap-mission triggering actions while we're not in AUTO mode
+static void exit_mission()
+{
+    if (control_mode == AUTO) {
+        gcs_send_text_fmt(PSTR("No commands - setting HOLD"));
+        set_mode(HOLD);
+    }
 }
 
 /********************************************************************************/
 // Verify command Handlers
+//      Returns true if command complete
 /********************************************************************************/
 
-static bool verify_nav_command()	// Returns true if command complete
+static bool verify_command(const AP_Mission::Mission_Command& cmd)
 {
-	switch(nav_command_ID) {
+    // exit immediately if not in AUTO mode
+    // we return true or we will continue to be called by ap-mission
+    if (control_mode != AUTO) {
+        return true;
+    }
 
-		case MAV_CMD_NAV_TAKEOFF:
-			return verify_takeoff();
+	switch(cmd.id) {
 
 		case MAV_CMD_NAV_WAYPOINT:
-			return verify_nav_wp();
+			return verify_nav_wp(cmd);
 
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 			return verify_RTL();
 
-		default:
-			gcs_send_text_P(SEVERITY_HIGH,PSTR("verify_nav: Invalid or no current Nav cmd"));
-			return false;
-	}
-}
+        case MAV_CMD_CONDITION_DELAY:
+            return verify_wait_delay();
+            break;
 
-static bool verify_condition_command()		// Returns true if command complete
-{
-	switch(non_nav_command_ID) {
-    case NO_COMMAND:
-        break;
+        case MAV_CMD_CONDITION_DISTANCE:
+            return verify_within_distance();
+            break;
 
-    case MAV_CMD_CONDITION_DELAY:
-        return verify_wait_delay();
-        break;
-
-    case MAV_CMD_CONDITION_DISTANCE:
-        return verify_within_distance();
-        break;
-
-    case MAV_CMD_CONDITION_CHANGE_ALT:
-        return verify_change_alt();
-        break;
-        
-    case WAIT_COMMAND:
-        return 0;
-        break;
-        
-
-    default:
-        gcs_send_text_P(SEVERITY_HIGH,PSTR("verify_conditon: Invalid or no current Condition cmd"));
-        break;
+        default:
+            gcs_send_text_P(SEVERITY_HIGH,PSTR("verify_conditon: Unsupported command"));
+            return true;
+            break;
 	}
     return false;
 }
@@ -4936,33 +4384,24 @@ static bool verify_condition_command()		// Returns true if command complete
 
 static void do_RTL(void)
 {
-    prev_WP 		= current_loc;
+    prev_WP = current_loc;
 	control_mode 	= RTL;
-	next_WP 		= home;
+	next_WP = home;
 }
 
-static void do_takeoff()
+static void do_nav_wp(const AP_Mission::Mission_Command& cmd)
 {
-	set_next_WP(&next_nav_command);
-}
-
-static void do_nav_wp()
-{
-	set_next_WP(&next_nav_command);
+	set_next_WP(cmd.content.location);
 }
 
 /********************************************************************************/
 //  Verify Nav (Must) commands
 /********************************************************************************/
-static bool verify_takeoff()
-{  return true;
-}
-
-static bool verify_nav_wp()
+static bool verify_nav_wp(const AP_Mission::Mission_Command& cmd)
 {
     if ((wp_distance > 0) && (wp_distance <= g.waypoint_radius)) {
         gcs_send_text_fmt(PSTR("Reached Waypoint #%i dist %um"),
-                          (unsigned)nav_command_index,
+                          (unsigned)cmd.index,
                           (unsigned)get_distance(current_loc, next_WP));
         return true;
     }
@@ -4970,7 +4409,7 @@ static bool verify_nav_wp()
     // have we gone past the waypoint?
     if (location_passed_point(current_loc, prev_WP, next_WP)) {
         gcs_send_text_fmt(PSTR("Passed Waypoint #%i dist %um"),
-                          (unsigned)nav_command_index,
+                          (unsigned)cmd.index,
                           (unsigned)get_distance(current_loc, next_WP));
         return true;
     }
@@ -5000,23 +4439,15 @@ static bool verify_RTL()
 //  Condition (May) commands
 /********************************************************************************/
 
-static void do_wait_delay()
+static void do_wait_delay(const AP_Mission::Mission_Command& cmd)
 {
 	condition_start = millis();
-	condition_value  = next_nonnav_command.lat * 1000;	// convert to milliseconds
+	condition_value  = cmd.content.delay.seconds * 1000;    // convert seconds to milliseconds
 }
 
-static void do_change_alt()
+static void do_within_distance(const AP_Mission::Mission_Command& cmd)
 {
-	condition_rate		= abs((int)next_nonnav_command.lat);
-	condition_value 	= next_nonnav_command.alt;
-	if(condition_value < current_loc.alt) condition_rate = -condition_rate;
-	next_WP.alt 		= condition_value;								// For future nav calculations
-}
-
-static void do_within_distance()
-{
-	condition_value  = next_nonnav_command.lat;
+	condition_value  = cmd.content.distance.meters;
 }
 
 /********************************************************************************/
@@ -5027,15 +4458,6 @@ static bool verify_wait_delay()
 {
 	if ((uint32_t)(millis() - condition_start) > (uint32_t)condition_value){
 		condition_value 	= 0;
-		return true;
-	}
-	return false;
-}
-
-static bool verify_change_alt()
-{
-	if( (condition_rate>=0 && current_loc.alt >= condition_value) || (condition_rate<=0 && current_loc.alt <= condition_value)) {
-		condition_value = 0;
 		return true;
 	}
 	return false;
@@ -5054,63 +4476,30 @@ static bool verify_within_distance()
 //  Do (Now) commands
 /********************************************************************************/
 
-static void do_jump()
+static void do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
-	struct Location temp;
-	gcs_send_text_fmt(PSTR("In jump.  Jumps left: %i"),next_nonnav_command.lat);
-	if(next_nonnav_command.lat > 0) {
-
-		nav_command_ID		= NO_COMMAND;
-		next_nav_command.id = NO_COMMAND;
-		non_nav_command_ID 	= NO_COMMAND;
-		
-		temp 				= get_cmd_with_index(g.command_index);
-		temp.lat 			= next_nonnav_command.lat - 1;					// Decrement repeat counter
-
-		set_cmd_with_index(temp, g.command_index);
-	gcs_send_text_fmt(PSTR("setting command index: %i"),next_nonnav_command.p1 - 1);
-		g.command_index.set_and_save(next_nonnav_command.p1 - 1);
-		nav_command_index 	= next_nonnav_command.p1 - 1;
-		next_WP = prev_WP;		// Need to back "next_WP" up as it was set to the next waypoint following the jump
-		process_next_command();
-	} else if (next_nonnav_command.lat == -1) {								// A repeat count of -1 = repeat forever
-		nav_command_ID 	= NO_COMMAND;
-		non_nav_command_ID 	= NO_COMMAND;
-	gcs_send_text_fmt(PSTR("setting command index: %i"),next_nonnav_command.p1 - 1);
-	    g.command_index.set_and_save(next_nonnav_command.p1 - 1);
-		nav_command_index 	= next_nonnav_command.p1 - 1;
-		next_WP = prev_WP;		// Need to back "next_WP" up as it was set to the next waypoint following the jump
-		process_next_command();
-	}
-}
-
-static void do_change_speed()
-{
-	switch (next_nonnav_command.p1)
+	switch (cmd.p1)
 	{
 		case 0:
-			if (next_nonnav_command.alt > 0) {
-				g.speed_cruise.set(next_nonnav_command.alt);
-                gcs_send_text_fmt(PSTR("Cruise speed: %.1f"), g.speed_cruise.get());
+			if (cmd.content.speed.target_ms > 0) {
+				g.speed_cruise.set(cmd.content.speed.target_ms);
+                gcs_send_text_fmt(PSTR("Cruise speed: %.1f m/s"), g.speed_cruise.get());
             }
 			break;
 	}
 
-	if (next_nonnav_command.lat > 0) {
-		g.throttle_cruise.set(next_nonnav_command.lat);
+	if (cmd.content.speed.throttle_pct > 0 && cmd.content.speed.throttle_pct <= 100) {
+		g.throttle_cruise.set(cmd.content.speed.throttle_pct);
         gcs_send_text_fmt(PSTR("Cruise throttle: %.1f"), g.throttle_cruise.get());
     }
 }
 
-static void do_set_home()
+static void do_set_home(const AP_Mission::Mission_Command& cmd)
 {
-	if(next_nonnav_command.p1 == 1 && have_position) {
+	if(cmd.p1 == 1 && have_position) {
 		init_home();
 	} else {
-		home.id 	= MAV_CMD_NAV_WAYPOINT;
-		home.lng 	= next_nonnav_command.lng;				// Lon * 10**7
-		home.lat 	= next_nonnav_command.lat;				// Lat * 10**7
-		home.alt 	= max(next_nonnav_command.alt, 0);
+        ahrs.set_home(cmd.content.location);
 		home_is_set = true;
 	}
 }
@@ -5128,144 +4517,16 @@ static void do_take_picture()
 #line 1 "./APMRover2/commands_process.pde"
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// For changing active command mid-mission
-//----------------------------------------
-static void change_command(uint8_t cmd_index)
-{
-	struct Location temp = get_cmd_with_index(cmd_index);
-
-	if (temp.id > MAV_CMD_NAV_LAST ){
-		gcs_send_text_P(SEVERITY_LOW,PSTR("Bad Request - cannot change to non-Nav cmd"));
-	} else {
-		gcs_send_text_fmt(PSTR("Received Request - jump to command #%i"),cmd_index);
-
-		nav_command_ID		= NO_COMMAND;
-		next_nav_command.id = NO_COMMAND;
-		non_nav_command_ID 	= NO_COMMAND;
-
-		nav_command_index 	= cmd_index - 1;
-		g.command_index.set_and_save(cmd_index);
-		update_commands();
-	}
-}
-
-// called by 10 Hz loop
+// called by update navigation at 10Hz
 // --------------------
 static void update_commands(void)
 {
-	if(control_mode == AUTO){
-		if(home_is_set == true && g.command_total > 1){
-		process_next_command();
-		}
-	}									// Other (eg GCS_Auto) modes may be implemented here
+    if(control_mode == AUTO) {
+        if(home_is_set == true && mission.num_commands() > 1) {
+            mission.update();
+        }
+    }
 }
-
-static void verify_commands(void)
-{
-	if(verify_nav_command()){
-		nav_command_ID = NO_COMMAND;
-	}
-
-	if(verify_condition_command()){
-		non_nav_command_ID = NO_COMMAND;
-	}
-}
-
-
-static void process_next_command()
-{
-	// This function makes sure that we always have a current navigation command
-	// and loads conditional or immediate commands if applicable
-
-	struct Location temp;
-	uint8_t old_index = 0;
-
-	// these are Navigation/Must commands
-	// ---------------------------------
-	if (nav_command_ID == NO_COMMAND){ // no current navigation command loaded
-		old_index = nav_command_index;
-		temp.id = MAV_CMD_NAV_LAST;
-		while(temp.id >= MAV_CMD_NAV_LAST && nav_command_index <= g.command_total) {
-			nav_command_index++;
-			temp = get_cmd_with_index(nav_command_index);
-		}
-
-		gcs_send_text_fmt(PSTR("Nav command index updated to #%i"),nav_command_index);
-
-		if(nav_command_index > g.command_total){
-            handle_no_commands();
-		} else {
-			next_nav_command = temp;
-			nav_command_ID = next_nav_command.id;
-			non_nav_command_index = NO_COMMAND;			// This will cause the next intervening non-nav command (if any) to be loaded
-			non_nav_command_ID = NO_COMMAND;
-
-			process_nav_cmd();
-		}
-	}
-
-	// these are Condition/May and Do/Now commands
-	// -------------------------------------------
-	if (non_nav_command_index == NO_COMMAND) {		// If the index is NO_COMMAND then we have just loaded a nav command
-		non_nav_command_index = old_index + 1;
-		//gcs_send_text_fmt(PSTR("Non-Nav command index #%i"),non_nav_command_index);
-	} else if (non_nav_command_ID == NO_COMMAND) {	// If the ID is NO_COMMAND then we have just completed a non-nav command
-		non_nav_command_index++;
-	}
-
-		//gcs_send_text_fmt(PSTR("Nav command index #%i"),nav_command_index);
-		//gcs_send_text_fmt(PSTR("Non-Nav command index #%i"),non_nav_command_index);
-		//gcs_send_text_fmt(PSTR("Non-Nav command ID #%i"),non_nav_command_ID);
-	if(nav_command_index <= (int)g.command_total && non_nav_command_ID == NO_COMMAND) {
-		temp = get_cmd_with_index(non_nav_command_index);
-		if(temp.id <= MAV_CMD_NAV_LAST) {		// The next command is a nav command.  No non-nav commands to do
-			g.command_index.set_and_save(nav_command_index);
-			non_nav_command_index = nav_command_index;
-			non_nav_command_ID = WAIT_COMMAND;
-			gcs_send_text_fmt(PSTR("Non-Nav command ID updated to #%i"),non_nav_command_ID);
-
-		} else {								// The next command is a non-nav command.  Prepare to execute it.
-			g.command_index.set_and_save(non_nav_command_index);
-			next_nonnav_command = temp;
-			non_nav_command_ID = next_nonnav_command.id;
-			gcs_send_text_fmt(PSTR("Non-Nav command ID updated to #%i"),non_nav_command_ID);
-
-			process_non_nav_command();
-		}
-
-	}
-}
-
-/**************************************************/
-//  These functions implement the commands.
-/**************************************************/
-static void process_nav_cmd()
-{
-	//gcs_send_text_P(SEVERITY_LOW,PSTR("New nav command loaded"));
-
-	// clear non-nav command ID and index
-	non_nav_command_index	= NO_COMMAND;		// Redundant - remove?
-	non_nav_command_ID		= NO_COMMAND;		// Redundant - remove?
-
-	handle_process_nav_cmd();
-
-}
-
-static void process_non_nav_command()
-{
-	//gcs_send_text_P(SEVERITY_LOW,PSTR("new non-nav command loaded"));
-
-	if(non_nav_command_ID < MAV_CMD_CONDITION_LAST) {
-		handle_process_condition_command();
-	} else {
-		handle_process_do_command();
-		// flag command ID so a new one is loaded
-		// -----------------------------------------
-		non_nav_command_ID = NO_COMMAND;
-	}
-}
-
-
 #line 1 "./APMRover2/compat.pde"
 
 
@@ -5301,6 +4562,11 @@ static void read_control_switch()
 	// If we get this value we do not want to change modes.
 	if(switchPosition == 255) return;
 
+    if (hal.scheduler->millis() - failsafe.last_valid_rc_ms > 100) {
+        // only use signals that are less than 0.1s old.
+        return;
+    }
+
     // we look for changes in the switch position. If the
     // RST_SWITCH_CH parameter is set, then it is a switch that can be
     // used to force re-reading of the control switch. This is useful
@@ -5324,7 +4590,7 @@ static void read_control_switch()
 
 static uint8_t readSwitch(void){
     uint16_t pulsewidth = hal.rcin->read(g.mode_channel - 1);
-	if (pulsewidth <= 910 || pulsewidth >= 2090) 	return 255;	// This is an error condition
+	if (pulsewidth <= 900 || pulsewidth >= 2200) 	return 255;	// This is an error condition
 	if (pulsewidth > 1230 && pulsewidth <= 1360) 	return 1;
 	if (pulsewidth > 1360 && pulsewidth <= 1490) 	return 2;
 	if (pulsewidth > 1490 && pulsewidth <= 1620) 	return 3;
@@ -5359,36 +4625,28 @@ static void read_trim_switch()
 				if (control_mode == MANUAL) {
                     hal.console->println_P(PSTR("Erasing waypoints"));
                     // if SW7 is ON in MANUAL = Erase the Flight Plan
-					g.command_total.set_and_save(CH7_wp_index);
-                    g.command_total = 0;
-                    g.command_index =0;
-                    nav_command_index = 0;
+					mission.clear();
                     if (channel_steer->control_in > 3000) {
 						// if roll is full right store the current location as home
                         init_home();
                     }
-                    CH7_wp_index = 1;     
 					return;
 				} else if (control_mode == LEARNING || control_mode == STEERING) {    
                     // if SW7 is ON in LEARNING = record the Wp
-                    // set the next_WP (home is stored at 0)
 
-                    hal.console->printf_P(PSTR("Learning waypoint %u"), (unsigned)CH7_wp_index);        
-                    current_loc.id = MAV_CMD_NAV_WAYPOINT;  
-    
-                    // store the index
-                    g.command_total.set_and_save(CH7_wp_index);
-                    g.command_total = CH7_wp_index;
-                    g.command_index = CH7_wp_index;
-                    nav_command_index = 0;
-                                   
-                    // save command
-                    set_cmd_with_index(current_loc, CH7_wp_index);
-                                  
-                    // increment index
-                    CH7_wp_index++; 
-                    CH7_wp_index = constrain_int16(CH7_wp_index, 1, MAX_WAYPOINTS);
+				    // create new mission command
+				    AP_Mission::Mission_Command cmd = {};
 
+				    // set new waypoint to current location
+				    cmd.content.location = current_loc;
+
+				    // make the new command to a waypoint
+				    cmd.id = MAV_CMD_NAV_WAYPOINT;
+
+				    // save command
+				    if(mission.add_cmd(cmd)) {
+                        hal.console->printf_P(PSTR("Learning waypoint %u"), (unsigned)mission.num_commands());
+				    }
                 } else if (control_mode == AUTO) {    
                     // if SW7 is ON in AUTO = set to RTL  
                     set_mode(RTL);
@@ -5525,35 +4783,24 @@ static void init_rc_in()
 
 static void init_rc_out()
 {
-    for (uint8_t i=0; i<8; i++) {
-        RC_Channel::rc_channel(i)->enable_out();
-        RC_Channel::rc_channel(i)->output_trim();
-    }
+    RC_Channel::rc_channel(CH_1)->enable_out();
+    RC_Channel::rc_channel(CH_3)->enable_out();
+    RC_Channel::output_trim_all();    
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    servo_write(CH_9,   g.rc_9.radio_trim);
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    servo_write(CH_10,  g.rc_10.radio_trim);
-    servo_write(CH_11,  g.rc_11.radio_trim);
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    servo_write(CH_12,  g.rc_12.radio_trim);
-#endif
+    // setup PWM values to send if the FMU firmware dies
+    RC_Channel::setup_failsafe_trim_all();  
 }
 
 static void read_radio()
 {
-    if (!hal.rcin->valid_channels()) {
+    if (!hal.rcin->new_input()) {
         control_failsafe(channel_throttle->radio_in);
         return;
     }
 
     failsafe.last_valid_rc_ms = hal.scheduler->millis();
 
-    for (uint8_t i=0; i<8; i++) {
-        RC_Channel::rc_channel(i)->set_pwm(RC_Channel::rc_channel(i)->read());
-    }
+    RC_Channel::set_pwm_all();
 
 	control_failsafe(channel_throttle->radio_in);
 
@@ -5636,6 +4883,13 @@ static void trim_radio()
 }
 #line 1 "./APMRover2/sensors.pde"
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+
+static void init_barometer(void)
+{
+    gcs_send_text_P(SEVERITY_LOW, PSTR("Calibrating barometer"));    
+    barometer.calibrate();
+    gcs_send_text_P(SEVERITY_LOW, PSTR("barometer calibration complete"));
+}
 
 static void init_sonar(void)
 {
@@ -6383,13 +5637,13 @@ radio_input_switch(void)
 
 static void zero_eeprom(void)
 {
-//	uint8_t b = 0;
+	uint8_t b = 0;
 	cliSerial->printf_P(PSTR("\nErasing EEPROM\n"));
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 	hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
 #else
-	for (uint16_t i = 0; i < EEPROM_MAX_ADDR; i++) {
-		hal.storage->write_byte(i, 0);
+	for (uint16_t i = 0; i < HAL_STORAGE_SIZE_AVAILABLE; i++) {
+		hal.storage->write_byte(i, b);
 	}
 #endif
 	cliSerial->printf_P(PSTR("done\n"));
@@ -6500,7 +5754,13 @@ static void init_ardupilot()
 	// on the message set configured.
 	//
     // standard gps running
-    hal.uartB->begin(115200, 256, 16);
+    hal.uartB->begin(38400, 256, 16);
+
+#if GPS2_ENABLE
+    if (hal.uartE != NULL) {
+        hal.uartE->begin(38400, 256, 16);
+    }
+#endif
 
 	cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
 						 "\n\nFree RAM: %u\n"),
@@ -6519,14 +5779,17 @@ static void init_ardupilot()
     set_control_channels();
 
     // after parameter load setup correct baud rate on uartA
-//    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
+    hal.uartA->begin(map_baudrate(g.serial0_baud));
 
     // keep a record of how many resets have happened. This can be
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
 
-    // init the GCS
-    gcs[0].init(hal.uartA);
+    // init baro before we start the GCS, so that the CLI baro test works
+    barometer.init();
+
+	// init the GCS
+	gcs[0].init(hal.uartA);
 
     // we start by assuming USB connected, as we initialed the serial
     // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
@@ -6535,18 +5798,12 @@ static void init_ardupilot()
 
     // we have a 2nd serial port for telemetry
 #if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-    hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
-	gcs[1].init(hal.uartC);
-#endif
+    gcs[1].setup_uart(hal.uartC, map_baudrate(g.serial1_baud), 128, 128);
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
-    // we may have a 3rd serial port for telemetry
-    if (hal.uartD != NULL) {
-        hal.uartD->begin(map_baudrate(g.serial2_baud, SERIAL2_BAUD), 128, 128);
-        gcs[2].init(hal.uartD);
-    }
+    gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, 128);
 #endif
-
+#endif
 	mavlink_system.sysid = g.sysid_this_mav;
 
 #if LOGGING_ENABLED == ENABLED
@@ -6584,10 +5841,11 @@ static void init_ardupilot()
 	// initialise sonar
     init_sonar();
 
+    // and baro for EKF
+    init_barometer();
+
 	// Do GPS init
-	g_gps = &g_gps_driver;
-    // GPS initialisation
-	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_4G);
+	gps.init(&DataFlash);
 
 	//mavlink_system.sysid = MAV_SYSTEM_ID;				// Using g.sysid_this_mav
 	mavlink_system.compid = 1;	//MAV_COMP_ID_IMU;   // We do not check for comp id
@@ -6615,7 +5873,7 @@ static void init_ardupilot()
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
     if (gcs[1].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINIv
         hal.uartC->println_P(msg);
 #endif
     }
@@ -6627,8 +5885,9 @@ static void init_ardupilot()
 
 	startup_ground();
 
-	if (g.log_bitmask & MASK_LOG_CMD)
-			Log_Write_Startup(TYPE_GROUNDSTART_MSG);
+	if (should_log(MASK_LOG_CMD)) {
+        Log_Write_Startup(TYPE_GROUNDSTART_MSG);
+    }
 
     set_mode((enum mode)g.initial_mode.get());
 
@@ -6661,16 +5920,14 @@ static void startup_ground(void)
 	// ---------------------------
 	trim_radio();
 
-	// initialize commands
-	// -------------------
-	init_commands();
+    // initialise mission library
+    mission.init();
 
     hal.uartA->set_blocking_writes(false);
 #if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     hal.uartC->set_blocking_writes(false);
 #endif
-
-    gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
+	gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
 }
 
 /*
@@ -6725,8 +5982,9 @@ static void set_mode(enum mode mode)
 			break;
 	}
 
-	if (g.log_bitmask & MASK_LOG_MODE)
+	if (should_log(MASK_LOG_MODE)) {
 		Log_Write_Mode();
+    }
 }
 
 /*
@@ -6783,6 +6041,7 @@ static void startup_INS_ground(bool force_accel_level)
 
     ahrs.init();
 	ahrs.set_fly_forward(true);
+    ahrs.set_vehicle_class(AHRS_VEHICLE_GROUND);
 
     AP_InertialSensor::Start_style style;
     if (g.skip_gyro_cal && !force_accel_level) {
@@ -6813,31 +6072,7 @@ static void update_notify()
 static void resetPerfData(void) {
 	mainLoop_count 			= 0;
 	G_Dt_max 				= 0;
-	ahrs.renorm_range_count 	= 0;
-	ahrs.renorm_blowup_count = 0;
-	gps_fix_count 			= 0;
 	perf_mon_timer 			= millis();
-}
-
-
-/*
-  map from a 8 bit EEPROM baud rate to a real baud rate
- */
-static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
-{
-    switch (rate) {
-    case 1:    return 1200;
-    case 2:    return 2400;
-    case 4:    return 4800;
-    case 9:    return 9600;
-    case 19:   return 19200;
-    case 38:   return 38400;
-    case 57:   return 57600;
-    case 111:  return 111100;
-    case 115:  return 115200;
-    }
-    cliSerial->println_P(PSTR("Invalid baudrate"));
-    return default_baud;
 }
 
 
@@ -6859,19 +6094,11 @@ static void check_usb_mux(void)
     if (usb_connected) {
         hal.uartA->begin(SERIAL0_BAUD);
     } else {
-        hal.uartA->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD));
+        hal.uartA->begin(map_baudrate(g.serial1_baud));
     }
 #endif
 }
 
-
-/*
- * Read board voltage in millivolts
- */
-uint16_t board_voltage(void)
-{
-    return vcc_pin->voltage_latest() * 1000;
-}
 
 static void
 print_mode(AP_HAL::BetterStream *port, uint8_t mode)
@@ -6942,10 +6169,7 @@ static bool should_log(uint32_t mask)
     if (!(mask & g.log_bitmask) || in_mavlink_delay) {
         return false;
     }
-    bool armed;
-    armed = (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED);
-
-    bool ret = armed || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
+    bool ret = ahrs.get_armed() || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
     if (ret && !DataFlash.logging_started() && !in_log_download) {
         // we have to set in_mavlink_delay to prevent logging while
         // writing headers
@@ -6971,12 +6195,16 @@ static int8_t	test_ins(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_relay(uint8_t argc,	 	const Menu::arg *argv);
 static int8_t	test_wp(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_sonar(uint8_t argc, 	const Menu::arg *argv);
+static int8_t	test_sonar_depth(uint8_t argc, 	const Menu::arg *argv);
 static int8_t	test_mag(uint8_t argc, 			const Menu::arg *argv);
 static int8_t	test_modeswitch(uint8_t argc, 		const Menu::arg *argv);
 static int8_t	test_logging(uint8_t argc, 		const Menu::arg *argv);
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
 static int8_t   test_shell(uint8_t argc,              const Menu::arg *argv);
 #endif
+
+// forward declaration to keep the compiler happy
+static void test_wp_print(const AP_Mission::Mission_Command& cmd);
 
 // Creates a constant array of structs representing menu options
 // and stores them in Flash memory, not RAM.
@@ -6996,6 +6224,7 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
 	{"gps",			test_gps},
 	{"ins",			test_ins},
 	{"sonartest",	test_sonar},
+	{"sonardepth",	test_sonar_depth},
 	{"compass",		test_mag},
 	{"logging",		test_logging},
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
@@ -7059,7 +6288,7 @@ test_passthru(uint8_t argc, const Menu::arg *argv)
 		delay(20);
 
         // New radio frame? (we could use also if((millis()- timer) > 20)
-        if (hal.rcin->valid_channels() > 0) {
+        if (hal.rcin->new_input()) {
             cliSerial->print("CH:");
             for(int i = 0; i < 8; i++){
                 cliSerial->print(hal.rcin->read(i));	// Print channel values
@@ -7195,28 +6424,30 @@ test_wp(uint8_t argc, const Menu::arg *argv)
 {
 	delay(1000);
 
-	cliSerial->printf_P(PSTR("%u waypoints\n"), (unsigned)g.command_total);
+	cliSerial->printf_P(PSTR("%u waypoints\n"), (unsigned)mission.num_commands());
 	cliSerial->printf_P(PSTR("Hit radius: %f\n"), g.waypoint_radius);
 
-	for(uint8_t i = 0; i <= g.command_total; i++){
-		struct Location temp = get_cmd_with_index(i);
-		test_wp_print(&temp, i);
+	for(uint8_t i = 0; i < mission.num_commands(); i++){
+        AP_Mission::Mission_Command temp_cmd;
+        if (mission.read_cmd_from_storage(i,temp_cmd)) {
+            test_wp_print(temp_cmd);
+        }
 	}
 
 	return (0);
 }
 
 static void
-test_wp_print(const struct Location *cmd, uint8_t wp_index)
+test_wp_print(const AP_Mission::Mission_Command& cmd)
 {
-	cliSerial->printf_P(PSTR("command #: %d id:%d options:%d p1:%d p2:%ld p3:%ld p4:%ld \n"),
-		(int)wp_index,
-		(int)cmd->id,
-		(int)cmd->options,
-		(int)cmd->p1,
-		cmd->alt,
-		cmd->lat,
-		cmd->lng);
+    cliSerial->printf_P(PSTR("command #: %d id:%d options:%d p1:%d p2:%ld p3:%ld p4:%ld \n"),
+                    (int)cmd.index,
+                    (int)cmd.id,
+                    (int)cmd.content.location.options,
+                    (int)cmd.p1,
+                    (long)cmd.content.location.alt,
+                    (long)cmd.content.location.lat,
+                    (long)cmd.content.location.lng);
 }
 
 static int8_t
@@ -7260,27 +6491,30 @@ test_logging(uint8_t argc, const Menu::arg *argv)
 static int8_t
 test_gps(uint8_t argc, const Menu::arg *argv)
 {
-	print_hit_enter();
-	delay(1000);
+    print_hit_enter();
+    delay(1000);
 
-	while(1){
-		delay(100);
+    uint32_t last_message_time_ms = 0;
+    while(1) {
+        delay(100);
 
-		g_gps->update();
+        gps.update();
 
-		if (g_gps->new_data){
-			cliSerial->printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
-					g_gps->latitude,
-					g_gps->longitude,
-					g_gps->altitude_cm/100,
-					g_gps->num_sats);
-		}else{
-			cliSerial->printf_P(PSTR("."));
-		}
-		if(cliSerial->available() > 0){
-			return (0);
-		}
-	}
+        if (gps.last_message_time_ms() != last_message_time_ms) {
+            last_message_time_ms = gps.last_message_time_ms();
+            const Location &loc = gps.location();
+            cliSerial->printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
+                                (long)loc.lat,
+                                (long)loc.lng,
+                                (long)loc.alt/100,
+                                (int)gps.num_sats());
+        } else {
+            cliSerial->printf_P(PSTR("."));
+        }
+        if(cliSerial->available() > 0) {
+            return (0);
+        }
+    }
 }
 
 static int8_t
@@ -7368,7 +6602,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
                 // Calculate heading
                 Matrix3f m = ahrs.get_dcm_matrix();
                 heading = compass.calculate_heading(m);
-                compass.null_offsets();
+                compass.learn_offsets();
             }
             medium_loopCounter = 0;
         }
@@ -7460,6 +6694,36 @@ test_sonar(uint8_t argc, const Menu::arg *argv)
             voltage2_min = voltage2_max = 0.0f;
             sonar_dist_cm_min = sonar_dist_cm_max = 0.0f;
             sonar2_dist_cm_min = sonar2_dist_cm_max = 0.0f;
+            last_print = now;
+        }
+        if (cliSerial->available() > 0) {
+            break;
+	    }
+    }
+    return (0);
+}
+
+static int8_t
+test_sonar_depth(uint8_t argc, const Menu::arg *argv)
+{
+    print_hit_enter();
+
+    uint32_t last_print = 0;
+
+	while (true) {
+        delay(200);
+
+        read_Sonar();
+
+        uint32_t now = millis();
+
+        float read_depth = Depth;
+        float read_temp = Temp;
+
+        if (now - last_print >= 500) {
+            cliSerial->printf_P(PSTR("Depth=%.1fcm Temp=%.2f\n"),
+        	    read_depth,
+        	    read_temp);
             last_print = now;
         }
         if (cliSerial->available() > 0) {

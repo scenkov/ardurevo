@@ -102,12 +102,18 @@ void AP_Param::erase_all(void)
 
     serialDebug("erase_all");
 
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+    serialDebug("\nErasing EEPROM\n");
+    hal.storage->format_eeprom(); // Format Internal 16kb Flash EEprom
+#endif
+
+
     // write the header
     hdr.magic[0] = k_EEPROM_magic0;
     hdr.magic[1] = k_EEPROM_magic1;
     hdr.revision = k_EEPROM_revision;
     hdr.spare    = 0;
-
     eeprom_write_check(&hdr, 0, sizeof(hdr));
 
     // add a sentinal directly after the header
@@ -816,6 +822,24 @@ void AP_Param::setup_object_defaults(const void *object_pointer, const struct Gr
         if (type <= AP_PARAM_FLOAT) {
             void *ptr = (void *)(base + PGM_UINT16(&group_info[i].offset));
             set_value((enum ap_var_type)type, ptr, PGM_FLOAT(&group_info[i].def_value));
+        }
+    }
+}
+
+// set a value directly in an object. This should only be used by
+// example code, not by mainline vehicle code
+void AP_Param::set_object_value(const void *object_pointer, 
+                                const struct GroupInfo *group_info, 
+                                const char *name, float value)
+{
+    uintptr_t base = (uintptr_t)object_pointer;
+    uint8_t type;
+    for (uint8_t i=0;
+         (type=PGM_UINT8(&group_info[i].type)) != AP_PARAM_NONE;
+         i++) {
+        if (strcmp(name, group_info[i].name) == 0 && type <= AP_PARAM_FLOAT) {
+            void *ptr = (void *)(base + PGM_UINT16(&group_info[i].offset));
+            set_value((enum ap_var_type)type, ptr, value);
         }
     }
 }

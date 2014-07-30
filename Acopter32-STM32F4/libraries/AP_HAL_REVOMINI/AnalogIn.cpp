@@ -46,7 +46,7 @@ void REVOMINIAnalogIn::init(void* machtnichts) {
     _register_channel(&_vcc);
 }
 
-REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(uint8_t chnum) {
+REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(int16_t chnum) {
 
     REVOMINIAnalogSource *ch = new REVOMINIAnalogSource(chnum);
     _register_channel(ch);
@@ -140,4 +140,8 @@ AP_HAL::AnalogSource* REVOMINIAnalogIn::channel(int16_t ch)
     }
 }
 
+float REVOMINIAnalogIn::board_voltage(void)
+{
+    return _vcc.voltage_latest();
+}
 #endif

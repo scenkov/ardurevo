@@ -25,7 +25,7 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
  # define BUZZER_PIN    68      // pin 68 on VRBRAIN
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-#define BUZZER_PIN 107 // PA14
+#define BUZZER_PIN      107     // PA14
 #else
  # define BUZZER_PIN    0       // pin undefined on other boards
 #endif

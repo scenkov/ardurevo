@@ -7,13 +7,11 @@
 #include "DataFlash.h"
 #include <stm32f4xx.h>
 
+extern AP_HAL::HAL& hal;
+
 // the last page holds the log format in first 4 bytes. Please change
 // this if (and only if!) the low level format changes
 #define DF_LOGGING_FORMAT    0x28122013
-
-#include "DataFlash.h"
-
-extern AP_HAL::HAL& hal;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 

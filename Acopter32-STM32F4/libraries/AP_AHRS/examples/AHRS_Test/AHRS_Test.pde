@@ -12,6 +12,7 @@
 #include <AP_InertialSensor.h>
 #include <AP_ADC.h>
 #include <AP_ADC_AnalogSource.h>
+#include <AP_Baro.h>            // ArduPilot Mega Barometer Library
 #include <AP_GPS.h>
 #include <AP_AHRS.h>
 #include <AP_Compass.h>
@@ -19,6 +20,7 @@
 #include <AP_Airspeed.h>
 #include <AP_Baro.h>
 #include <GCS_MAVLink.h>
+#include <AP_Mission.h>
 #include <Filter.h>
 #include <SITL.h>
 #include <AP_Buffer.h>
@@ -32,23 +34,24 @@
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
+// INS and Baro declaration
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
 AP_InertialSensor_MPU6000 ins;
+AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
 AP_ADC_ADS7844 adc;
 AP_InertialSensor_Oilpan ins( &adc );
+AP_Baro_BMP085 baro;
 #else
 AP_InertialSensor_HIL ins;
 #endif
 
 AP_Compass_HMC5843 compass;
 
-GPS *g_gps;
-
-AP_GPS_Auto g_gps_driver(&g_gps);
+AP_GPS gps;
 
 // choose which AHRS system to use
-AP_AHRS_DCM  ahrs(&ins, g_gps);
+AP_AHRS_DCM  ahrs(ins, baro, gps);
 
 AP_Baro_HIL barometer;
 
@@ -77,10 +80,7 @@ void setup(void)
     } else {
         hal.console->printf("No compass detected\n");
     }
-    g_gps = &g_gps_driver;
-#if WITH_GPS
-    g_gps->init(hal.uartB);
-#endif
+    gps.init(NULL);
 }
 
 void loop(void)

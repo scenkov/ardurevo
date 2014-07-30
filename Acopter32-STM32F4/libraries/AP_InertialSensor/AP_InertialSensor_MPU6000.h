@@ -32,7 +32,7 @@ public:
     bool                wait_for_sample(uint16_t timeout_ms);
 
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float            	get_delta_time();
+    float            	get_delta_time() const;
 
     uint16_t error_count(void) const { return _error_count; }
     bool healthy(void) const { return _error_count <= 4; }
@@ -51,6 +51,7 @@ private:
     void                 _poll_data(void);
     uint8_t              _register_read( uint8_t reg );
     void                 _register_write( uint8_t reg, uint8_t val );
+    void                 _register_write_check(uint8_t reg, uint8_t val);
     bool                 _hardware_init(Sample_rate sample_rate);
 
     AP_HAL::SPIDeviceDriver *_spi;

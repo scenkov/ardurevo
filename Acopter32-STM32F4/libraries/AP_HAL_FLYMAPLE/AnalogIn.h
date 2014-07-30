@@ -84,6 +84,7 @@ public:
     FLYMAPLEAnalogIn();
     void init(void* implspecific);
     AP_HAL::AnalogSource* channel(int16_t n);
+    float board_voltage(void);
 
 protected: 
     FLYMAPLEAnalogSource* _create_channel(int16_t num);

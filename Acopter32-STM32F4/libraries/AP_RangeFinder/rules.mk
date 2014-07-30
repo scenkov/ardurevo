@@ -11,10 +11,13 @@ CFLAGS_$(d) :=
 # Local rules and targets
 cSRCS_$(d) :=
 
-cppSRCS_$(d) := AP_RangeFinder_MaxsonarXL.cpp
-cppSRCS_$(d) += AP_RangeFinder_SharpGP2Y.cpp
-cppSRCS_$(d) += RangeFinder.cpp
 cppSRCS_$(d) += AP_RangeFinder_analog.cpp
+cppSRCS_$(d) += AP_RangeFinder_MaxsonarI2CXL.cpp
+cppSRCS_$(d) += AP_RangeFinder_PulsedLightLRF.cpp
+cppSRCS_$(d) += AP_RangeFinder_PX4.cpp
+cppSRCS_$(d) += RangeFinder_Backend.cpp
+cppSRCS_$(d) += RangeFinder.cpp
+
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

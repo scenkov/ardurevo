@@ -568,7 +568,7 @@ void timer_reset(timer_dev *dev);
 void timer_disable(timer_dev *dev);
 void timer_set_mode(timer_dev *dev, uint8_t channel, timer_mode mode);
 void timer_foreach(void (*fn)(timer_dev*));
-
+void pwm_mode(timer_dev *dev, uint8_t channel);
 /**
  * @brief Timer interrupt number.
  *
@@ -965,6 +965,7 @@ static inline void timer_dma_set_burst_len(timer_dev *dev, uint8_t length) {
     tmp |= (length - 1) << 8;
     (dev->regs)->DCR = tmp;
 }
+
 
 /**
  * @brief Timer DMA base address.

@@ -202,7 +202,6 @@ AP_Compass_HMC5843::init()
     if ( _base_config == (SampleAveraging_8<<5 | DataOutputRate_75HZ<<2 | NormalOperation)) {
         // a 5883L supports the sample averaging config
         product_id = AP_COMPASS_TYPE_HMC5883L;
-        hal.console->println("Compass TYPE: HMC5883L" );
         calibration_gain = 0x60;
         /*
           note that the HMC5883 datasheet gives the x and y expected
@@ -214,7 +213,6 @@ AP_Compass_HMC5843::init()
         gain_multiple = 660.0 / 1090;  // adjustment for runtime vs calibration gain
     } else if (_base_config == (NormalOperation | DataOutputRate_75HZ<<2)) {
         product_id = AP_COMPASS_TYPE_HMC5843;
-        hal.console->println("Compass TYPE: HMC5843" );
     } else {
         // not behaving like either supported compass type
         _i2c_sem->give();
