@@ -12,15 +12,15 @@ extern const AP_HAL::HAL& hal;
 
 void boardInit(void) {
     // Init RFM22B SC pin and set to HI
-    hal.gpio->pinMode(BOARD_RFM22B_CS_PIN,HAL_GPIO_OUTPUT);
+    hal.gpio->pinMode(BOARD_RFM22B_CS_PIN,GPIO_OUTPUT);
     hal.gpio->write(BOARD_RFM22B_CS_PIN,1);
     // Init RFM22B EXT_INT pin
-    hal.gpio->pinMode(BOARD_RFM22B_INT_PIN,HAL_GPIO_INPUT);
+    hal.gpio->pinMode(BOARD_RFM22B_INT_PIN,GPIO_INPUT);
     // Init HMC5883 DRDY EXT_INT pin
-    hal.gpio->pinMode(BOARD_HMC5883_DRDY_PIN,HAL_GPIO_INPUT);
+    hal.gpio->pinMode(BOARD_HMC5883_DRDY_PIN,GPIO_INPUT);
 
     /* Configure PA.13 (JTMS/SWDIO), PA.14 (JTCK/SWCLK) as output push-pull */
-    // Use PA13-LED and PA14-BUZZER
+    // Use PA13 LED and PA14 BUZZER
     afio_cfg_debug_ports(AFIO_DEBUG_SW_ONLY);
 }
 

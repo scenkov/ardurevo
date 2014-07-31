@@ -46,28 +46,30 @@ extern const AP_HAL::HAL& hal;
 // for NMEA.  GPS_AUTO will try to set any SiRF unit to binary mode as part of
 // the autodetection process.
 //
-#define SIRF_INIT_MSG \
-        "$PSRF103,0,0,1,1*25\r\n"   /* GGA @ 1Hz */ \
-        "$PSRF103,1,0,0,1*25\r\n"   /* GLL off */   \
-        "$PSRF103,2,0,0,1*26\r\n"   /* GSA off */   \
-        "$PSRF103,3,0,0,1*27\r\n"   /* GSV off */   \
-        "$PSRF103,4,0,1,1*20\r\n"   /* RMC off */   \
-        "$PSRF103,5,0,1,1*20\r\n"   /* VTG @ 1Hz */ \
-        "$PSRF103,6,0,0,1*22\r\n"   /* MSS off */   \
-        "$PSRF103,8,0,0,1*2C\r\n"   /* ZDA off */   \
-        "$PSRF151,1*3F\r\n"         /* WAAS on (not always supported) */ \
-        "$PSRF106,21*0F\r\n"        /* datum = WGS84 */
+const prog_char AP_GPS_NMEA::_SiRF_init_string[] PROGMEM =
+    "$PSRF103,0,0,1,1*25\r\n"   // GGA @ 1Hz
+    "$PSRF103,1,0,0,1*25\r\n"   // GLL off
+    "$PSRF103,2,0,0,1*26\r\n"   // GSA off
+    "$PSRF103,3,0,0,1*27\r\n"   // GSV off
+    "$PSRF103,4,0,1,1*20\r\n"   // RMC off
+    "$PSRF103,5,0,1,1*20\r\n"   // VTG @ 1Hz
+    "$PSRF103,6,0,0,1*22\r\n"   // MSS off
+    "$PSRF103,8,0,0,1*2C\r\n"   // ZDA off
+    "$PSRF151,1*3F\r\n"                 // WAAS on (not always supported)
+    "$PSRF106,21*0F\r\n"                // datum = WGS84
+    "";
 
 // MediaTek init messages //////////////////////////////////////////////////////
 //
 // Note that we may see a MediaTek in NMEA mode if we are connected to a non-DIYDrones
 // MediaTek-based GPS.
 //
-#define MTK_INIT_MSG \
-    "$PMTK314,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n" /* GGA & VTG once every fix */ \
-    "$PMTK330,0*2E\r\n"                                 /* datum = WGS84 */ \
-    "$PMTK313,1*2E\r\n"                                 /* SBAS on */ \
-    "$PMTK301,2*2E\r\n"                                 /* use SBAS data for DGPS */
+const prog_char AP_GPS_NMEA::_MTK_init_string[] PROGMEM =
+    "$PMTK314,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n" // GGA & VTG once every fix
+    "$PMTK330,0*2E\r\n"                                                                         // datum = WGS84
+    "$PMTK313,1*2E\r\n"                                                                 // SBAS on
+    "$PMTK301,2*2E\r\n"                                                                 // use SBAS data for DGPS
+    "";
 
 // ublox init messages /////////////////////////////////////////////////////////
 //
@@ -78,12 +80,11 @@ extern const AP_HAL::HAL& hal;
 // We don't attempt to send $PUBX,41 as the unit must already be talking NMEA
 // and we don't know the baudrate.
 //
-#define UBLOX_INIT_MSG \
-    "$PUBX,40,gga,0,1,0,0,0,0*7B\r\n"   /* GGA on at one per fix */ \
-    "$PUBX,40,vtg,0,1,0,0,0,0*7F\r\n"   /* VTG on at one per fix */ \
-    "$PUBX,40,rmc,0,0,0,0,0,0*67\r\n"   /* RMC off (XXX suppress other message types?) */
-
-const prog_char AP_GPS_NMEA::_initialisation_blob[] PROGMEM = SIRF_INIT_MSG MTK_INIT_MSG UBLOX_INIT_MSG;
+const prog_char AP_GPS_NMEA::_ublox_init_string[] PROGMEM =
+    "$PUBX,40,gga,0,1,0,0,0,0*7B\r\n"   // GGA on at one per fix
+    "$PUBX,40,vtg,0,1,0,0,0,0*7F\r\n"   // VTG on at one per fix
+    "$PUBX,40,rmc,0,0,0,0,0,0*67\r\n"   // RMC off (XXX suppress other message types?)
+    "";
 
 // NMEA message identifiers ////////////////////////////////////////////////////
 //
@@ -95,16 +96,19 @@ const char AP_GPS_NMEA::_gpvtg_string[] PROGMEM = "GPVTG";
 //
 #define DIGIT_TO_VAL(_x)        (_x - '0')
 
-AP_GPS_NMEA::AP_GPS_NMEA(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port) :
-    AP_GPS_Backend(_gps, _state, _port),
-    _parity(0),
-    _is_checksum_term(false),
-    _sentence_type(0),
-    _term_number(0),
-    _term_offset(0),
-    _gps_data_good(false)
+// Public Methods //////////////////////////////////////////////////////////////
+void AP_GPS_NMEA::init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting)
 {
-    gps.send_blob_start(state.instance, _initialisation_blob, sizeof(_initialisation_blob));
+	_port = s;
+
+    // send the SiRF init strings
+    _port->print_P((const prog_char_t *)_SiRF_init_string);
+
+    // send the MediaTek init strings
+    _port->print_P((const prog_char_t *)_MTK_init_string);
+
+    // send the ublox init strings
+    _port->print_P((const prog_char_t *)_ublox_init_string);
 }
 
 bool AP_GPS_NMEA::read(void)
@@ -112,9 +116,9 @@ bool AP_GPS_NMEA::read(void)
     int16_t numc;
     bool parsed = false;
 
-    numc = port->available();
+    numc = _port->available();
     while (numc--) {
-        if (_decode(port->read())) {
+        if (_decode(_port->read())) {
             parsed = true;
         }
     }
@@ -227,7 +231,7 @@ uint32_t AP_GPS_NMEA::_parse_degrees()
     }
     ret = (deg * (int32_t)10000000UL);
     ret += (min * (int32_t)10000000UL / 60);
-    ret += (int32_t) (frac_min * (1.0e7f / 60.0f));
+    ret += (int32_t) (frac_min * (1.0e7 / 60.0f));
     return ret;
 }
 
@@ -244,28 +248,26 @@ bool AP_GPS_NMEA::_term_complete()
                 case _GPS_SENTENCE_GPRMC:
                     //time                        = _new_time;
                     //date                        = _new_date;
-                    state.location.lat     = _new_latitude;
-                    state.location.lng     = _new_longitude;
-                    state.ground_speed     = _new_speed*0.01f;
-                    state.ground_course_cd = _new_course;
-                    make_gps_time(_new_date, _new_time * 10);
-                    state.last_gps_time_ms = hal.scheduler->millis();
-                    // To-Do: add support for proper reporting of 2D and 3D fix
-                    state.status           = AP_GPS::GPS_OK_FIX_3D;
-                    fill_3d_velocity();
+                    latitude            = _new_latitude;
+                    longitude           = _new_longitude;
+                    ground_speed_cm     = _new_speed;
+                    ground_course_cd    = _new_course;
+                    _make_gps_time(_new_date, _new_time * 10);
+                    _last_gps_time      = hal.scheduler->millis();
+                    fix                 = GPS::FIX_3D;          // To-Do: add support for proper reporting of 2D and 3D fix
                     break;
                 case _GPS_SENTENCE_GPGGA:
-                    state.location.alt  = _new_altitude;
-                    state.location.lat  = _new_latitude;
-                    state.location.lng  = _new_longitude;
-                    state.num_sats      = _new_satellite_count;
-                    state.hdop          = _new_hdop;
-                    // To-Do: add support for proper reporting of 2D and 3D fix
-                    state.status        = AP_GPS::GPS_OK_FIX_3D;
+                    altitude_cm         = _new_altitude;
+                    //time                        = _new_time;
+                    latitude            = _new_latitude;
+                    longitude           = _new_longitude;
+                    num_sats            = _new_satellite_count;
+                    hdop                        = _new_hdop;
+                    fix                 = GPS::FIX_3D;          // To-Do: add support for proper reporting of 2D and 3D fix
                     break;
                 case _GPS_SENTENCE_GPVTG:
-                    state.ground_speed     = _new_speed*0.01f;
-                    state.ground_course_cd = _new_course;
+                    ground_speed_cm     = _new_speed;
+                    ground_course_cd    = _new_course;
                     // VTG has no fix indicator, can't change fix status
                     break;
                 }
@@ -275,7 +277,7 @@ bool AP_GPS_NMEA::_term_complete()
                 case _GPS_SENTENCE_GPGGA:
                     // Only these sentences give us information about
                     // fix status.
-                    state.status = AP_GPS::NO_FIX;
+                    fix = GPS::FIX_NONE;
                 }
             }
             // we got a good message
@@ -380,34 +382,37 @@ bool AP_GPS_NMEA::_term_complete()
   matches a NMEA string
  */
 bool
-AP_GPS_NMEA::_detect(struct NMEA_detect_state &state, uint8_t data)
+AP_GPS_NMEA::_detect(uint8_t data)
 {
-	switch (state.step) {
+	static uint8_t step;
+	static uint8_t ck;
+
+	switch (step) {
 	case 0:
-		state.ck = 0;
+		ck = 0;
 		if ('$' == data) {
-			state.step++;
+			step++;
 		}
 		break;
 	case 1:
 		if ('*' == data) {
-			state.step++;
+			step++;
 		} else {
-			state.ck ^= data;
+			ck ^= data;
 		}
 		break;
 	case 2:
-		if (hexdigit(state.ck>>4) == data) {
-			state.step++;
+		if (hexdigit(ck>>4) == data) {
+			step++;
 		} else {
-			state.step = 0;
+			step = 0;
 		}
 		break;
 	case 3:
-		if (hexdigit(state.ck&0xF) == data) {
+		if (hexdigit(ck&0xF) == data) {
 			return true;
 		}
-		state.step = 0;
+		step = 0;
 		break;
     }
     return false;

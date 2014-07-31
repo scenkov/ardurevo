@@ -4,7 +4,6 @@
 #define __AP_RANGEFINDER_MAXSONARI2CXL_H__
 
 #include "RangeFinder.h"
-#include "RangeFinder_Backend.h"
 
 #define AP_RANGE_FINDER_MAXSONARI2CXL_DEFAULT_ADDR   0x70
 
@@ -15,21 +14,28 @@
 
 #define AP_RANGE_FINDER_MAXSONARI2CXL_COMMAND_TAKE_RANGE_READING 0x51
 
-class AP_RangeFinder_MaxsonarI2CXL : public AP_RangeFinder_Backend
+class AP_RangeFinder_MaxsonarI2CXL : public RangeFinder
 {
+
 public:
+
     // constructor
-    AP_RangeFinder_MaxsonarI2CXL(RangeFinder &ranger, uint8_t instance, RangeFinder::RangeFinder_State &_state);
+    AP_RangeFinder_MaxsonarI2CXL(FilterInt16 *filter);
 
-    // static detection function
-    static bool detect(RangeFinder &ranger, uint8_t instance);
+    // init - simply sets the i2c address
+    void init(uint8_t address = AP_RANGE_FINDER_MAXSONARI2CXL_DEFAULT_ADDR) { _addr = address; }
 
-    // update state
-    void update(void);
+    // take_reading - ask sensor to make a range reading
+    bool            take_reading();
 
-private:
-    // start a reading
-    static bool start_reading(void);
-    static bool get_reading(uint16_t &reading_cm);
+    // read value from sensor and return distance in cm
+    int             read();
+
+    // heath
+    bool            healthy;
+
+protected:
+    uint8_t _addr;
+
 };
 #endif  // __AP_RANGEFINDER_MAXSONARI2CXL_H__

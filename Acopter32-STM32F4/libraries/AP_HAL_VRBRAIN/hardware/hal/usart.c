@@ -106,8 +106,8 @@ static usart_dev usart6 =
 	    .max_baud = 2250000UL,
 	    .irq = USART6_IRQn,
 	    .tx_timeout = 10000,
-	    .rx_pin = BOARD_USART6_RX_PIN,
-	    .tx_pin = BOARD_USART6_TX_PIN,
+	    .rx_pin = 200,
+	    .tx_pin = 200,
 	    .gpio_af = GPIO_AF_USART6
     };
 /** UART6 device */
@@ -176,7 +176,7 @@ void usart_setup(usart_dev *dev, uint32_t baudRate, uint16_t wordLength,
     //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);  
     /* Enable the USART Interrupt */
     NVIC_InitStructure.NVIC_IRQChannel = dev->irq;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);

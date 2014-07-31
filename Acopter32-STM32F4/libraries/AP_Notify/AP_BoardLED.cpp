@@ -22,9 +22,9 @@ extern const AP_HAL::HAL& hal;
 void AP_BoardLED::init(void)
 {
     // setup the main LEDs as outputs
-    hal.gpio->pinMode(HAL_GPIO_A_LED_PIN, HAL_GPIO_OUTPUT);
-    hal.gpio->pinMode(HAL_GPIO_B_LED_PIN, HAL_GPIO_OUTPUT);
-    hal.gpio->pinMode(HAL_GPIO_C_LED_PIN, HAL_GPIO_OUTPUT);
+    hal.gpio->pinMode(HAL_GPIO_A_LED_PIN, GPIO_OUTPUT);
+    hal.gpio->pinMode(HAL_GPIO_B_LED_PIN, GPIO_OUTPUT);
+    hal.gpio->pinMode(HAL_GPIO_C_LED_PIN, GPIO_OUTPUT);
 
     // turn all lights off
     hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_OFF);
@@ -92,7 +92,7 @@ void AP_BoardLED::update(void)
     static uint8_t arm_counter = 0;
 	if (AP_Notify::flags.armed) {
         // red led solid
-        hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
+//        hal.gpio->write(HAL_GPIO_A_LED_PIN, HAL_GPIO_LED_ON);
     }else{
         if ((counter2 & 0x2) == 0) {
             arm_counter++;
@@ -161,7 +161,7 @@ void AP_BoardLED::update(void)
             }
             break;
 
-        default:
+        case 3:
             // solid blue on gps lock
             hal.gpio->write(HAL_GPIO_C_LED_PIN, HAL_GPIO_LED_ON);
             break;        

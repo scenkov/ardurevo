@@ -36,10 +36,10 @@ public:
     };
 
     // update - Add a new raw value to the filter, but don't recalculate
-    void update(T sample, uint32_t timestamp);
+    virtual void        update(T sample, uint32_t timestamp);
 
     // return the derivative value
-    float slope(void);
+    virtual float        slope(void);
 
     // reset - clear the filter
     virtual void        reset();

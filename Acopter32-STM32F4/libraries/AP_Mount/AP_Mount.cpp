@@ -108,7 +108,7 @@ const AP_Param::GroupInfo AP_Mount::var_info[] PROGMEM = {
 #if MNT_STABILIZE_OPTION == ENABLED
     // @Param: STAB_ROLL
     // @DisplayName: Stabilize mount's roll angle
-    // @Description: enable roll stabilisation relative to Earth
+    // @Description:enable roll stabilisation relative to Earth
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
     AP_GROUPINFO("STAB_ROLL",  4, AP_Mount, _stab_roll, 0),
@@ -216,8 +216,9 @@ const AP_Param::GroupInfo AP_Mount::var_info[] PROGMEM = {
     AP_GROUPEND
 };
 
-AP_Mount::AP_Mount(const struct Location *current_loc, const AP_AHRS &ahrs, uint8_t id) :
-    _ahrs(ahrs)
+AP_Mount::AP_Mount(const struct Location *current_loc, GPS *&gps, const AP_AHRS &ahrs, uint8_t id) :
+    _ahrs(ahrs),
+    _gps(gps)
 {
 	AP_Param::setup_object_defaults(this, var_info);
     _current_loc = current_loc;
@@ -380,7 +381,7 @@ void AP_Mount::update_mount_position()
     // point mount to a GPS point given by the mission planner
     case MAV_MOUNT_MODE_GPS_POINT:
     {
-        if(_ahrs.get_gps().status() >= AP_GPS::GPS_OK_FIX_2D) {
+        if(_gps->fix) {
             calc_GPS_target_angle(&_target_GPS_location);
             stabilize();
         }
@@ -494,7 +495,7 @@ void AP_Mount::control_msg(mavlink_message_t *msg)
 
 /// Return mount status information (depends on the previously set mount configuration)
 /// triggered by a MavLink packet.
-void AP_Mount::status_msg(mavlink_message_t *msg, mavlink_channel_t chan)
+void AP_Mount::status_msg(mavlink_message_t *msg)
 {
     __mavlink_mount_status_t packet;
     mavlink_msg_mount_status_decode(msg, &packet);
@@ -524,7 +525,9 @@ void AP_Mount::status_msg(mavlink_message_t *msg, mavlink_channel_t chan)
         break;
     }
 
-    mavlink_msg_mount_status_send_buf(msg, chan, packet.target_system, packet.target_component,
+    // status reply
+    // TODO: is COMM_3 correct ?
+    mavlink_msg_mount_status_send(MAVLINK_COMM_3, packet.target_system, packet.target_component,
                                   packet.pointing_a, packet.pointing_b, packet.pointing_c);
 }
 

@@ -17,8 +17,8 @@ volatile bool REVOMINIScheduler::_in_timer_proc = false;
 AP_HAL::MemberProc REVOMINIScheduler::_timer_proc[REVOMINI_SCHEDULER_MAX_TIMER_PROCS] = {NULL};
 uint8_t REVOMINIScheduler::_num_timer_procs = 0;
 uint32 REVOMINIScheduler::_scheduler_last_call = 0;
-uint16_t REVOMINIScheduler::_scheduler_led = 0;
 uint32 REVOMINIScheduler::_armed_last_call = 0;
+uint16_t REVOMINIScheduler::_scheduler_led = 0;
 
 REVOMINIScheduler::REVOMINIScheduler()
 :
@@ -60,8 +60,6 @@ void REVOMINIScheduler::delay(uint16_t ms)
             }
         }
     }
-
-
 }
 
 uint32_t REVOMINIScheduler::millis() {

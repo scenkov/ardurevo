@@ -28,32 +28,18 @@ public:
 
         // Misc
         //
-        k_param_log_bitmask_old = 10, // unused
+        k_param_log_bitmask = 10,
         k_param_num_resets,
         k_param_reset_switch_chan,
         k_param_initial_mode,
         k_param_scheduler,
         k_param_relay,
         k_param_BoardConfig,
-        k_param_pivot_turn_angle,
-        k_param_rc_13,
-        k_param_rc_14,
 
         // IO pins
         k_param_rssi_pin = 20,
         k_param_battery_volt_pin,
         k_param_battery_curr_pin,
-
-        // braking
-        k_param_braking_percent = 30,
-        k_param_braking_speederr,
-
-        // misc2
-        k_param_log_bitmask = 40,
-        k_param_gps,
-        k_param_serial0_baud,
-        k_param_serial1_baud,
-        k_param_serial2_baud,
 
 
         // 110: Telemetry control
@@ -62,20 +48,18 @@ public:
         k_param_gcs1,       // stream rates for uartC
         k_param_sysid_this_mav,
         k_param_sysid_my_gcs,
-        k_param_serial0_baud_old,
-        k_param_serial1_baud_old,
+        k_param_serial0_baud,
+        k_param_serial1_baud,
         k_param_telem_delay,
         k_param_skip_gyro_cal,
         k_param_gcs2,       // stream rates for uartD
-        k_param_serial2_baud_old,
+        k_param_serial2_baud,
 
         //
         // 130: Sensor parameters
         //
         k_param_compass_enabled = 130,
         k_param_steering_learn, // unused
-        k_param_NavEKF,  // Extended Kalman Filter Inertial Navigation Group
-        k_param_mission, // mission library
 
         // 140: battery controls
         k_param_battery_monitoring = 140,   // deprecated, can be deleted
@@ -151,8 +135,8 @@ public:
         //
         // 220: Waypoint data
         //
-        k_param_command_total = 220,    // unused
-        k_param_command_index,          // unused
+        k_param_command_total = 220,
+        k_param_command_index,
         k_param_waypoint_radius,
 
         //
@@ -182,7 +166,6 @@ public:
         k_param_rcmap,
         k_param_L1_controller,
         k_param_steerController,
-        k_param_barometer,
 
         // 254,255: reserved
         };
@@ -192,7 +175,7 @@ public:
 
     // Misc
     //
-    AP_Int32    log_bitmask;
+    AP_Int16    log_bitmask;
     AP_Int16    num_resets;
     AP_Int8	    reset_switch_chan;
     AP_Int8     initial_mode;
@@ -200,18 +183,14 @@ public:
     // IO pins
     AP_Int8     rssi_pin;
 
-    // braking
-    AP_Int8     braking_percent;
-    AP_Float    braking_speederr;
-
 	// Telemetry control
 	//
 	AP_Int16    sysid_this_mav;
 	AP_Int16    sysid_my_gcs;
-    AP_Int16    serial0_baud;
-    AP_Int16    serial1_baud;
+    AP_Int8	    serial0_baud;
+    AP_Int8	    serial1_baud;
 #if MAVLINK_COMM_NUM_BUFFERS > 2
-    AP_Int16    serial2_baud;
+    AP_Int8	    serial2_baud;
 #endif
     AP_Int8     telem_delay;
     AP_Int8     skip_gyro_cal;
@@ -228,7 +207,6 @@ public:
     AP_Int8     auto_trigger_pin;
     AP_Float    auto_kickstart;
     AP_Float    turn_max_g;
-    AP_Int16    pivot_turn_angle;
 
     // RC channels
     RC_Channel      rc_1;
@@ -286,6 +264,8 @@ public:
     
     // Waypoints
     //
+    AP_Int8     command_total;
+    AP_Int8     command_index;
     AP_Float    waypoint_radius;
 
     // PID controllers

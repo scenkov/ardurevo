@@ -26,9 +26,13 @@
 
 extern const AP_HAL::HAL& hal;
 
-// this is the speed in m/s above which we first get a yaw lock with
+// this is the speed in cm/s above which we first get a yaw lock with
 // the GPS
-#define GPS_SPEED_MIN 3
+#define GPS_SPEED_MIN 300
+
+// this is the speed in cm/s at which we stop using drift correction
+// from the GPS and wait for the ground speed to get above GPS_SPEED_MIN
+#define GPS_SPEED_RESET 100
 
 // the limit (in degrees/second) beyond which we stop integrating
 // omega_I. At larger spin rates the DCM PI controller can get 'dizzy'
@@ -53,7 +57,7 @@ AP_AHRS_DCM::update(void)
     // otherwise we may move too far. This happens when arming motors 
     // in ArduCopter
     if (delta_t > 0.2f) {
-        memset(&_ra_sum[0], 0, sizeof(_ra_sum));
+        _ra_sum.zero();
         _ra_deltat = 0;
         return;
     }
@@ -72,9 +76,6 @@ AP_AHRS_DCM::update(void)
 
     // Calculate pitch, roll, yaw for stabilization and navigation
     euler_angles();
-
-    // update trig values including _cos_roll, cos_pitch
-    update_trig();
 }
 
 // update the DCM matrix using only the gyros
@@ -86,21 +87,8 @@ AP_AHRS_DCM::matrix_update(float _G_Dt)
     // and including the P terms would give positive feedback into
     // the _P_gain() calculation, which can lead to a very large P
     // value
-    _omega.zero();
+    _omega = _ins.get_gyro() + _omega_I;
 
-    // average across all healthy gyros. This reduces noise on systems
-    // with more than one gyro    
-    uint8_t healthy_count = 0;    
-    for (uint8_t i=0; i<_ins.get_gyro_count(); i++) {
-        if (_ins.get_gyro_health(i)) {
-            _omega += _ins.get_gyro(i);
-            healthy_count++;
-        }
-    }
-    if (healthy_count > 1) {
-        _omega /= healthy_count;
-    }
-    _omega += _omega_I;
     _dcm_matrix.rotate((_omega + _omega_P + _omega_yaw_P) * _G_Dt);
 }
 
@@ -143,6 +131,7 @@ AP_AHRS_DCM::check_matrix(void)
 {
     if (_dcm_matrix.is_nan()) {
         //Serial.printf("ERROR: DCM matrix NAN\n");
+        renorm_blowup_count++;
         reset(true);
         return;
     }
@@ -153,6 +142,7 @@ AP_AHRS_DCM::check_matrix(void)
     if (!(_dcm_matrix.c.x < 1.0f &&
           _dcm_matrix.c.x > -1.0f)) {
         // We have an invalid matrix. Force a normalisation.
+        renorm_range_count++;
         normalize();
 
         if (_dcm_matrix.is_nan() ||
@@ -161,6 +151,7 @@ AP_AHRS_DCM::check_matrix(void)
             // in real trouble. All we can do is reset
             //Serial.printf("ERROR: DCM matrix error. _dcm_matrix.c.x=%f\n",
             //	   _dcm_matrix.c.x);
+            renorm_blowup_count++;
             reset(true);
         }
     }
@@ -199,6 +190,7 @@ AP_AHRS_DCM::renorm(Vector3f const &a, Vector3f &result)
 
     if (!(renorm_val < 2.0f && renorm_val > 0.5f)) {
         // this is larger than it should get - log it as a warning
+        renorm_range_count++;
         if (!(renorm_val < 1.0e6f && renorm_val > 1.0e-6f)) {
             // we are getting values which are way out of
             // range, we will reset the matrix and hope we
@@ -206,6 +198,7 @@ AP_AHRS_DCM::renorm(Vector3f const &a, Vector3f &result)
             // correction before we hit the ground!
             //Serial.printf("ERROR: DCM renormalisation error. renorm_val=%f\n",
             //	   renorm_val);
+            renorm_blowup_count++;
             return false;
         }
     }
@@ -241,7 +234,6 @@ AP_AHRS_DCM::normalize(void)
         !renorm(t2, _dcm_matrix.c)) {
         // Our solution is blowing up and we will force back
         // to last euler angles
-        _last_failure_ms = hal.scheduler->millis();
         reset(true);
     }
 }
@@ -289,29 +281,10 @@ AP_AHRS_DCM::_P_gain(float spin_rate)
     return spin_rate/ToRad(50);
 }
 
-// _yaw_gain reduces the gain of the PI controller applied to heading errors
-// when observability from change of velocity is good (eg changing speed or turning)
-// This reduces unwanted roll and pitch coupling due to compass errors for planes.
-// High levels of noise on _accel_ef will cause the gain to drop and could lead to 
-// increased heading drift during straight and level flight, however some gain is
-// always available. TODO check the necessity of adding adjustable acc threshold 
-// and/or filtering accelerations before getting magnitude
-float
-AP_AHRS_DCM::_yaw_gain(void) const
-{
-    float VdotEFmag = pythagorous2(_accel_ef[_active_accel_instance].x,
-                                   _accel_ef[_active_accel_instance].y);
-    if (VdotEFmag <= 4.0f) {
-        return 0.2f*(4.5f - VdotEFmag);
-    }
-    return 0.1f;
-}
-
-
 // return true if we have and should use GPS
 bool AP_AHRS_DCM::have_gps(void) const
 {
-    if (_gps.status() <= AP_GPS::NO_FIX || !_gps_use) {
+    if (!_gps || _gps->status() <= GPS::NO_FIX || !_gps_use) {
         return false;
     }
     return true;
@@ -328,7 +301,7 @@ bool AP_AHRS_DCM::use_compass(void)
         // we don't have any alterative to the compass
         return true;
     }
-    if (_gps.ground_speed() < GPS_SPEED_MIN) {
+    if (_gps->ground_speed_cm < GPS_SPEED_MIN) {
         // we are not going fast enough to use the GPS
         return true;
     }
@@ -337,8 +310,8 @@ bool AP_AHRS_DCM::use_compass(void)
     // degrees and the estimated wind speed is less than 80% of the
     // ground speed, then switch to GPS navigation. This will help
     // prevent flyaways with very bad compass offsets
-    int32_t error = abs(wrap_180_cd(yaw_sensor - _gps.ground_course_cd()));
-    if (error > 4500 && _wind.length() < _gps.ground_speed()*0.8f) {
+    int32_t error = abs(wrap_180_cd(yaw_sensor - _gps->ground_course_cd));
+    if (error > 4500 && _wind.length() < _gps->ground_speed_cm*0.008f) {
         if (hal.scheduler->millis() - _last_consistent_heading > 2000) {
             // start using the GPS for heading if the compass has been
             // inconsistent with the GPS for 2 seconds
@@ -384,18 +357,18 @@ AP_AHRS_DCM::drift_correction_yaw(void)
             // also update the _gps_last_update, so if we later
             // disable the compass due to significant yaw error we
             // don't suddenly change yaw with a reset
-            _gps_last_update = _gps.last_fix_time_ms();
+            _gps_last_update = _gps->last_fix_time;
         }
     } else if (_flags.fly_forward && have_gps()) {
         /*
           we are using GPS for yaw
          */
-        if (_gps.last_fix_time_ms() != _gps_last_update &&
-            _gps.ground_speed() >= GPS_SPEED_MIN) {
-            yaw_deltat = (_gps.last_fix_time_ms() - _gps_last_update) * 1.0e-3f;
-            _gps_last_update = _gps.last_fix_time_ms();
+        if (_gps->last_fix_time != _gps_last_update &&
+            _gps->ground_speed_cm >= GPS_SPEED_MIN) {
+            yaw_deltat = (_gps->last_fix_time - _gps_last_update) * 1.0e-3f;
+            _gps_last_update = _gps->last_fix_time;
             new_value = true;
-            float gps_course_rad = ToRad(_gps.ground_course_cd() * 0.01f);
+            float gps_course_rad = ToRad(_gps->ground_course_cd * 0.01f);
             float yaw_error_rad = wrap_PI(gps_course_rad - yaw);
             yaw_error = sinf(yaw_error_rad);
 
@@ -417,7 +390,7 @@ AP_AHRS_DCM::drift_correction_yaw(void)
             */
             if (!_flags.have_initial_yaw || 
                 yaw_deltat > 20 ||
-                (_gps.ground_speed() >= 3*GPS_SPEED_MIN && fabsf(yaw_error_rad) >= 1.047f)) {
+                (_gps->ground_speed_cm >= 3*GPS_SPEED_MIN && fabsf(yaw_error_rad) >= 1.047f)) {
                 // reset DCM matrix based on current yaw
                 _dcm_matrix.from_euler(roll, pitch, gps_course_rad);
                 _omega_yaw_P.zero();
@@ -446,11 +419,8 @@ AP_AHRS_DCM::drift_correction_yaw(void)
     // yaw back to the right value. We use a gain
     // that depends on the spin rate. See the fastRotations.pdf
     // paper from Bill Premerlani
-    // We also adjust the gain depending on the rate of change of horizontal velocity which
-    // is proportional to how observable the heading is from the acceerations and GPS velocity
-    // The accelration derived heading will be more reliable in turns than compass or GPS
 
-    _omega_yaw_P.z = error_z * _P_gain(spin_rate) * _kp_yaw * _yaw_gain();
+    _omega_yaw_P.z = error_z * _P_gain(spin_rate) * _kp_yaw;
     if (_flags.fast_ground_gains) {
         _omega_yaw_P.z *= 8;
     }
@@ -468,18 +438,51 @@ AP_AHRS_DCM::drift_correction_yaw(void)
 
 
 /**
-   return an accel vector delayed by AHRS_ACCEL_DELAY samples for a
-   specific accelerometer instance
+   return an accel vector delayed by AHRS_ACCEL_DELAY samples
  */
-Vector3f AP_AHRS_DCM::ra_delayed(uint8_t instance, const Vector3f &ra)
+Vector3f AP_AHRS_DCM::ra_delayed(const Vector3f &ra)
 {
-    // get the old element, and then fill it with the new element
-    Vector3f ret = _ra_delay_buffer[instance];
-    _ra_delay_buffer[instance] = ra;
-    if (ret.is_zero()) {
-        // use the current vector if the previous vector is exactly
-        // zero. This prevents an error on initialisation
+    if (_ra_delay_length != _gps_delay.get()) {
+        // the AHRS_GPS_DELAY setting has changed
+
+        // constrain it between 0 and 5
+        if (_gps_delay.get() > 5) {
+            _gps_delay.set(5);
+        }
+        if (_gps_delay.get() < 0) {
+            _gps_delay.set(0);
+        }
+        if (_ra_delay_buffer != NULL) {
+            delete[] _ra_delay_buffer;
+            _ra_delay_buffer = NULL;
+        }
+
+        // allocate the new buffer
+        _ra_delay_length = _gps_delay.get();
+        if (_ra_delay_length != 0) {
+            _ra_delay_buffer = new Vector3f[_ra_delay_length];
+        }
+        _ra_delay_next = 0;
+        if (_ra_delay_buffer != NULL) {
+            // on size change prefill the buffer with the current value
+            for (uint8_t i=0; i<_ra_delay_length; i++) {
+                _ra_delay_buffer[i] = ra;
+            }
+        }
+    }
+    if (_ra_delay_buffer == NULL) {
+        // we're not doing any delay
         return ra;
+    }
+
+    // get the old element, and then fill it with the new element
+    Vector3f ret = _ra_delay_buffer[_ra_delay_next];
+    _ra_delay_buffer[_ra_delay_next] = ra;
+
+    // move to the next element
+    _ra_delay_next++;
+    if (_ra_delay_next == _ra_delay_length) {
+        _ra_delay_next = 0;
     }
     return ret;
 }
@@ -504,21 +507,18 @@ AP_AHRS_DCM::drift_correction(float deltat)
     drift_correction_yaw();
 
     // rotate accelerometer values into the earth frame
-    for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
-        if (_ins.get_accel_health(i)) {
-            _accel_ef[i] = _dcm_matrix * _ins.get_accel(i);
-            // integrate the accel vector in the earth frame between GPS readings
-            _ra_sum[i] += _accel_ef[i] * deltat;
-        }
-    }
+    _accel_ef = _dcm_matrix * _ins.get_accel();
+
+    // integrate the accel vector in the earth frame between GPS readings
+    _ra_sum += _accel_ef * deltat;
 
     // keep a sum of the deltat values, so we know how much time
     // we have integrated over
     _ra_deltat += deltat;
 
     if (!have_gps() || 
-        _gps.status() < AP_GPS::GPS_OK_FIX_3D || 
-        _gps.num_sats() < _gps_minsats) {
+        _gps->status() < GPS::GPS_OK_FIX_3D || 
+        _gps->num_sats < _gps_minsats) {
         // no GPS, or not a good lock. From experience we need at
         // least 6 satellites to get a really reliable velocity number
         // from the GPS.
@@ -546,12 +546,12 @@ AP_AHRS_DCM::drift_correction(float deltat)
         last_correction_time = hal.scheduler->millis();
         _have_gps_lock = false;
     } else {
-        if (_gps.last_fix_time_ms() == _ra_sum_start) {
+        if (_gps->last_fix_time == _ra_sum_start) {
             // we don't have a new GPS fix - nothing more to do
             return;
         }
-        velocity = _gps.velocity();
-        last_correction_time = _gps.last_fix_time_ms();
+        velocity = Vector3f(_gps->velocity_north(), _gps->velocity_east(), _gps->velocity_down());
+        last_correction_time = _gps->last_fix_time;
         if (_have_gps_lock == false) {
             // if we didn't have GPS lock in the last drift
             // correction interval then set the velocities equal
@@ -567,8 +567,8 @@ AP_AHRS_DCM::drift_correction(float deltat)
 
     if (have_gps()) {
         // use GPS for positioning with any fix, even a 2D fix
-        _last_lat = _gps.location().lat;
-        _last_lng = _gps.location().lng;
+        _last_lat = _gps->latitude;
+        _last_lng = _gps->longitude;
         _position_offset_north = 0;
         _position_offset_east = 0;
 
@@ -595,71 +595,35 @@ AP_AHRS_DCM::drift_correction(float deltat)
     GA_e = Vector3f(0, 0, -1.0f);
 
     bool using_gps_corrections = false;
-    float ra_scale = 1.0f/(_ra_deltat*GRAVITY_MSS);
-
     if (_flags.correct_centrifugal && (_have_gps_lock || _flags.fly_forward)) {
-        float v_scale = gps_gain.get() * ra_scale;
+        float v_scale = gps_gain.get()/(_ra_deltat*GRAVITY_MSS);
         Vector3f vdelta = (velocity - _last_velocity) * v_scale;
         GA_e += vdelta;
         GA_e.normalize();
         if (GA_e.is_inf()) {
             // wait for some non-zero acceleration information
-            _last_failure_ms = hal.scheduler->millis();
             return;
         }
         using_gps_corrections = true;
     }
 
     // calculate the error term in earth frame.
-    // we do this for each available accelerometer then pick the
-    // accelerometer that leads to the smallest error term. This takes
-    // advantage of the different sample rates on different
-    // accelerometers to dramatically reduce the impact of aliasing
-    // due to harmonics of vibrations that match closely the sampling
-    // rate of our accelerometers. On the Pixhawk we have the LSM303D
-    // running at 800Hz and the MPU6000 running at 1kHz, by combining
-    // the two the effects of aliasing are greatly reduced.
-    Vector3f error[INS_MAX_INSTANCES];
-    Vector3f GA_b[INS_MAX_INSTANCES];
-    int8_t besti = -1;
-    float best_error = 0;
-    for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
-        if (!_ins.get_accel_health(i)) {
-            // only use healthy sensors
-            continue;
-        }
-        _ra_sum[i] *= ra_scale;
+    _ra_sum /= (_ra_deltat * GRAVITY_MSS);
 
-        // get the delayed ra_sum to match the GPS lag
-        if (using_gps_corrections) {
-            GA_b[i] = ra_delayed(i, _ra_sum[i]);
-        } else {
-            GA_b[i] = _ra_sum[i];
-        }
-        if (GA_b[i].is_zero()) {
-            // wait for some non-zero acceleration information
-            continue;
-        }
-        GA_b[i].normalize();
-        if (GA_b[i].is_inf()) {
-            // wait for some non-zero acceleration information
-            continue;
-        }
-        error[i] = GA_b[i] % GA_e;
-        float error_length = error[i].length();
-        if (besti == -1 || error_length < best_error) {
-            besti = i;
-            best_error = error_length;
-        }
+    // get the delayed ra_sum to match the GPS lag
+    Vector3f GA_b;
+    if (using_gps_corrections) {
+        GA_b = ra_delayed(_ra_sum);
+    } else {
+        GA_b = _ra_sum;
     }
-
-    if (besti == -1) {
-        // no healthy accelerometers!
-        _last_failure_ms = hal.scheduler->millis();
+    GA_b.normalize();
+    if (GA_b.is_inf()) {
+        // wait for some non-zero acceleration information
         return;
     }
 
-    _active_accel_instance = besti;
+    Vector3f error = GA_b % GA_e;
 
 #define YAW_INDEPENDENT_DRIFT_CORRECTION 0
 #if YAW_INDEPENDENT_DRIFT_CORRECTION
@@ -670,13 +634,13 @@ AP_AHRS_DCM::drift_correction(float deltat)
     float tilt = pythagorous2(GA_e.x, GA_e.y);
 
     // equation 11
-    float theta = atan2f(GA_b[besti].y, GA_b[besti].x);
+    float theta = atan2f(GA_b.y, GA_b.x);
 
     // equation 12
     Vector3f GA_e2 = Vector3f(cosf(theta)*tilt, sinf(theta)*tilt, GA_e.z);
 
     // step 6
-    error = GA_b[besti] % GA_e2;
+    error = GA_b % GA_e2;
     error.z = earth_error_Z;
 #endif // YAW_INDEPENDENT_DRIFT_CORRECTION
 
@@ -686,9 +650,9 @@ AP_AHRS_DCM::drift_correction(float deltat)
     // accelerometers at high roll angles as long as we have a GPS
     if (use_compass()) {
         if (have_gps() && gps_gain == 1.0f) {
-            error[besti].z *= sinf(fabsf(roll));
+            error.z *= sinf(fabsf(roll));
         } else {
-            error[besti].z = 0;
+            error.z = 0;
         }
     }
 
@@ -696,20 +660,19 @@ AP_AHRS_DCM::drift_correction(float deltat)
     // hope the gyros are OK for a while. Just slowly reduce _omega_P
     // to prevent previous bad accels from throwing us off
     if (!_ins.healthy()) {
-        error[besti].zero();
+        error.zero();
     } else {
         // convert the error term to body frame
-        error[besti] = _dcm_matrix.mul_transpose(error[besti]);
+        error = _dcm_matrix.mul_transpose(error);
     }
 
-    if (error[besti].is_nan() || error[besti].is_inf()) {
+    if (error.is_nan() || error.is_inf()) {
         // don't allow bad values
         check_matrix();
-        _last_failure_ms = hal.scheduler->millis();
         return;
     }
 
-    _error_rp_sum += best_error;
+    _error_rp_sum += error.length();
     _error_rp_count++;
 
     // base the P gain on the spin rate
@@ -718,13 +681,13 @@ AP_AHRS_DCM::drift_correction(float deltat)
     // we now want to calculate _omega_P and _omega_I. The
     // _omega_P value is what drags us quickly to the
     // accelerometer reading.
-    _omega_P = error[besti] * _P_gain(spin_rate) * _kp;
+    _omega_P = error * _P_gain(spin_rate) * _kp;
     if (_flags.fast_ground_gains) {
         _omega_P *= 8;
     }
 
-    if (_flags.fly_forward && _gps.status() >= AP_GPS::GPS_OK_FIX_2D && 
-        _gps.ground_speed() < GPS_SPEED_MIN && 
+    if (_flags.fly_forward && _gps && _gps->status() >= GPS::GPS_OK_FIX_2D && 
+        _gps->ground_speed_cm < GPS_SPEED_MIN && 
         _ins.get_accel().x >= 7 &&
 	    pitch_sensor > -3000 && pitch_sensor < 3000) {
             // assume we are in a launch acceleration, and reduce the
@@ -735,7 +698,7 @@ AP_AHRS_DCM::drift_correction(float deltat)
 
     // accumulate some integrator error
     if (spin_rate < ToRad(SPIN_RATE_LIMIT)) {
-        _omega_I_sum += error[besti] * _ki * _ra_deltat;
+        _omega_I_sum += error * _ki * _ra_deltat;
         _omega_I_sum_time += _ra_deltat;
     }
 
@@ -754,22 +717,26 @@ AP_AHRS_DCM::drift_correction(float deltat)
     }
 
     // zero our accumulator ready for the next GPS step
-    memset(&_ra_sum[0], 0, sizeof(_ra_sum));
+    _ra_sum.zero();
     _ra_deltat = 0;
     _ra_sum_start = last_correction_time;
 
     // remember the velocity for next time
     _last_velocity = velocity;
+
+    if (_have_gps_lock && _flags.fly_forward) {
+        // update wind estimate
+        estimate_wind(velocity);
+    }
 }
 
 
 // update our wind speed estimate
-void AP_AHRS_DCM::estimate_wind(void)
+void AP_AHRS_DCM::estimate_wind(Vector3f &velocity)
 {
     if (!_flags.wind_estimation) {
         return;
     }
-    const Vector3f &velocity = _last_velocity;
 
     // this is based on the wind speed estimation code from MatrixPilot by
     // Bill Premerlani. Adaption for ArduPilot by Jon Challinger
@@ -879,18 +846,17 @@ float AP_AHRS_DCM::get_error_yaw(void)
 // dead-reckoning or GPS
 bool AP_AHRS_DCM::get_position(struct Location &loc)
 {
+    if (!_have_position) {
+        return false;
+    }
     loc.lat = _last_lat;
     loc.lng = _last_lng;
-    loc.alt = _baro.get_altitude() * 100 + _home.alt;
     location_offset(loc, _position_offset_north, _position_offset_east);
-    if (_flags.fly_forward && _have_position) {
-        location_update(loc, degrees(yaw), _gps.ground_speed() * _gps.get_lag());
-    }
-    return _have_position;
+    return true;
 }
 
 // return an airspeed estimate if available
-bool AP_AHRS_DCM::airspeed_estimate(float *airspeed_ret) const
+bool AP_AHRS_DCM::airspeed_estimate(float *airspeed_ret)
 {
 	bool ret = false;
 	if (_airspeed && _airspeed->use()) {
@@ -908,10 +874,10 @@ bool AP_AHRS_DCM::airspeed_estimate(float *airspeed_ret) const
 		ret = true;
 	}
 
-	if (ret && _wind_max > 0 && _gps.status() >= AP_GPS::GPS_OK_FIX_2D) {
+	if (ret && _wind_max > 0 && _gps && _gps->status() >= GPS::GPS_OK_FIX_2D) {
 		// constrain the airspeed by the ground speed
 		// and AHRS_WIND_MAX
-        float gnd_speed = _gps.ground_speed();
+        float gnd_speed = _gps->ground_speed_cm*0.01f;
         float true_airspeed = *airspeed_ret * get_EAS2TAS();
 		true_airspeed = constrain_float(true_airspeed,
                                         gnd_speed - _wind_max, 
@@ -919,19 +885,4 @@ bool AP_AHRS_DCM::airspeed_estimate(float *airspeed_ret) const
         *airspeed_ret = true_airspeed / get_EAS2TAS();
 	}
 	return ret;
-}
-
-void AP_AHRS_DCM::set_home(const Location &loc)
-{
-    _home = loc;
-    _home.options = 0;
-}
-
-/*
-  check if the AHRS subsystem is healthy
-*/
-bool AP_AHRS_DCM::healthy(void)
-{
-    // consider ourselves healthy if there have been no failures for 5 seconds
-    return (_last_failure_ms == 0 || hal.scheduler->millis() - _last_failure_ms > 5000);
 }

@@ -86,11 +86,10 @@ GLOBAL_FLAGS    += -DUSE_USB_OTG_FS
 GLOBAL_FLAGS    += -DUSE_EMBEDDED_PHY
 GLOBAL_FLAGS    += -D__FPU_PRESENT
 GLOBAL_FLAGS    += -D__FPU_USED=1
-GLOBAL_FLAGS    += -DAPM_BUILD_DIRECTORY=APM_BUILD_$(SKETCH)
 # GLOBAL_CFLAGS -----------------------------------------------------------------------------------
 GLOBAL_CFLAGS   := $(cpu_flags)
 GLOBAL_CFLAGS   += -mthumb             #Generate code for the Thumb instruction set
-GLOBAL_CFLAGS   += -ggdb                  #Produce debugging information in the operating system’s native format
+GLOBAL_CFLAGS   += -ggdb                  #Produce debugging information in the operating system's native format
 #GLOBAL_CFLAGS   += -O0                 #Reduce compilation time and make debugging produce the expected results. This is the default
 #GLOBAL_CFLAGS   += -nostdlib           #Do not use the standard system startup files or libraries when linking
 GLOBAL_CFLAGS   += -Wall               #This enables all the warnings about constructions that some users consider questionable, and that are easy to avoid (or modify to prevent the warning), even in conjunction with macros
@@ -103,13 +102,13 @@ GLOBAL_CFLAGS   += $(GLOBAL_FLAGS)
 #GLOBAL_CXXFLAGS := -fno-rtti       #Disable generation of information about every class with virtual functions for use by the C++ runtime type identification features
 #GLOBAL_CXXFLAGS += -fno-exceptions
 GLOBAL_CXXFLAGS += -Wall
-GLOBAL_CXXFLAGS += -fpermissive    #Downgrade some diagnostics about nonconformant code from errors to warnings. Thus, using ‘-fpermissive’ will allow some nonconforming code to compile.
+GLOBAL_CXXFLAGS += -fpermissive    #Downgrade some diagnostics about nonconformant code from errors to warnings. Thus, using '-fpermissive' will allow some nonconforming code to compile.
 GLOBAL_CXXFLAGS += -Wno-psabi
 GLOBAL_CXXFLAGS += $(GLOBAL_FLAGS)
 # GLOBAL_ASFLAGS ----------------------------------------------------------------------------------
 GLOBAL_ASFLAGS  := $(cpu_flags)
 GLOBAL_ASFLAGS  += -mthumb
-GLOBAL_CFLAGS   += -ggdb                 #Produce debugging information in the operating system’s native format
+GLOBAL_CFLAGS   += -ggdb                 #Produce debugging information in the operating system's native format
 #GLOBAL_CFLAGS   += -O0                #Reduce compilation time and make debugging produce the expected results. This is the default
 GLOBAL_ASFLAGS  += -x assembler-with-cpp
 GLOBAL_ASFLAGS  += $(GLOBAL_FLAGS)
@@ -144,9 +143,7 @@ LIBRARY_MODULES += $(HAL_PATH)
 LIBRARY_MODULES += $(WIRISH_PATH)
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL
 LIBRARY_MODULES += $(LIBRARIES_PATH)/$(AP_HAL)
-LIBRARY_MODULES += $(LIBRARIES_PATH)/$(AP_HAL)/utility
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_HAL_Empty
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_AttitudeControl
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_Fence
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_Sprayer
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AC_PID
@@ -167,26 +164,22 @@ LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Curve
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Declination
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_EPM
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_GPS
-#LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Limits
+LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Limits
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_InertialSensor
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_L1_Control
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_InertialNav
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Math
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Menu
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Mission
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Motors
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Mount
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_NavEKF
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Navigation
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Notify
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_OpticalFlow
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Parachute
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Param
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_PerfMon
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Progmem
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_RangeFinder
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_RCMapper
-LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Rally
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_Relay
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_ServoRelayEvents
 LIBRARY_MODULES += $(LIBRARIES_PATH)/AP_SpdHgtControl
@@ -229,7 +222,7 @@ endif
 #all: build-check MSG_INFO $(BUILD_PATH)/$(BOARD).bin
 all: build-check MSG_INFO cleansketch $(SKETCHCPP) $(BUILD_PATH)/$(BOARD).bin \
      $(BUILD_PATH)/$(BOARD).opfw
-     
+
 cleansketch:
 	rm -f $(SKETCHCPP)
 	rm -f main.cpp

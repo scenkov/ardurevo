@@ -71,7 +71,7 @@ void DataFlash_REVOMINI::Init(const struct LogStructure *structure, uint8_t num_
     // init to zero
     df_NumPages = 0;
 
-    hal.gpio->pinMode(DF_RESET,HAL_GPIO_OUTPUT);
+    hal.gpio->pinMode(DF_RESET,GPIO_OUTPUT);
     // Reset the chip
     hal.gpio->write(DF_RESET,0);
     hal.scheduler->delay(1);

@@ -12,7 +12,6 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += Compass.cpp
-cppSRCS_$(d) += Compass_learn.cpp
 cppSRCS_$(d) += AP_Compass_HMC5843.cpp
 cppSRCS_$(d) += AP_Compass_HMC5843_EXT.cpp
 cppSRCS_$(d) += AP_Compass_HIL.cpp

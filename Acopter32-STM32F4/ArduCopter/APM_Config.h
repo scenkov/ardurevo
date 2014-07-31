@@ -19,13 +19,12 @@
  * and in
  * libraries/AP_InertialSensor/AP_InertialSensor_MPU6000.h
  */
-//#define ENHANCED
+#define ENHANCED
 /*-------------END ENHANCED-----------------*/
 
 /*-------------EXTERNAL IMU-----------------*/
 /* To use External IMU connected to SPI3, uuncomment this line */
 //#define CONFIG_IMU_TYPE   CONFIG_IMU_MPU6000_EXT
-//#define CONFIG_IMU_TYPE   CONFIG_IMU_VRBRAIN
 /*-------------END EXTERNAL IMU-----------------*/
 
 /*------------EXTERNAL COMPASS----------------*/
@@ -34,7 +33,7 @@
 //#define COMPASS_EXT
 /*-----------ND EXTERNAL COMPASS--------------*/
 
-//#define FRAME_CONFIG OCTA_QUAD_FRAME
+//#define FRAME_CONFIG OCTA_FRAME
 //#define FRAME_ORIENTATION      PLUS_FRAME
 
  //#define GPS_PROTOCOL           GPS_PROTOCOL_NONE
@@ -67,7 +66,7 @@
 //#define EPM_ENABLED           ENABLED             // enable epm cargo gripper costs 500bytes of flash
 
 // other settings
-#define THROTTLE_IN_DEADBAND   80                // redefine size of throttle deadband in pwm (0 ~ 1000)
+//#define THROTTLE_IN_DEADBAND   100                // redefine size of throttle deadband in pwm (0 ~ 1000)
 //#define LAND_REQUIRE_MIN_THROTTLE_TO_DISARM   DISABLED    // when set to DISABLED vehicle will disarm after landing (in LAND mode or RTL) even if pilot has not put throttle to zero
 
 //#define HIL_MODE              HIL_MODE_SENSORS    // build for hardware-in-the-loop simulation

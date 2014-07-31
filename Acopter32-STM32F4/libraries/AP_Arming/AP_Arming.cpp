@@ -36,7 +36,7 @@ const AP_Param::GroupInfo AP_Arming::var_info[] PROGMEM = {
     
     // @Param: CHECK
     // @DisplayName: Arm Checks to Peform (bitmask)
-    // @Description: Checks prior to arming motor. This is a bitmask of checks that will be performed befor allowing arming. The default is no checks, allowing arming at any time. You can select whatever checks you prefer by adding together the values of each check type to set this parameter. For example, to only allow arming when you have GPS lock and manual RC control you would set ARMING_CHECK to 72.
+    // @// @Description: Checks prior to arming motor. This is a bitmask of checks that will be performed befor allowing arming. The default is no checks, allowing arming at any time. You can select whatever checks you prefer by adding together the values of each check type to set this parameter. For example, to only allow arming when you have GPS lock and manual RC control you would set ARMING_CHECK to 72.
     // @Values: 0:None,1:All,2:Barometer,4:Compass,8:GPS,16:INS,32:Parameters,64:Manual RC Trasmitter,128:Board voltage,256:Battery Level 
     // @User: Advanced
     AP_GROUPINFO("CHECK",        2,     AP_Arming,  checks_to_perform,       0),
@@ -46,13 +46,12 @@ const AP_Param::GroupInfo AP_Arming::var_info[] PROGMEM = {
 
 //The function point is particularly hacky, hacky, tacky
 //but I don't want to reimplement messaging to GCS at the moment:
-AP_Arming::AP_Arming(const AP_AHRS &ahrs_ref, const AP_Baro &baro, Compass &compass,
+AP_Arming::AP_Arming(const AP_AHRS &ahrs_ref, const AP_Baro &baro,
                      const bool &home_set, gcs_send_t_p gcs_print_func)
    : armed(false)
    , arming_method(NONE)
    , ahrs(ahrs_ref)
    , barometer(baro)
-   , _compass(compass)
    , home_is_set(home_set)
    , gcs_send_text_P(gcs_print_func)
 {
@@ -92,15 +91,30 @@ bool AP_Arming::compass_checks(bool report)
 {
     if ((checks_to_perform) & ARMING_CHECK_ALL ||
         (checks_to_perform) & ARMING_CHECK_COMPASS) {
+        const Compass* compass = ahrs.get_compass();
 
-        if (!_compass.healthy()) {
+        //if there is no compass and the user has specifically asked to check
+        //the compass, then there is a problem
+        if (compass == NULL && (checks_to_perform & ARMING_CHECK_COMPASS)) {
+            if (report) {
+                gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: No compass detected."));
+            }
+            return false;
+        } else if (compass == NULL) {
+            //if the user's not asking to check and there isn't a compass
+            //then skip compass checks
+            return true;
+        }
+
+        if (! compass->healthy()) {
             if (report) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass not healthy!"));
             }
             return false;
         }
         // check compass learning is on or offsets have been set
-        if (!_compass.learn_offsets_enabled() && !_compass.configured()) {
+        Vector3f offsets = compass->get_offsets();
+        if(!compass->_learn && offsets.length() == 0) {
             if (report) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass not calibrated"));
             }
@@ -116,11 +130,22 @@ bool AP_Arming::gps_checks(bool report)
 {
     if ((checks_to_perform & ARMING_CHECK_ALL) ||
         (checks_to_perform & ARMING_CHECK_GPS)) {
-        const AP_GPS &gps = ahrs.get_gps();
+        const GPS *gps = ahrs.get_gps();
+
+        //If no GPS and the user has specifically asked to check GPS, then
+        //there is a problem
+        if (gps == NULL && (checks_to_perform & ARMING_CHECK_GPS)) {
+            if (report) {
+                gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: No GPS detected."));
+            }
+            return false;
+        } else if (gps == NULL) {
+            //assume the user doesn't have a GPS on purpose
+            return true;
+        } 
 
         //GPS OK?
-        if (!home_is_set || 
-            gps.status() < AP_GPS::GPS_OK_FIX_3D ||              
+        if (!home_is_set || gps->status() != GPS::GPS_OK_FIX_3D ||              
             AP_Notify::flags.gps_glitching ||
             AP_Notify::flags.failsafe_gps) {
             if (report) {

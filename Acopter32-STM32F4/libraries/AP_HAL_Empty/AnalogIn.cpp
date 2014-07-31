@@ -41,7 +41,4 @@ AP_HAL::AnalogSource* EmptyAnalogIn::channel(int16_t n) {
     return new EmptyAnalogSource(1.11);
 }
 
-float EmptyAnalogIn::board_voltage(void)
-{
-    return 0;
-}
+

@@ -29,10 +29,6 @@
     #define EPM_PIN_1       -1    // to be determine 
     #define EPM_PIN_2       -1    // to be determine
     #define EPM_SUPPORTED   false
-#elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
-    #define EPM_PIN_1       -1    // to be determine 
-    #define EPM_PIN_2       -1    // to be determine
-    #define EPM_SUPPORTED   false
 #else
     #define EPM_PIN_1       -1    // not supported
     #define EPM_PIN_2       -1    // not supported

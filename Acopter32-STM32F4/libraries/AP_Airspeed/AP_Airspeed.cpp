@@ -97,12 +97,6 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("AUTOCAL",  5, AP_Airspeed, _autocal, 0),
 
-    // @Param: TUBE_ORDER
-    // @DisplayName: Control pitot tube order
-    // @Description: This parameter allows you to control whether the order in which the tubes are attached to your pitot tube matters. If you set this to 0 then the top connector on the sensor needs to be the dynamic pressure. If set to 1 then the bottom connector needs to be the dynamic pressure. If set to 2 (the default) then the airspeed driver will accept either order. The reason you may wish to specify the order is it will allow your airspeed sensor to detect if the aircraft it receiving excessive pressure on the static port, which would otherwise be seen as a positive airspeed.
-    // @User: Advanced
-    AP_GROUPINFO("TUBE_ORDER",  6, AP_Airspeed, _tube_order, 2),
-
     AP_GROUPEND
 };
 
@@ -132,24 +126,12 @@ float AP_Airspeed::get_pressure(void)
         return 0;
     }
     float pressure = 0;
-    if (_pin == AP_AIRSPEED_I2C_PIN) {
+    if (_pin == 65) {
        // _healthy = digital.get_differential_pressure(pressure);
     } else {
         _healthy = analog.get_differential_pressure(pressure);
     }
     return pressure;
-}
-
-// get a temperature reading if possible
-bool AP_Airspeed::get_temperature(float &temperature)
-{
-    if (!_enable) {
-        return false;
-    }
-    if (_pin == AP_AIRSPEED_I2C_PIN) {
-        //return digital.get_temperature(temperature);
-    }
-    return false;
 }
 
 // calibrate the airspeed. This must be called at least once before
@@ -190,39 +172,9 @@ void AP_Airspeed::read(void)
     if (!_enable) {
         return;
     }
-    airspeed_pressure = get_pressure() - _offset;
-
-    /*
-      we support different pitot tube setups so used can choose if
-      they want to be able to detect pressure on the static port
-     */
-    switch ((enum pitot_tube_order)_tube_order.get()) {
-    case PITOT_TUBE_ORDER_NEGATIVE:
-        airspeed_pressure = -airspeed_pressure;
-        // fall thru
-    case PITOT_TUBE_ORDER_POSITIVE:
-        if (airspeed_pressure < -32) {
-            // we're reading more than about -8m/s. The user probably has
-            // the ports the wrong way around
-            _healthy = false;
-        }
-        break;
-    case PITOT_TUBE_ORDER_AUTO:
-    default:
-        airspeed_pressure = fabsf(airspeed_pressure);
-        break;
-    }
-    airspeed_pressure       = max(airspeed_pressure, 0);
+    airspeed_pressure       = get_pressure();
+    airspeed_pressure       = max(airspeed_pressure - _offset, 0);
     _last_pressure          = airspeed_pressure;
     _raw_airspeed           = sqrtf(airspeed_pressure * _ratio);
     _airspeed               = 0.7f * _airspeed  +  0.3f * _raw_airspeed;
-    _last_update_ms         = hal.scheduler->millis();
-}
-
-void AP_Airspeed::setHIL(float airspeed, float diff_pressure, float temperature)
-{
-    _raw_airspeed = airspeed;
-    _airspeed = airspeed;
-    _last_pressure = diff_pressure;
-    _last_update_ms         = hal.scheduler->millis();    
 }

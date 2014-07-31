@@ -53,11 +53,6 @@ public:
        then return 0xFFFF. If unknown return 4096
      */
     virtual uint16_t available_memory(void) { return 4096; }
-
-    /**
-       return commandline arguments, if available
-     */
-    virtual void commandline_arguments(uint8_t &argc, char * const *&argv) { argc = 0; }
 };
 
 #endif // __AP_HAL_UTIL_H__

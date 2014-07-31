@@ -8,12 +8,6 @@ extern const AP_HAL::HAL& hal;
 // MPU6000 accelerometer scaling
 #define MPU6000_ACCEL_SCALE_1G    (GRAVITY_MSS / 4096.0f)
 
-#if  CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- #define MPU6000_DRDY_PIN 10
-#else
- #define MPU6000_DRDY_PIN 99
-#endif
-
 // MPU 6000 registers
 #define MPUREG_XG_OFFS_TC                               0x00
 #define MPUREG_YG_OFFS_TC                               0x01
@@ -198,11 +192,16 @@ uint16_t AP_InertialSensor_MPU6000::_init_sensor( Sample_rate sample_rate )
     _spi = hal.spi->device(AP_HAL::SPIDevice_MPU6000);
     _spi_sem = _spi->get_semaphore();
 
-#ifdef MPU6000_DRDY_PIN
-    _drdy_pin = hal.gpio->channel(MPU6000_DRDY_PIN);
-    _drdy_pin->mode(HAL_GPIO_INPUT);
+    /* Pin 70 defined especially to hook
+       up PE6 to the hal.gpio abstraction.
+       (It is not a valid pin under Arduino.) */
+#if  CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+    _drdy_pin = hal.gpio->channel(99);
+#elif  CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+    _drdy_pin = hal.gpio->channel(10);
+#else
+    _drdy_pin = hal.gpio->channel(70);
 #endif
-
     hal.scheduler->suspend_timer_procs();
 
     uint8_t tries = 0;
@@ -446,22 +445,6 @@ void AP_InertialSensor_MPU6000::_register_write(uint8_t reg, uint8_t val)
 }
 
 /*
-  useful when debugging SPI bus errors
- */
-void AP_InertialSensor_MPU6000::_register_write_check(uint8_t reg, uint8_t val)
-{
-    uint8_t readed;
-    _register_write(reg, val);
-    readed = _register_read(reg);
-    if (readed != val){
-	hal.console->printf_P(PSTR("Values doesn't match; written: %02x; read: %02x "), val, readed);
-    }
-#if MPU6000_DEBUG
-    hal.console->printf_P(PSTR("Values written: %02x; readed: %02x "), val, readed);
-#endif
-}
-
-/*
   set the DLPF filter frequency. Assumes caller has taken semaphore
  */
 void AP_InertialSensor_MPU6000::_set_filter_register(uint8_t filter_hz, uint8_t default_filter)
@@ -668,7 +651,7 @@ bool AP_InertialSensor_MPU6000::_sample_available()
 {
     _poll_data();
 #ifdef ENHANCED
-    return (_sum_count >> _sample_shift) > 1;
+    return (_sum_count >> _sample_shift) > 9;
 #else
     return (_sum_count >> _sample_shift) > 0;
 #endif
@@ -680,23 +663,20 @@ bool AP_InertialSensor_MPU6000::_sample_available()
 void AP_InertialSensor_MPU6000::_dump_registers(void)
 {
     hal.console->println_P(PSTR("MPU6000 registers"));
-    if (_spi_sem->take(100)) {
-        for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
-            uint8_t v = _register_read(reg);
-            hal.console->printf_P(PSTR("%02x:%02x "), (unsigned)reg, (unsigned)v);
-            if ((reg - (MPUREG_PRODUCT_ID-1)) % 16 == 0) {
-                hal.console->println();
-            }
+    for (uint8_t reg=MPUREG_PRODUCT_ID; reg<=108; reg++) {
+        uint8_t v = _register_read(reg);
+        hal.console->printf_P(PSTR("%02x:%02x "), (unsigned)reg, (unsigned)v);
+        if ((reg - (MPUREG_PRODUCT_ID-1)) % 16 == 0) {
+            hal.console->println();
         }
-        hal.console->println();
-        _spi_sem->give();
     }
+    hal.console->println();
 }
 #endif
 
 
 // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-float AP_InertialSensor_MPU6000::get_delta_time() const
+float AP_InertialSensor_MPU6000::get_delta_time() 
 {
 #if CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN || CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 #ifdef ENHANCED

@@ -16,11 +16,6 @@ static void read_control_switch()
         return;
     }
 
-    if (hal.scheduler->millis() - failsafe.last_valid_rc_ms > 100) {
-        // only use signals that are less than 0.1s old.
-        return;
-    }
-
     // we look for changes in the switch position. If the
     // RST_SWITCH_CH parameter is set, then it is a switch that can be
     // used to force re-reading of the control switch. This is useful
@@ -43,13 +38,14 @@ static void read_control_switch()
         set_mode((enum FlightMode)(flight_modes[switchPosition].get()));
 
         oldSwitchPosition = switchPosition;
-        prev_WP_loc = current_loc;
+        prev_WP = current_loc;
     }
 
     if (g.reset_mission_chan != 0 &&
         hal.rcin->read(g.reset_mission_chan-1) > RESET_SWITCH_CHAN_PWM) {
-        mission.start();
-        prev_WP_loc = current_loc;
+        // reset to first waypoint in mission
+        prev_WP = current_loc;
+        change_command(0);
     }
 
     switch_debouncer = false;
@@ -61,10 +57,9 @@ static void read_control_switch()
     }
 }
 
-static uint8_t readSwitch(void)
-{
+static uint8_t readSwitch(void){
     uint16_t pulsewidth = hal.rcin->read(g.flight_mode_channel - 1);
-    if (pulsewidth <= 900 || pulsewidth >= 2200) return 255;            // This is an error condition
+    if (pulsewidth <= 910 || pulsewidth >= 2090) return 255;            // This is an error condition
     if (pulsewidth > 1230 && pulsewidth <= 1360) return 1;
     if (pulsewidth > 1360 && pulsewidth <= 1490) return 2;
     if (pulsewidth > 1490 && pulsewidth <= 1620) return 3;
@@ -79,20 +74,3 @@ static void reset_control_switch()
     read_control_switch();
 }
 
-/*
-  called when entering autotune
- */
-static void autotune_start(void)
-{
-    rollController.autotune_start();
-    pitchController.autotune_start();
-}
-
-/*
-  called when exiting autotune
- */
-static void autotune_restore(void)
-{
-    rollController.autotune_restore();
-    pitchController.autotune_restore();
-}

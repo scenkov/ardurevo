@@ -33,7 +33,7 @@ public:
     /// notify_type - bitmask of notification types
     struct notify_type {
         uint16_t initialising       : 1;    // 1 if initialising and copter should not be moved
-        uint16_t gps_status         : 3;    // 0 = no gps, 1 = no lock, 2 = 2d lock, 3 = 3d lock, 4 = dgps lock, 5 = rtk lock
+        uint16_t gps_status         : 2;    // 0 = no gps, 1 = no lock, 2 = 2d lock, 3 = 3d lock
         uint16_t gps_glitching      : 1;    // 1 if gps position is not good
         uint16_t armed              : 1;    // 0 = disarmed, 1 = armed
         uint16_t pre_arm_check      : 1;    // 0 = failing checks, 1 = passed
@@ -42,9 +42,6 @@ public:
         uint16_t failsafe_radio     : 1;    // 1 if radio failsafe
         uint16_t failsafe_battery   : 1;    // 1 if battery failsafe
         uint16_t failsafe_gps       : 1;    // 1 if gps failsafe
-        uint16_t arming_failed      : 1;    // 1 if copter failed to arm after user input
-        uint16_t parachute_release  : 1;    // 1 if parachute is being released
-        uint16_t ekf_bad            : 1;    // 1 if ekf is reporting problems
 
         // additional flags
         uint16_t external_leds      : 1;    // 1 if external LEDs are enabled (normally only used for copter)

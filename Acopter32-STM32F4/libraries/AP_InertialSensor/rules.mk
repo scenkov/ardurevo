@@ -11,14 +11,12 @@ CFLAGS_$(d) := -Wall
 cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
-cppSRCS_$(d) += AP_InertialSensor.cpp
 cppSRCS_$(d) += AP_InertialSensor_MPU6000.cpp
-cppSRCS_$(d) += AP_InertialSensor_VRBRAIN.cpp
-cppSRCS_$(d) += AP_InertialSensor_REVOMINI.cpp
 cppSRCS_$(d) += AP_InertialSensor_MPU6000_Ext.cpp
 cppSRCS_$(d) += AP_InertialSensor_Oilpan.cpp
 cppSRCS_$(d) += AP_InertialSensor_PX4.cpp
 cppSRCS_$(d) += AP_InertialSensor_UserInteract_Stream.cpp
+cppSRCS_$(d) += AP_InertialSensor.cpp
 cppSRCS_$(d) += AP_InertialSensor_UserInteract_MAVLink.cpp
 cppSRCS_$(d) += AP_InertialSensor_L3G4200D.cpp
 

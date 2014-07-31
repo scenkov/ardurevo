@@ -12,7 +12,6 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) := 
 cppSRCS_$(d) += DerivativeFilter.cpp
-cppSRCS_$(d) += LowPassFilter2p.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

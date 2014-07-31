@@ -24,7 +24,7 @@ static void arm_motors_check()
     }
 
     // allow arming/disarming in Loiter and AltHold if landed
-    if (ap.land_complete && (control_mode == LOITER || control_mode == ALT_HOLD || control_mode == POSHOLD || control_mode == AUTOTUNE)) {
+    if (ap.land_complete && (control_mode == LOITER || control_mode == ALT_HOLD)) {
         allow_arming = true;
     }
 
@@ -61,7 +61,6 @@ static void arm_motors_check()
             }else{
                 // reset arming counter if pre-arm checks fail
                 arming_counter = 0;
-                AP_Notify::flags.arming_failed = true;
             }
         }
 
@@ -85,7 +84,6 @@ static void arm_motors_check()
 
     // Yaw is centered so reset arming counter
     }else{
-        AP_Notify::flags.arming_failed = false;
         arming_counter = 0;
     }
 }
@@ -103,7 +101,7 @@ static void auto_disarm_check()
     }
 
     // allow auto disarm in manual flight modes or Loiter/AltHold if we're landed
-    if(manual_flight_mode(control_mode) || (ap.land_complete && (control_mode == LOITER || control_mode == ALT_HOLD || control_mode == POSHOLD || control_mode == AUTOTUNE))) {
+    if(manual_flight_mode(control_mode) || (ap.land_complete && (control_mode == LOITER || control_mode == ALT_HOLD))) {
         auto_disarming_counter++;
 
         if(auto_disarming_counter >= AUTO_DISARMING_DELAY) {
@@ -139,6 +137,16 @@ static void init_arm_motors()
     gcs_send_text_P(SEVERITY_HIGH, PSTR("ARMING MOTORS"));
 #endif
 
+    // we don't want writes to the serial port to cause us to pause
+    // mid-flight, so set the serial ports non-blocking once we arm
+    // the motors
+    hal.uartA->set_blocking_writes(false);
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+    hal.uartC->set_blocking_writes(false);
+    if (hal.uartD != NULL) {
+        hal.uartD->set_blocking_writes(false);
+    }
+#endif
     // Remember Orientation
     // --------------------
     init_simple_bearing();
@@ -152,23 +160,25 @@ static void init_arm_motors()
         calc_distance_and_bearing();
     }
 
+    // all I terms are invalid
+    // -----------------------
+    reset_I_all();
+
     if(did_ground_start == false) {
         did_ground_start = true;
         startup_ground(true);
     }
 
+#if HIL_MODE != HIL_MODE_ATTITUDE
     // fast baro calibration to reset ground pressure
     init_barometer(false);
-
-    // reset inertial nav alt to zero
-    inertial_nav.set_altitude(0.0f);
+#endif
 
     // go back to normal AHRS gains
     ahrs.set_fast_gains(false);
 
     // enable gps velocity based centrefugal force compensation
     ahrs.set_correct_centrifugal(true);
-    ahrs.set_armed(true);
 
     // set hover throttle
     motors.set_mid_throttle(g.throttle_mid);
@@ -243,8 +253,8 @@ static void pre_arm_checks(bool display_failure)
 
     // check Compass
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_COMPASS)) {
-        // check the primary compass is healthy
-        if(!compass.healthy(0)) {
+        // check the compass is healthy
+        if(!compass.healthy()) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass not healthy"));
             }
@@ -252,7 +262,8 @@ static void pre_arm_checks(bool display_failure)
         }
 
         // check compass learning is on or offsets have been set
-        if(!compass.learn_offsets_enabled() && !compass.configured()) {
+        Vector3f offsets = compass.get_offsets();
+        if(!compass._learn && offsets.length() == 0) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass not calibrated"));
             }
@@ -260,7 +271,6 @@ static void pre_arm_checks(bool display_failure)
         }
 
         // check for unreasonable compass offsets
-        Vector3f offsets = compass.get_offsets();
         if(offsets.length() > 500) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass offsets too high"));
@@ -315,7 +325,7 @@ static void pre_arm_checks(bool display_failure)
 #ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
     // check board voltage
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_VOLTAGE)) {
-        if(hal.analogin->board_voltage() < BOARD_VOLTAGE_MIN || hal.analogin->board_voltage() > BOARD_VOLTAGE_MAX) {
+        if(board_voltage() < BOARD_VOLTAGE_MIN || board_voltage() > BOARD_VOLTAGE_MAX) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Check Board Voltage"));
             }
@@ -348,7 +358,7 @@ static void pre_arm_checks(bool display_failure)
         }
 
         // lean angle parameter check
-    if (aparm.angle_max < 1000 || aparm.angle_max > 8000) {
+        if (g.angle_max < 1000 || g.angle_max > 8000) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Check ANGLE_MAX"));
             }
@@ -356,7 +366,7 @@ static void pre_arm_checks(bool display_failure)
         }
 
         // acro balance parameter check
-        if ((g.acro_balance_roll > g.p_stabilize_roll.kP()) || (g.acro_balance_pitch > g.p_stabilize_pitch.kP())) {
+        if ((g.acro_balance_roll > g.pi_stabilize_roll.kP()) || (g.acro_balance_pitch > g.pi_stabilize_pitch.kP())) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: ACRO_BAL_ROLL/PITCH"));
             }
@@ -406,32 +416,16 @@ static bool pre_arm_gps_checks(bool display_failure)
 {
     float speed_cms = inertial_nav.get_velocity().length();     // speed according to inertial nav in cm/s
 
-    // check GPS is not glitching
-    if (gps_glitch.glitching()) {
+    // ensure GPS is ok and our speed is below 50cm/s
+    if (!GPS_ok() || gps_glitch.glitching() || speed_cms == 0 || speed_cms > PREARM_MAX_VELOCITY_CMS) {
         if (display_failure) {
-            gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: GPS Glitch"));
-        }
-        return false;
-    }
-
-    // ensure GPS is ok
-    if (!GPS_ok()) {
-        if (display_failure) {
-            gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Need 3D Fix"));
-        }
-        return false;
-    }
-
-    // check speed is below 50cm/s
-    if (speed_cms == 0 || speed_cms > PREARM_MAX_VELOCITY_CMS) {
-        if (display_failure) {
-            gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Bad Velocity"));
+            gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Bad GPS Pos"));
         }
         return false;
     }
 
     // warn about hdop separately - to prevent user confusion with no gps lock
-    if (gps.get_hdop() > g.gps_hdop_good) {
+    if (g_gps->hdop > g.gps_hdop_good) {
         if (display_failure) {
             gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: High GPS HDOP"));
         }
@@ -481,7 +475,7 @@ static bool arm_checks(bool display_failure)
 
     // check lean angle
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_INS)) {
-        if (labs(ahrs.roll_sensor) > aparm.angle_max || labs(ahrs.pitch_sensor) > aparm.angle_max) {
+        if (labs(ahrs.roll_sensor) > g.angle_max || labs(ahrs.pitch_sensor) > g.angle_max) {
             if (display_failure) {
                 gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Leaning"));
             }
@@ -518,24 +512,18 @@ static void init_disarm_motors()
     // disable inertial nav errors temporarily
     inertial_nav.ignore_next_error();
 
-    // save offsets if automatic offset learning is on
-    if (compass.learn_offsets_enabled()) {
-        compass.save_offsets();
-    }
+    compass.save_offsets();
 
     g.throttle_cruise.save();
 
-#if AUTOTUNE_ENABLED == ENABLED
+#if AUTOTUNE == ENABLED
     // save auto tuned parameters
-    autotune_save_tuning_gains();
+    auto_tune_save_tuning_gains_and_reset();
 #endif
 
     // we are not in the air
-    set_land_complete(true);
-
-    // reset the mission
-    mission.reset();
-
+    set_takeoff_complete(false);
+    
     // setup fast AHRS gains to get right attitude
     ahrs.set_fast_gains(true);
 
@@ -547,7 +535,6 @@ static void init_disarm_motors()
 
     // disable gps velocity based centrefugal force compensation
     ahrs.set_correct_centrifugal(false);
-    ahrs.set_armed(false);
 }
 
 /*****************************************
@@ -556,14 +543,44 @@ static void init_disarm_motors()
 static void
 set_servos_4()
 {
-    // check if we are performing the motor test
-    if (ap.motor_test) {
-        motor_test_output();
-    } else {
 #if FRAME_CONFIG == TRI_FRAME
-        // To-Do: implement improved stability patch for tri so that we do not need to limit throttle input to motors
-        g.rc_3.servo_out = min(g.rc_3.servo_out, 800);
+    // To-Do: implement improved stability patch for tri so that we do not need to limit throttle input to motors
+    g.rc_3.servo_out = min(g.rc_3.servo_out, 800);
 #endif
-        motors.output();
+    motors.output();
+}
+
+// servo_write - writes to a servo after checking the channel is not used for a motor
+static void servo_write(uint8_t ch, uint16_t pwm)
+{
+    bool servo_ok = false;
+
+    #if (FRAME_CONFIG == QUAD_FRAME)
+        // Quads can use RC5 and higher as servos
+        if (ch >= CH_5) servo_ok = true;
+    #elif (FRAME_CONFIG == TRI_FRAME || FRAME_CONFIG == SINGLE_FRAME)
+	// Tri's and Singles can use RC5, RC6, RC8 and higher
+      #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+	if (ch == CH_5 || ch == CH_7 || ch >= CH_8) servo_ok = true;
+      #else
+	if (ch == CH_5 || ch == CH_6 || ch >= CH_8) servo_ok = true;
+      #endif
+    #elif (FRAME_CONFIG == HEXA_FRAME || FRAME_CONFIG == Y6_FRAME)
+        // Hexa and Y6 can use RC7 and higher
+        if (ch >= CH_7) servo_ok = true;
+    #elif (FRAME_CONFIG == OCTA_FRAME || FRAME_CONFIG == OCTA_QUAD_FRAME)
+        // Octa and X8 can use RC9 and higher
+        if (ch >= CH_9) servo_ok = true;
+    #elif (FRAME_CONFIG == HELI_FRAME)
+        // Heli's can use RC5, RC6, RC7, not RC8, and higher
+        if (ch == CH_5 || ch == CH_6 || ch == CH_7 || ch >= CH_9) servo_ok = true;
+    #else
+        // throw compile error if frame type is unrecognise
+        #error Unrecognised frame type
+    #endif
+
+    if (servo_ok) {
+        hal.rcout->enable_ch(ch);
+        hal.rcout->write(ch, pwm);
     }
 }

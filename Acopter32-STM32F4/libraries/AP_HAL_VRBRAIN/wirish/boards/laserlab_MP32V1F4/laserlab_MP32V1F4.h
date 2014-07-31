@@ -31,7 +31,7 @@ void boardInit(void);
 #define BOARD_IMULED3_PIN       69
 #define BOARD_BUTTON_PIN        18
 
-#define BOARD_NR_USARTS         6
+#define BOARD_NR_USARTS         5
 #define BOARD_USART1_TX_PIN     23 
 #define BOARD_USART1_RX_PIN     24 
 #define BOARD_USART2_TX_PIN     85 
@@ -42,8 +42,6 @@ void boardInit(void);
 #define BOARD_UART4_RX_PIN      17 
 #define BOARD_UART5_TX_PIN      19
 #define BOARD_UART5_RX_PIN      27
-#define BOARD_USART6_TX_PIN     12
-#define BOARD_USART6_RX_PIN     13
        
 #define BOARD_NR_SPI            3
 #define BOARD_SPI1_NSS_PIN      D51

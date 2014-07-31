@@ -66,20 +66,16 @@ void init(void) {
 }
 
 void usb_init(void){
-	usb_attr_t usb_attr;
-
+    usb_attr_t usb_attr;
 
     usb_open();
-
     usb_default_attr(&usb_attr);
     usb_attr.preempt_prio = 3;
     usb_attr.sub_prio = 0;
     usb_attr.use_present_pin = 1;
     usb_attr.present_port = _GPIOC;
     usb_attr.present_pin = 5;
-
     usb_ioctl(I_USB_SETATTR, &usb_attr);
-	
 }
 
 void enableFPU(void){

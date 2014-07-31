@@ -40,7 +40,9 @@ VRBRAINAnalogSource::VRBRAINAnalogSource(uint8_t pin) :
     _settle_time_ms(0),
     _read_start_time_ms(0)
 {
+    if(pin != ANALOG_INPUT_NONE) {
 	set_pin(pin);
+    }
 }
 
 float VRBRAINAnalogSource::read_average() {
@@ -82,7 +84,7 @@ float VRBRAINAnalogSource::voltage_average_ratiometric(void)
 void VRBRAINAnalogSource::set_pin(uint8_t pin) {
     if (pin != _pin) {
 	// ensure the pin is marked as an INPUT pin
-	if (pin != ANALOG_INPUT_NONE && pin != ANALOG_INPUT_BOARD_VCC) {
+	if (pin != ANALOG_INPUT_NONE && pin != ANALOG_INPUT_BOARD_VCC && pin < BOARD_NR_GPIO_PINS) {
 		hal.gpio->pinMode(pin, INPUT_ANALOG);
 	}
 
@@ -108,8 +110,6 @@ void VRBRAINAnalogSource::set_settle_time(uint16_t settle_time_ms)
 /* read_average is called from the normal thread (not an interrupt). */
 float VRBRAINAnalogSource::_read_average()
 {
-    uint16_t sum;
-    uint8_t sum_count;
 
     if (_sum_count == 0) {
         // avoid blocking waiting for new samples
@@ -117,23 +117,18 @@ float VRBRAINAnalogSource::_read_average()
     }
 
     /* Read and clear in a critical section */
-    noInterrupts(); 
-    sum = _sum;
-    sum_count = _sum_count;
+    hal.scheduler->suspend_timer_procs();
+    _last_average = _sum / _sum_count;
     _sum = 0;
     _sum_count = 0;
-
-    interrupts();
-    float avg = sum / (float) sum_count;
-
-    _last_average = avg;
-    return avg;
+    hal.scheduler->resume_timer_procs();
+    return _last_average;
 }
 
 void VRBRAINAnalogSource::setup_read() {
     if (_stop_pin != ANALOG_INPUT_NONE) {
         uint8_t digital_pin = hal.gpio->analogPinToDigitalPin(_stop_pin);
-        hal.gpio->pinMode(digital_pin, HAL_GPIO_OUTPUT);
+        hal.gpio->pinMode(digital_pin, GPIO_OUTPUT);
         hal.gpio->write(digital_pin, 1);
     }
     if (_settle_time_ms != 0) {
@@ -167,7 +162,7 @@ void VRBRAINAnalogSource::stop_read() {
     }
     if (_stop_pin != ANALOG_INPUT_NONE) {
         uint8_t digital_pin = hal.gpio->analogPinToDigitalPin(_stop_pin);
-        hal.gpio->pinMode(digital_pin, HAL_GPIO_OUTPUT);
+        hal.gpio->pinMode(digital_pin, GPIO_OUTPUT);
         hal.gpio->write(digital_pin, 0);
     }
 }

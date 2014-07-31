@@ -10,9 +10,7 @@
 #include <AP_HAL.h>
 #include <AP_HAL_AVR.h>
 
-#include <AP_Notify.h>          // Notify library
 #include <AP_GPS.h>             // ArduPilot GPS library
-#include <AP_GPS_Glitch.h>      // GPS glitch protection library
 #include <AP_ADC.h>             // ArduPilot Mega Analog to Digital Converter Library
 #include <AP_ADC_AnalogSource.h>
 #include <AP_Baro.h>            // ArduPilot Mega Barometer Library
@@ -21,21 +19,13 @@
 #include <AP_Declination.h>
 #include <AP_InertialSensor.h>  // ArduPilot Mega Inertial Sensor (accel & gyro) Library
 #include <AP_AHRS.h>
-#include <AP_Vehicle.h>         // needed for AHRS build
 #include <AP_Airspeed.h>
 #include <AC_PID.h>             // PID library
-#include <AC_P.h>               // P library
+#include <APM_PI.h>             // PID library
 #include <AP_Buffer.h>          // ArduPilot general purpose FIFO buffer
 #include <AP_InertialNav.h>     // Inertial Navigation library
 #include <AC_WPNav.h>           // Waypoint Navigation library
-#include <AC_PosControl.h>      // Position Control library
-#include <AC_AttitudeControl.h> // Attitude Control library
-#include <AP_Curve.h>           // curve library (used by motors)
-#include <RC_Channel.h>         // RC Channel library (used by motors)
-#include <AP_Motors.h>          // Motor library
-#include <DataFlash.h>
 #include <GCS_MAVLink.h>
-#include <AP_Mission.h>
 
 const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
 
@@ -55,13 +45,12 @@ AP_Baro_BMP085 baro;
 // GPS declaration
 GPS *gps;
 AP_GPS_Auto auto_gps(&gps);
-GPS_Glitch gps_glitch(gps);
 
 AP_Compass_HMC5843 compass;
-AP_AHRS_DCM ahrs(ins, baro, gps);
+AP_AHRS_DCM ahrs(&ins, gps);
 
 // Inertial Nav declaration
-AP_InertialNav inertialnav(ahrs, baro, gps, gps_glitch);
+AP_InertialNav inertialnav(&ahrs, &ins, &baro, &gps);
 
 void setup()
 {
@@ -70,9 +59,9 @@ void setup()
 
 void loop()
 {
-    // print message to user
-    hal.console->printf_P(PSTR("this example tests compilation only"));
-    hal.scheduler->delay(5000);
+    // call update function
+    hal.console->printf_P(PSTR("hello"));
+    hal.scheduler->delay(1);
 }
 
 AP_HAL_MAIN();

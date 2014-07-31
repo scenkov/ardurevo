@@ -45,9 +45,9 @@ public:
     virtual void     set_timer_speed(uint16_t speed_hz) {}
 
     /**
-       optional function to stop clock at a given time, used by log replay
+       optional function to shift forward in time, used by log replay
      */
-    virtual void     stop_clock(uint64_t time_usec) {}
+    virtual void     time_shift(uint32_t shift_ms) {}
 };
 
 #endif // __AP_HAL_SCHEDULER_H__

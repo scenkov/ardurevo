@@ -69,8 +69,14 @@ void setup()
 
 void loop()
 {
-    hal.console->printf("dist: %d\n",(int)rf->read());
+    hal.console->print("dist:");
+    hal.console->print(rf->read());
+    hal.console->print("\traw:");
+    hal.console->print(rf->raw_value);
+    hal.console->println();
+
     hal.scheduler->delay(100);
+
 }
 
 AP_HAL_MAIN();

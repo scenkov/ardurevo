@@ -1,93 +1,103 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// forward declarations to make compiler happy
-static void do_nav_wp(const AP_Mission::Mission_Command& cmd);
-static void do_wait_delay(const AP_Mission::Mission_Command& cmd);
-static void do_within_distance(const AP_Mission::Mission_Command& cmd);
-static void do_change_speed(const AP_Mission::Mission_Command& cmd);
-static void do_set_home(const AP_Mission::Mission_Command& cmd);
-static bool verify_nav_wp(const AP_Mission::Mission_Command& cmd);
-
 /********************************************************************************/
 // Command Event Handlers
 /********************************************************************************/
-static bool
-start_command(const AP_Mission::Mission_Command& cmd)
+static void
+handle_process_nav_cmd()
 {
-    // log when new commands start
-    if (should_log(MASK_LOG_CMD)) {
-        Log_Write_Cmd(cmd);
-    }
+    gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nav_command.id);
 
-    // exit immediately if not in AUTO mode
-    if (control_mode != AUTO) {
-        return false;
-    }
+	switch(next_nav_command.id){
+		case MAV_CMD_NAV_TAKEOFF:
+			do_takeoff();
+			break;
 
-    gcs_send_text_fmt(PSTR("Executing command ID #%i"),cmd.id);
-
-    // remember the course of our next navigation leg
-    next_navigation_leg_cd = mission.get_next_ground_course_cd(0);
-
-	switch(cmd.id){
 		case MAV_CMD_NAV_WAYPOINT:	// Navigate to Waypoint
-			do_nav_wp(cmd);
+			do_nav_wp();
 			break;
 
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 			do_RTL();
 			break;
 
-        // Conditional commands
+		default:
+			break;
+	}
+}
+
+static void
+handle_process_condition_command()
+{
+	gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nonnav_command.id);
+	switch(next_nonnav_command.id){
+
 		case MAV_CMD_CONDITION_DELAY:
-			do_wait_delay(cmd);
+			do_wait_delay();
 			break;
 
 		case MAV_CMD_CONDITION_DISTANCE:
-			do_within_distance(cmd);
+			do_within_distance();
 			break;
 
-        // Do commands
+		case MAV_CMD_CONDITION_CHANGE_ALT:
+			do_change_alt();
+			break;
+
+		default:
+			break;
+	}
+}
+
+static void handle_process_do_command()
+{
+	gcs_send_text_fmt(PSTR("Executing command ID #%i"),next_nonnav_command.id);
+	switch(next_nonnav_command.id){
+
+		case MAV_CMD_DO_JUMP:
+			do_jump();
+			break;
+
 		case MAV_CMD_DO_CHANGE_SPEED:
-			do_change_speed(cmd);
+			do_change_speed();
 			break;
 
 		case MAV_CMD_DO_SET_HOME:
-			do_set_home(cmd);
+			do_set_home();
 			break;
 
     	case MAV_CMD_DO_SET_SERVO:
-            ServoRelayEvents.do_set_servo(cmd.content.servo.channel, cmd.content.servo.pwm);
+            ServoRelayEvents.do_set_servo(next_nonnav_command.p1, next_nonnav_command.alt);
             break;
 
     	case MAV_CMD_DO_SET_RELAY:
-            ServoRelayEvents.do_set_relay(cmd.content.relay.num, cmd.content.relay.state);
+            ServoRelayEvents.do_set_relay(next_nonnav_command.p1, next_nonnav_command.alt);
             break;
 
     	case MAV_CMD_DO_REPEAT_SERVO:
-            ServoRelayEvents.do_repeat_servo(cmd.content.repeat_servo.channel, cmd.content.repeat_servo.pwm,
-                                             cmd.content.repeat_servo.repeat_count, cmd.content.repeat_servo.cycle_time * 1000.0f);
+            ServoRelayEvents.do_repeat_servo(next_nonnav_command.p1, next_nonnav_command.alt,
+                                             next_nonnav_command.lat, next_nonnav_command.lng);
             break;
 
     	case MAV_CMD_DO_REPEAT_RELAY:
-            ServoRelayEvents.do_repeat_relay(cmd.content.repeat_relay.num, cmd.content.repeat_relay.repeat_count,
-                                             cmd.content.repeat_relay.cycle_time * 1000.0f);
+            ServoRelayEvents.do_repeat_relay(next_nonnav_command.p1, next_nonnav_command.alt,
+                                             next_nonnav_command.lat);
             break;
 
 #if CAMERA == ENABLED
-        case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
-            break;
+    case MAV_CMD_DO_CONTROL_VIDEO:                      // Control on-board camera capturing. |Camera ID (-1 for all)| Transmission: 0: disabled, 1: enabled compressed, 2: enabled raw| Transmission mode: 0: video stream, >0: single images every n seconds (decimal)| Recording: 0: disabled, 1: enabled compressed, 2: enabled raw| Empty| Empty| Empty|
+        break;
 
-        case MAV_CMD_DO_DIGICAM_CONFIGURE:                  // Mission command to configure an on-board camera controller system. |Modes: P, TV, AV, M, Etc| Shutter speed: Divisor number for one second| Aperture: F stop number| ISO number e.g. 80, 100, 200, Etc| Exposure type enumerator| Command Identity| Main engine cut-off time before camera trigger in seconds/10 (0 means no cut-off)|
-            break;
+    case MAV_CMD_DO_DIGICAM_CONFIGURE:                  // Mission command to configure an on-board camera controller system. |Modes: P, TV, AV, M, Etc| Shutter speed: Divisor number for one second| Aperture: F stop number| ISO number e.g. 80, 100, 200, Etc| Exposure type enumerator| Command Identity| Main engine cut-off time before camera trigger in seconds/10 (0 means no cut-off)|
+        break;
 
-        case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
-            do_take_picture();
-            break;
+    case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
+        do_take_picture();
+        break;
 
-        case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
-            camera.set_trigger_distance(cmd.content.cam_trigg_dist.meters);
-            break;
+    case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
+        camera.set_trigger_distance(next_nonnav_command.alt);
+        break;
 #endif
 
 #if MOUNT == ENABLED
@@ -99,7 +109,7 @@ start_command(const AP_Mission::Mission_Command& cmd)
 		case MAV_CMD_DO_SET_ROI:
 #if 0
             // not supported yet
-			camera_mount.set_roi_cmd(&cmd.content.location);
+			camera_mount.set_roi_cmd();
 #endif
 			break;
 
@@ -111,59 +121,64 @@ start_command(const AP_Mission::Mission_Command& cmd)
 			camera_mount.control_cmd();
 			break;
 #endif
-
-		default:
-		    // return false for unhandled commands
-		    return false;
 	}
-
-	// if we got this far we must have been successful
-	return true;
 }
 
-// exit_mission - callback function called from ap-mission when the mission has completed
-//      we double check that the flight mode is AUTO to avoid the possibility of ap-mission triggering actions while we're not in AUTO mode
-static void exit_mission()
-{
-    if (control_mode == AUTO) {
-        gcs_send_text_fmt(PSTR("No commands - setting HOLD"));
-        set_mode(HOLD);
-    }
+static void handle_no_commands()
+{      
+	gcs_send_text_fmt(PSTR("No commands - setting HOLD"));
+    set_mode(HOLD);
 }
 
 /********************************************************************************/
 // Verify command Handlers
-//      Returns true if command complete
 /********************************************************************************/
 
-static bool verify_command(const AP_Mission::Mission_Command& cmd)
+static bool verify_nav_command()	// Returns true if command complete
 {
-    // exit immediately if not in AUTO mode
-    // we return true or we will continue to be called by ap-mission
-    if (control_mode != AUTO) {
-        return true;
-    }
+	switch(nav_command_ID) {
 
-	switch(cmd.id) {
+		case MAV_CMD_NAV_TAKEOFF:
+			return verify_takeoff();
 
 		case MAV_CMD_NAV_WAYPOINT:
-			return verify_nav_wp(cmd);
+			return verify_nav_wp();
 
 		case MAV_CMD_NAV_RETURN_TO_LAUNCH:
 			return verify_RTL();
 
-        case MAV_CMD_CONDITION_DELAY:
-            return verify_wait_delay();
-            break;
+		default:
+			gcs_send_text_P(SEVERITY_HIGH,PSTR("verify_nav: Invalid or no current Nav cmd"));
+			return false;
+	}
+}
 
-        case MAV_CMD_CONDITION_DISTANCE:
-            return verify_within_distance();
-            break;
+static bool verify_condition_command()		// Returns true if command complete
+{
+	switch(non_nav_command_ID) {
+    case NO_COMMAND:
+        break;
 
-        default:
-            gcs_send_text_P(SEVERITY_HIGH,PSTR("verify_conditon: Unsupported command"));
-            return true;
-            break;
+    case MAV_CMD_CONDITION_DELAY:
+        return verify_wait_delay();
+        break;
+
+    case MAV_CMD_CONDITION_DISTANCE:
+        return verify_within_distance();
+        break;
+
+    case MAV_CMD_CONDITION_CHANGE_ALT:
+        return verify_change_alt();
+        break;
+        
+    case WAIT_COMMAND:
+        return 0;
+        break;
+        
+
+    default:
+        gcs_send_text_P(SEVERITY_HIGH,PSTR("verify_conditon: Invalid or no current Condition cmd"));
+        break;
 	}
     return false;
 }
@@ -174,24 +189,33 @@ static bool verify_command(const AP_Mission::Mission_Command& cmd)
 
 static void do_RTL(void)
 {
-    prev_WP = current_loc;
+    prev_WP 		= current_loc;
 	control_mode 	= RTL;
-	next_WP = home;
+	next_WP 		= home;
 }
 
-static void do_nav_wp(const AP_Mission::Mission_Command& cmd)
+static void do_takeoff()
 {
-	set_next_WP(cmd.content.location);
+	set_next_WP(&next_nav_command);
+}
+
+static void do_nav_wp()
+{
+	set_next_WP(&next_nav_command);
 }
 
 /********************************************************************************/
 //  Verify Nav (Must) commands
 /********************************************************************************/
-static bool verify_nav_wp(const AP_Mission::Mission_Command& cmd)
+static bool verify_takeoff()
+{  return true;
+}
+
+static bool verify_nav_wp()
 {
     if ((wp_distance > 0) && (wp_distance <= g.waypoint_radius)) {
         gcs_send_text_fmt(PSTR("Reached Waypoint #%i dist %um"),
-                          (unsigned)cmd.index,
+                          (unsigned)nav_command_index,
                           (unsigned)get_distance(current_loc, next_WP));
         return true;
     }
@@ -199,7 +223,7 @@ static bool verify_nav_wp(const AP_Mission::Mission_Command& cmd)
     // have we gone past the waypoint?
     if (location_passed_point(current_loc, prev_WP, next_WP)) {
         gcs_send_text_fmt(PSTR("Passed Waypoint #%i dist %um"),
-                          (unsigned)cmd.index,
+                          (unsigned)nav_command_index,
                           (unsigned)get_distance(current_loc, next_WP));
         return true;
     }
@@ -229,15 +253,23 @@ static bool verify_RTL()
 //  Condition (May) commands
 /********************************************************************************/
 
-static void do_wait_delay(const AP_Mission::Mission_Command& cmd)
+static void do_wait_delay()
 {
 	condition_start = millis();
-	condition_value  = cmd.content.delay.seconds * 1000;    // convert seconds to milliseconds
+	condition_value  = next_nonnav_command.lat * 1000;	// convert to milliseconds
 }
 
-static void do_within_distance(const AP_Mission::Mission_Command& cmd)
+static void do_change_alt()
 {
-	condition_value  = cmd.content.distance.meters;
+	condition_rate		= abs((int)next_nonnav_command.lat);
+	condition_value 	= next_nonnav_command.alt;
+	if(condition_value < current_loc.alt) condition_rate = -condition_rate;
+	next_WP.alt 		= condition_value;								// For future nav calculations
+}
+
+static void do_within_distance()
+{
+	condition_value  = next_nonnav_command.lat;
 }
 
 /********************************************************************************/
@@ -248,6 +280,15 @@ static bool verify_wait_delay()
 {
 	if ((uint32_t)(millis() - condition_start) > (uint32_t)condition_value){
 		condition_value 	= 0;
+		return true;
+	}
+	return false;
+}
+
+static bool verify_change_alt()
+{
+	if( (condition_rate>=0 && current_loc.alt >= condition_value) || (condition_rate<=0 && current_loc.alt <= condition_value)) {
+		condition_value = 0;
 		return true;
 	}
 	return false;
@@ -266,30 +307,63 @@ static bool verify_within_distance()
 //  Do (Now) commands
 /********************************************************************************/
 
-static void do_change_speed(const AP_Mission::Mission_Command& cmd)
+static void do_jump()
 {
-	switch (cmd.p1)
+	struct Location temp;
+	gcs_send_text_fmt(PSTR("In jump.  Jumps left: %i"),next_nonnav_command.lat);
+	if(next_nonnav_command.lat > 0) {
+
+		nav_command_ID		= NO_COMMAND;
+		next_nav_command.id = NO_COMMAND;
+		non_nav_command_ID 	= NO_COMMAND;
+		
+		temp 				= get_cmd_with_index(g.command_index);
+		temp.lat 			= next_nonnav_command.lat - 1;					// Decrement repeat counter
+
+		set_cmd_with_index(temp, g.command_index);
+	gcs_send_text_fmt(PSTR("setting command index: %i"),next_nonnav_command.p1 - 1);
+		g.command_index.set_and_save(next_nonnav_command.p1 - 1);
+		nav_command_index 	= next_nonnav_command.p1 - 1;
+		next_WP = prev_WP;		// Need to back "next_WP" up as it was set to the next waypoint following the jump
+		process_next_command();
+	} else if (next_nonnav_command.lat == -1) {								// A repeat count of -1 = repeat forever
+		nav_command_ID 	= NO_COMMAND;
+		non_nav_command_ID 	= NO_COMMAND;
+	gcs_send_text_fmt(PSTR("setting command index: %i"),next_nonnav_command.p1 - 1);
+	    g.command_index.set_and_save(next_nonnav_command.p1 - 1);
+		nav_command_index 	= next_nonnav_command.p1 - 1;
+		next_WP = prev_WP;		// Need to back "next_WP" up as it was set to the next waypoint following the jump
+		process_next_command();
+	}
+}
+
+static void do_change_speed()
+{
+	switch (next_nonnav_command.p1)
 	{
 		case 0:
-			if (cmd.content.speed.target_ms > 0) {
-				g.speed_cruise.set(cmd.content.speed.target_ms);
-                gcs_send_text_fmt(PSTR("Cruise speed: %.1f m/s"), g.speed_cruise.get());
+			if (next_nonnav_command.alt > 0) {
+				g.speed_cruise.set(next_nonnav_command.alt);
+                gcs_send_text_fmt(PSTR("Cruise speed: %.1f"), g.speed_cruise.get());
             }
 			break;
 	}
 
-	if (cmd.content.speed.throttle_pct > 0 && cmd.content.speed.throttle_pct <= 100) {
-		g.throttle_cruise.set(cmd.content.speed.throttle_pct);
+	if (next_nonnav_command.lat > 0) {
+		g.throttle_cruise.set(next_nonnav_command.lat);
         gcs_send_text_fmt(PSTR("Cruise throttle: %.1f"), g.throttle_cruise.get());
     }
 }
 
-static void do_set_home(const AP_Mission::Mission_Command& cmd)
+static void do_set_home()
 {
-	if(cmd.p1 == 1 && have_position) {
+	if(next_nonnav_command.p1 == 1 && have_position) {
 		init_home();
 	} else {
-        ahrs.set_home(cmd.content.location);
+		home.id 	= MAV_CMD_NAV_WAYPOINT;
+		home.lng 	= next_nonnav_command.lng;				// Lon * 10**7
+		home.lat 	= next_nonnav_command.lat;				// Lat * 10**7
+		home.alt 	= max(next_nonnav_command.alt, 0);
 		home_is_set = true;
 	}
 }

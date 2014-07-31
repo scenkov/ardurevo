@@ -86,10 +86,9 @@ public:
     REVOMINIAnalogIn();
     void init(void* implspecific);
     AP_HAL::AnalogSource* channel(int16_t n);
-    float board_voltage(void);
 
 protected: 
-    REVOMINIAnalogSource* _create_channel(int16_t num);
+    REVOMINIAnalogSource* _create_channel(uint8_t num);
     void _register_channel(REVOMINIAnalogSource*);
     void _timer_event(void);
     REVOMINIAnalogSource* _channels[REVOMINI_INPUT_MAX_CHANNELS];

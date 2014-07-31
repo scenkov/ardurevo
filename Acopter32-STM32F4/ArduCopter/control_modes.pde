@@ -109,17 +109,9 @@ static void init_aux_switches()
         case AUX_SWITCH_ACRO_TRAINER:
         case AUX_SWITCH_EPM:
         case AUX_SWITCH_SPRAYER:
-        case AUX_SWITCH_EKF:
-        case AUX_SWITCH_PARACHUTE_ENABLE:
-        case AUX_SWITCH_PARACHUTE_3POS:	    // we trust the vehicle will be disarmed so even if switch is in release position the chute will not release
-        case AUX_SWITCH_RETRACT_MOUNT:
-        case AUX_SWITCH_MISSIONRESET:
-        case AUX_SWITCH_ATTCON_FEEDFWD:
-        case AUX_SWITCH_ATTCON_ACCEL_LIM:
             do_aux_switch_function(g.ch7_option, ap.CH7_flag);
             break;
     }
-
     // init channel 8 option
     switch(g.ch8_option) {
         case AUX_SWITCH_SIMPLE_MODE:
@@ -130,13 +122,6 @@ static void init_aux_switches()
         case AUX_SWITCH_ACRO_TRAINER:
         case AUX_SWITCH_EPM:
         case AUX_SWITCH_SPRAYER:
-        case AUX_SWITCH_EKF:
-        case AUX_SWITCH_PARACHUTE_ENABLE:
-        case AUX_SWITCH_PARACHUTE_3POS:     // we trust the vehicle will be disarmed so even if switch is in release position the chute will not release
-        case AUX_SWITCH_RETRACT_MOUNT:
-        case AUX_SWITCH_MISSIONRESET:
-        case AUX_SWITCH_ATTCON_FEEDFWD:
-        case AUX_SWITCH_ATTCON_ACCEL_LIM:
             do_aux_switch_function(g.ch8_option, ap.CH8_flag);
             break;
     }
@@ -161,10 +146,8 @@ static void do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
     switch(tmp_function) {
         case AUX_SWITCH_FLIP:
             // flip if switch is on, positive throttle and we're actually flying
-            if(ch_flag == AUX_SWITCH_HIGH) {
-                set_mode(FLIP);
-            }else{
-                flip_stop();
+            if((ch_flag == AUX_SWITCH_HIGH) && (g.rc_3.control_in >= 0) && ap.takeoff_complete) {
+                init_flip();
             }
             break;
 
@@ -200,53 +183,67 @@ static void do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
             // save waypoint when switch is brought high
             if (ch_flag == AUX_SWITCH_HIGH) {
 
-                // do not allow saving new waypoints while we're in auto or disarmed
-                if(control_mode == AUTO || !motors.armed()) {
+                // if in auto mode, reset the mission
+                if(control_mode == AUTO) {
+                    aux_switch_wp_index = 0;
+                    g.command_total.set_and_save(1);
+                    set_mode(RTL);  // if by chance we are unable to switch to RTL we just stay in AUTO and hope the GPS failsafe will take-over
+                    Log_Write_Event(DATA_SAVEWP_CLEAR_MISSION_RTL);
                     return;
                 }
 
-				// do not allow saving the first waypoint with zero throttle
-				if((mission.num_commands() == 0) && (g.rc_3.control_in == 0)){
+				// we're on the ground
+				if((g.rc_3.control_in == 0) && (aux_switch_wp_index == 0)){
+					// nothing to do
 					return;
 				}
 
-                // create new mission command
-                AP_Mission::Mission_Command cmd  = {};
+                // initialise new waypoint to current location
+                Location new_wp;
 
-                // if the mission is empty save a takeoff command
-                if(mission.num_commands() == 0) {
+                if(aux_switch_wp_index == 0) {
+                    // this is our first WP, let's save WP 1 as a takeoff
+                    // increment index to WP index of 1 (home is stored at 0)
+                    aux_switch_wp_index = 1;
+
                     // set our location ID to 16, MAV_CMD_NAV_WAYPOINT
-                    cmd.id = MAV_CMD_NAV_TAKEOFF;
-                    cmd.content.location.options = 0;
-                    cmd.p1 = 0;
-                    cmd.content.location.lat = 0;
-                    cmd.content.location.lng = 0;
-                    cmd.content.location.alt = max(current_loc.alt,100);
+                    new_wp.id = MAV_CMD_NAV_TAKEOFF;
+                    new_wp.options = 0;
+                    new_wp.p1 = 0;
+                    new_wp.lat = 0;
+                    new_wp.lng = 0;
+                    new_wp.alt = max(current_loc.alt,100);
 
-                    // use the current altitude for the target alt for takeoff.
+                    // save command:
+                    // we use the current altitude to be the target for takeoff.
                     // only altitude will matter to the AP mission script for takeoff.
-                    if(mission.add_cmd(cmd)) {
-                        // log event
-                        Log_Write_Event(DATA_SAVEWP_ADD_WP);
-                    }
+                    // If we are above the altitude, we will skip the command.
+                    set_cmd_with_index(new_wp, aux_switch_wp_index);
                 }
 
-                // set new waypoint to current location
-                cmd.content.location = current_loc;
+                // initialise new waypoint to current location
+                new_wp = current_loc;
 
-                // if throttle is above zero, create waypoint command
+                // increment index
+                aux_switch_wp_index++;
+
+                // set the next_WP (home is stored at 0)
+                // max out at 100 since I think we need to stay under the EEPROM limit
+                aux_switch_wp_index = constrain_int16(aux_switch_wp_index, 1, 100);
+
                 if(g.rc_3.control_in > 0) {
-                    cmd.id = MAV_CMD_NAV_WAYPOINT;
+                    // set our location ID to 16, MAV_CMD_NAV_WAYPOINT
+                    new_wp.id = MAV_CMD_NAV_WAYPOINT;
                 }else{
-					// with zero throttle, create LAND command
-                    cmd.id = MAV_CMD_NAV_LAND;
+					// set our location ID to 21, MAV_CMD_NAV_LAND
+					new_wp.id = MAV_CMD_NAV_LAND;
                 }
 
                 // save command
-                if(mission.add_cmd(cmd)) {
-                    // log event
-                    Log_Write_Event(DATA_SAVEWP_ADD_WP);
-                }
+                set_cmd_with_index(new_wp, aux_switch_wp_index);
+
+                // log event
+                Log_Write_Event(DATA_SAVEWP_ADD_WP);
             }
             break;
 
@@ -260,13 +257,11 @@ static void do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
 
         case AUX_SWITCH_SONAR:
             // enable or disable the sonar
-#if CONFIG_SONAR == ENABLED
             if (ch_flag == AUX_SWITCH_HIGH) {
-                sonar_enabled = true;
+                g.sonar_enabled = true;
             }else{
-                sonar_enabled = false;
+                g.sonar_enabled = false;
             }
-#endif
             break;
 
 #if AC_FENCE == ENABLED
@@ -281,14 +276,13 @@ static void do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
             }
             break;
 #endif
-        // To-Do: add back support for this feature
-        //case AUX_SWITCH_RESETTOARMEDYAW:
-        //    if (ch_flag == AUX_SWITCH_HIGH) {
-        //        set_yaw_mode(YAW_RESETTOARMEDYAW);
-        //    }else{
-        //        set_yaw_mode(YAW_HOLD);
-        //    }
-        //    break;
+        case AUX_SWITCH_RESETTOARMEDYAW:
+            if (ch_flag == AUX_SWITCH_HIGH) {
+                set_yaw_mode(YAW_RESETTOARMEDYAW);
+            }else{
+                set_yaw_mode(YAW_HOLD);
+            }
+            break;
 
         case AUX_SWITCH_ACRO_TRAINER:
             switch(ch_flag) {
@@ -343,22 +337,21 @@ static void do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
             }
             break;
 
-#if AUTOTUNE_ENABLED == ENABLED
+#if AUTOTUNE == ENABLED
         case AUX_SWITCH_AUTOTUNE:
             // turn on auto tuner
             switch(ch_flag) {
                 case AUX_SWITCH_LOW:
                 case AUX_SWITCH_MIDDLE:
-                    // stop the autotune and return to original gains
-                    autotune_stop();
-                    // restore flight mode based on flight mode switch position
-                    if (control_mode == AUTOTUNE) {
-                        reset_control_switch();
+                    // turn off tuning and return to standard pids
+                    if (roll_pitch_mode == ROLL_PITCH_AUTOTUNE) {
+                        set_roll_pitch_mode(ROLL_PITCH_STABLE);
                     }
                     break;
                 case AUX_SWITCH_HIGH:
-                    // start an autotuning session
-                    autotune_start();
+                    // start an auto tuning session
+                    // set roll-pitch mode to our special auto tuning stabilize roll-pitch mode
+                    set_roll_pitch_mode(ROLL_PITCH_AUTOTUNE);
                     break;
             }
             break;
@@ -374,72 +367,6 @@ static void do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
                 }
             }
             break;
-
-#if AP_AHRS_NAVEKF_AVAILABLE
-    case AUX_SWITCH_EKF:
-        ahrs.set_ekf_use(ch_flag==AUX_SWITCH_HIGH);
-        break;
-#endif
-
-#if PARACHUTE == ENABLED
-    case AUX_SWITCH_PARACHUTE_ENABLE:
-        // Parachute enable/disable
-        parachute.enabled(ch_flag == AUX_SWITCH_HIGH);
-        break;
-
-    case AUX_SWITCH_PARACHUTE_RELEASE:
-        if (ch_flag == AUX_SWITCH_HIGH) {
-            parachute_manual_release();
-        }
-        break;
-
-    case AUX_SWITCH_PARACHUTE_3POS:
-        // Parachute disable, enable, release with 3 position switch
-        switch (ch_flag) {
-            case AUX_SWITCH_LOW:
-                parachute.enabled(false);
-                Log_Write_Event(DATA_PARACHUTE_DISABLED);
-                break;
-            case AUX_SWITCH_MIDDLE:
-                parachute.enabled(true);
-                Log_Write_Event(DATA_PARACHUTE_ENABLED);
-                break;
-            case AUX_SWITCH_HIGH:
-                parachute.enabled(true);
-                parachute_manual_release();
-                break;
-        }
-        break;
-#endif
-
-    case AUX_SWITCH_MISSIONRESET:
-        if (ch_flag == AUX_SWITCH_HIGH) {
-            mission.reset();
-        }
-        break;
-
-    case AUX_SWITCH_ATTCON_FEEDFWD:
-        // enable or disable feed forward
-        attitude_control.bf_feedforward(ch_flag == AUX_SWITCH_HIGH);
-        break;
-
-    case AUX_SWITCH_ATTCON_ACCEL_LIM:
-        // enable or disable accel limiting by restoring defaults
-        attitude_control.accel_limiting(ch_flag == AUX_SWITCH_HIGH);
-        break;
-        
-#if MOUNT == ENABLE
-    case AUX_SWITCH_RETRACT_MOUNT:
-        switch (ch_flag) {
-            case AUX_SWITCH_HIGH:
-                camera_mount.set_mode(MAV_MOUNT_MODE_RETRACT);
-                break;
-            case AUX_SWITCH_LOW:
-                camera_mount.set_mode_to_default();
-                break;
-        }
-        break;
-#endif
     }
 }
 

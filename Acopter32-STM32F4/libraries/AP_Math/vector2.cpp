@@ -125,15 +125,7 @@ bool Vector2<T>::operator !=(const Vector2<T> &v) const
 template <typename T>
 float Vector2<T>::angle(const Vector2<T> &v2) const
 {
-    float len = this->length() * v2.length();
-    if (len <= 0) {
-        return 0.0f;
-    }
-    float cosv = ((*this)*v2) / len;
-    if (fabsf(cosv) >= 1) {
-        return 0.0f;
-    }
-    return acosf(cosv);
+    return acosf(((*this)*v2) / (this->length()*v2.length()));
 }
 
 // only define for float

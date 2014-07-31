@@ -13,7 +13,6 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += c++.cpp
-cppSRCS_$(d) += AP_Common.cpp
 
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)

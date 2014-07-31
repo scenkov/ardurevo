@@ -33,18 +33,11 @@ public:
 	///						is currently closed.
 	///
     virtual void begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace) = 0;
-    virtual void begin(uint32_t baud, uint8_t sbus) = 0;
     virtual void end() = 0;
     virtual void flush() = 0;
     virtual bool is_initialized() = 0;
     virtual void set_blocking_writes(bool blocking) = 0;
     virtual bool tx_pending() = 0;
-
-    enum flow_control {
-        FLOW_CONTROL_DISABLE=0, FLOW_CONTROL_ENABLE=1, FLOW_CONTROL_AUTO=2
-    };
-    virtual void set_flow_control(enum flow_control flow_control_setting) {};
-    virtual enum flow_control get_flow_control(void) { return FLOW_CONTROL_DISABLE; };
 
     /* Implementations of BetterStream virtual methods. These are
      * provided by AP_HAL to ensure consistency between ports to

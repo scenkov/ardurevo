@@ -1,7 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /*
-  APMRover2 parameter definitions
+  ArduPlane parameter definitions
 */
 
 #define GSCALAR(v, name, def) { g.v.vtype, name, Parameters::k_param_ ## v, &g.v, {def_value:def} }
@@ -38,7 +38,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: RSSI_PIN
     // @DisplayName: Receiver RSSI sensing pin
     // @Description: This selects an analog pin for the receiver RSSI voltage. It assumes the voltage is 5V for max rssi, 0V for minimum
-    // @Values: -1:Disabled, 0:APM2 A0, 1:APM2 A1, 2:APM2 A2, 13:APM2 A13, 103:Pixhawk SBUS
+    // @Values: -1:Disabled, 0:A0, 1:A1, 13:A13
     // @User: Standard
     GSCALAR(rssi_pin,            "RSSI_PIN",         -1),
 
@@ -58,25 +58,25 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: SERIAL0_BAUD
     // @DisplayName: USB Console Baud Rate
-    // @Description: The baud rate used on the USB console. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
+    // @Description: The baud rate used on the USB console
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
-    GSCALAR(serial0_baud,           "SERIAL0_BAUD",   SERIAL0_BAUD/1000),
+	GSCALAR(serial0_baud,           "SERIAL0_BAUD",     115),
 
     // @Param: SERIAL1_BAUD
     // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the first telemetry port. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
+    // @Description: The baud rate used on the first telemetry port
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
-    GSCALAR(serial1_baud,           "SERIAL1_BAUD",   SERIAL1_BAUD/1000),
+	GSCALAR(serial1_baud,           "SERIAL1_BAUD",     57),
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     // @Param: SERIAL2_BAUD
     // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the second telemetry port. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
+    // @Description: The baud rate used on the second telemetry port (where available)
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
     // @User: Standard
-    GSCALAR(serial2_baud,           "SERIAL2_BAUD",   SERIAL2_BAUD/1000),
+	GSCALAR(serial2_baud,           "SERIAL2_BAUD",     57),
 #endif
 
     // @Param: TELEM_DELAY
@@ -144,33 +144,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 0.1
     // @User: Standard
 	GSCALAR(speed_turn_dist,    "SPEED_TURN_DIST",  2.0f),
-
-    // @Param: BRAKING_PERCENT
-    // @DisplayName: Percentage braking to apply
-    // @Description: The maximum reverse throttle braking percentage to apply when cornering
-    // @Units: percent
-    // @Range: 0 100
-    // @Increment: 1
-    // @User: Standard
-	GSCALAR(braking_percent,    "BRAKING_PERCENT",  0),
-
-    // @Param: BRAKING_SPEEDERR
-    // @DisplayName: Speed error at which to apply braking
-    // @Description: The amount of overspeed error at which to start applying braking
-    // @Units: m/s
-    // @Range: 0 100
-    // @Increment: 1
-    // @User: Standard
-	GSCALAR(braking_speederr,   "BRAKING_SPEEDERR",  3),
-
-    // @Param: PIVOT_TURN_ANGLE
-    // @DisplayName: Pivot turn angle
-    // @Description: Navigation angle threshold in degrees to switch to pivot steering when SKID_STEER_OUT is 1. This allows you to setup a skid steering rover to turn on the spot in auto mode when the angle it needs to turn it greater than this angle. An angle of zero means to disable pivot turning. Note that you will probably also want to set a low value for WP_RADIUS to get neat turns.
-    // @Units: degrees
-    // @Range: 0 360
-    // @Increment: 1
-    // @User: Standard
-	GSCALAR(pivot_turn_angle,   "PIVOT_TURN_ANGLE",  30),
 
     // @Param: CH7_OPTION
     // @DisplayName: Channel 7 option
@@ -408,6 +381,9 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(mode6,           "MODE6",         MODE_6),
 
+	GSCALAR(command_total,          "CMD_TOTAL",        0),
+	GSCALAR(command_index,          "CMD_INDEX",        0),
+
     // @Param: WP_RADIUS
     // @DisplayName: Waypoint radius
     // @Description: The distance in meters from a waypoint when we consider the waypoint has been reached. This determines when the rover will turn along the next waypoint path.
@@ -441,12 +417,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: SCHED_
     // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
     GOBJECT(scheduler, "SCHED_", AP_Scheduler),
-
-    // barometer ground calibration. The GND_ prefix is chosen for
-    // compatibility with previous releases of ArduPlane
-    // @Group: GND_
-    // @Path: ../libraries/AP_Baro/AP_Baro.cpp
-    GOBJECT(barometer, "GND_", AP_Baro),
 
     // @Group: RELAY_
     // @Path: ../libraries/AP_Relay/AP_Relay.cpp
@@ -516,21 +486,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_BoardConfig/AP_BoardConfig.cpp
     GOBJECT(BoardConfig,            "BRD_",       AP_BoardConfig),
 
-    // GPS driver
-    // @Group: GPS_
-    // @Path: ../libraries/AP_GPS/AP_GPS.cpp
-    GOBJECT(gps, "GPS_", AP_GPS),
-
-#if AP_AHRS_NAVEKF_AVAILABLE
-    // @Group: EKF_
-    // @Path: ../libraries/AP_NavEKF/AP_NavEKF.cpp
-    GOBJECTN(ahrs.get_NavEKF(), NavEKF, "EKF_", NavEKF),
-#endif
-
-    // @Group: MIS_
-    // @Path: ../libraries/AP_Mission/AP_Mission.cpp
-    GOBJECT(mission, "MIS_",       AP_Mission),
-
 	AP_VAREND
 };
 
@@ -558,11 +513,6 @@ const AP_Param::ConversionInfo conversion_table[] PROGMEM = {
 
 static void load_parameters(void)
 {
-    if (!AP_Param::check_var_info()) {
-        cliSerial->printf_P(PSTR("Bad var table\n"));        
-        hal.scheduler->panic(PSTR("Bad var table"));
-    }
-
 	if (!g.format_version.load() ||
 	     g.format_version != Parameters::k_format_version) {
 

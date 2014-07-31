@@ -204,11 +204,6 @@ AP_Compass_HMC5843_EXT::init()
         product_id = AP_COMPASS_TYPE_HMC5883L;
         hal.console->println("Compass TYPE: HMC5883L EXT" );
         calibration_gain = 0x60;
-        /*
-          note that the HMC5883 datasheet gives the x and y expected
-          values as 766 and the z as 713. Experiments have shown the x
-          axis is around 766, and the y and z closer to 713.
-         */
         expected_x = 766;
         expected_yz  = 713;
         gain_multiple = 660.0 / 1090;  // adjustment for runtime vs calibration gain
@@ -225,7 +220,7 @@ AP_Compass_HMC5843_EXT::init()
     calibration[1] = 0;
     calibration[2] = 0;
 
-    while ( success == 0 && numAttempts < 25 && good_count < 5)
+    while ( success == 0 && numAttempts < 20 && good_count < 5)
     {
         // record number of attempts at initialisation
         numAttempts++;
@@ -249,29 +244,20 @@ AP_Compass_HMC5843_EXT::init()
 
         float cal[3];
 
-        // hal.console->printf_P(PSTR("mag %d %d %d\n"), _mag_x, _mag_y, _mag_z);
         cal[0] = fabsf(expected_x / (float)_mag_x);
         cal[1] = fabsf(expected_yz / (float)_mag_y);
         cal[2] = fabsf(expected_yz / (float)_mag_z);
 
-        // hal.console->printf_P(PSTR("cal=%.2f %.2f %.2f\n"), cal[0], cal[1], cal[2]);
-
-        // we throw away the first two samples as the compass may
-        // still be changing its state from the application of the
-        // strap excitation. After that we accept values in a
-        // reasonable range
-        if (numAttempts > 2 &&
-            cal[0] > 0.7f && cal[0] < 1.35f &&
+        if (cal[0] > 0.7f && cal[0] < 1.35f &&
             cal[1] > 0.7f && cal[1] < 1.35f &&
             cal[2] > 0.7f && cal[2] < 1.35f) {
-            // hal.console->printf_P(PSTR("cal=%.2f %.2f %.2f good\n"), cal[0], cal[1], cal[2]);
             good_count++;
             calibration[0] += cal[0];
             calibration[1] += cal[1];
             calibration[2] += cal[2];
         }
 
-#if 0
+#if 1
         /* useful for debugging */
         hal.console->printf_P(PSTR("MagX: %d MagY: %d MagZ: %d\n"), (int)_mag_x, (int)_mag_y, (int)_mag_z);
         hal.console->printf_P(PSTR("CalX: %.2f CalY: %.2f CalZ: %.2f\n"), cal[0], cal[1], cal[2]);
@@ -279,17 +265,6 @@ AP_Compass_HMC5843_EXT::init()
     }
 
     if (good_count >= 5) {
-        /*
-          The use of gain_multiple below is incorrect, as the gain
-          difference between 2.5Ga mode and 1Ga mode is already taken
-          into account by the expected_x and expected_yz values.  We
-          are not going to fix it however as it would mean all
-          APM1/APM2 users redoing their compass calibration. The
-          impact is that the values we report on APM1/APM2 are lower
-          than they should be (by a multiple of about 0.6). This
-          doesn't have any impact other than the learned compass
-          offsets
-         */
         calibration[0] = calibration[0] * gain_multiple / good_count;
         calibration[1] = calibration[1] * gain_multiple / good_count;
         calibration[2] = calibration[2] * gain_multiple / good_count;
@@ -313,11 +288,6 @@ AP_Compass_HMC5843_EXT::init()
 	// perform an initial read
 	_healthy[0] = true;
 	read();
-
-#if 0
-    hal.console->printf_P(PSTR("CalX: %.2f CalY: %.2f CalZ: %.2f\n"), 
-                          calibration[0], calibration[1], calibration[2]);
-#endif
 
     return success;
 }
@@ -372,6 +342,7 @@ bool AP_Compass_HMC5843_EXT::read()
     // add user selectable orientation
     _field[0].rotate((enum Rotation)_orientation.get());
 
+    _external = 1;
     if (!_external) {
         // and add in AHRS_ORIENTATION setting if not an external compass
         _field[0].rotate(_board_orientation);

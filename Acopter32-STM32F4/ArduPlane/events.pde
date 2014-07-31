@@ -13,7 +13,6 @@ static void failsafe_short_on_event(enum failsafe_state fstype)
     case STABILIZE:
     case ACRO:
     case FLY_BY_WIRE_A:
-    case AUTOTUNE:
     case FLY_BY_WIRE_B:
     case CRUISE:
     case TRAINING:
@@ -61,7 +60,6 @@ static void failsafe_long_on_event(enum failsafe_state fstype)
     case STABILIZE:
     case ACRO:
     case FLY_BY_WIRE_A:
-    case AUTOTUNE:
     case FLY_BY_WIRE_B:
     case CRUISE:
     case TRAINING:

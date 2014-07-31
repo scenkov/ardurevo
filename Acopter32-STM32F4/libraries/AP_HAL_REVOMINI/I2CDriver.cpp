@@ -32,18 +32,12 @@ void REVOMINII2CDriver::begin() {
     if(_dev->I2Cx == I2C1)
 	i2c_init(_dev, 0, I2C_400KHz_SPEED);
     else
-	i2c_init(_dev, 0, I2C_400KHz_SPEED);
+	i2c_init(_dev, 2, I2C_400KHz_SPEED);
 }
-void REVOMINII2CDriver::end() {
-    i2c_deinit(_dev);
-}
+void REVOMINII2CDriver::end() {}
 
 void REVOMINII2CDriver::setHighSpeed(bool active) {
-    if(active) {
-	i2c_init(_dev, 0, I2C_400KHz_SPEED);
-    } else {
-	i2c_init(_dev, 0, I2C_100KHz_SPEED);
-    }
+
 }
 
 uint8_t REVOMINII2CDriver::write(uint8_t addr, uint8_t len, uint8_t* tx_buffer)
@@ -135,7 +129,6 @@ uint8_t REVOMINII2CDriver::readRegisters(uint8_t addr, uint8_t reg, uint8_t numb
 		{
 		_lockup_count ++;
 //		hal.gpio->write(20, 1);
-		i2c_bus_reset(_dev);
 		return 1;
 		}
 	}

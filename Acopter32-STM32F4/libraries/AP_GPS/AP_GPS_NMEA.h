@@ -47,21 +47,38 @@
 #ifndef __AP_GPS_NMEA_H__
 #define __AP_GPS_NMEA_H__
 
-#include <AP_GPS.h>
+#include <AP_HAL.h>
+#include "GPS.h"
+#include <AP_Progmem.h>
+
 
 /// NMEA parser
 ///
-class AP_GPS_NMEA : public AP_GPS_Backend
+class AP_GPS_NMEA : public GPS
 {
 public:
-	AP_GPS_NMEA(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port);
+	AP_GPS_NMEA(void) : 
+	GPS(),
+	_parity(0),
+	_is_checksum_term(false),
+	_sentence_type(0),
+	_term_number(0),
+	_term_offset(0),
+	_gps_data_good(false)
+		{}
+
+    /// Perform a (re)initialisation of the GPS; sends the
+    /// protocol configuration messages.
+    ///
+    virtual void        init(AP_HAL::UARTDriver *s, enum GPS_Engine_Setting nav_setting = GPS_ENGINE_NONE);
 
     /// Checks the serial receive buffer for characters,
     /// attempts to parse NMEA data and updates internal state
     /// accordingly.
-    bool        read();
+    ///
+    virtual bool        read();
 
-	static bool _detect(struct NMEA_detect_state &state, uint8_t data);
+	static bool _detect(uint8_t data);
 
 private:
     /// Coding for the GPS sentences that the parser handles
@@ -133,7 +150,7 @@ private:
     int32_t _new_altitude;                                      ///< altitude parsed from a term
     int32_t _new_speed;                                                 ///< speed parsed from a term
     int32_t _new_course;                                        ///< course parsed from a term
-    uint16_t _new_hdop;                                                 ///< HDOP parsed from a term
+    int16_t _new_hdop;                                                  ///< HDOP parsed from a term
     uint8_t _new_satellite_count;                       ///< satellite count parsed from a term
 
     /// @name	Init strings
@@ -152,8 +169,6 @@ private:
     static const prog_char _gpgga_string[];
     static const prog_char _gpvtg_string[];
     //@}
-
-    static const prog_char _initialisation_blob[];
 };
 
 #endif // __AP_GPS_NMEA_H__

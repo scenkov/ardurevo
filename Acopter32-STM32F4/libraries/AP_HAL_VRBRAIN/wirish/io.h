@@ -176,11 +176,9 @@ void togglePin(uint8 pin);
  *
  * @see pinMode()
  */
-/*
 static inline void toggleLED() {
     togglePin(BOARD_LED_PIN);
 }
-*/
 
 /**
  * Shift out a byte of data, one bit at a time.

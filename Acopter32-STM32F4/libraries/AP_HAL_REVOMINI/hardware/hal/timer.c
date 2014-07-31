@@ -49,7 +49,7 @@
 
 static timer_dev timer1 = {
     .regs         = TIM1,
-    .clk	      = RCC_APB2Periph_TIM1,
+    .clk	  = RCC_APB2Periph_TIM1,
     .type         = TIMER_ADVANCED,
     .handlers     = { [NR_ADV_HANDLERS - 1] = 0 },
 };
@@ -142,6 +142,7 @@ timer_dev *TIMER12 = &timer12;
  */
 
 static void disable_channel(timer_dev *dev, uint8_t channel);
+static void pwm_mode(timer_dev *dev, uint8_t channel);
 static void output_compare_mode(timer_dev *dev, uint8_t channel);
 
 static inline void enable_irq(timer_dev *dev, uint8_t interrupt);
@@ -228,13 +229,14 @@ void timer_set_mode(timer_dev *dev, uint8_t channel, timer_mode mode) {
  */
 void timer_foreach(void (*fn)(timer_dev*)) {
     //fn(TIMER1);
-    //fn(TIMER2);
-    //fn(TIMER3);
-    //fn(TIMER4);
-    //fn(TIMER5);
+    fn(TIMER2);
+    fn(TIMER3);
+    fn(TIMER4);
+    fn(TIMER5);
     //fn(TIMER6);
     fn(TIMER7);
     //fn(TIMER8);
+    fn(TIMER9);
 }
 
 /**
@@ -308,17 +310,21 @@ void TIM3_IRQHandler(void) {
 void TIM4_IRQHandler(void) {
     dispatch_general(TIMER4);
 }
-/*
+
 void TIM5_IRQHandler(void) {
     dispatch_general(TIMER5);
 }
-
+/*
 void TIM6_DAC_IRQHandler(void) {
     dispatch_basic(TIMER6);
 }
 */
 void TIM7_IRQHandler(void) {
     dispatch_basic(TIMER7);
+}
+
+void TIM9_IRQHandler(void) {
+    dispatch_basic(TIMER9);
 }
 /*
 void TIM8_BRK_TIM12_IRQHandler(void) {
@@ -436,7 +442,7 @@ static void disable_channel(timer_dev *dev, uint8_t channel) {
     timer_cc_disable(dev, channel);
 }
 
-void pwm_mode(timer_dev *dev, uint8_t channel) {
+static void pwm_mode(timer_dev *dev, uint8_t channel) {
     timer_disable_irq(dev, channel);
    // timer_oc_set_mode(dev, channel, TIMER_OC_MODE_PWM_1, TIMER_OC_PE);
     switch (channel)

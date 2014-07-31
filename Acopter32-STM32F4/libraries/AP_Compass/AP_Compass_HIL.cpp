@@ -108,16 +108,12 @@ void AP_Compass_HIL::setHIL(float roll, float pitch, float yaw)
 
 // Update raw magnetometer values from HIL mag vector
 //
-void AP_Compass_HIL::setHIL(const Vector3f &mag)
+void AP_Compass_HIL::setHIL(const Vector3i &mag)
 {
     _hil_mag.x = mag.x;
     _hil_mag.y = mag.y;
     _hil_mag.z = mag.z;
     _healthy[0] = true;
-}
-
-const Vector3f& AP_Compass_HIL::getHIL() const {
-    return _hil_mag;
 }
 
 void AP_Compass_HIL::accumulate(void)

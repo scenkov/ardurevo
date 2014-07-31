@@ -18,14 +18,12 @@
 #define AP_MOTORS_SINGLE_SPEED_DIGITAL_SERVOS 250 // update rate for digital servos
 #define AP_MOTORS_SINGLE_SPEED_ANALOG_SERVOS 125  // update rate for analog servos
 
-#define AP_MOTORS_SINGLE_SERVO_INPUT_RANGE      4500    // roll or pitch input of -4500 will cause servos to their minimum (i.e. radio_min), +4500 will move them to their maximum (i.e. radio_max)
-
 /// @class      AP_MotorsSingle
 class AP_MotorsSingle : public AP_Motors {
 public:
 
     /// Constructor
-    AP_MotorsSingle( RC_Channel& rc_roll, RC_Channel& rc_pitch, RC_Channel& rc_throttle, RC_Channel& rc_yaw, RC_Channel& servo1, RC_Channel& servo2, RC_Channel& servo3, RC_Channel& servo4, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
+    AP_MotorsSingle( RC_Channel* rc_roll, RC_Channel* rc_pitch, RC_Channel* rc_throttle, RC_Channel* rc_yaw, RC_Channel* servo1, RC_Channel* servo2, RC_Channel* servo3, RC_Channel* servo4, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT) :
         AP_Motors(rc_roll, rc_pitch, rc_throttle, rc_yaw, speed_hz),
         _servo1(servo1),
         _servo2(servo2),
@@ -44,10 +42,8 @@ public:
     // enable - starts allowing signals to be sent to motors
     virtual void        enable();
 
-    // output_test - spin a motor at the pwm value specified
-    //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
-    //  pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000
-    virtual void        output_test(uint8_t motor_seq, int16_t pwm);
+    // motor test
+    virtual void        output_test();
 
     // output_min - sends minimum values out to the motors
     virtual void        output_min();
@@ -64,10 +60,10 @@ protected:
     AP_Int8             _rev_pitch;     // REV pitch feedback
     AP_Int8             _rev_yaw;       // REV yaw feedback
     AP_Int16            _servo_speed;   // servo speed
-    RC_Channel&         _servo1;
-    RC_Channel&         _servo2;
-    RC_Channel&         _servo3;
-    RC_Channel&         _servo4;
+    RC_Channel*         _servo1;
+    RC_Channel*         _servo2;
+    RC_Channel*         _servo3;
+    RC_Channel*         _servo4;
 };
 
 #endif  // AP_MOTORSSINGLE

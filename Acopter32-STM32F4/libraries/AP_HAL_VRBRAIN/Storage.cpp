@@ -29,7 +29,7 @@ uint8_t VRBRAINStorage::read_byte(uint16_t loc){
 	    //hal.console->println_P("i2c timeout read byte");
 	    return 0;
 	}
-	//while(numbytes > 0);
+	while(numbytes > 0);
 
 	return buf[0];
 

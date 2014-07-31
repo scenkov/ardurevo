@@ -20,14 +20,12 @@ static int8_t   test_pressure(uint8_t argc,     const Menu::arg *argv);
 static int8_t   test_mag(uint8_t argc,                  const Menu::arg *argv);
 static int8_t   test_xbee(uint8_t argc,                 const Menu::arg *argv);
 static int8_t   test_eedump(uint8_t argc,               const Menu::arg *argv);
+static int8_t   test_rawgps(uint8_t argc,                       const Menu::arg *argv);
 static int8_t   test_modeswitch(uint8_t argc,           const Menu::arg *argv);
 static int8_t   test_logging(uint8_t argc,              const Menu::arg *argv);
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
 static int8_t   test_shell(uint8_t argc,              const Menu::arg *argv);
 #endif
-
-// forward declaration to keep the compiler happy
-static void test_wp_print(const AP_Mission::Mission_Command& cmd);
 
 // Creates a constant array of structs representing menu options
 // and stores them in Flash memory, not RAM.
@@ -51,6 +49,7 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
     {"adc",                 test_adc},
  #endif
     {"gps",                 test_gps},
+    {"rawgps",              test_rawgps},
     {"ins",                 test_ins},
     {"airspeed",    test_airspeed},
     {"airpressure", test_pressure},
@@ -61,7 +60,7 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
     {"compass",             test_mag},
 #endif
     {"logging",             test_logging},
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     {"shell", 				test_shell},
 #endif
 
@@ -89,7 +88,7 @@ test_eedump(uint8_t argc, const Menu::arg *argv)
     uint16_t i, j;
 
     // hexdump the EEPROM
-    for (i = 0; i < HAL_STORAGE_SIZE_AVAILABLE; i += 16) {
+    for (i = 0; i < EEPROM_MAX_ADDR; i += 16) {
         cliSerial->printf_P(PSTR("%04x:"), i);
         for (j = 0; j < 16; j++)
             cliSerial->printf_P(PSTR(" %02x"), hal.storage->read_byte(i + j));
@@ -138,7 +137,7 @@ test_passthru(uint8_t argc, const Menu::arg *argv)
         delay(20);
 
         // New radio frame? (we could use also if((millis()- timer) > 20)
-        if (hal.rcin->new_input()) {
+        if (hal.rcin->valid_channels() > 0) {
             cliSerial->print_P(PSTR("CH:"));
             for(int16_t i = 0; i < 8; i++) {
                 cliSerial->print(hal.rcin->read(i));        // Print channel values
@@ -283,31 +282,29 @@ test_wp(uint8_t argc, const Menu::arg *argv)
         cliSerial->printf_P(PSTR("Hold altitude of %dm\n"), (int)g.RTL_altitude_cm/100);
     }
 
-    cliSerial->printf_P(PSTR("%d waypoints\n"), (int)mission.num_commands());
+    cliSerial->printf_P(PSTR("%d waypoints\n"), (int)g.command_total);
     cliSerial->printf_P(PSTR("Hit radius: %d\n"), (int)g.waypoint_radius);
     cliSerial->printf_P(PSTR("Loiter radius: %d\n\n"), (int)g.loiter_radius);
 
-    for(uint8_t i = 0; i <= mission.num_commands(); i++) {
-        AP_Mission::Mission_Command temp_cmd;
-        if (mission.read_cmd_from_storage(i,temp_cmd)) {
-            test_wp_print(temp_cmd);
-        }
+    for(uint8_t i = 0; i <= g.command_total; i++) {
+        struct Location temp = get_cmd_with_index(i);
+        test_wp_print(&temp, i);
     }
 
     return (0);
 }
 
 static void
-test_wp_print(const AP_Mission::Mission_Command& cmd)
+test_wp_print(const struct Location *cmd, uint8_t wp_index)
 {
     cliSerial->printf_P(PSTR("command #: %d id:%d options:%d p1:%d p2:%ld p3:%ld p4:%ld \n"),
-                    (int)cmd.index,
-                    (int)cmd.id,
-                    (int)cmd.content.location.options,
-                    (int)cmd.p1,
-                    (long)cmd.content.location.alt,
-                    (long)cmd.content.location.lat,
-                    (long)cmd.content.location.lng);
+                    (int)wp_index,
+                    (int)cmd->id,
+                    (int)cmd->options,
+                    (int)cmd->p1,
+                    (long)cmd->alt,
+                    (long)cmd->lat,
+                    (long)cmd->lng);
 }
 
 static int8_t
@@ -362,7 +359,7 @@ test_logging(uint8_t argc, const Menu::arg *argv)
     return 0;
 }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
 /*
  *  run a debug shell
  */
@@ -404,21 +401,18 @@ test_gps(uint8_t argc, const Menu::arg *argv)
     print_hit_enter();
     delay(1000);
 
-    uint32_t last_message_time_ms = 0;
     while(1) {
         delay(100);
 
-        gps.update();
+        g_gps->update();
 
-        if (gps.last_message_time_ms() != last_message_time_ms) {
-            last_message_time_ms = gps.last_message_time_ms();
-            const Location &loc = gps.location();
+        if (g_gps->new_data) {
             cliSerial->printf_P(PSTR("Lat: %ld, Lon %ld, Alt: %ldm, #sats: %d\n"),
-                                (long)loc.lat,
-                                (long)loc.lng,
-                                (long)loc.alt/100,
-                                (int)gps.num_sats());
-        } else {
+                            (long)g_gps->latitude,
+                            (long)g_gps->longitude,
+                            (long)g_gps->altitude_cm/100,
+                            (int)g_gps->num_sats);
+        }else{
             cliSerial->printf_P(PSTR("."));
         }
         if(cliSerial->available() > 0) {
@@ -522,7 +516,7 @@ test_mag(uint8_t argc, const Menu::arg *argv)
                     // Calculate heading
                     const Matrix3f &m = ahrs.get_dcm_matrix();
                     heading = compass.calculate_heading(m);
-                    compass.learn_offsets();
+                    compass.null_offsets();
                 }
             }
 
@@ -590,16 +584,19 @@ test_pressure(uint8_t argc, const Menu::arg *argv)
     cliSerial->printf_P(PSTR("Uncalibrated relative airpressure\n"));
     print_hit_enter();
 
+    home.alt        = 0;
+    wp_distance = 0;
     init_barometer();
 
     while(1) {
         delay(100);
+        current_loc.alt = read_barometer() + home.alt;
 
         if (!barometer.healthy) {
             cliSerial->println_P(PSTR("not healthy"));
         } else {
             cliSerial->printf_P(PSTR("Alt: %0.2fm, Raw: %f Temperature: %.1f\n"),
-                                barometer.get_altitude(),
+                                current_loc.alt / 100.0,
                                 barometer.get_pressure(), 
                                 barometer.get_temperature());
         }
@@ -610,6 +607,26 @@ test_pressure(uint8_t argc, const Menu::arg *argv)
     }
 }
 
+static int8_t
+test_rawgps(uint8_t argc, const Menu::arg *argv)
+{
+    print_hit_enter();
+    delay(1000);
+
+    while(1) {
+        // Blink Yellow LED if we are sending data to GPS
+        if (hal.uartC->available()) {
+            hal.uartB->write(hal.uartC->read());
+        }
+        // Blink Red LED if we are receiving data from GPS
+        if (hal.uartB->available()) {
+            hal.uartC->write(hal.uartB->read());
+        }
+        if(cliSerial->available() > 0) {
+            return (0);
+        }
+    }
+}
 #endif // HIL_MODE == HIL_MODE_DISABLED
 
 #endif // CLI_ENABLED

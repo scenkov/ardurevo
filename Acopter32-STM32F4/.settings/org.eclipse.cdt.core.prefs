@@ -1,12 +1,4 @@
 eclipse.preferences.version=1
-environment/project/0.1005655095/CYGWIN/delimiter=;
-environment/project/0.1005655095/CYGWIN/operation=append
-environment/project/0.1005655095/CYGWIN/value=nodosfilewarning
-environment/project/0.1005655095/PATH/delimiter=;
-environment/project/0.1005655095/PATH/operation=replace
-environment/project/0.1005655095/PATH/value=C\:\\vr-universal-ide\\toolchain\\sourcery_4.5.2\\arm-none-eabi\\bin;C\:\\vr-universal-ide\\toolchain\\sourcery_4.5.2\\bin;C\:\\vr-universal-ide\\cygwin\\bin;C\:\\vr-universal-ide\\toolchain\\Python27;C\:\\Program Files (x86)\\Git\\bin
-environment/project/0.1005655095/append=true
-environment/project/0.1005655095/appendContributed=true
 environment/project/cdt.managedbuild.toolchain.gnu.base.1248093126/CYGWIN/delimiter=;
 environment/project/cdt.managedbuild.toolchain.gnu.base.1248093126/CYGWIN/operation=append
 environment/project/cdt.managedbuild.toolchain.gnu.base.1248093126/CYGWIN/value=nodosfilewarning

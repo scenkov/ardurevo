@@ -12,8 +12,8 @@ cSRCS_$(d) :=
 
 cppSRCS_$(d) :=
 cppSRCS_$(d) += AP_AHRS_DCM.cpp
+cppSRCS_$(d) += AP_AHRS_HIL.cpp
 cppSRCS_$(d) += AP_AHRS.cpp
-cppSRCS_$(d) += AP_AHRS_NavEKF.cpp
 
 cFILES_$(d) := $(cSRCS_$(d):%=$(d)/%)
 cppFILES_$(d) := $(cppSRCS_$(d):%=$(d)/%)

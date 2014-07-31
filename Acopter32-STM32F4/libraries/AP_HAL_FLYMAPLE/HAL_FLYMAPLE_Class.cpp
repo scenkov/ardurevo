@@ -48,7 +48,6 @@ HAL_FLYMAPLE::HAL_FLYMAPLE() :
         &uartBDriver,
         &uartCDriver,
         NULL,            /* no uartD */
-        NULL,            /* no uartE */
         &i2cDriver,
 	&spiDeviceManager,
 	&analogIn,

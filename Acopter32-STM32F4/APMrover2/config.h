@@ -60,58 +60,44 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
 # define CONFIG_INS_TYPE   CONFIG_INS_OILPAN
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-# define CONFIG_BARO     AP_BARO_BMP085
 # define BATTERY_PIN_1	  0
 # define CURRENT_PIN_1	  1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-# ifdef APM2_BETA_HARDWARE
-#  define CONFIG_BARO     AP_BARO_BMP085
-# else // APM2 Production Hardware (default)
-#  define CONFIG_BARO          AP_BARO_MS5611
-#  define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
-# endif
 # define BATTERY_PIN_1	  1
 # define CURRENT_PIN_1	  2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 # define CONFIG_INS_TYPE CONFIG_INS_HIL
 # define CONFIG_COMPASS  AP_COMPASS_HIL
-# define CONFIG_BARO     AP_BARO_HIL
 # define BATTERY_PIN_1	  1
 # define CURRENT_PIN_1	  2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
 # define CONFIG_INS_TYPE   CONFIG_INS_PX4
 # define CONFIG_COMPASS  AP_COMPASS_PX4
-# define CONFIG_BARO AP_BARO_PX4
 # define BATTERY_PIN_1	  -1
 # define CURRENT_PIN_1	  -1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
 # define CONFIG_INS_TYPE   CONFIG_INS_FLYMAPLE
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-# define CONFIG_BARO AP_BARO_BMP085
 # define BATTERY_PIN_1     20
 # define CURRENT_PIN_1	   19
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 # define CONFIG_INS_TYPE   CONFIG_INS_L3G4200D
 # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-# define CONFIG_BARO     AP_BARO_BMP085
 # define BATTERY_PIN_1     -1
 # define CURRENT_PIN_1	   -1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
- # define CONFIG_INS_TYPE   CONFIG_INS_VRBRAIN
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
- # define CONFIG_BARO     AP_BARO_MS5611
- # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
- # define BATTERY_PIN_1      6
- # define CURRENT_PIN_1      7
+# define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
+# define CONFIG_COMPASS  AP_COMPASS_HMC5843
+# define BATTERY_PIN_1	  6
+# define CURRENT_PIN_1	  7
 #elif CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
- # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
- # define CONFIG_BARO     AP_BARO_MS5611
- # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
- # define BATTERY_PIN_1   7 // Battery voltage on A0
- # define CURRENT_PIN_1   8 // Battery current on A1
+# define CONFIG_INS_TYPE CONFIG_INS_MPU6000
+# define CONFIG_COMPASS  AP_COMPASS_HMC5843
+# define BATTERY_PIN_1   7 // Battery voltage on A0
+# define CURRENT_PIN_1   8 // Battery current on A1
+# define SERIAL0_BAUD    57600
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -129,10 +115,22 @@
 #endif
 
 #if HIL_MODE != HIL_MODE_DISABLED       // we are in HIL mode
+ #undef GPS_PROTOCOL
+ #define GPS_PROTOCOL GPS_PROTOCOL_HIL
  #undef CONFIG_INS_TYPE
  #define CONFIG_INS_TYPE CONFIG_INS_HIL
  #undef  CONFIG_COMPASS
  #define CONFIG_COMPASS  AP_COMPASS_HIL
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// GPS_PROTOCOL
+//
+// Note that this test must follow the HIL_PROTOCOL block as the HIL
+// setup may override the GPS configuration.
+//
+#ifndef GPS_PROTOCOL
+# define GPS_PROTOCOL GPS_PROTOCOL_AUTO
 #endif
 
 #ifndef MAV_SYSTEM_ID
@@ -345,8 +343,7 @@
     MASK_LOG_COMPASS | \
     MASK_LOG_CURRENT | \
     MASK_LOG_STEERING | \
-    MASK_LOG_CAMERA | \
-    MASK_LOG_SONARDEPTH
+    MASK_LOG_CAMERA
 #else
 // other systems have plenty of space for full logs
 #define DEFAULT_LOG_BITMASK   0xffff

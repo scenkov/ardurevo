@@ -92,13 +92,7 @@ static void init_ardupilot()
 	// on the message set configured.
 	//
     // standard gps running
-    hal.uartB->begin(38400, 256, 16);
-
-#if GPS2_ENABLE
-    if (hal.uartE != NULL) {
-        hal.uartE->begin(38400, 256, 16);
-    }
-#endif
+    hal.uartB->begin(115200, 256, 16);
 
 	cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
 						 "\n\nFree RAM: %u\n"),
@@ -117,17 +111,14 @@ static void init_ardupilot()
     set_control_channels();
 
     // after parameter load setup correct baud rate on uartA
-    hal.uartA->begin(map_baudrate(g.serial0_baud));
+    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
     // keep a record of how many resets have happened. This can be
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
 
-    // init baro before we start the GCS, so that the CLI baro test works
-    barometer.init();
-
-	// init the GCS
-	gcs[0].init(hal.uartA);
+    // init the GCS
+    gcs[0].init(hal.uartA);
 
     // we start by assuming USB connected, as we initialed the serial
     // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
@@ -136,12 +127,18 @@ static void init_ardupilot()
 
     // we have a 2nd serial port for telemetry
 #if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
-    gcs[1].setup_uart(hal.uartC, map_baudrate(g.serial1_baud), 128, 128);
+    hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
+	gcs[1].init(hal.uartC);
+#endif
 
 #if MAVLINK_COMM_NUM_BUFFERS > 2
-    gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, 128);
+    // we may have a 3rd serial port for telemetry
+    if (hal.uartD != NULL) {
+        hal.uartD->begin(map_baudrate(g.serial2_baud, SERIAL2_BAUD), 128, 128);
+        gcs[2].init(hal.uartD);
+    }
 #endif
-#endif
+
 	mavlink_system.sysid = g.sysid_this_mav;
 
 #if LOGGING_ENABLED == ENABLED
@@ -179,11 +176,10 @@ static void init_ardupilot()
 	// initialise sonar
     init_sonar();
 
-    // and baro for EKF
-    init_barometer();
-
 	// Do GPS init
-	gps.init(&DataFlash);
+	g_gps = &g_gps_driver;
+    // GPS initialisation
+	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_4G);
 
 	//mavlink_system.sysid = MAV_SYSTEM_ID;				// Using g.sysid_this_mav
 	mavlink_system.compid = 1;	//MAV_COMP_ID_IMU;   // We do not check for comp id
@@ -211,7 +207,7 @@ static void init_ardupilot()
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
     if (gcs[1].initialised) {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINIv
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
         hal.uartC->println_P(msg);
 #endif
     }
@@ -223,9 +219,8 @@ static void init_ardupilot()
 
 	startup_ground();
 
-	if (should_log(MASK_LOG_CMD)) {
-        Log_Write_Startup(TYPE_GROUNDSTART_MSG);
-    }
+	if (g.log_bitmask & MASK_LOG_CMD)
+			Log_Write_Startup(TYPE_GROUNDSTART_MSG);
 
     set_mode((enum mode)g.initial_mode.get());
 
@@ -258,14 +253,16 @@ static void startup_ground(void)
 	// ---------------------------
 	trim_radio();
 
-    // initialise mission library
-    mission.init();
+	// initialize commands
+	// -------------------
+	init_commands();
 
     hal.uartA->set_blocking_writes(false);
 #if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     hal.uartC->set_blocking_writes(false);
 #endif
-	gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
+
+    gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
 }
 
 /*
@@ -320,9 +317,8 @@ static void set_mode(enum mode mode)
 			break;
 	}
 
-	if (should_log(MASK_LOG_MODE)) {
+	if (g.log_bitmask & MASK_LOG_MODE)
 		Log_Write_Mode();
-    }
 }
 
 /*
@@ -379,7 +375,6 @@ static void startup_INS_ground(bool force_accel_level)
 
     ahrs.init();
 	ahrs.set_fly_forward(true);
-    ahrs.set_vehicle_class(AHRS_VEHICLE_GROUND);
 
     AP_InertialSensor::Start_style style;
     if (g.skip_gyro_cal && !force_accel_level) {
@@ -410,7 +405,31 @@ static void update_notify()
 static void resetPerfData(void) {
 	mainLoop_count 			= 0;
 	G_Dt_max 				= 0;
+	ahrs.renorm_range_count 	= 0;
+	ahrs.renorm_blowup_count = 0;
+	gps_fix_count 			= 0;
 	perf_mon_timer 			= millis();
+}
+
+
+/*
+  map from a 8 bit EEPROM baud rate to a real baud rate
+ */
+static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
+{
+    switch (rate) {
+    case 1:    return 1200;
+    case 2:    return 2400;
+    case 4:    return 4800;
+    case 9:    return 9600;
+    case 19:   return 19200;
+    case 38:   return 38400;
+    case 57:   return 57600;
+    case 111:  return 111100;
+    case 115:  return 115200;
+    }
+    cliSerial->println_P(PSTR("Invalid baudrate"));
+    return default_baud;
 }
 
 
@@ -432,11 +451,19 @@ static void check_usb_mux(void)
     if (usb_connected) {
         hal.uartA->begin(SERIAL0_BAUD);
     } else {
-        hal.uartA->begin(map_baudrate(g.serial1_baud));
+        hal.uartA->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD));
     }
 #endif
 }
 
+
+/*
+ * Read board voltage in millivolts
+ */
+uint16_t board_voltage(void)
+{
+    return vcc_pin->voltage_latest() * 1000;
+}
 
 static void
 print_mode(AP_HAL::BetterStream *port, uint8_t mode)
@@ -507,7 +534,10 @@ static bool should_log(uint32_t mask)
     if (!(mask & g.log_bitmask) || in_mavlink_delay) {
         return false;
     }
-    bool ret = ahrs.get_armed() || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
+    bool armed;
+    armed = (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED);
+
+    bool ret = armed || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
     if (ret && !DataFlash.logging_started() && !in_log_download) {
         // we have to set in_mavlink_delay to prevent logging while
         // writing headers

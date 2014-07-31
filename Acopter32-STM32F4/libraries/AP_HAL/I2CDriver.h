@@ -26,19 +26,10 @@ public:
     /* readRegister: read from a device register - writes the register,
      * then reads back an 8-bit value. */
     virtual uint8_t readRegister(uint8_t addr, uint8_t reg, uint8_t* data) = 0;
-
-    /* readRegisters: read contigious device registers - writes the first 
+    /* readRegister: read contigious device registers - writes the first 
      * register, then reads back multiple bytes */
     virtual uint8_t readRegisters(uint8_t addr, uint8_t reg,
                                   uint8_t len, uint8_t* data) = 0;
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-    /* readRegistersMultiple: read contigious device registers. 
-       Equivalent to count calls to readRegisters() */
-    virtual uint8_t readRegistersMultiple(uint8_t addr, uint8_t reg,
-                                          uint8_t len, uint8_t count, 
-                                          uint8_t* data) = 0;
-#endif
 
     virtual uint8_t lockup_count() = 0;
     void ignore_errors(bool b) { _ignore_errors = b; }
