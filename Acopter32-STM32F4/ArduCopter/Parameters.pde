@@ -311,45 +311,46 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Increment: 1
     GSCALAR(throttle_mid,        "THR_MID",    THR_MID_DEFAULT),
 
+    // ST-JD added Hybrid mode
     // @Param: FLTMODE1
     // @DisplayName: Flight Mode 1
     // @Description: Flight mode when Channel 5 pwm is <= 1230
-    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport
+    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport,14:Hybrid
     // @User: Standard
     GSCALAR(flight_mode1, "FLTMODE1",               FLIGHT_MODE_1),
 
     // @Param: FLTMODE2
     // @DisplayName: Flight Mode 2
     // @Description: Flight mode when Channel 5 pwm is >1230, <= 1360
-    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport
+    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport,14:Hybrid
     // @User: Standard
     GSCALAR(flight_mode2, "FLTMODE2",               FLIGHT_MODE_2),
 
     // @Param: FLTMODE3
     // @DisplayName: Flight Mode 3
     // @Description: Flight mode when Channel 5 pwm is >1360, <= 1490
-    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport
+    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport,14:Hybrid
     // @User: Standard
     GSCALAR(flight_mode3, "FLTMODE3",               FLIGHT_MODE_3),
 
     // @Param: FLTMODE4
     // @DisplayName: Flight Mode 4
     // @Description: Flight mode when Channel 5 pwm is >1490, <= 1620
-    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport
+    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport,14:Hybrid
     // @User: Standard
     GSCALAR(flight_mode4, "FLTMODE4",               FLIGHT_MODE_4),
 
     // @Param: FLTMODE5
     // @DisplayName: Flight Mode 5
     // @Description: Flight mode when Channel 5 pwm is >1620, <= 1749
-    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport
+    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport,14:Hybrid
     // @User: Standard
     GSCALAR(flight_mode5, "FLTMODE5",               FLIGHT_MODE_5),
 
     // @Param: FLTMODE6
     // @DisplayName: Flight Mode 6
     // @Description: Flight mode when Channel 5 pwm is >=1750
-    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport
+    // @Values: 0:Stabilize,1:Acro,2:AltHold,3:Auto,4:Guided,5:Loiter,6:RTL,7:Circle,8:Position,9:Land,10:OF_Loiter,11:Drift,13:Sport,14:Hybrid
     // @User: Standard
     GSCALAR(flight_mode6, "FLTMODE6",               FLIGHT_MODE_6),
 
@@ -435,7 +436,14 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range 90000 250000
     // @User: Advanced
     GSCALAR(angle_rate_max, "ANGLE_RATE_MAX",  ANGLE_RATE_MAX),
-    
+
+    // @Param: RC_FEEL_RP
+    // @DisplayName: RC Feel Roll/Pitch
+    // @Description: RC feel for roll/pitch which controls vehicle response to user input with 0 being extremely soft and 100 begin crisp
+    // @User: Advanced
+    // @Values: 0:Very Soft, 25:Soft, 50:Medium, 75:Crisp, 100:Very Crisp
+    GSCALAR(rc_feel_rp, "RC_FEEL_RP",  RC_FEEL_RP_VERY_CRISP),
+
 #if FRAME_CONFIG ==     HELI_FRAME
     // @Group: HS1_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
@@ -536,7 +544,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_8,    "RC8_", RC_Channel_aux),
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // @Group: RC9_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_9,                    "RC9_", RC_Channel_aux),
@@ -549,7 +557,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_11,                    "RC11_", RC_Channel_aux),
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // @Group: RC12_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_12,                   "RC12_", RC_Channel_aux),

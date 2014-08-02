@@ -185,7 +185,7 @@ static NOINLINE void send_extended_status1(mavlink_channel_t chan, uint16_t pack
     if (g.compass_enabled && compass.healthy() && ahrs.use_compass()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
     }
-    if (g_gps != NULL && g_gps->status() > GPS::NO_GPS && !gps_glitch.glitching()) {
+    if (g_gps != NULL && g_gps->status() > GPS::NO_GPS && (!gps_glitch.glitching()||ap.usb_connected)) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
     }
     if (ap.rc_receiver_present && !failsafe.radio) {
@@ -1894,10 +1894,15 @@ mission_failed:
         v[5] = packet.chan6_raw;
         v[6] = packet.chan7_raw;
         v[7] = packet.chan8_raw;
-        hal.rcin->set_overrides(v, 8);
 
-        // record that rc are overwritten so we can trigger a failsafe if we lose contact with groundstation
-        failsafe.rc_override_active = true;
+        if(g.failsafe_gcs == FS_GCS_DISABLED) {
+            send_text_P(SEVERITY_HIGH,PSTR("RC Override Rejected - No GCS Failsafe!"));
+        } else {
+	    hal.rcin->set_overrides(v, 8);
+
+	    // record that rc are overwritten so we can trigger a failsafe if we lose contact with groundstation
+	    failsafe.rc_override_active = true;
+        }
         // a RC override message is consiered to be a 'heartbeat' from the ground station for failsafe purposes
         failsafe.last_heartbeat_ms = millis();
         break;

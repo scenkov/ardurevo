@@ -36,7 +36,7 @@
 
 #include <boards.h>
 
-#define MINONWIDTH 920 * 2
+#define MINONWIDTH 900 * 2
 #define MAXONWIDTH 2120 * 2
 // PATCH FOR FAILSAFE AND FRSKY
 #define MINOFFWIDTH 1000 * 2
@@ -224,7 +224,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 
     // static uint32_t throttle_timer = 0;
 
-    if (g_is_ppmsum > 0)
+    if (g_is_ppmsum == 1)
 	{
 	struct TIM_Channel channel = Channels[0];
 	struct PWM_State *input = &Inputs[0];
@@ -307,6 +307,10 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 			input->capture = time_on >> 1;
 			}
 
+		    if (pwm_capture_callback) {
+			pwm_capture_callback(i, time_on >> 1);
+		    }
+
 		    // switch state
 		    input->state = 0;
 
@@ -315,6 +319,7 @@ static inline void pwmIRQHandler(TIM_TypeDef *tim)
 		    TIM_ICInit(channel.tim, &TIM_ICInitStructure);
 
 		    }
+		break;
 		}
 	    }
 	}
@@ -351,7 +356,7 @@ static void pwmInitializeInput()
 		    channel.gpio_af_tim);
 	    // enable the TIM global interrupt
 	    NVIC_InitStructure.NVIC_IRQChannel = channel.tim_irq;
-	    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	    NVIC_Init(&NVIC_InitStructure);
@@ -391,14 +396,14 @@ static void pwmInitializeInput()
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_Init(channel.gpio_port, &GPIO_InitStructure);
 	// gpio_set_af_mode *************************************************************/
 	GPIO_PinAFConfig(channel.gpio_port, channel.gpio_af,
 		channel.gpio_af_tim);
 	// enable the TIM global interrupt
 	NVIC_InitStructure.NVIC_IRQChannel = channel.tim_irq;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -414,10 +419,10 @@ static void pwmInitializeInput()
 
 	// PWM input capture ************************************************************/
 	TIM_ICInitStructure.TIM_Channel = channel.tim_channel;
-	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Rising;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
 	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_DirectTI;
 	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
-	TIM_ICInitStructure.TIM_ICFilter = 0x0;
+	TIM_ICInitStructure.TIM_ICFilter = 0x03;
 	TIM_ICInit(channel.tim, &TIM_ICInitStructure);
 	// timer_enable *****************************************************************/
 	TIM_Cmd(channel.tim, ENABLE);
@@ -447,7 +452,7 @@ void pwmInit()
 uint16_t pwmRead(uint8_t channel)
     {
     if(channel == 2) {
-	if(systick_uptime() - Inputs[channel].last_pulse > 50) {
+	if(systick_uptime() - Inputs[channel].last_pulse > 100) {
 	    return 900;
 	}
     }

@@ -19,12 +19,14 @@ using namespace VRBRAIN;
 //_USART1 PIN 3 AND 4 OF THE INPUT RAIL
 //_USART2 INTERNAL SERIAL PORT
 //_USART3 PIN 1 AND 2 OF THE INPUT RAIL
+//_USART6 PIN 5 AND 6 on the INPUT RAIL
 
 
 // XXX make sure these are assigned correctly
 static VRBRAINUARTDriver uartADriver(_USART1,1);
 static VRBRAINUARTDriver uartBDriver(_USART2,0);
 static VRBRAINUARTDriver uartCDriver(_USART3,0);
+static VRBRAINUARTDriver uartDDriver(_USART6,0);
 static VRBRAINSemaphore  i2cSemaphore;
 static VRBRAINSemaphore  i2c2Semaphore;
 static VRBRAINI2CDriver  i2cDriver(_I2C2,&i2cSemaphore);
@@ -45,7 +47,7 @@ HAL_VRBRAIN::HAL_VRBRAIN() :
       &uartADriver,
       &uartBDriver,
       &uartCDriver,
-	  NULL,
+      &uartDDriver,
       &i2cDriver,
       &i2c2Driver,
       &spiDeviceManager,
@@ -66,18 +68,19 @@ extern const AP_HAL::HAL& hal;
 static void detect_compass(void){
 
     AP_Compass_HMC5843_EXT compass_ext;
+    AP_Compass_HMC5843 compass;
 
-    hal.scheduler->delay(10);
-
-    g_ext_mag_detect = 0;
+    hal.scheduler->delay(1000);
 
     if(compass_ext.init()){
 	hal.console->printf_P(PSTR("External Compass found!"));
 	g_ext_mag_detect = 1;
 	return;
     }
-
-return;
+    if(compass.init()){
+	hal.console->printf_P(PSTR("Internal Compass found!"));
+	g_ext_mag_detect = 0;
+	}
 }
 
 void HAL_VRBRAIN::init(int argc,char* const argv[]) const
@@ -89,9 +92,11 @@ void HAL_VRBRAIN::init(int argc,char* const argv[]) const
   scheduler->init(NULL);
 
   uartA->begin(57600);
-  uartC->begin(57600);
+  //uartC->begin(57600);
+
   //uartC->set_blocking_writes(true);
 
+  g_ext_mag_detect = 0;
 
   //_member->init();
   i2c->begin();

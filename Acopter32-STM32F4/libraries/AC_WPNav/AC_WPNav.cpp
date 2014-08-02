@@ -61,6 +61,59 @@ const AP_Param::GroupInfo AC_WPNav::var_info[] PROGMEM = {
     // @User: Standard
     AP_GROUPINFO("ACCEL",       5, AC_WPNav, _wp_accel_cms, WPNAV_ACCELERATION),
 
+    //*********************************************************************
+    // ST-JD Hybrid params
+    //*********************************************************************
+    
+	// @Param: HB_LOIT_DBAND
+    // @DisplayName: Loiter-alt_hold switch threshold
+    // @Description: Controls loiter switch to alt_hold.  
+	// @Suggested range: 5 100
+    // @Units: 
+    // @Range: 5 100
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("LOIT_DB",    6, AC_WPNav, _loiter_deadband, WPNAV_LOITER_DB),
+	
+	// @Param: HB_BR_RATE
+    // @DisplayName: number of deg/s the copter rolls/tilt during braking
+    // @Description:   
+	// @Suggested range: 5 10
+    // @Units: deg/s
+    // @Range: 5 10
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("BR_RATE",    7, AC_WPNav, _brake_rate, BRAKE_RATE),
+	
+	// @Param: HB_MAX_BR_ANG
+    // @DisplayName: max pitch/roll angle during braking
+    // @Description:  set it from 2000 to 4500 in centidegrees
+	// @Suggested range: 2000 4500
+    // @Units: cdeg
+    // @Range: 2000 4500
+    // @Increment: 100
+    // @User: Standard
+    AP_GROUPINFO("BR_MAX_ANG",   8, AC_WPNav, _max_braking_angle, MAX_BRAKING_ANGLE),
+	
+	// @Param: HB_SPEED_0
+    // @DisplayName: the max speed in cm/s to consider we have no more velocity for switching to loiter
+	// #Description: 
+	// @Suggested range: 
+    // @Units: cm/s
+    // @Range: 5 15
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("BR_SPEED_0",   9, AC_WPNav, _speed_0, SPEED_0),
+	
+	// @Param: HB_SMOOTH_RATE_FACTOR
+    // @DisplayName: set it from 4 to 7, 4 means longer but smoother transition
+    // @Description:   
+	// @Suggested range: 4 7
+    // @Units: 
+    // @Range: 4 7
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("STICK_SMTH",   10, AC_WPNav, _smooth_rate_factor, SMOOTH_RATE_FACTOR),
     AP_GROUPEND
 };
 
@@ -102,9 +155,11 @@ AC_WPNav::AC_WPNav(const AP_InertialNav* inav, const AP_AHRS* ahrs, APM_PI* pid_
 {
     AP_Param::setup_object_defaults(this, var_info);
 
-    // calculate loiter leash
+    // initialise leash lengths
     calculate_wp_leash_length(true);
     calculate_loiter_leash_length();
+    loiter_reset=true;      // ST-JD
+	init_I=true;		    // ST-JD reset_I allowed
 }
 
 ///
@@ -173,7 +228,9 @@ void AC_WPNav::init_loiter_target(const Vector3f& position, const Vector3f& velo
 
     // set last velocity to current velocity
     // To-Do: remove the line below by instead forcing reset_I to be called on the first loiter_update call
-    _vel_last = _inav->get_velocity();
+	// ST-JD commented: _vel_last = _inav->get_velocity();
+    //_vel_last = _inav->get_velocity();
+	loiter_reset=true; // ST-JD
 }
 
 /// move_loiter_target - move loiter target by velocity provided in front/right directions in cm/s
@@ -263,8 +320,9 @@ void AC_WPNav::update_loiter()
     float dt = (now - _loiter_last_update) / 1000.0f;
 
     // catch if we've just been started
-    if( dt >= 1.0f ) {
+    if ((dt>=1.0f)||loiter_reset) {      // ST-JD : add "or loiter_reset"
         dt = 0.0f;
+        loiter_reset=false;             // ST-JD
         reset_I();
         _loiter_step = 0;
     }
@@ -348,6 +406,8 @@ void AC_WPNav::set_destination(const Vector3f& destination)
     // if waypoint controlls is active and copter has reached the previous waypoint use it for the origin
     if( _flags.reached_destination && ((hal.scheduler->millis() - _wpnav_last_update) < 1000) ) {
         _origin = _destination;
+    //if( (hal.scheduler->millis() - _wpnav_last_update) < 1000 ) {
+    //   _origin = _target;
     }else{
         // otherwise calculate origin from the current position and velocity
         get_stopping_point(_inav->get_position(), _inav->get_velocity(), _origin);
@@ -385,6 +445,7 @@ void AC_WPNav::set_origin_and_destination(const Vector3f& origin, const Vector3f
     _track_desired = 0;
     _target = origin;
     _flags.reached_destination = false;
+    _wpnav_reset = 1; //reset wpnav update
 
     // initialise the limited speed to current speed along the track
     const Vector3f &curr_vel = _inav->get_velocity();
@@ -525,6 +586,10 @@ void AC_WPNav::update_wpnav()
         dt = 0.0;
         reset_I();
         _wpnav_step = 0;
+    } else if (_wpnav_reset > 0) {
+	_wpnav_step = 0;
+	_wpnav_reset = 0;
+	_accel_reset = 1;
     }
 
     // reset step back to 0 if 0.1 seconds has passed and we completed the last full cycle
@@ -628,6 +693,13 @@ void AC_WPNav::get_loiter_velocity_to_acceleration(float vel_lat, float vel_lon,
     if( dt == 0.0f ) {
         desired_accel.x = 0;
         desired_accel.y = 0;
+
+    } else if(_accel_reset > 0) {
+	_accel_reset = 0;
+	//noop keep last desidered accel to overcome glitches;
+	 _vel_last.x = vel_lat;
+	 _vel_last.y = vel_lon;
+	 return;
     } else {
         // feed forward desired acceleration calculation
         desired_accel.x = (vel_lat - _vel_last.x)/dt;
@@ -689,8 +761,10 @@ void AC_WPNav::reset_I()
 {
     _pid_pos_lon->reset_I();
     _pid_pos_lat->reset_I();
-    _pid_rate_lon->reset_I();
-    _pid_rate_lat->reset_I();
+    if (init_I){      // ST_JD : init rate pid's I term to 0 for loiter mode only, not for hybrid
+        _pid_rate_lon->reset_I();
+        _pid_rate_lat->reset_I();
+    }
 
     // set last velocity to current velocity
     _vel_last = _inav->get_velocity();

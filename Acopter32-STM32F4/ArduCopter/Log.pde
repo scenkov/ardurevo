@@ -694,7 +694,7 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_CMD_MSG, sizeof(log_Cmd),                 
       "CMD", "BBBBBeLL",     "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
     { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
-      "ATT", "IccccCC",      "TimeMS,DesRoll,Roll,DesPitch,Pitch,DesYaw,Yaw" },
+     "ATT", "IccccCC","TimeMS,DRoll,Roll,DPitch,Pitch,DYaw,Yaw" },  // ST-JD: log wind_comp and wind_offset     
     { LOG_MODE_MSG, sizeof(log_Mode),
       "MODE", "Mh",          "Mode,ThrCrs" },
     { LOG_STARTUP_MSG, sizeof(log_Startup),         

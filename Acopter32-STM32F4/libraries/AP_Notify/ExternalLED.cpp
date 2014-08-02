@@ -88,59 +88,100 @@ void ExternalLED::update(void)
     }
 
     // arming led control
-    if (AP_Notify::flags.armed) {
-        armed_led(true);
-    }else{
-        // blink arming led at 2hz
-        switch(_counter2) {
-            case 0:
-            case 1:
-            case 2:
-            case 5:
-            case 6:
-            case 7:
-                armed_led(false);
-                break;
-            case 3:
-            case 4:
-            case 8:
-            case 9:
-                armed_led(true);
-                break;
-        }
+    if (!AP_Notify::flags.failsafe_battery) {
+	if (AP_Notify::flags.armed) {
+	        armed_led(true);
+	    }else{
+	        // blink arming led at 2hz
+	        switch(_counter2) {
+	            case 0:
+	            case 1:
+	            case 2:
+	            case 5:
+	            case 6:
+	            case 7:
+	                armed_led(false);
+	                break;
+	            case 3:
+	            case 4:
+	            case 8:
+	            case 9:
+	                armed_led(true);
+	                break;
+	        }
+	    }
+    } else {
+	// blink arming led at 2hz
+	switch(_counter2) {
+	    case 5:
+	    case 2:
+		armed_led(false);
+		break;
+	    case 0:
+	    case 1:
+	    case 3:
+	    case 4:
+	    case 6:
+	    case 7:
+	    case 8:
+	    case 9:
+		armed_led(true);
+		break;
+	}
     }
 
+
     // GPS led control
-    switch (AP_Notify::flags.gps_status) {
-        case 0:
-            // no GPS attached
-            gps_led(false);
-            break;
-        case 1:
-        case 2:
-            // GPS attached but no lock, blink at 4Hz
-            switch(_counter2) {                             // Pattern: 3(off), 2(on), 3(off), 2(on), repeat
-                case 0:
-                case 1:
-                case 2:
-                case 5:
-                case 6:
-                case 7:
-                    gps_led(false);
-                    break;
-                case 3:
-                case 4:
-                case 8:
-                case 9:
-                    gps_led(true);
-                    break;
-            }
-            break;
-        case 3:
-            // solid blue on gps lock
-            gps_led(true);
-            break;
+    if(!AP_Notify::flags.gps_glitching) {
+	switch (AP_Notify::flags.gps_status) {
+	        case 0:
+	            // no GPS attached
+	            gps_led(false);
+	            break;
+	        case 1:
+	        case 2:
+	            // GPS attached but no lock, blink at 4Hz
+	            switch(_counter2) {                             // Pattern: 3(off), 2(on), 3(off), 2(on), repeat
+	                case 0:
+	                case 1:
+	                case 2:
+	                case 5:
+	                case 6:
+	                case 7:
+	                    gps_led(false);
+	                    break;
+	                case 3:
+	                case 4:
+	                case 8:
+	                case 9:
+	                    gps_led(true);
+	                    break;
+	            }
+	            break;
+	        case 3:
+	            // solid blue on gps lock
+	            gps_led(true);
+	            break;
+	    }
+    } else {
+	switch(_counter2) {                             // Pattern: 3(off), 2(on), 3(off), 2(on), repeat
+		                case 0:
+		                case 1:
+		                case 2:
+		                case 3:
+		                    gps_led(false);
+			            break;
+		                case 4:
+		                case 5:
+		                case 6:
+		                case 7:
+		                case 8:
+		                case 9:
+		                    gps_led(true);
+		                    break;
+		            }
     }
+
 
     // motor led control
     // if we are displaying a pattern complete it

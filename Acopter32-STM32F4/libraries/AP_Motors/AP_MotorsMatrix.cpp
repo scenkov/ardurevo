@@ -306,6 +306,14 @@ void AP_MotorsMatrix::output_armed()
                 }
             }
         }
+
+        //add tbratio
+        for( i = 4; i<AP_MOTORS_MAX_NUM_MOTORS; i++){
+            if (motor_enabled[i]){
+        	motor_out[i] *= _tb_ratio;
+            }
+        }
+
         // clip motor output if required (shouldn't be)
         for (i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
             if (motor_enabled[i]) {
@@ -329,7 +337,7 @@ void AP_MotorsMatrix::output_disarmed()
     output_min();
 }
 
-// output_disarmed - sends commands to the motors
+// output_test - spin each motor for a moment to allow the user to confirm the motor order and spin direction
 void AP_MotorsMatrix::output_test()
 {
     uint8_t min_order, max_order;

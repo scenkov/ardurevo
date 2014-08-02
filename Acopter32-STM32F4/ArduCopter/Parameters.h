@@ -96,7 +96,8 @@ public:
         k_param_battery,
         k_param_fs_batt_mah,
         k_param_angle_rate_max,
-        k_param_rssi_range,             // 39
+        k_param_rssi_range,
+        k_param_rc_feel_rp,             // 40
 
         // 65: AP_Limits Library
         k_param_limits = 65,            // deprecated - remove
@@ -321,6 +322,7 @@ public:
     AP_Int8         wp_yaw_behavior;            // controls how the autopilot controls yaw during missions
     AP_Int16        angle_max;                  // maximum lean angle of the copter in centi-degrees
     AP_Int32        angle_rate_max;             // maximum rotation rate in roll/pitch axis requested by angle controller used in stabilize, loiter, rtl, auto flight modes
+    AP_Int8         rc_feel_rp;                 // controls vehicle response to user input with 0 being extremely soft and 100 begin extremely crisp
     
     // Waypoints
     //
@@ -387,12 +389,12 @@ public:
     RC_Channel_aux          rc_6;
     RC_Channel_aux          rc_7;
     RC_Channel_aux          rc_8;
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     RC_Channel_aux          rc_9;
 #endif
     RC_Channel_aux          rc_10;
     RC_Channel_aux          rc_11;
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     RC_Channel_aux          rc_12;
 #endif
 
@@ -449,12 +451,12 @@ public:
         rc_6                (CH_6),
         rc_7                (CH_7),
         rc_8                (CH_8),
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
         rc_9                (CH_9),
 #endif
         rc_10               (CH_10),
         rc_11               (CH_11),
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
         rc_12               (CH_12),
 #endif
 

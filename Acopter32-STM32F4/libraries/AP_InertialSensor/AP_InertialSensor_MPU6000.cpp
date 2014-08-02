@@ -299,7 +299,7 @@ bool AP_InertialSensor_MPU6000::update( void )
     _accel[0].z *= accel_scale.z;
     _accel[0] -= _accel_offset[0];
 
-    _temp[0]    = _temp_to_celsius(_temp[0] /_num_samples);;
+    _temp[0]    = _temp_to_celsius(_temp[0] / _num_samples);
 
     if (_last_filter_hz != _mpu6000_filter) {
         if (_spi_sem->take(10)) {

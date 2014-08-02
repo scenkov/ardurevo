@@ -43,7 +43,7 @@ const AP_Param::GroupInfo RC_Channel::var_info[] PROGMEM = {
     // @Range: 800 2200
     // @Increment: 1
     // @User: Advanced
-    AP_GROUPINFO("MIN",  0, RC_Channel, radio_min, 1000),
+    AP_GROUPINFO("MIN",  0, RC_Channel, radio_min, 1100),
 
     // @Param: TRIM
     // @DisplayName: RC trim PWM
@@ -61,7 +61,7 @@ const AP_Param::GroupInfo RC_Channel::var_info[] PROGMEM = {
     // @Range: 800 2200
     // @Increment: 1
     // @User: Advanced
-    AP_GROUPINFO("MAX",  2, RC_Channel, radio_max, 2000),
+    AP_GROUPINFO("MAX",  2, RC_Channel, radio_max, 1900),
 
     // @Param: REV
     // @DisplayName: RC reverse
@@ -224,9 +224,9 @@ RC_Channel::load_eeprom(void)
 void
 RC_Channel::save_eeprom(void)
 {
-    radio_min.save(true);
+    radio_min.save();
     radio_trim.save();
-    radio_max.save(true);
+    radio_max.save();
     _reverse.save();
     _dead_zone.save();
 }

@@ -40,9 +40,7 @@ VRBRAINAnalogSource::VRBRAINAnalogSource(uint8_t pin) :
     _settle_time_ms(0),
     _read_start_time_ms(0)
 {
-    if(pin != ANALOG_INPUT_NONE) {
 	set_pin(pin);
-    }
 }
 
 float VRBRAINAnalogSource::read_average() {
@@ -84,7 +82,7 @@ float VRBRAINAnalogSource::voltage_average_ratiometric(void)
 void VRBRAINAnalogSource::set_pin(uint8_t pin) {
     if (pin != _pin) {
 	// ensure the pin is marked as an INPUT pin
-	if (pin != ANALOG_INPUT_NONE && pin != ANALOG_INPUT_BOARD_VCC && pin < BOARD_NR_GPIO_PINS) {
+	if (pin != ANALOG_INPUT_NONE && pin != ANALOG_INPUT_BOARD_VCC) {
 		hal.gpio->pinMode(pin, INPUT_ANALOG);
 	}
 
@@ -110,6 +108,8 @@ void VRBRAINAnalogSource::set_settle_time(uint16_t settle_time_ms)
 /* read_average is called from the normal thread (not an interrupt). */
 float VRBRAINAnalogSource::_read_average()
 {
+    uint16_t sum;
+    uint8_t sum_count;
 
     if (_sum_count == 0) {
         // avoid blocking waiting for new samples
@@ -117,12 +117,17 @@ float VRBRAINAnalogSource::_read_average()
     }
 
     /* Read and clear in a critical section */
-    hal.scheduler->suspend_timer_procs();
-    _last_average = _sum / _sum_count;
+    noInterrupts(); 
+    sum = _sum;
+    sum_count = _sum_count;
     _sum = 0;
     _sum_count = 0;
-    hal.scheduler->resume_timer_procs();
-    return _last_average;
+
+    interrupts();
+    float avg = sum / (float) sum_count;
+
+    _last_average = avg;
+    return avg;
 }
 
 void VRBRAINAnalogSource::setup_read() {

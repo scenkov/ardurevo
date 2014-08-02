@@ -66,26 +66,26 @@ void REVOMINIGPIO::pinMode(uint8_t pin, uint8_t output)
 
 		if (pwm)
 		{
-			if (PIN_MAP[pin].timer_device->regs == TIM1)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM1);
-			else if (PIN_MAP[pin].timer_device->regs == TIM2)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM2);
-			else if (PIN_MAP[pin].timer_device->regs == TIM3)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM3);
-			else if (PIN_MAP[pin].timer_device->regs == TIM4)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM4);
-			else if (PIN_MAP[pin].timer_device->regs == TIM5)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM5);
-			else if (PIN_MAP[pin].timer_device->regs == TIM8)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM8);
-			else if (PIN_MAP[pin].timer_device->regs == TIM9)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM9);
-			else if (PIN_MAP[pin].timer_device->regs == TIM13)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM13);
-			else if (PIN_MAP[pin].timer_device->regs == TIM14)
-				GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM14);
+		    if (PIN_MAP[pin].timer_device->regs == TIM1)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM1);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM2)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM2);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM3)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM3);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM4)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM4);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM5)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM5);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM8)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM8);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM9)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM9);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM13)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM13);
+		    else if (PIN_MAP[pin].timer_device->regs == TIM14)
+			    GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, GPIO_AF_TIM14);
 
-			timer_set_mode(PIN_MAP[pin].timer_device, PIN_MAP[pin].timer_channel, TIMER_PWM);
+		    timer_set_mode(PIN_MAP[pin].timer_device, PIN_MAP[pin].timer_channel, TIMER_PWM);
 		}
         /* Enable/disable timer channels if we're switching into or out of PWM. */
         //timer_set_mode(PIN_MAP[pin].timer_device, PIN_MAP[pin].timer_channel, pwm ? TIMER_PWM : TIMER_DISABLED);
@@ -125,6 +125,8 @@ void REVOMINIGPIO::toggle(uint8_t pin)
     gpio_toggle_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit);
 
 }
+
+
 
 /* Alternative interface: */
 AP_HAL::DigitalSource* REVOMINIGPIO::channel(uint16_t pin) {

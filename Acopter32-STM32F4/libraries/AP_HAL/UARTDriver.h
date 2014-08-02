@@ -33,6 +33,7 @@ public:
 	///						is currently closed.
 	///
     virtual void begin(uint32_t baud, uint16_t rxSpace, uint16_t txSpace) = 0;
+    virtual void begin(uint32_t baud, uint8_t sbus) = 0;
     virtual void end() = 0;
     virtual void flush() = 0;
     virtual bool is_initialized() = 0;

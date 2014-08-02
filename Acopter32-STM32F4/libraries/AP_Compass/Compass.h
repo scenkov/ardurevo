@@ -95,7 +95,7 @@ public:
     /// Saves the current compass offset x/y/z values.
     ///
     /// This should be invoked periodically to save the offset values maintained by
-    /// ::null_offsets.
+    /// ::learn_offsets.
     ///
     void save_offsets();
 

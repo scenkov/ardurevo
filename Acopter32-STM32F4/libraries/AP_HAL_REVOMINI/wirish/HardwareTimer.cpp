@@ -146,4 +146,3 @@ HardwareTimer Timer5(5);
 HardwareTimer Timer6(6);
 HardwareTimer Timer7(7);
 //HardwareTimer Timer8(8);
-HardwareTimer Timer9(9);

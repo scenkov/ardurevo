@@ -12,8 +12,15 @@
 #include <pwm_in.h>
 #include <usart.h>
 #include <i2c.h>
+#include <AP_Compass.h>
 
 using namespace REVOMINI;
+
+//_USART1 PIN 3 AND 4 OF THE INPUT RAIL
+//_USART2 INTERNAL SERIAL PORT
+//_USART3 PIN 1 AND 2 OF THE INPUT RAIL
+//_USART6 PIN 5 AND 6 on the INPUT RAIL
+
 
 // XXX make sure these are assigned correctly
 static REVOMINIUARTDriver uartADriver(_USART1,1);
@@ -32,6 +39,8 @@ static REVOMINIRCOutput rcoutDriver;
 static REVOMINIScheduler schedulerInstance;
 static REVOMINIUtil utilInstance;
 
+uint8_t g_ext_mag_detect;
+
 HAL_REVOMINI::HAL_REVOMINI() :
     AP_HAL::HAL(
       &uartADriver,
@@ -49,8 +58,10 @@ HAL_REVOMINI::HAL_REVOMINI() :
       &rcoutDriver,
       &schedulerInstance,
       &utilInstance
-    )
+      )
 {}
+
+extern const AP_HAL::HAL& hal;
 
 void HAL_REVOMINI::init(int argc,char* const argv[]) const
 {
@@ -58,18 +69,18 @@ void HAL_REVOMINI::init(int argc,char* const argv[]) const
    * up to the programmer to do this in the correct order.
    * Scheduler should likely come first. */
 
-  scheduler->init(NULL);
+    scheduler->init(NULL);
 
-  uartA->begin(57600);
-  uartB->begin(57600);
+    uartA->begin(57600);
+    uartB->begin(57600);
 
-  i2c->begin();
-  spi->init(NULL);
-  analogin->init(NULL);
-  storage->init(NULL);
-  rcin->init(NULL);
-//  rcout->init((void *)&_is_ppmsum);
-  rcout->init(NULL);
+    i2c->begin();
+    spi->init(NULL);
+    analogin->init(NULL);
+    storage->init(NULL);
+    rcin->init(NULL);
+  //  rcout->init((void *)&_is_ppmsum);
+    rcout->init(NULL);
 }
 
 const HAL_REVOMINI AP_HAL_REVOMINI;

@@ -711,7 +711,7 @@ static bool in_reverse;
   time they are expected to take (in microseconds)
  */
 static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
-	{ read_radio,             1,   1000 },
+    { read_radio,             1,   1000 },
     { ahrs_update,            1,   6400 },
     { read_sonars,            1,   2000 },
     { update_current_mode,    1,   1500 },
@@ -6519,7 +6519,7 @@ static void init_ardupilot()
     set_control_channels();
 
     // after parameter load setup correct baud rate on uartA
-//    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
+    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
     // keep a record of how many resets have happened. This can be
     // used to detect in-flight resets

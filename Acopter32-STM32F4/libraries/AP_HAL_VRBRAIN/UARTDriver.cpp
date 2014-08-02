@@ -40,6 +40,10 @@ VRBRAINUARTDriver::VRBRAINUARTDriver(struct usart_dev *usart, uint8_t use_usb):
 }
 
 void VRBRAINUARTDriver::begin(uint32_t baud) {
+    begin(baud,0);
+}
+
+void VRBRAINUARTDriver::begin(uint32_t baud, uint8_t sbus) {
 
     if(_usb == 1)
 	_usb_present = gpio_read_bit(_GPIOD,4);
@@ -74,7 +78,12 @@ void VRBRAINUARTDriver::begin(uint32_t baud) {
 	gpio_set_mode(rxi->gpio_device, rxi->gpio_bit, GPIO_AF_OUTPUT_PP);
 
 	usart_init(_usart_device);
-	usart_setup(_usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
+	if(sbus) {
+	    usart_setup(_usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_2, USART_Parity_Even, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
+	} else {
+	    usart_setup(_usart_device, (uint32)baud, USART_WordLength_8b, USART_StopBits_1, USART_Parity_No, USART_Mode_Rx | USART_Mode_Tx, USART_HardwareFlowControl_None, DEFAULT_TX_TIMEOUT);
+	}
+
 	usart_enable(_usart_device);
     }
     _initialized = true;

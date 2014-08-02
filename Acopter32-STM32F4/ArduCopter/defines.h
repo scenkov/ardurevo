@@ -20,11 +20,11 @@
 #define YAW_LOOK_AT_NEXT_WP             2       // point towards next waypoint (no pilot input accepted)
 #define YAW_LOOK_AT_LOCATION            3       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
 #define YAW_CIRCLE                      4       // point towards a location held in yaw_look_at_WP (no pilot input accepted)
-#define YAW_LOOK_AT_HOME    		5       // point towards home (no pilot input accepted)
-#define YAW_LOOK_AT_HEADING    		6       // point towards a particular angle (not pilot input accepted)
-#define YAW_LOOK_AHEAD			7	// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
+#define YAW_LOOK_AT_HOME    		    5       // point towards home (no pilot input accepted)
+#define YAW_LOOK_AT_HEADING    		    6       // point towards a particular angle (not pilot input accepted)
+#define YAW_LOOK_AHEAD					7		// WARNING!  CODE IN DEVELOPMENT NOT PROVEN
 #define YAW_DRIFT                       8       //
-#define YAW_RESETTOARMEDYAW		9       // point towards heading at time motors were armed
+#define YAW_RESETTOARMEDYAW				9       // point towards heading at time motors were armed
 
 #define ROLL_PITCH_STABLE           0       // pilot input roll, pitch angles
 #define ROLL_PITCH_ACRO             1       // pilot inputs roll, pitch rotation rates in body frame
@@ -34,6 +34,7 @@
 #define ROLL_PITCH_LOITER           5       // pilot inputs the desired horizontal velocities
 #define ROLL_PITCH_SPORT            6       // pilot inputs roll, pitch rotation rates in earth frame
 #define ROLL_PITCH_AUTOTUNE         7       // description of new roll-pitch mode
+#define ROLL_PITCH_HYBRID           8       // ST-JD pilot input roll, pitch angles when sticks are moved
 
 #define THROTTLE_MANUAL                     0   // manual throttle mode - pilot input goes directly to motors
 #define THROTTLE_MANUAL_TILT_COMPENSATED    1   // mostly manual throttle but with some tilt compensation
@@ -127,7 +128,8 @@
 #define OF_LOITER 10                    // Hold a single location using optical flow sensor
 #define DRIFT 11                        // DRIFT mode (Note: 12 is no longer used)
 #define SPORT 13                        // earth frame rate control
-#define NUM_MODES 14
+#define HYBRID 16                       // ST-JD Hybrid mode = Loiter with direct stick commands
+#define NUM_MODES 15
 
 
 // CH_6 Tuning
@@ -171,6 +173,13 @@
 #define ACRO_TRAINER_LEVELING   1
 #define ACRO_TRAINER_LIMITED    2
 
+// RC Feel roll/pitch definitions
+#define RC_FEEL_RP_VERY_SOFT        0
+#define RC_FEEL_RP_SOFT             25
+#define RC_FEEL_RP_MEDIUM           50
+#define RC_FEEL_RP_CRISP            75
+#define RC_FEEL_RP_VERY_CRISP       100
+
 // Commands - Note that APM now uses a subset of the MAVLink protocol
 // commands.  See enum MAV_CMD in the GCS_Mavlink library
 #define CMD_BLANK 0 // there is no command stored in the mem location
@@ -187,6 +196,7 @@
 #define NAV_CIRCLE      1
 #define NAV_LOITER      2
 #define NAV_WP          3
+#define NAV_HYBRID		4	// ST-JD: nav mode, used for initialisation on nav mode change
 
 // Yaw behaviours during missions - possible values for WP_YAW_BEHAVIOR parameter
 #define WP_YAW_BEHAVIOR_NONE                          0   // auto pilot will never control yaw during missions or rtl (except for DO_CONDITIONAL_YAW command received)
@@ -201,8 +211,8 @@
 #define WP_OPTION_YAW                           4
 #define WP_OPTION_ALT_REQUIRED                  8
 #define WP_OPTION_RELATIVE                      16
-//#define WP_OPTION_				32
-//#define WP_OPTION_				64
+//#define WP_OPTION_					32
+//#define WP_OPTION_					64
 #define WP_OPTION_NEXT_CMD                      128
 
 // RTL state
@@ -216,9 +226,6 @@
 // LAND state
 #define LAND_STATE_FLY_TO_LOCATION  0
 #define LAND_STATE_DESCENDING       1
-
-//repeating events
-#define RELAY_TOGGLE 5
 
 //  Logging parameters
 #define TYPE_AIRSTART_MSG               0x00
@@ -306,8 +313,8 @@
 #define DATA_EPM_ON                     46
 #define DATA_EPM_OFF                    47
 #define DATA_EPM_NEUTRAL                48
-// RADIANS
-#define RADX100 0.000174532925f
+
+// Centi-degrees to radians
 #define DEGX100 5729.57795f
 
 

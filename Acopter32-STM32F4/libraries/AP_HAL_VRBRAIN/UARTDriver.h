@@ -16,6 +16,7 @@ public:
   /* VRBRAIN implementations of UARTDriver virtual methods */
   void begin(uint32_t b);
   void begin(uint32_t b, uint16_t rxS, uint16_t txS);
+  void begin(uint32_t b, uint8_t sbus);
   void end();
   void flush();
   bool is_initialized(){ return _initialized; }
